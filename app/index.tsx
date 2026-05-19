@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import {
   Activity,
   Bell,
-  BookOpenCheck,
   ChevronRight,
   CheckCircle2,
   ChartNoAxesColumnIncreasing,
@@ -145,14 +144,6 @@ export default function HomeScreen() {
           icon={Timer}
           onPress={() => router.push(routes.toilet)}
           title="马桶计时"
-          tone="info"
-        />
-        <QuickActionCard
-          description="精细调整饮水、纤维、活动和收工体验。"
-          icon={BookOpenCheck}
-          onPress={() => router.push(routes.habits)}
-          title="小账本"
-          tone="primary"
         />
       </View>
 
@@ -189,13 +180,11 @@ type QuickActionCardProps = {
   icon: typeof Timer;
   onPress: () => void;
   title: string;
-  tone: 'info' | 'primary';
 };
 
-function QuickActionCard({ description, icon: Icon, onPress, title, tone }: QuickActionCardProps) {
+function QuickActionCard({ description, icon: Icon, onPress, title }: QuickActionCardProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const isPrimary = tone === 'primary';
 
   return (
     <Pressable
@@ -203,8 +192,8 @@ function QuickActionCard({ description, icon: Icon, onPress, title, tone }: Quic
       onPress={onPress}
       style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
     >
-      <View style={[styles.quickIcon, isPrimary ? styles.primaryBadge : styles.infoBadge]}>
-        <Icon color={isPrimary ? colors.primaryPressed : colors.info} size={22} strokeWidth={2.4} />
+      <View style={[styles.quickIcon, styles.infoBadge]}>
+        <Icon color={colors.info} size={22} strokeWidth={2.4} />
       </View>
       <Text style={styles.quickTitle}>{title}</Text>
       <Text style={styles.quickText}>{description}</Text>
@@ -416,9 +405,6 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       marginBottom: 14,
       width: 42,
-    },
-    primaryBadge: {
-      backgroundColor: colors.primarySoft,
     },
     infoBadge: {
       backgroundColor: colors.infoSoft,
