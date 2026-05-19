@@ -1,5 +1,4 @@
 import {
-  Activity,
   Bell,
   BellRing,
   Check,
@@ -34,6 +33,7 @@ import {
 } from '../../src/features/reminders/reminderLogic';
 import { useReminderStore } from '../../src/features/reminders/reminderStore';
 import { type QuietHoursRange } from '../../src/features/reminders/reminderTypes';
+import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -209,7 +209,7 @@ export default function RemindersScreen() {
       <AppCard style={styles.settingsCard}>
         <SettingHeader
           description="学名提肛训练，App 里叫菊花抬。到点轻轻敲门，不公开处刑。"
-          icon={Activity}
+          icon={FlowerLiftIcon}
           onValueChange={(enabled) => void setKegelEnabled(enabled)}
           title="到点小暗号"
           value={settings.kegelEnabled}

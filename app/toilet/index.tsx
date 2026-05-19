@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Pause, Play } from 'lucide-react-native';
+import { Armchair, Pause, Play } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
@@ -10,7 +10,6 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import { useAppSettingsStore } from '../../src/features/settings/appSettingsStore';
-import { SquatIcon } from '../../src/features/toilet/SquatIcon';
 import {
   formatToiletDuration,
   getToiletStageCopy,
@@ -190,7 +189,7 @@ export default function ToiletScreen() {
 
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
-            <SquatIcon color={colors.info} size={38} />
+            <Armchair color={colors.info} size={38} strokeWidth={2.4} />
           </View>
           <Text style={styles.startTitle}>开始前先把手机小剧场关一关</Text>
           <Text style={styles.startText}>5 分钟轻敲门，10 分钟催收工，20 分钟认真请你收工。</Text>

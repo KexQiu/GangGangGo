@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { type ComponentType } from 'react';
 import {
-  Activity,
   Bell,
   ChevronRight,
   CheckCircle2,
   ChartNoAxesColumnIncreasing,
+  Hourglass,
   Settings,
   ShieldCheck,
 } from 'lucide-react-native';
@@ -31,8 +31,8 @@ import {
   getToiletStatusLabel,
   getTrainingStatusLabel,
 } from '../src/features/today/todayFeedback';
-import { SquatIcon } from '../src/features/toilet/SquatIcon';
 import { getTodayToiletSessionCount, useToiletStore } from '../src/features/toilet/toiletStore';
+import { FlowerLiftIcon } from '../src/features/training/FlowerLiftIcon';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../src/features/training/trainingStore';
 import { buildSevenDayTrend } from '../src/features/trends/trendLogic';
 import { routes } from '../src/navigation/routes';
@@ -117,7 +117,14 @@ export default function HomeScreen() {
           </View>
           <View style={styles.ringOuter}>
             <View style={styles.ringInner}>
-              <Activity color={colors.primary} size={28} strokeWidth={2.4} />
+              <FlowerLiftIcon
+                info={colors.primaryPressed}
+                primary={colors.primary}
+                privacy={colors.primaryPressed}
+                size={42}
+                surface={colors.surface}
+                variant="steady"
+              />
             </View>
           </View>
         </View>
@@ -129,7 +136,7 @@ export default function HomeScreen() {
 
       <CompactActionRow
         description="正事办完就撤，别把蹲会儿开成小长会。"
-        icon={SquatIcon}
+        icon={Hourglass}
         onPress={() => router.push(routes.toilet)}
         title="蹲会儿"
       />
@@ -363,20 +370,18 @@ function createStyles(colors: ThemeColors) {
     ringOuter: {
       alignItems: 'center',
       backgroundColor: colors.primarySoft,
-      borderRadius: 32,
-      height: 64,
+      borderRadius: 34,
+      height: 68,
       justifyContent: 'center',
-      width: 64,
+      width: 68,
     },
     ringInner: {
       alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderColor: colors.primary,
-      borderRadius: 22,
-      borderWidth: 5,
-      height: 44,
+      backgroundColor: colors.primarySoft,
+      borderRadius: 27,
+      height: 54,
       justifyContent: 'center',
-      width: 44,
+      width: 54,
     },
     actionRow: {
       alignItems: 'center',

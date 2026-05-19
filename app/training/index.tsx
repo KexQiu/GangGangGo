@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { Activity, Bolt, TimerReset } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
@@ -7,6 +6,7 @@ import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
+import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { trainingPresets } from '../../src/features/training/presets';
 import { formatTrainingDuration } from '../../src/features/training/trainingLogic';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../../src/features/training/trainingStore';
@@ -14,10 +14,10 @@ import { type TrainingPresetId } from '../../src/features/training/trainingTypes
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
-const presetIcons: Record<TrainingPresetId, typeof Activity> = {
-  beginner: Activity,
-  standard: TimerReset,
-  quick: Bolt,
+const presetIconVariants: Record<TrainingPresetId, 'quick' | 'soft' | 'steady'> = {
+  beginner: 'soft',
+  standard: 'steady',
+  quick: 'quick',
 };
 
 export default function TrainingScreen() {
@@ -47,14 +47,22 @@ export default function TrainingScreen() {
 
       <View style={styles.list}>
         {trainingPresets.map((preset) => {
-          const Icon = presetIcons[preset.id];
+          const iconVariant = presetIconVariants[preset.id];
           const totalSeconds = preset.repetitions * (preset.contractSeconds + preset.relaxSeconds);
 
           return (
             <AppCard key={preset.id} style={styles.presetCard}>
               <View style={styles.presetHeader}>
                 <View style={styles.iconBadge}>
-                  <Icon color={colors.primaryPressed} size={22} strokeWidth={2.4} />
+                  <FlowerLiftIcon
+                    info={colors.primaryPressed}
+                    primary={colors.primary}
+                    privacy={colors.primaryPressed}
+                    size={34}
+                    strokeWidth={2.35}
+                    surface={colors.surface}
+                    variant={iconVariant}
+                  />
                 </View>
                 <View style={styles.presetCopy}>
                   <Text style={styles.presetTitle}>{preset.name}</Text>
@@ -126,11 +134,11 @@ function createStyles(colors: ThemeColors) {
     iconBadge: {
       alignItems: 'center',
       backgroundColor: colors.primarySoft,
-      borderRadius: 18,
-      height: 38,
+      borderRadius: 24,
+      height: 50,
       justifyContent: 'center',
       marginRight: 12,
-      width: 38,
+      width: 50,
     },
     presetCopy: {
       flex: 1,

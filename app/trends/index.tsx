@@ -1,9 +1,9 @@
 import { type ComponentType } from 'react';
 import {
-  Activity,
   AlertTriangle,
   BookOpenCheck,
   ChartNoAxesColumnIncreasing,
+  Hourglass,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -12,8 +12,8 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import { useHabitStore } from '../../src/features/habits/habitStore';
-import { SquatIcon } from '../../src/features/toilet/SquatIcon';
 import { useToiletStore } from '../../src/features/toilet/toiletStore';
+import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { useTrainingStore } from '../../src/features/training/trainingStore';
 import {
   buildSevenDayTrend,
@@ -75,7 +75,7 @@ export default function TrendsScreen() {
             metricLabel="营业组数"
             subtitle={`这周小花营业 ${sevenDayTrend.trainingActiveDays} 天`}
             title="菊花抬"
-            icon={Activity}
+            icon={FlowerLiftIcon}
           />
           <TrendCard
             days={sevenDayTrend.days}
@@ -99,7 +99,7 @@ export default function TrendsScreen() {
                 : '没有蹲会儿长会，收工节奏挺利索'
             }
             title="蹲会儿记录"
-            icon={SquatIcon}
+            icon={Hourglass}
           />
         </>
       )}
