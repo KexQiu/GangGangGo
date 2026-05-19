@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { type ComponentType } from 'react';
 import {
   Activity,
   Bell,
@@ -7,7 +8,6 @@ import {
   ChartNoAxesColumnIncreasing,
   Settings,
   ShieldCheck,
-  Timer,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -31,6 +31,7 @@ import {
   getToiletStatusLabel,
   getTrainingStatusLabel,
 } from '../src/features/today/todayFeedback';
+import { SquatIcon } from '../src/features/toilet/SquatIcon';
 import { getTodayToiletSessionCount, useToiletStore } from '../src/features/toilet/toiletStore';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../src/features/training/trainingStore';
 import { buildSevenDayTrend } from '../src/features/trends/trendLogic';
@@ -127,8 +128,8 @@ export default function HomeScreen() {
       </AppCard>
 
       <CompactActionRow
-        description="5 分钟敲门，15 分钟亮红灯。"
-        icon={Timer}
+        description="正事办完就撤，别把蹲会儿开成小长会。"
+        icon={SquatIcon}
         onPress={() => router.push(routes.toilet)}
         title="蹲会儿"
       />
@@ -169,10 +170,16 @@ export default function HomeScreen() {
 
 type RowActionProps = {
   description: string;
-  icon: typeof Timer;
+  icon: IconComponent;
   onPress: () => void;
   title: string;
 };
+
+type IconComponent = ComponentType<{
+  color?: string;
+  size?: number;
+  strokeWidth?: number;
+}>;
 
 function CompactActionRow({ description, icon: Icon, onPress, title }: RowActionProps) {
   const { colors } = useAppTheme();

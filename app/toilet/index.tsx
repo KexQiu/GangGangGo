@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Pause, Play, Timer } from 'lucide-react-native';
+import { Pause, Play } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
@@ -9,25 +9,45 @@ import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
+import { useAppSettingsStore } from '../../src/features/settings/appSettingsStore';
+import { SquatIcon } from '../../src/features/toilet/SquatIcon';
 import {
   formatToiletDuration,
   getToiletStageCopy,
   getToiletTimerStage,
 } from '../../src/features/toilet/toiletLogic';
+import {
+  endToiletLiveActivity,
+  pauseToiletLiveActivity,
+  resumeToiletLiveActivity,
+  startToiletLiveActivity,
+} from '../../src/features/toilet/toiletLiveActivity';
+import {
+  getActiveToiletTimerElapsedSeconds,
+  useToiletTimerSessionStore,
+} from '../../src/features/toilet/toiletTimerSessionStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
 export default function ToiletScreen() {
   const router = useRouter();
-  const [startedAt, setStartedAt] = useState<string | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [, setTick] = useState(0);
+  const session = useToiletTimerSessionStore((state) => state.session);
+  const startSession = useToiletTimerSessionStore((state) => state.startSession);
+  const pauseSession = useToiletTimerSessionStore((state) => state.pauseSession);
+  const resumeSession = useToiletTimerSessionStore((state) => state.resumeSession);
+  const clearSession = useToiletTimerSessionStore((state) => state.clearSession);
+  const setLiveActivityId = useToiletTimerSessionStore((state) => state.setLiveActivityId);
+  const toiletLiveActivityEnabled = useAppSettingsStore((state) => state.toiletLiveActivityEnabled);
   const lastStageRef = useRef(getToiletTimerStage(0));
+  const activeSessionRef = useRef<string | null>(null);
   const { colors } = useAppTheme();
+  const elapsedSeconds = getActiveToiletTimerElapsedSeconds(session);
+  const isPaused = session?.isPaused ?? false;
   const stage = getToiletTimerStage(elapsedSeconds);
   const stageCopy = getToiletStageCopy(stage);
   const styles = createStyles(colors, stage);
-  const hasStarted = Boolean(startedAt);
+  const hasStarted = Boolean(session);
 
   useEffect(() => {
     if (!hasStarted || isPaused) {
@@ -35,59 +55,98 @@ export default function ToiletScreen() {
     }
 
     const timer = setInterval(() => {
-      setElapsedSeconds((current) => current + 1);
+      setTick((current) => current + 1);
     }, 1000);
 
     return () => clearInterval(timer);
   }, [hasStarted, isPaused]);
 
   useEffect(() => {
-    if (lastStageRef.current !== stage) {
+    if (activeSessionRef.current !== (session?.startedAt ?? null)) {
+      activeSessionRef.current = session?.startedAt ?? null;
       lastStageRef.current = stage;
-      void Haptics.notificationAsync(
-        stage === 'severe_warning'
-          ? Haptics.NotificationFeedbackType.Error
-          : Haptics.NotificationFeedbackType.Warning,
-      );
+      return;
     }
-  }, [stage]);
 
-  function startTimer() {
-    setStartedAt(new Date().toISOString());
-    setElapsedSeconds(0);
-    setIsPaused(false);
+    if (!hasStarted || lastStageRef.current === stage) {
+      return;
+    }
+
+    lastStageRef.current = stage;
+    void Haptics.notificationAsync(
+      stage === 'severe_warning'
+        ? Haptics.NotificationFeedbackType.Error
+        : Haptics.NotificationFeedbackType.Warning,
+    );
+  }, [hasStarted, session?.startedAt, stage]);
+
+  async function startTimer() {
+    const startedAt = new Date().toISOString();
+    startSession(startedAt);
     lastStageRef.current = getToiletTimerStage(0);
     void Haptics.selectionAsync();
+
+    if (!toiletLiveActivityEnabled) {
+      return;
+    }
+
+    const activityId = await startToiletLiveActivity(startedAt, 0);
+    const currentSession = useToiletTimerSessionStore.getState().session;
+    if (currentSession?.startedAt === startedAt && activityId) {
+      setLiveActivityId(activityId);
+      return;
+    }
+
+    if (activityId) {
+      await endToiletLiveActivity(activityId, 0);
+    }
   }
 
   function endTimer() {
-    if (!startedAt) {
+    if (!session) {
       return;
     }
+
+    const durationSeconds = elapsedSeconds;
+    const startedAt = session.startedAt;
+    void endToiletLiveActivity(session.liveActivityId, durationSeconds);
+    clearSession();
 
     router.push({
       pathname: routes.toiletComplete,
       params: {
-        durationSeconds: elapsedSeconds.toString(),
+        durationSeconds: durationSeconds.toString(),
         startedAt,
       },
     });
   }
 
   function discardTimer() {
-    setStartedAt(null);
-    setElapsedSeconds(0);
-    setIsPaused(false);
+    if (session) {
+      void endToiletLiveActivity(session.liveActivityId, elapsedSeconds);
+    }
+    clearSession();
     router.replace(routes.home);
   }
 
   function confirmDiscardTimer() {
-    const wasPaused = isPaused;
-    setIsPaused(true);
+    const wasPaused = session?.isPaused ?? false;
+    const activityId = session?.liveActivityId ?? null;
+    const pausedElapsedSeconds = elapsedSeconds;
+
+    if (!wasPaused) {
+      pauseSession(pausedElapsedSeconds);
+      void pauseToiletLiveActivity(activityId, pausedElapsedSeconds);
+    }
 
     Alert.alert('这次不记了？', '放弃后不会保存本次记录，就当小本本没翻开。', [
       {
-        onPress: () => setIsPaused(wasPaused),
+        onPress: () => {
+          if (!wasPaused) {
+            resumeSession();
+            void resumeToiletLiveActivity(activityId, pausedElapsedSeconds);
+          }
+        },
         style: 'cancel',
         text: '继续营业',
       },
@@ -97,6 +156,25 @@ export default function ToiletScreen() {
         text: '不记了',
       },
     ]);
+  }
+
+  function togglePause() {
+    if (!session) {
+      return;
+    }
+
+    const activityId = session.liveActivityId;
+    const currentElapsedSeconds = elapsedSeconds;
+    void Haptics.selectionAsync();
+
+    if (session.isPaused) {
+      resumeSession();
+      void resumeToiletLiveActivity(activityId, currentElapsedSeconds);
+      return;
+    }
+
+    pauseSession(currentElapsedSeconds);
+    void pauseToiletLiveActivity(activityId, currentElapsedSeconds);
   }
 
   if (!hasStarted) {
@@ -112,7 +190,7 @@ export default function ToiletScreen() {
 
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
-            <Timer color={colors.info} size={38} strokeWidth={2.4} />
+            <SquatIcon color={colors.info} size={38} />
           </View>
           <Text style={styles.startTitle}>开始前先把手机小剧场关一关</Text>
           <Text style={styles.startText}>5 分钟轻敲门，10 分钟催收工，20 分钟认真请你收工。</Text>
@@ -160,7 +238,7 @@ export default function ToiletScreen() {
           收工
         </AppButton>
         <AppButton
-          onPress={() => setIsPaused((current) => !current)}
+          onPress={togglePause}
           style={styles.actionButton}
           variant="secondary"
         >

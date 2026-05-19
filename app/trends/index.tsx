@@ -1,9 +1,9 @@
+import { type ComponentType } from 'react';
 import {
   Activity,
   AlertTriangle,
   BookOpenCheck,
   ChartNoAxesColumnIncreasing,
-  Timer,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -12,6 +12,7 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import { useHabitStore } from '../../src/features/habits/habitStore';
+import { SquatIcon } from '../../src/features/toilet/SquatIcon';
 import { useToiletStore } from '../../src/features/toilet/toiletStore';
 import { useTrainingStore } from '../../src/features/training/trainingStore';
 import {
@@ -98,7 +99,7 @@ export default function TrendsScreen() {
                 : '没有蹲会儿长会，收工节奏挺利索'
             }
             title="蹲会儿记录"
-            icon={Timer}
+            icon={SquatIcon}
           />
         </>
       )}
@@ -125,12 +126,18 @@ type TrendCardProps = {
   days: DailyTrend[];
   getBarTone: (day: DailyTrend) => BarTone;
   getValue: (day: DailyTrend) => number;
-  icon: typeof Activity;
+  icon: IconComponent;
   maxValue: number;
   metricLabel: string;
   subtitle: string;
   title: string;
 };
+
+type IconComponent = ComponentType<{
+  color?: string;
+  size?: number;
+  strokeWidth?: number;
+}>;
 
 type BarTone = 'danger' | 'info' | 'muted' | 'primary' | 'warning';
 

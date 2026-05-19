@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Bell, Monitor, Moon, ShieldCheck, Sun, Volume2 } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Bell, Monitor, Moon, ShieldCheck, Smartphone, Sun, Volume2 } from 'lucide-react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
@@ -8,6 +8,7 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { OptionRow } from '../../src/components/OptionRow';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
+import { useAppSettingsStore } from '../../src/features/settings/appSettingsStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 import { type ThemeMode } from '../../src/theme/themeStore';
@@ -41,6 +42,8 @@ const themeOptions: Array<{
 export default function SettingsScreen() {
   const router = useRouter();
   const theme = useAppTheme();
+  const toiletLiveActivityEnabled = useAppSettingsStore((state) => state.toiletLiveActivityEnabled);
+  const setToiletLiveActivityEnabled = useAppSettingsStore((state) => state.setToiletLiveActivityEnabled);
   const styles = createStyles(theme.colors);
 
   return (
@@ -92,6 +95,29 @@ export default function SettingsScreen() {
         <View style={styles.divider} />
 
         <View style={styles.settingLine}>
+          <Smartphone color={theme.colors.privacy} size={20} strokeWidth={2.3} />
+          <View style={styles.settingText}>
+            <Text style={styles.settingTitle}>灵动岛计时</Text>
+            <Text style={styles.settingDescription}>
+              开启后，锁屏和灵动岛会显示蹲会儿计时。适合真机开发包，不在 Expo Go 生效。
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel="灵动岛计时"
+            ios_backgroundColor={theme.colors.border}
+            onValueChange={setToiletLiveActivityEnabled}
+            thumbColor={toiletLiveActivityEnabled ? theme.colors.primary : theme.colors.surface}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primarySoft,
+            }}
+            value={toiletLiveActivityEnabled}
+          />
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.settingLine}>
           <Volume2 color={theme.colors.info} size={20} strokeWidth={2.3} />
           <View style={styles.settingText}>
             <Text style={styles.settingTitle}>声音与震动</Text>
@@ -123,10 +149,10 @@ function createStyles(colors: ThemeColors) {
     settingLine: {
       alignItems: 'flex-start',
       flexDirection: 'row',
+      gap: 12,
     },
     settingText: {
       flex: 1,
-      marginLeft: 12,
     },
     settingTitle: {
       color: colors.text,
