@@ -1,5 +1,6 @@
+import * as Haptics from 'expo-haptics';
 import { Droplets, Leaf, ListChecks, Move, Smile } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
@@ -80,6 +81,11 @@ export default function HabitsScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
+  async function selectHabitLevel(key: HabitKey, level: HabitLevel) {
+    await Haptics.selectionAsync();
+    await setHabitLevel(today, key, level);
+  }
+
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.home} title="小账本" />
@@ -134,15 +140,22 @@ export default function HabitsScreen() {
                   const selected = activeLevel === option.level;
 
                   return (
-                    <Text
+                    <Pressable
+                      accessibilityLabel={`${item.title}：${option.label}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
                       key={option.level}
                       onPress={() => {
-                        void setHabitLevel(today, item.key, option.level);
+                        void selectHabitLevel(item.key, option.level);
                       }}
-                      style={[styles.segment, selected && styles.segmentSelected]}
+                      style={({ pressed }) => [
+                        styles.segment,
+                        selected && styles.segmentSelected,
+                        pressed && styles.segmentPressed,
+                      ]}
                     >
-                      {option.label}
-                    </Text>
+                      <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{option.label}</Text>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -242,17 +255,31 @@ function createStyles(colors: ThemeColors) {
       padding: 4,
     },
     segment: {
+      alignItems: 'center',
       borderRadius: 14,
-      color: colors.textMuted,
       flex: 1,
-      fontSize: 13,
-      fontWeight: '800',
-      overflow: 'hidden',
+      justifyContent: 'center',
+      minHeight: 42,
       paddingVertical: 11,
-      textAlign: 'center',
     },
     segmentSelected: {
       backgroundColor: colors.surface,
+      shadowColor: colors.text,
+      shadowOffset: { height: 1, width: 0 },
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+    },
+    segmentPressed: {
+      opacity: 0.78,
+      transform: [{ scale: 0.99 }],
+    },
+    segmentText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    segmentTextSelected: {
       color: colors.primaryPressed,
     },
   });

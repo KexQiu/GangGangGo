@@ -4,17 +4,33 @@ import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'rea
 import { useAppTheme } from '../theme/themeProvider';
 
 type AppButtonProps = PropsWithChildren<{
+  accessibilityHint?: string;
+  accessibilityLabel?: string;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   variant?: 'primary' | 'secondary' | 'warning';
 }>;
 
-export function AppButton({ children, onPress, style, variant = 'primary' }: AppButtonProps) {
+export function AppButton({
+  accessibilityHint,
+  accessibilityLabel,
+  children,
+  onPress,
+  style,
+  variant = 'primary',
+}: AppButtonProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors, variant);
+  const label = accessibilityLabel ?? (typeof children === 'string' ? children : undefined);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed, style]}>
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed, style]}
+    >
       <Text style={styles.text}>{children}</Text>
     </Pressable>
   );

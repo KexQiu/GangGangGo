@@ -94,6 +94,10 @@ export function HabitQuickCheckInCard({ showDetailsButton = true }: HabitQuickCh
 
           return (
             <Pressable
+              accessibilityHint="点一下会把这一项记为达标。"
+              accessibilityLabel={selected ? `${item.doneLabel}，已完成` : `标记${item.title}达标`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
               key={item.key}
               onPress={() => {
                 void markGood(item.key);

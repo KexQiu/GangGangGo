@@ -21,9 +21,16 @@ type OptionRowProps = {
 export function OptionRow({ description, icon: Icon, onPress, selected = false, title }: OptionRowProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors, selected);
+  const accessibilityLabel = description ? `${title}，${description}` : title;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
       {Icon ? (
         <View style={styles.iconBadge}>
           <Icon color={selected ? colors.primaryPressed : colors.textMuted} size={20} strokeWidth={2.3} />

@@ -56,7 +56,9 @@ export default function ToiletCompleteScreen() {
   const [bleeding, setBleeding] = useState(false);
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const shouldShowRisk = bleeding || discomfort || isLongToiletSession(durationSeconds);
+  const hasRedFlag = bleeding || discomfort;
+  const hasLongToilet = isLongToiletSession(durationSeconds);
+  const shouldShowRisk = hasRedFlag || hasLongToilet;
 
   async function saveSession() {
     if (!shouldShowRisk) {
@@ -119,7 +121,7 @@ export default function ToiletCompleteScreen() {
         />
       </View>
 
-      {shouldShowRisk ? (
+      {hasRedFlag ? (
         <AppCard style={styles.riskCard}>
           <View style={styles.riskHeader}>
             <AlertTriangle color={colors.danger} size={22} strokeWidth={2.4} />
@@ -129,6 +131,18 @@ export default function ToiletCompleteScreen() {
           </View>
           <AppButton onPress={() => router.push(routes.safety)} style={styles.riskButton} variant="secondary">
             查看安全说明
+          </AppButton>
+        </AppCard>
+      ) : hasLongToilet ? (
+        <AppCard style={styles.longSessionCard}>
+          <View style={styles.riskHeader}>
+            <AlertTriangle color={colors.warning} size={22} strokeWidth={2.4} />
+            <Text style={styles.riskText}>
+              这次马桶会开得有点久。先收工、少刷一会儿，让小花别把马桶当工位。
+            </Text>
+          </View>
+          <AppButton onPress={() => router.push(routes.safety)} style={styles.riskButton} variant="warning">
+            看看怎么少开长会
           </AppButton>
         </AppCard>
       ) : (
@@ -159,6 +173,11 @@ function createStyles(colors: ThemeColors) {
     riskCard: {
       backgroundColor: colors.dangerSoft,
       borderColor: colors.danger,
+      marginBottom: 18,
+    },
+    longSessionCard: {
+      backgroundColor: colors.warningSoft,
+      borderColor: colors.warning,
       marginBottom: 18,
     },
     riskHeader: {
