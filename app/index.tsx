@@ -78,42 +78,31 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.statsRow}>
-        <StatusTile
-          label="菊花抬"
-          status={getTrainingStatusLabel(todayTrainingCount, trainingTarget)}
-          value={`${Math.min(todayTrainingCount, trainingTarget)}/${trainingTarget}`}
-        />
-        <StatusTile label="小账本" status={getHabitStatusLabel(habitCompletion)} value={`${habitCompletion}/4`} />
-        <StatusTile label="马桶计时" status={getToiletStatusLabel(todayToiletCount)} value={`${todayToiletCount} 次`} />
-      </View>
-
-      <AppCard muted style={styles.feedbackCard}>
-        <View style={styles.feedbackIcon}>
-          <CheckCircle2 color={colors.primaryPressed} size={22} strokeWidth={2.4} />
+      <AppCard muted style={styles.overviewCard}>
+        <View style={styles.overviewHeader}>
+          <View style={styles.feedbackIcon}>
+            <CheckCircle2 color={colors.primaryPressed} size={20} strokeWidth={2.4} />
+          </View>
+          <View style={styles.feedbackCopy}>
+            <Text style={styles.feedbackTitle}>{todayFeedback.title}</Text>
+            <Text style={styles.mutedText}>{todayFeedback.body}</Text>
+          </View>
         </View>
-        <View style={styles.feedbackCopy}>
-          <Text style={styles.feedbackTitle}>{todayFeedback.title}</Text>
-          <Text style={styles.mutedText}>{todayFeedback.body}</Text>
+
+        <View style={styles.overviewMetrics}>
+          <OverviewMetric
+            label="菊花抬"
+            status={getTrainingStatusLabel(todayTrainingCount, trainingTarget)}
+            value={`${Math.min(todayTrainingCount, trainingTarget)}/${trainingTarget}`}
+          />
+          <OverviewMetric label="小账本" status={getHabitStatusLabel(habitCompletion)} value={`${habitCompletion}/4`} />
+          <OverviewMetric
+            label="马桶计时"
+            status={getToiletStatusLabel(todayToiletCount)}
+            value={`${todayToiletCount} 次`}
+          />
         </View>
       </AppCard>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push(routes.trends)}
-        style={({ pressed }) => [styles.trendEntry, pressed && styles.pressed]}
-      >
-        <View style={styles.trendIcon}>
-          <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={21} strokeWidth={2.4} />
-        </View>
-        <View style={styles.trendCopy}>
-          <Text style={styles.trendTitle}>看看最近趋势</Text>
-          <Text style={styles.mutedText}>
-            这周小花营业 {sevenDayTrend.trainingActiveDays} 天，小账本满格 {sevenDayTrend.habitFullDays} 天。
-          </Text>
-        </View>
-        <ChevronRight color={colors.textSubtle} size={19} strokeWidth={2.4} />
-      </Pressable>
 
       <AppCard muted style={styles.heroCard}>
         <View style={styles.heroTop}>
@@ -137,86 +126,121 @@ export default function HomeScreen() {
         </AppButton>
       </AppCard>
 
-      <Text style={styles.sectionLabel}>快捷行动</Text>
-      <View style={styles.quickGrid}>
-        <QuickActionCard
-          description="5 分钟敲门，15 分钟亮红灯。"
-          icon={Timer}
-          onPress={() => router.push(routes.toilet)}
-          title="马桶计时"
+      <CompactActionRow
+        description="5 分钟敲门，15 分钟亮红灯。"
+        icon={Timer}
+        onPress={() => router.push(routes.toilet)}
+        title="马桶计时"
+      />
+
+      <HabitQuickCheckInCard compact showDetailsButton />
+
+      <AppCard style={styles.toolCard}>
+        <UtilityLink
+          description={`这周小花营业 ${sevenDayTrend.trainingActiveDays} 天，小账本满格 ${sevenDayTrend.habitFullDays} 天。`}
+          icon={ChartNoAxesColumnIncreasing}
+          iconColor={colors.primaryPressed}
+          iconTone={colors.primarySoft}
+          onPress={() => router.push(routes.trends)}
+          title="最近趋势"
         />
-      </View>
-
-      <HabitQuickCheckInCard showDetailsButton />
-
-      <AppCard style={styles.noticeCard}>
-        <View style={styles.noticeIcon}>
-          <Bell color={colors.privacy} size={20} strokeWidth={2.4} />
-        </View>
-        <View style={styles.noticeCopy}>
-          <Text style={styles.noticeTitle}>{reminderSummary.title}</Text>
-          <Text style={styles.mutedText}>{reminderSummary.subtitle}</Text>
-        </View>
-        <AppButton onPress={() => router.push(routes.reminders)} style={styles.compactButton} variant="secondary">
-          设置
-        </AppButton>
+        <View style={styles.toolDivider} />
+        <UtilityLink
+          description={reminderSummary.subtitle}
+          icon={Bell}
+          iconColor={colors.privacy}
+          iconTone={colors.surfaceMuted}
+          onPress={() => router.push(routes.reminders)}
+          title={reminderSummary.title}
+        />
+        <View style={styles.toolDivider} />
+        <UtilityLink
+          description="明显便血、剧烈疼痛或不适加重时，先别硬扛。"
+          icon={ShieldCheck}
+          iconColor={colors.info}
+          iconTone={colors.infoSoft}
+          onPress={() => router.push(routes.safety)}
+          title="安全说明"
+        />
       </AppCard>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push(routes.safety)}
-        style={({ pressed }) => [styles.safetyCard, pressed && styles.pressed]}
-      >
-        <ShieldCheck color={colors.info} size={20} strokeWidth={2.4} />
-        <Text style={styles.safetyText}>明显便血、剧烈疼痛或不适加重时，先别硬扛，建议咨询医生。</Text>
-        <ChevronRight color={colors.textSubtle} size={19} strokeWidth={2.4} />
-      </Pressable>
     </Screen>
   );
 }
 
-type QuickActionCardProps = {
+type RowActionProps = {
   description: string;
   icon: typeof Timer;
   onPress: () => void;
   title: string;
 };
 
-function QuickActionCard({ description, icon: Icon, onPress, title }: QuickActionCardProps) {
+function CompactActionRow({ description, icon: Icon, onPress, title }: RowActionProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
   return (
     <Pressable
+      accessibilityLabel={`${title}，${description}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.actionRow, pressed && styles.pressed]}
     >
-      <View style={[styles.quickIcon, styles.infoBadge]}>
+      <View style={[styles.rowIcon, styles.infoBadge]}>
         <Icon color={colors.info} size={22} strokeWidth={2.4} />
       </View>
-      <Text style={styles.quickTitle}>{title}</Text>
-      <Text style={styles.quickText}>{description}</Text>
+      <View style={styles.rowCopy}>
+        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={styles.mutedText}>{description}</Text>
+      </View>
+      <ChevronRight color={colors.textSubtle} size={19} strokeWidth={2.4} />
     </Pressable>
   );
 }
 
-type StatusTileProps = {
+type OverviewMetricProps = {
   label: string;
   status: string;
   value: string;
 };
 
-function StatusTile({ label, status, value }: StatusTileProps) {
+function OverviewMetric({ label, status, value }: OverviewMetricProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
   return (
-    <View style={styles.statusTile}>
-      <Text style={styles.statusValue}>{value}</Text>
-      <Text style={styles.statusLabel}>{label}</Text>
-      <Text style={styles.statusTag}>{status}</Text>
+    <View style={styles.metricItem}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricTag}>{status}</Text>
     </View>
+  );
+}
+
+type UtilityLinkProps = RowActionProps & {
+  iconColor: string;
+  iconTone: string;
+};
+
+function UtilityLink({ description, icon: Icon, iconColor, iconTone, onPress, title }: UtilityLinkProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <Pressable
+      accessibilityLabel={`${title}，${description}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.utilityRow, pressed && styles.pressed]}
+    >
+      <View style={[styles.utilityIcon, { backgroundColor: iconTone }]}>
+        <Icon color={iconColor} size={19} strokeWidth={2.4} />
+      </View>
+      <View style={styles.rowCopy}>
+        <Text style={styles.utilityTitle}>{title}</Text>
+        <Text style={styles.utilityText}>{description}</Text>
+      </View>
+      <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.4} />
+    </Pressable>
   );
 }
 
@@ -244,116 +268,90 @@ function createStyles(colors: ThemeColors) {
       opacity: 0.78,
       transform: [{ scale: 0.98 }],
     },
-    statsRow: {
-      flexDirection: 'row',
-      gap: 10,
-      marginBottom: 16,
+    overviewCard: {
+      marginBottom: 12,
+      padding: 16,
     },
-    statusTile: {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 18,
-      borderWidth: 1,
-      flex: 1,
-      paddingHorizontal: 10,
-      paddingVertical: 12,
-    },
-    statusValue: {
-      color: colors.text,
-      fontSize: 17,
-      fontWeight: '800',
-      marginBottom: 5,
-      textAlign: 'center',
-    },
-    statusLabel: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '700',
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    statusTag: {
-      alignSelf: 'center',
-      backgroundColor: colors.primarySoft,
-      borderRadius: 999,
-      color: colors.primaryPressed,
-      fontSize: 11,
-      fontWeight: '800',
-      overflow: 'hidden',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      textAlign: 'center',
-    },
-    feedbackCard: {
+    overviewHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 16,
+      marginBottom: 12,
     },
     feedbackIcon: {
       alignItems: 'center',
       backgroundColor: colors.primarySoft,
-      borderRadius: 20,
-      height: 40,
+      borderRadius: 17,
+      height: 34,
       justifyContent: 'center',
-      marginRight: 13,
-      width: 40,
+      marginRight: 10,
+      width: 34,
     },
     feedbackCopy: {
       flex: 1,
     },
     feedbackTitle: {
       color: colors.text,
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: '800',
-      marginBottom: 5,
+      marginBottom: 3,
     },
-    trendEntry: {
+    overviewMetrics: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    metricItem: {
       alignItems: 'center',
       backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 20,
-      borderWidth: 1,
-      flexDirection: 'row',
-      marginBottom: 16,
-      padding: 16,
-    },
-    trendIcon: {
-      alignItems: 'center',
-      backgroundColor: colors.primarySoft,
-      borderRadius: 18,
-      height: 36,
-      justifyContent: 'center',
-      marginRight: 12,
-      width: 36,
-    },
-    trendCopy: {
+      borderRadius: 15,
       flex: 1,
+      paddingHorizontal: 7,
+      paddingVertical: 9,
     },
-    trendTitle: {
+    metricValue: {
       color: colors.text,
       fontSize: 16,
       fontWeight: '800',
+      marginBottom: 4,
+      textAlign: 'center',
+    },
+    metricLabel: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
       marginBottom: 5,
+      textAlign: 'center',
+    },
+    metricTag: {
+      alignSelf: 'center',
+      backgroundColor: colors.primarySoft,
+      borderRadius: 999,
+      color: colors.primaryPressed,
+      fontSize: 10,
+      fontWeight: '800',
+      overflow: 'hidden',
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      textAlign: 'center',
     },
     heroCard: {
-      borderRadius: 28,
-      marginBottom: 18,
-      padding: 22,
+      borderRadius: 24,
+      marginBottom: 12,
+      padding: 18,
     },
     heroTop: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 20,
+      marginBottom: 14,
     },
     heroCopy: {
       flex: 1,
-      marginRight: 18,
+      marginRight: 14,
     },
     heroTitle: {
       color: colors.text,
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: '800',
-      marginBottom: 8,
+      marginBottom: 6,
     },
     mutedText: {
       color: colors.textMuted,
@@ -364,107 +362,86 @@ function createStyles(colors: ThemeColors) {
     ringOuter: {
       alignItems: 'center',
       backgroundColor: colors.primarySoft,
-      borderRadius: 42,
-      height: 84,
+      borderRadius: 32,
+      height: 64,
       justifyContent: 'center',
-      width: 84,
+      width: 64,
     },
     ringInner: {
       alignItems: 'center',
       backgroundColor: colors.surface,
       borderColor: colors.primary,
-      borderRadius: 28,
-      borderWidth: 6,
-      height: 56,
+      borderRadius: 22,
+      borderWidth: 5,
+      height: 44,
       justifyContent: 'center',
-      width: 56,
+      width: 44,
     },
-    sectionLabel: {
-      color: colors.text,
-      fontSize: 16,
-      fontWeight: '800',
-      marginBottom: 12,
-    },
-    quickGrid: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 16,
-    },
-    quickCard: {
+    actionRow: {
+      alignItems: 'center',
       backgroundColor: colors.surface,
       borderColor: colors.border,
       borderRadius: 20,
       borderWidth: 1,
-      flex: 1,
-      padding: 16,
+      flexDirection: 'row',
+      marginBottom: 12,
+      padding: 14,
     },
-    quickIcon: {
+    rowIcon: {
       alignItems: 'center',
-      borderRadius: 20,
-      height: 42,
+      borderRadius: 19,
+      height: 38,
       justifyContent: 'center',
-      marginBottom: 14,
-      width: 42,
+      marginRight: 12,
+      width: 38,
     },
     infoBadge: {
       backgroundColor: colors.infoSoft,
     },
-    quickTitle: {
-      color: colors.text,
-      fontSize: 16,
-      fontWeight: '800',
-      marginBottom: 6,
+    rowCopy: {
+      flex: 1,
     },
-    quickText: {
+    rowTitle: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+      marginBottom: 3,
+    },
+    toolCard: {
+      marginTop: 12,
+      padding: 6,
+    },
+    utilityRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      minHeight: 58,
+      paddingHorizontal: 8,
+      paddingVertical: 10,
+    },
+    utilityIcon: {
+      alignItems: 'center',
+      borderRadius: 17,
+      height: 34,
+      justifyContent: 'center',
+      marginRight: 10,
+      width: 34,
+    },
+    utilityTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 3,
+    },
+    utilityText: {
       color: colors.textMuted,
       fontSize: 12,
       fontWeight: '600',
-      lineHeight: 18,
+      lineHeight: 17,
     },
-    noticeCard: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      marginTop: 16,
-    },
-    noticeIcon: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: 18,
-      height: 36,
-      justifyContent: 'center',
-      marginRight: 13,
-      width: 36,
-    },
-    noticeCopy: {
-      flex: 1,
-    },
-    noticeTitle: {
-      color: colors.text,
-      fontSize: 16,
-      fontWeight: '800',
-      marginBottom: 5,
-    },
-    compactButton: {
-      minHeight: 42,
-      paddingHorizontal: 14,
-    },
-    safetyCard: {
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 20,
-      borderWidth: 1,
-      flexDirection: 'row',
-      marginTop: 16,
-      padding: 16,
-    },
-    safetyText: {
-      color: colors.textMuted,
-      flex: 1,
-      fontSize: 13,
-      fontWeight: '600',
-      lineHeight: 20,
-      marginHorizontal: 10,
+    toolDivider: {
+      backgroundColor: colors.border,
+      height: 1,
+      marginHorizontal: 8,
     },
   });
 }
