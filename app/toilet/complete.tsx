@@ -81,15 +81,15 @@ export default function ToiletCompleteScreen() {
 
   return (
     <Screen>
-      <AppTopBar fallbackHref={routes.home} title="收工记录" variant="close" />
+      <AppTopBar fallbackHref={routes.home} title="这趟记一下" variant="close" />
 
       <PageHeader
-        eyebrow="收工记录"
-        subtitle="简单记一笔就行，不用写马桶小作文。"
+        eyebrow="这趟记一下"
+        subtitle="简单记一笔就行，不用写蹲会儿小作文。"
         title={`用时 ${formatToiletDuration(durationSeconds)}`}
       />
 
-      <Text style={styles.groupTitle}>收工体验</Text>
+      <Text style={styles.groupTitle}>这趟感觉</Text>
       <View style={styles.optionGroup}>
         {feelingOptions.map((option) => (
           <OptionRow
@@ -103,17 +103,17 @@ export default function ToiletCompleteScreen() {
         ))}
       </View>
 
-      <Text style={styles.groupTitle}>红灯信号</Text>
+      <Text style={styles.groupTitle}>需要留意的小信号</Text>
       <View style={styles.optionGroup}>
         <OptionRow
-          description="先给小花放假，别硬练"
+          description="不舒服就先让小花休息，别继续加码。"
           icon={AlertTriangle}
           onPress={() => setDiscomfort((current) => !current)}
           selected={discomfort}
           title="明显不舒服"
         />
         <OptionRow
-          description="这不是普通打卡项目，建议问医生"
+          description="这类信号别当普通记录，建议问医生。"
           icon={AlertTriangle}
           onPress={() => setBleeding((current) => !current)}
           selected={bleeding}
@@ -138,7 +138,7 @@ export default function ToiletCompleteScreen() {
           <View style={styles.riskHeader}>
             <AlertTriangle color={colors.warning} size={22} strokeWidth={2.4} />
             <Text style={styles.riskText}>
-              这次马桶会开得有点久。先收工、少刷一会儿，让小花别把马桶当工位。
+              这趟坐得有点久。先收工，手机小剧场下次再播。
             </Text>
           </View>
           <AppButton onPress={() => router.push(routes.safety)} style={styles.riskButton} variant="warning">
@@ -148,7 +148,7 @@ export default function ToiletCompleteScreen() {
       ) : (
         <AppCard muted style={styles.noteCard}>
           <CheckCircle2 color={colors.primaryPressed} size={22} strokeWidth={2.4} />
-          <Text style={styles.noteText}>收工已入账，首页会同步更新。记一笔就够，不用加班。</Text>
+          <Text style={styles.noteText}>已记好，首页会同步。记一笔就够，别在马桶上补 KPI。</Text>
         </AppCard>
       )}
 

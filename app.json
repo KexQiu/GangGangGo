@@ -18,7 +18,11 @@
       "backgroundColor": "#F7FAF8"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.kex.gangganggo",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,6 +34,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d2fef754-9b82-412c-9608-bc9903a5479a"
+      }
     }
   }
 }

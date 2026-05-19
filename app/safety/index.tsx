@@ -94,12 +94,12 @@ export default function SafetyScreen() {
 
   return (
     <Screen>
-      <AppTopBar fallbackHref={routes.settings} title="安全说明" />
+      <AppTopBar fallbackHref={routes.settings} title="小花说明书" />
 
       <PageHeader
-        eyebrow="安全说明"
-        subtitle="这里不是严肃训话，是给小花的使用说明书；但红灯情况要认真处理。"
-        title="轻松练，认真停"
+        eyebrow="小花说明书"
+        subtitle="平时轻松点，身体亮灯就先暂停。这里不训话，只帮你少走弯路。"
+        title="轻轻练，懂得停"
       />
 
       <AppCard muted style={styles.heroCard}>
@@ -107,20 +107,20 @@ export default function SafetyScreen() {
           <ShieldCheck color={colors.primaryPressed} size={32} strokeWidth={2.4} />
         </View>
         <View style={styles.heroCopy}>
-          <Text style={styles.heroTitle}>小花可以抬，但别硬扛</Text>
+          <Text style={styles.heroTitle}>小花要练，也要会休息</Text>
           <Text style={styles.heroText}>
             菊花抬也就是提肛训练，适合做成日常小习惯。出现疼痛、明显便血或症状加重时，先停止，别和身体较劲，建议咨询医生。
           </Text>
         </View>
       </AppCard>
 
-      <GuidanceSection icon={CheckCircle2} items={correctTrainingItems} title="怎么抬比较稳" tone="primary" />
+      <GuidanceSection icon={CheckCircle2} items={correctTrainingItems} title="怎么抬比较不费戏" tone="primary" />
 
-      <GuidanceSection icon={Ban} items={stopTrainingItems} title="这些情况先别抬" tone="warning" />
+      <GuidanceSection icon={Ban} items={stopTrainingItems} title="这些时候先让小花下班" tone="warning" />
 
-      <GuidanceSection icon={Stethoscope} items={medicalItems} title="这些信号别拖" tone="danger" />
+      <GuidanceSection icon={Stethoscope} items={medicalItems} title="这些信号问专业队友" tone="danger" />
 
-      <GuidanceSection icon={CircleHelp} items={mistakeItems} title="常见翻车姿势" tone="info" />
+      <GuidanceSection icon={CircleHelp} items={mistakeItems} title="常见小翻车" tone="info" />
 
       <AppCard style={styles.disclaimerCard}>
         <HeartPulse color={colors.info} size={22} strokeWidth={2.4} />

@@ -83,56 +83,56 @@ export function buildThirtyDaySummary(input: TrendInput, now = new Date()): Thir
 export function getTrendPositiveFeedback(summary: SevenDayTrend): TrendPositiveFeedback {
   if (!summary.hasAnyRecord) {
     return {
-      body: '这周刚准备开张，先从一件小事开始。',
-      title: '趋势还在等你开张',
+      body: '先记一件小事，今天就不是空白页。',
+      title: '小报告还没开张',
     };
   }
 
   if (summary.redFlagCount > 0) {
     return {
-      body: '这周有红灯信号，先别硬扛，安全说明值得看一眼。',
-      title: '这周先稳住',
+      body: '这周有需要留意的小信号，先看小花说明书，别急着刷成绩。',
+      title: '这周先照顾身体',
     };
   }
 
   if (summary.trainingActiveDays >= 5 && summary.habitFullDays >= 5 && summary.longToiletCount === 0) {
     return {
-      body: '小花营业稳定，小账本也很给力，马桶长会还没出现。',
-      title: '这周状态很稳',
+      body: '小花有营业，小账本也给力，蹲会儿长会没来凑热闹。',
+      title: '这周节奏很顺',
     };
   }
 
   if (summary.trainingActiveDays > 0 && summary.habitFullDays > 0) {
     return {
       body: `小花营业 ${summary.trainingActiveDays} 天，小账本满格 ${summary.habitFullDays} 天。`,
-      title: '坚持感已经出来了',
+      title: '节奏感已经出来了',
     };
   }
 
   if (summary.trainingActiveDays > 0) {
     return {
-      body: `这周小花营业了 ${summary.trainingActiveDays} 天，完成一点也算数。`,
-      title: '小花有在营业',
+      body: `这周营业 ${summary.trainingActiveDays} 天，轻轻来就算数。`,
+      title: '小花有露面',
     };
   }
 
   if (summary.habitFullDays > 0) {
     return {
-      body: `小账本满格 ${summary.habitFullDays} 天，习惯状态越来越清楚。`,
-      title: '小账本很稳',
+      body: `满格 ${summary.habitFullDays} 天，习惯线索越来越清楚。`,
+      title: '小账本有在工作',
     };
   }
 
   if (summary.longToiletCount > 0) {
     return {
-      body: `这周马桶长会 ${summary.longToiletCount} 次，能少开就少开。`,
-      title: '长会有记录',
+      body: `这周蹲会儿长会 ${summary.longToiletCount} 次，知道就好，下次早点散会。`,
+      title: '长会被抓到了',
     };
   }
 
   return {
     body: '已经有记录了，继续轻轻补上就好。',
-    title: '趋势开始有线索',
+    title: '小报告开始有线索',
   };
 }
 

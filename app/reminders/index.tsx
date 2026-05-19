@@ -1,4 +1,17 @@
-import { Activity, Bell, BellRing, Clock3, Moon, Move, ShieldCheck } from 'lucide-react-native';
+import {
+  Activity,
+  Bell,
+  BellRing,
+  Check,
+  Clock3,
+  Coffee,
+  Minus,
+  Moon,
+  Move,
+  Plus,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react-native';
 import { type ComponentType } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -8,13 +21,19 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import {
+  DEFAULT_LUNCH_QUIET_HOURS_END,
+  DEFAULT_LUNCH_QUIET_HOURS_START,
+  DEFAULT_QUIET_HOURS_END,
+  DEFAULT_QUIET_HOURS_START,
   getKegelTimesForCount,
   getQuietHoursLabel,
   getReminderHomeSummary,
-  isQuietHoursDisabled,
+  MAX_QUIET_HOURS_RANGES,
+  parseTimeToMinutes,
   SEDENTARY_INTERVAL_OPTIONS,
 } from '../../src/features/reminders/reminderLogic';
 import { useReminderStore } from '../../src/features/reminders/reminderStore';
+import { type QuietHoursRange } from '../../src/features/reminders/reminderTypes';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -23,20 +42,34 @@ const kegelReminderCounts = [1, 2, 3];
 const quietOptions = [
   {
     description: '夜里让小暗号闭麦',
-    end: '08:30',
-    start: '22:30',
+    ranges: [
+      {
+        end: DEFAULT_QUIET_HOURS_END,
+        id: 'night',
+        start: DEFAULT_QUIET_HOURS_START,
+      },
+    ],
     title: '夜间勿扰',
   },
   {
-    description: '晚睡党也要安静落地',
-    end: '08:00',
-    start: '23:30',
-    title: '晚睡模式',
+    description: '午休和夜里都安静，适合正常作息',
+    ranges: [
+      {
+        end: DEFAULT_LUNCH_QUIET_HOURS_END,
+        id: 'lunch',
+        start: DEFAULT_LUNCH_QUIET_HOURS_START,
+      },
+      {
+        end: DEFAULT_QUIET_HOURS_END,
+        id: 'night',
+        start: DEFAULT_QUIET_HOURS_START,
+      },
+    ],
+    title: '午休 + 夜间',
   },
   {
     description: '小暗号全天待命',
-    end: '00:00',
-    start: '00:00',
+    ranges: [],
     title: '关闭勿扰',
   },
 ] as const;
@@ -68,6 +101,63 @@ export default function RemindersScreen() {
     if (enabled && permissionStatus !== 'granted') {
       await requestPermissionAndSync();
     }
+  }
+
+  function updateQuietRanges(ranges: QuietHoursRange[]) {
+    const nextRanges = ranges.slice(0, MAX_QUIET_HOURS_RANGES);
+    const primaryRange = nextRanges[0];
+
+    void updateSettings({
+      quietHoursEnd: primaryRange?.end ?? '00:00',
+      quietHoursRanges: nextRanges,
+      quietHoursStart: primaryRange?.start ?? '00:00',
+    });
+  }
+
+  function applyQuietPreset(ranges: readonly QuietHoursRange[]) {
+    updateQuietRanges(ranges.map((range) => ({ ...range })));
+  }
+
+  function addQuietRange(range: QuietHoursRange) {
+    if (settings.quietHoursRanges.length >= MAX_QUIET_HOURS_RANGES) {
+      return;
+    }
+
+    const existingRange = settings.quietHoursRanges.some(
+      (item) => item.start === range.start && item.end === range.end,
+    );
+
+    if (existingRange) {
+      return;
+    }
+
+    updateQuietRanges([...settings.quietHoursRanges, range]);
+  }
+
+  function removeQuietRange(rangeId: string) {
+    updateQuietRanges(settings.quietHoursRanges.filter((range) => range.id !== rangeId));
+  }
+
+  function moveQuietRangeTime(rangeId: string, field: 'end' | 'start', deltaMinutes: number) {
+    const nextRanges = settings.quietHoursRanges.map((range) => {
+      if (range.id !== rangeId) {
+        return range;
+      }
+
+      const nextTime = addMinutesToTime(range[field], deltaMinutes);
+      const oppositeField = field === 'start' ? 'end' : 'start';
+
+      if (nextTime === range[oppositeField]) {
+        return range;
+      }
+
+      return {
+        ...range,
+        [field]: nextTime,
+      };
+    });
+
+    updateQuietRanges(nextRanges);
   }
 
   return (
@@ -190,19 +280,19 @@ export default function RemindersScreen() {
           </View>
         </View>
 
+        <Text style={styles.fieldLabel}>快速设定</Text>
         <View style={styles.quietList}>
           {quietOptions.map((option) => {
-            const selected = settings.quietHoursStart === option.start && settings.quietHoursEnd === option.end;
+            const selected = areQuietRangesEqual(settings.quietHoursRanges, option.ranges);
 
             return (
               <Pressable
                 key={option.title}
                 onPress={() => {
-                  void updateSettings({
-                    quietHoursEnd: option.end,
-                    quietHoursStart: option.start,
-                  });
+                  applyQuietPreset(option.ranges);
                 }}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
                 style={({ pressed }) => [
                   styles.quietOption,
                   selected && styles.quietOptionSelected,
@@ -212,19 +302,92 @@ export default function RemindersScreen() {
                 <View style={styles.quietOptionText}>
                   <Text style={styles.quietOptionTitle}>{option.title}</Text>
                   <Text style={styles.quietOptionDescription}>
-                    {isQuietHoursDisabled({
-                      ...settings,
-                      quietHoursEnd: option.end,
-                      quietHoursStart: option.start,
-                    })
+                    {option.ranges.length === 0
                       ? option.description
-                      : `${option.start} - ${option.end} · ${option.description}`}
+                      : `${option.ranges.map(formatRange).join('、')} · ${option.description}`}
                   </Text>
                 </View>
-                {selected ? <Clock3 color={colors.primaryPressed} size={19} strokeWidth={2.4} /> : null}
+                {selected ? <Check color={colors.primaryPressed} size={19} strokeWidth={2.4} /> : null}
               </Pressable>
             );
           })}
+        </View>
+
+        <View style={styles.manualQuietHeader}>
+          <View style={styles.manualQuietCopy}>
+            <Text style={styles.manualQuietTitle}>手动闭麦范围</Text>
+            <Text style={styles.manualQuietText}>
+              可同时保留午休、夜间或其他自定义时间段，最多 {MAX_QUIET_HOURS_RANGES} 段。
+            </Text>
+          </View>
+          <Text style={styles.manualQuietCount}>
+            {settings.quietHoursRanges.length}/{MAX_QUIET_HOURS_RANGES}
+          </Text>
+        </View>
+
+        {settings.quietHoursRanges.length === 0 ? (
+          <View style={styles.quietEmpty}>
+            <Coffee color={colors.textMuted} size={20} strokeWidth={2.3} />
+            <Text style={styles.quietEmptyText}>现在全天都能收到小暗号。想午休不被打扰，可以先加一段。</Text>
+          </View>
+        ) : (
+          <View style={styles.rangeList}>
+            {settings.quietHoursRanges.map((range, index) => (
+              <QuietRangeEditor
+                key={range.id}
+                index={index}
+                onMove={(field, deltaMinutes) => {
+                  moveQuietRangeTime(range.id, field, deltaMinutes);
+                }}
+                onRemove={() => {
+                  removeQuietRange(range.id);
+                }}
+                range={range}
+              />
+            ))}
+          </View>
+        )}
+
+        <View style={styles.addRangeRow}>
+          <Pressable
+            onPress={() => {
+              addQuietRange({
+                end: DEFAULT_LUNCH_QUIET_HOURS_END,
+                id: `lunch-${Date.now()}`,
+                start: DEFAULT_LUNCH_QUIET_HOURS_START,
+              });
+            }}
+            accessibilityRole="button"
+            disabled={settings.quietHoursRanges.length >= MAX_QUIET_HOURS_RANGES}
+            style={({ pressed }) => [
+              styles.addRangeButton,
+              settings.quietHoursRanges.length >= MAX_QUIET_HOURS_RANGES && styles.disabledButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Coffee color={colors.primaryPressed} size={17} strokeWidth={2.4} />
+            <Text style={styles.addRangeText}>加午休</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              addQuietRange({
+                end: '22:00',
+                id: `custom-${Date.now()}`,
+                start: '21:00',
+              });
+            }}
+            accessibilityRole="button"
+            disabled={settings.quietHoursRanges.length >= MAX_QUIET_HOURS_RANGES}
+            style={({ pressed }) => [
+              styles.addRangeButton,
+              settings.quietHoursRanges.length >= MAX_QUIET_HOURS_RANGES && styles.disabledButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Plus color={colors.primaryPressed} size={17} strokeWidth={2.4} />
+            <Text style={styles.addRangeText}>加一段</Text>
+          </Pressable>
         </View>
       </AppCard>
     </Screen>
@@ -284,6 +447,150 @@ function SegmentOption({ label, onPress, selected }: SegmentOptionProps) {
       <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{label}</Text>
     </Pressable>
   );
+}
+
+type QuietRangeEditorProps = {
+  index: number;
+  onMove: (field: 'end' | 'start', deltaMinutes: number) => void;
+  onRemove: () => void;
+  range: QuietHoursRange;
+};
+
+function QuietRangeEditor({ index, onMove, onRemove, range }: QuietRangeEditorProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <View style={styles.rangeEditor}>
+      <View style={styles.rangeEditorHeader}>
+        <View style={styles.rangeTitleRow}>
+          <View style={styles.rangeTitleIcon}>
+            <Clock3 color={colors.primaryPressed} size={17} strokeWidth={2.4} />
+          </View>
+          <View>
+            <Text style={styles.rangeTitle}>{getRangeTitle(range, index)}</Text>
+            <Text style={styles.rangeSubTitle}>{formatRange(range)}</Text>
+          </View>
+        </View>
+        <Pressable
+          onPress={onRemove}
+          accessibilityLabel={`删除${getRangeTitle(range, index)}`}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.removeRangeButton, pressed && styles.pressed]}
+        >
+          <Trash2 color={colors.textMuted} size={17} strokeWidth={2.3} />
+        </Pressable>
+      </View>
+
+      <View style={styles.timeRows}>
+        <TimeAdjustRow
+          label="开始"
+          onDecrease={() => {
+            onMove('start', -15);
+          }}
+          onIncrease={() => {
+            onMove('start', 15);
+          }}
+          value={range.start}
+        />
+        <TimeAdjustRow
+          label="结束"
+          onDecrease={() => {
+            onMove('end', -15);
+          }}
+          onIncrease={() => {
+            onMove('end', 15);
+          }}
+          value={range.end}
+        />
+      </View>
+    </View>
+  );
+}
+
+type TimeAdjustRowProps = {
+  label: string;
+  onDecrease: () => void;
+  onIncrease: () => void;
+  value: string;
+};
+
+function TimeAdjustRow({ label, onDecrease, onIncrease, value }: TimeAdjustRowProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <View style={styles.timeRow}>
+      <Text style={styles.timeRowLabel}>{label}</Text>
+      <View style={styles.timeStepper}>
+        <Pressable
+          onPress={onDecrease}
+          accessibilityLabel={`${label}时间提前 15 分钟`}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.timeButton, pressed && styles.pressed]}
+        >
+          <Minus color={colors.textMuted} size={15} strokeWidth={2.5} />
+        </Pressable>
+        <Text style={styles.timeValue}>{value}</Text>
+        <Pressable
+          onPress={onIncrease}
+          accessibilityLabel={`${label}时间推后 15 分钟`}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.timeButton, pressed && styles.pressed]}
+        >
+          <Plus color={colors.textMuted} size={15} strokeWidth={2.5} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function areQuietRangesEqual(left: readonly QuietHoursRange[], right: readonly QuietHoursRange[]): boolean {
+  const normalizedLeft = normalizeComparableRanges(left);
+  const normalizedRight = normalizeComparableRanges(right);
+
+  if (normalizedLeft.length !== normalizedRight.length) {
+    return false;
+  }
+
+  return normalizedLeft.every((range, index) => {
+    const rightRange = normalizedRight[index];
+    return range.start === rightRange.start && range.end === rightRange.end;
+  });
+}
+
+function normalizeComparableRanges(ranges: readonly QuietHoursRange[]) {
+  return ranges
+    .map((range) => ({
+      end: range.end,
+      start: range.start,
+    }))
+    .sort((a, b) => (parseTimeToMinutes(a.start) ?? 0) - (parseTimeToMinutes(b.start) ?? 0));
+}
+
+function formatRange(range: QuietHoursRange): string {
+  return `${range.start} - ${range.end}`;
+}
+
+function addMinutesToTime(time: string, deltaMinutes: number): string {
+  const currentMinutes = parseTimeToMinutes(time) ?? 0;
+  const nextMinutes = (currentMinutes + deltaMinutes + 24 * 60) % (24 * 60);
+  const hours = Math.floor(nextMinutes / 60).toString().padStart(2, '0');
+  const minutes = (nextMinutes % 60).toString().padStart(2, '0');
+
+  return `${hours}:${minutes}`;
+}
+
+function getRangeTitle(range: QuietHoursRange, index: number): string {
+  if (range.start === DEFAULT_LUNCH_QUIET_HOURS_START && range.end === DEFAULT_LUNCH_QUIET_HOURS_END) {
+    return '午休闭麦';
+  }
+
+  if (range.start === DEFAULT_QUIET_HOURS_START && range.end === DEFAULT_QUIET_HOURS_END) {
+    return '夜间闭麦';
+  }
+
+  return `闭麦 ${index + 1}`;
 }
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
@@ -472,6 +779,7 @@ function createStyles(colors: ThemeColors) {
     },
     quietList: {
       gap: 10,
+      marginBottom: 4,
     },
     quietOption: {
       alignItems: 'center',
@@ -502,6 +810,164 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '600',
       lineHeight: 18,
+    },
+    manualQuietHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 22,
+    },
+    manualQuietCopy: {
+      flex: 1,
+    },
+    manualQuietTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 5,
+    },
+    manualQuietText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    manualQuietCount: {
+      color: colors.primaryPressed,
+      fontSize: 12,
+      fontWeight: '900',
+      marginLeft: 12,
+      marginTop: 2,
+    },
+    quietEmpty: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.border,
+      borderRadius: 18,
+      borderWidth: 1,
+      flexDirection: 'row',
+      marginTop: 14,
+      padding: 14,
+    },
+    quietEmptyText: {
+      color: colors.textMuted,
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 18,
+      marginLeft: 10,
+    },
+    rangeList: {
+      gap: 10,
+      marginTop: 14,
+    },
+    rangeEditor: {
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.border,
+      borderRadius: 18,
+      borderWidth: 1,
+      padding: 13,
+    },
+    rangeEditorHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    rangeTitleRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      flex: 1,
+    },
+    rangeTitleIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.primarySoft,
+      borderRadius: 15,
+      height: 30,
+      justifyContent: 'center',
+      marginRight: 10,
+      width: 30,
+    },
+    rangeTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 3,
+    },
+    rangeSubTitle: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    removeRangeButton: {
+      alignItems: 'center',
+      borderRadius: 16,
+      height: 32,
+      justifyContent: 'center',
+      width: 32,
+    },
+    timeRows: {
+      gap: 8,
+    },
+    timeRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    timeRowLabel: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    timeStepper: {
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 16,
+      borderWidth: 1,
+      flexDirection: 'row',
+      minHeight: 34,
+      paddingHorizontal: 4,
+    },
+    timeButton: {
+      alignItems: 'center',
+      borderRadius: 13,
+      height: 26,
+      justifyContent: 'center',
+      width: 28,
+    },
+    timeValue: {
+      color: colors.text,
+      fontSize: 13,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '900',
+      minWidth: 48,
+      textAlign: 'center',
+    },
+    addRangeRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 12,
+    },
+    addRangeButton: {
+      alignItems: 'center',
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+      borderRadius: 16,
+      borderWidth: 1,
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      minHeight: 42,
+    },
+    addRangeText: {
+      color: colors.primaryPressed,
+      fontSize: 13,
+      fontWeight: '900',
+      marginLeft: 6,
+    },
+    disabledButton: {
+      opacity: 0.45,
     },
     pressed: {
       opacity: 0.82,

@@ -53,6 +53,8 @@ export function AppTopBar({ fallbackHref, onBackPress, right, title, variant = '
   );
 }
 
+AppTopBar.displayName = 'AppTopBar';
+
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 function createStyles(colors: ThemeColors) {
@@ -60,16 +62,16 @@ function createStyles(colors: ThemeColors) {
     bar: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 18,
-      minHeight: 44,
+      marginBottom: 10,
+      minHeight: 40,
     },
     backButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
-      borderRadius: 22,
-      height: 44,
+      borderRadius: 20,
+      height: 40,
       justifyContent: 'center',
-      width: 44,
+      width: 40,
     },
     pressed: {
       opacity: 0.78,
@@ -86,7 +88,7 @@ function createStyles(colors: ThemeColors) {
     rightSlot: {
       alignItems: 'center',
       justifyContent: 'center',
-      minWidth: 44,
+      minWidth: 40,
     },
   });
 }

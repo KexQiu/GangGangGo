@@ -1,9 +1,29 @@
 import * as Haptics from 'expo-haptics';
-import { Droplets, Leaf, ListChecks, Move, Smile } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  CircleDot,
+  Droplets,
+  Frown,
+  Leaf,
+  ListChecks,
+  Meh,
+  Move,
+  PlusCircle,
+  Smile,
+} from 'lucide-react-native';
+import { type ComponentType, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  Text,
+  type TextStyle,
+  View,
+} from 'react-native';
 
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
+import { PressableScale } from '../../src/components/feedback/PressableScale';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import {
@@ -70,6 +90,20 @@ const habitItems: Array<{
   },
 ];
 
+const levelIcons: Record<HabitLevel, ComponentType<IconProps>> = {
+  good: Smile,
+  low: Frown,
+  medium: Meh,
+};
+
+const levelOrder: HabitLevel[] = ['low', 'medium', 'good'];
+
+type IconProps = {
+  color?: string;
+  size?: number;
+  strokeWidth?: number;
+};
+
 export default function HabitsScreen() {
   const today = getLocalDateKey();
   const checkIns = useHabitStore((state) => state.checkIns);
@@ -132,38 +166,237 @@ export default function HabitsScreen() {
                 <View style={styles.iconBadge}>
                   <Icon color={colors.primaryPressed} size={21} strokeWidth={2.4} />
                 </View>
-                <Text style={styles.habitTitle}>{item.title}</Text>
+                <View style={styles.habitHeaderCopy}>
+                  <View style={styles.habitTitleRow}>
+                    <Text style={styles.habitTitle}>{item.title}</Text>
+                    {activeLevel ? (
+                      <AnimatedLevelIcon
+                        level={activeLevel}
+                        label={getHabitStateLabel(item.options, activeLevel)}
+                      />
+                    ) : null}
+                  </View>
+                  <Text style={styles.habitSubtitle}>{activeLevel ? '左右滑一滑，状态马上换。' : '未记录'}</Text>
+                </View>
               </View>
 
-              <View style={styles.segmentRow}>
-                {item.options.map((option) => {
-                  const selected = activeLevel === option.level;
-
-                  return (
-                    <Pressable
-                      accessibilityLabel={`${item.title}：${option.label}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                      key={option.level}
-                      onPress={() => {
-                        void selectHabitLevel(item.key, option.level);
-                      }}
-                      style={({ pressed }) => [
-                        styles.segment,
-                        selected && styles.segmentSelected,
-                        pressed && styles.segmentPressed,
-                      ]}
-                    >
-                      <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{option.label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {activeLevel ? (
+                <HabitLevelSlider
+                  level={activeLevel}
+                  options={item.options}
+                  title={item.title}
+                  onChange={(level) => {
+                    void selectHabitLevel(item.key, level);
+                  }}
+                />
+              ) : (
+                <PressableScale
+                  accessibilityLabel={`${item.title}，未记录，开始记录`}
+                  onPress={() => {
+                    void selectHabitLevel(item.key, 'medium');
+                  }}
+                  style={styles.emptyState}
+                >
+                  <View style={styles.emptyIcon}>
+                    <PlusCircle color={colors.textMuted} size={19} strokeWidth={2.4} />
+                  </View>
+                  <View style={styles.emptyCopy}>
+                    <Text style={styles.emptyTitle}>还没记</Text>
+                    <Text style={styles.emptyText}>点一下开始记录，再用滑块调整状态。</Text>
+                  </View>
+                </PressableScale>
+              )}
             </AppCard>
           );
         })}
       </View>
     </Screen>
+  );
+}
+
+type HabitLevelOption = {
+  label: string;
+  level: HabitLevel;
+};
+
+type HabitLevelSliderProps = {
+  level: HabitLevel;
+  onChange: (level: HabitLevel) => void;
+  options: HabitLevelOption[];
+  title: string;
+};
+
+function HabitLevelSlider({ level, onChange, options, title }: HabitLevelSliderProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const position = useRef(new Animated.Value(levelOrder.indexOf(level))).current;
+  const activeIndexRef = useRef(levelOrder.indexOf(level));
+  const trackWidthRef = useRef(trackWidth);
+  const segmentWidth = trackWidth > 0 ? trackWidth / levelOrder.length : 0;
+  const activeOption = options.find((option) => option.level === level) ?? options[1];
+  const activeTone = getLevelTone(colors, level);
+  const horizontalPadding = 4;
+  const thumbWidth = segmentWidth > 0 ? Math.max(segmentWidth - horizontalPadding * 2, 0) : 0;
+  const maxTranslateX = trackWidth > 0 ? trackWidth - horizontalPadding * 2 - thumbWidth : 0;
+
+  trackWidthRef.current = trackWidth;
+
+  useEffect(() => {
+    const nextIndex = levelOrder.indexOf(level);
+    activeIndexRef.current = nextIndex;
+    Animated.spring(position, {
+      friction: 8,
+      tension: 160,
+      toValue: nextIndex,
+      useNativeDriver: true,
+    }).start();
+  }, [level, position]);
+
+  function commitLevel(nextLevel: HabitLevel) {
+    activeIndexRef.current = levelOrder.indexOf(nextLevel);
+    void Haptics.selectionAsync();
+    onChange(nextLevel);
+  }
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dx) > 4,
+      onPanResponderGrant: () => {
+        position.stopAnimation((value) => {
+          activeIndexRef.current = Math.round(value);
+        });
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const currentSegmentWidth = trackWidthRef.current / levelOrder.length;
+
+        if (currentSegmentWidth <= 0) {
+          return;
+        }
+
+        const nextValue = clamp(
+          activeIndexRef.current + gestureState.dx / currentSegmentWidth,
+          0,
+          levelOrder.length - 1,
+        );
+        position.setValue(nextValue);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentSegmentWidth = trackWidthRef.current / levelOrder.length;
+
+        if (currentSegmentWidth <= 0) {
+          return;
+        }
+
+        const nextIndex = Math.round(
+          clamp(activeIndexRef.current + gestureState.dx / currentSegmentWidth, 0, levelOrder.length - 1),
+        );
+        commitLevel(levelOrder[nextIndex]);
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(position, {
+          friction: 8,
+          tension: 160,
+          toValue: activeIndexRef.current,
+          useNativeDriver: true,
+        }).start();
+      },
+      onStartShouldSetPanResponder: () => false,
+    }),
+  ).current;
+
+  return (
+    <View>
+      <View
+        accessibilityLabel={`${title}状态滑块，当前${activeOption.label}`}
+        accessibilityRole="adjustable"
+        style={styles.sliderTrack}
+        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+        {...panResponder.panHandlers}
+      >
+        {trackWidth > 0 ? (
+          <Animated.View
+            style={[
+              styles.sliderThumb,
+              {
+                backgroundColor: activeTone.softColor,
+                borderColor: activeTone.color,
+                width: thumbWidth,
+                transform: [
+                  {
+                    translateX: position.interpolate({
+                      inputRange: [0, levelOrder.length - 1],
+                      outputRange: [0, maxTranslateX],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : null}
+
+        {options.map((option) => {
+          const selected = option.level === level;
+          const OptionIcon = levelIcons[option.level];
+          const tone = getLevelTone(colors, option.level);
+
+          return (
+            <Pressable
+              accessibilityLabel={`${title}：${option.label}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={option.level}
+              onPress={() => commitLevel(option.level)}
+              style={styles.sliderStep}
+            >
+              <OptionIcon color={selected ? tone.color : colors.textSubtle} size={15} strokeWidth={2.5} />
+              <Text style={[styles.sliderStepText, selected && ({ color: tone.color } as TextStyle)]}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+type AnimatedLevelIconProps = {
+  label: string;
+  level: HabitLevel;
+};
+
+function AnimatedLevelIcon({ label, level }: AnimatedLevelIconProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+  const progress = useRef(new Animated.Value(1)).current;
+  const tone = getLevelTone(colors, level);
+  const Icon = levelIcons[level];
+
+  useEffect(() => {
+    progress.setValue(0.72);
+    Animated.spring(progress, {
+      friction: 6,
+      tension: 180,
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  }, [level, progress]);
+
+  return (
+    <Animated.View
+      accessibilityLabel={`当前状态：${label}`}
+      style={[
+        styles.headerStateIcon,
+        {
+          backgroundColor: tone.softColor,
+          opacity: progress,
+          transform: [{ scale: progress }],
+        },
+      ]}
+    >
+      <Icon color={tone.color} size={17} strokeWidth={2.5} />
+    </Animated.View>
   );
 }
 
@@ -242,45 +475,130 @@ function createStyles(colors: ThemeColors) {
       marginRight: 12,
       width: 34,
     },
+    habitHeaderCopy: {
+      flex: 1,
+    },
+    habitTitleRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      marginBottom: 4,
+    },
     habitTitle: {
       color: colors.text,
-      flex: 1,
       fontSize: 16,
       fontWeight: '800',
     },
-    segmentRow: {
+    headerStateIcon: {
+      alignItems: 'center',
+      borderRadius: 14,
+      height: 28,
+      justifyContent: 'center',
+      marginLeft: 8,
+      width: 28,
+    },
+    habitSubtitle: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    emptyState: {
+      alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
       borderRadius: 18,
       flexDirection: 'row',
+      minHeight: 62,
+      paddingHorizontal: 14,
+    },
+    emptyIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      height: 32,
+      justifyContent: 'center',
+      marginRight: 11,
+      width: 32,
+    },
+    emptyCopy: {
+      flex: 1,
+    },
+    emptyTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 3,
+    },
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    sliderTrack: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 18,
+      borderWidth: 1,
+      flexDirection: 'row',
+      minHeight: 54,
+      overflow: 'hidden',
       padding: 4,
     },
-    segment: {
+    sliderThumb: {
+      borderRadius: 15,
+      borderWidth: 1,
+      bottom: 4,
+      left: 4,
+      position: 'absolute',
+      top: 4,
+    },
+    sliderStep: {
       alignItems: 'center',
-      borderRadius: 14,
       flex: 1,
+      gap: 3,
       justifyContent: 'center',
-      minHeight: 42,
-      paddingVertical: 11,
+      zIndex: 1,
     },
-    segmentSelected: {
-      backgroundColor: colors.surface,
-      shadowColor: colors.text,
-      shadowOffset: { height: 1, width: 0 },
-      shadowOpacity: 0.06,
-      shadowRadius: 4,
-    },
-    segmentPressed: {
-      opacity: 0.78,
-      transform: [{ scale: 0.99 }],
-    },
-    segmentText: {
+    sliderStepText: {
       color: colors.textMuted,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '800',
       textAlign: 'center',
     },
-    segmentTextSelected: {
-      color: colors.primaryPressed,
-    },
   });
+}
+
+function getHabitStateLabel(options: HabitLevelOption[], level: HabitLevel): string {
+  return `当前：${options.find((option) => option.level === level)?.label ?? '已记录'}`;
+}
+
+function getLevelTone(colors: ThemeColors, level: HabitLevel): {
+  color: string;
+  iconBackground: string;
+  softColor: string;
+} {
+  if (level === 'good') {
+    return {
+      color: colors.primaryPressed,
+      iconBackground: colors.surface,
+      softColor: colors.primarySoft,
+    };
+  }
+
+  if (level === 'medium') {
+    return {
+      color: colors.info,
+      iconBackground: colors.surface,
+      softColor: colors.infoSoft,
+    };
+  }
+
+  return {
+    color: colors.warning,
+    iconBackground: colors.surface,
+    softColor: colors.warningSoft,
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

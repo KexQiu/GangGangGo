@@ -40,12 +40,12 @@ export default function TrendsScreen() {
 
   return (
     <Screen>
-      <AppTopBar fallbackHref={routes.home} title="最近趋势" />
+      <AppTopBar fallbackHref={routes.home} title="最近小报告" />
 
       <PageHeader
-        eyebrow="最近趋势"
-        subtitle="看坚持，不卷数据。马桶长会只提醒，不当成绩。"
-        title="这段时间怎么样"
+        eyebrow="最近小报告"
+        subtitle="看节奏，不卷数字。蹲会儿长会只提醒，不算战绩。"
+        title="这周小花表现如何"
       />
 
       <AppCard muted style={styles.feedbackCard}>
@@ -60,18 +60,18 @@ export default function TrendsScreen() {
 
       {!sevenDayTrend.hasAnyRecord ? (
         <AppCard style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>这周刚准备开张</Text>
-          <Text style={styles.mutedText}>先做一组菊花抬，或点一下小账本，趋势就会开始长出来。</Text>
+          <Text style={styles.emptyTitle}>这周还在热身</Text>
+          <Text style={styles.mutedText}>做一组菊花抬，或点一下小账本，小报告就有第一笔。</Text>
         </AppCard>
       ) : (
         <>
-          <Text style={styles.sectionTitle}>最近 7 天</Text>
+          <Text style={styles.sectionTitle}>近 7 天小报告</Text>
           <TrendCard
             days={sevenDayTrend.days}
             getBarTone={(day) => (day.trainingCompletedCount > 0 ? 'primary' : 'muted')}
             getValue={(day) => day.trainingCompletedCount}
             maxValue={2}
-            metricLabel="完成组数"
+            metricLabel="营业组数"
             subtitle={`这周小花营业 ${sevenDayTrend.trainingActiveDays} 天`}
             title="菊花抬"
             icon={Activity}
@@ -81,7 +81,7 @@ export default function TrendsScreen() {
             getBarTone={(day) => (day.habitFull ? 'primary' : day.habitCompletion > 0 ? 'info' : 'muted')}
             getValue={(day) => day.habitCompletion}
             maxValue={4}
-            metricLabel="记录项数"
+            metricLabel="小账本项数"
             subtitle={`小账本满格 ${sevenDayTrend.habitFullDays} 天`}
             title="小账本"
             icon={BookOpenCheck}
@@ -91,30 +91,30 @@ export default function TrendsScreen() {
             getBarTone={(day) => (day.redFlagCount > 0 ? 'danger' : day.longToiletCount > 0 ? 'warning' : day.toiletSessionCount > 0 ? 'info' : 'muted')}
             getValue={(day) => Math.min(1, day.toiletSessionCount)}
             maxValue={1}
-            metricLabel="是否入账"
+            metricLabel="是否记过"
             subtitle={
               sevenDayTrend.longToiletCount > 0
-                ? `马桶长会 ${sevenDayTrend.longToiletCount} 次，能少开就少开`
-                : '没有马桶长会，收工节奏不错'
+                ? `蹲会儿长会 ${sevenDayTrend.longToiletCount} 次，知道就好，下次早点散会`
+                : '没有蹲会儿长会，收工节奏挺利索'
             }
-            title="马桶计时"
+            title="蹲会儿记录"
             icon={Timer}
           />
         </>
       )}
 
-      <Text style={styles.sectionTitle}>最近 30 天摘要</Text>
+      <Text style={styles.sectionTitle}>近 30 天回看</Text>
       <View style={styles.summaryGrid}>
         <SummaryTile label="小花营业" tone="primary" value={`${thirtyDaySummary.trainingActiveDays} 天`} />
         <SummaryTile label="小账本满格" tone="primary" value={`${thirtyDaySummary.habitFullDays} 天`} />
-        <SummaryTile label="马桶长会" tone="warning" value={`${thirtyDaySummary.longToiletCount} 次`} />
-        <SummaryTile label="红灯信号" tone="danger" value={`${thirtyDaySummary.redFlagCount} 次`} />
+        <SummaryTile label="蹲会儿长会" tone="warning" value={`${thirtyDaySummary.longToiletCount} 次`} />
+        <SummaryTile label="小信号" tone="danger" value={`${thirtyDaySummary.redFlagCount} 次`} />
       </View>
 
       {thirtyDaySummary.redFlagCount > 0 ? (
         <AppCard style={styles.riskCard}>
           <AlertTriangle color={colors.danger} size={22} strokeWidth={2.4} />
-          <Text style={styles.riskText}>最近 30 天出现过红灯信号。趋势页只负责记录，明显便血、不适加重或剧烈疼痛时建议咨询医生。</Text>
+          <Text style={styles.riskText}>近 30 天出现过需要留意的小信号。小报告只负责帮你记住；明显便血、不适加重或剧烈疼痛时，建议咨询医生。</Text>
         </AppCard>
       ) : null}
     </Screen>

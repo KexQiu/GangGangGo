@@ -44,7 +44,11 @@ export default function ToiletScreen() {
   useEffect(() => {
     if (lastStageRef.current !== stage) {
       lastStageRef.current = stage;
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      void Haptics.notificationAsync(
+        stage === 'severe_warning'
+          ? Haptics.NotificationFeedbackType.Error
+          : Haptics.NotificationFeedbackType.Warning,
+      );
     }
   }, [stage]);
 
@@ -98,23 +102,23 @@ export default function ToiletScreen() {
   if (!hasStarted) {
     return (
       <Screen>
-        <AppTopBar fallbackHref={routes.home} title="马桶计时" />
+        <AppTopBar fallbackHref={routes.home} title="蹲会儿" />
 
         <PageHeader
-          eyebrow="马桶计时"
+          eyebrow="蹲会儿"
           subtitle="开始后只留计时，不刷信息流，不开小剧场。"
-          title="马桶计时器"
+          title="蹲会儿"
         />
 
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
             <Timer color={colors.info} size={38} strokeWidth={2.4} />
           </View>
-          <Text style={styles.startTitle}>准备开始营业</Text>
-          <Text style={styles.startText}>5 分钟敲门，10 分钟提醒，15 分钟亮红灯。</Text>
+          <Text style={styles.startTitle}>开始前先把手机小剧场关一关</Text>
+          <Text style={styles.startText}>5 分钟轻敲门，10 分钟催收工，20 分钟认真请你收工。</Text>
         </AppCard>
 
-        <AppButton onPress={startTimer}>开始营业</AppButton>
+        <AppButton onPress={startTimer}>开始计时</AppButton>
       </Screen>
     );
   }
@@ -124,12 +128,12 @@ export default function ToiletScreen() {
       <AppTopBar
         fallbackHref={routes.home}
         onBackPress={confirmDiscardTimer}
-        title="计时中"
+        title="办正事中"
         variant="close"
       />
 
       <View>
-        <PageHeader eyebrow="马桶计时" subtitle="专心办正事，结束就收工。" title="计时中" />
+        <PageHeader eyebrow="蹲会儿" subtitle="专心办正事，结束就收工。" title="办正事中" />
       </View>
 
       <AppCard style={styles.timerCard}>
@@ -143,7 +147,11 @@ export default function ToiletScreen() {
       <AppCard style={styles.warningCard}>
         <Text style={styles.warningTitle}>阶段提示</Text>
         <Text style={styles.warningText}>
-          {stage === 'normal' ? '5 分钟时会敲门提醒：是不是该收工了？' : '如果已经完成，点结束并记一笔。'}
+          {stage === 'normal'
+            ? '5 分钟后会轻轻提醒：正事办完就撤。'
+            : stage === 'severe_warning'
+              ? '已经超过 20 分钟，建议先收工，给小花一点下班时间。'
+              : '办完就点收工，给小账本留个线索。'}
         </Text>
       </AppCard>
 
@@ -171,8 +179,20 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 type ToiletTimerStage = ReturnType<typeof getToiletTimerStage>;
 
 function createStyles(colors: ThemeColors, stage: ToiletTimerStage) {
-  const accentColor = stage === 'normal' ? colors.primary : stage === 'gentle_warning' ? colors.info : colors.warning;
-  const accentSoft = stage === 'normal' ? colors.primarySoft : stage === 'gentle_warning' ? colors.infoSoft : colors.warningSoft;
+  const accentColor = stage === 'normal'
+    ? colors.primary
+    : stage === 'gentle_warning'
+      ? colors.info
+      : stage === 'severe_warning'
+        ? colors.danger
+        : colors.warning;
+  const accentSoft = stage === 'normal'
+    ? colors.primarySoft
+    : stage === 'gentle_warning'
+      ? colors.infoSoft
+      : stage === 'severe_warning'
+        ? colors.dangerSoft
+        : colors.warningSoft;
 
   return StyleSheet.create({
     startCard: {

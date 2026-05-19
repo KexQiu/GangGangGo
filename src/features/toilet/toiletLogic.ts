@@ -1,6 +1,10 @@
 import { type ToiletTimerStage } from './toiletTypes';
 
 export function getToiletTimerStage(durationSeconds: number): ToiletTimerStage {
+  if (durationSeconds >= 20 * 60) {
+    return 'severe_warning';
+  }
+
   if (durationSeconds >= 15 * 60) {
     return 'overtime';
   }
@@ -21,26 +25,31 @@ export function getToiletStageCopy(stage: ToiletTimerStage): {
   title: string;
 } {
   switch (stage) {
+    case 'severe_warning':
+      return {
+        description: '已经超过 20 分钟了。先收工，别让小花继续陪坐。',
+        title: '真的该收工了',
+      };
     case 'gentle_warning':
       return {
         description: '如果正事办完了，可以优雅收工。',
-        title: '5 分钟敲门',
+        title: '小声敲门',
       };
     case 'strong_warning':
       return {
         description: '建议尽快结束，别让局部压力陪你加班。',
-        title: '10 分钟提醒',
+        title: '差不多该收工了',
       };
     case 'overtime':
       return {
         description: '这次坐得有点久。如果经常这样，建议关注饮水、膳食纤维和排便习惯。',
-        title: '马桶不是第二工位',
+        title: '这会儿有点长了',
       };
     case 'normal':
     default:
       return {
         description: '专心办正事，手机先别开小剧场。',
-        title: '正常营业',
+        title: '刚刚蹲下',
       };
   }
 }

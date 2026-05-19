@@ -6,12 +6,14 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "start:dev-client": "expo start --dev-client",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
     "expo": "~54.0.33",
+    "expo-dev-client": "~6.0.21",
     "expo-haptics": "~15.0.8",
     "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.23",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "eas-cli": "^18.13.0",
     "typescript": "~5.9.2"
   },
   "private": true

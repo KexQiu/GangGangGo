@@ -1,8 +1,11 @@
-import { type ReminderKind, type ReminderSettings } from './reminderTypes';
+import { type QuietHoursRange, type ReminderKind, type ReminderSettings } from './reminderTypes';
 
 export const DEFAULT_KEGEL_TIMES = ['09:30', '14:30', '20:30'];
 export const DEFAULT_QUIET_HOURS_END = '08:30';
 export const DEFAULT_QUIET_HOURS_START = '22:30';
+export const DEFAULT_LUNCH_QUIET_HOURS_END = '14:00';
+export const DEFAULT_LUNCH_QUIET_HOURS_START = '12:30';
+export const MAX_QUIET_HOURS_RANGES = 4;
 export const SEDENTARY_INTERVAL_OPTIONS = [45, 60, 90] as const;
 
 const MINUTES_PER_DAY = 24 * 60;
@@ -16,6 +19,13 @@ export const defaultReminderSettings: ReminderSettings = {
   kegelTimes: DEFAULT_KEGEL_TIMES.slice(0, 2),
   privacyMode: true,
   quietHoursEnd: DEFAULT_QUIET_HOURS_END,
+  quietHoursRanges: [
+    {
+      end: DEFAULT_QUIET_HOURS_END,
+      id: 'night',
+      start: DEFAULT_QUIET_HOURS_START,
+    },
+  ],
   quietHoursStart: DEFAULT_QUIET_HOURS_START,
   sedentaryEnabled: false,
   sedentaryIntervalMinutes: 60,
@@ -26,16 +36,15 @@ export function normalizeReminderSettings(settings: ReminderSettings): ReminderS
   const kegelTimes = settings.kegelTimes
     .filter(isReminderTime)
     .slice(0, DEFAULT_KEGEL_TIMES.length);
+  const quietHoursRanges = normalizeQuietHoursRanges(settings);
+  const primaryQuietRange = quietHoursRanges[0];
 
   return {
     ...settings,
     kegelTimes: kegelTimes.length > 0 ? kegelTimes : defaultReminderSettings.kegelTimes,
-    quietHoursEnd: isReminderTime(settings.quietHoursEnd)
-      ? settings.quietHoursEnd
-      : defaultReminderSettings.quietHoursEnd,
-    quietHoursStart: isReminderTime(settings.quietHoursStart)
-      ? settings.quietHoursStart
-      : defaultReminderSettings.quietHoursStart,
+    quietHoursEnd: primaryQuietRange?.end ?? '00:00',
+    quietHoursRanges,
+    quietHoursStart: primaryQuietRange?.start ?? '00:00',
     sedentaryIntervalMinutes: normalizeSedentaryInterval(settings.sedentaryIntervalMinutes),
   };
 }
@@ -53,13 +62,17 @@ export function getQuietHoursLabel(settings: ReminderSettings): string {
     return '关闭';
   }
 
-  return `${settings.quietHoursStart} - ${settings.quietHoursEnd}`;
+  const ranges = normalizeQuietHoursRanges(settings);
+
+  if (ranges.length === 1) {
+    return formatQuietHoursRange(ranges[0]);
+  }
+
+  return `${ranges.length} 段 · ${ranges.map(formatQuietHoursRange).join('、')}`;
 }
 
 export function getKegelReminderTimesOutsideQuietHours(settings: ReminderSettings): string[] {
-  return settings.kegelTimes.filter(
-    (time) => !isTimeInQuietHours(time, settings.quietHoursStart, settings.quietHoursEnd),
-  );
+  return settings.kegelTimes.filter((time) => !isTimeInQuietHoursRanges(time, settings));
 }
 
 export function getNextKegelReminderTime(settings: ReminderSettings, now = new Date()): string | null {
@@ -163,7 +176,7 @@ export function buildSedentaryReminderDates(settings: ReminderSettings, now = ne
 }
 
 export function isQuietHoursDisabled(settings: ReminderSettings): boolean {
-  return settings.quietHoursStart === settings.quietHoursEnd;
+  return normalizeQuietHoursRanges(settings).length === 0;
 }
 
 export function isTimeInQuietHours(time: string, quietStart: string, quietEnd: string): boolean {
@@ -180,6 +193,10 @@ export function isTimeInQuietHours(time: string, quietStart: string, quietEnd: s
   }
 
   return targetMinutes >= startMinutes || targetMinutes < endMinutes;
+}
+
+export function isTimeInQuietHoursRanges(time: string, settings: ReminderSettings): boolean {
+  return normalizeQuietHoursRanges(settings).some((range) => isTimeInQuietHours(time, range.start, range.end));
 }
 
 export function isReminderTime(value: string): boolean {
@@ -207,21 +224,87 @@ function getActiveMinuteWindows(settings: ReminderSettings): Array<[number, numb
     return [[DEFAULT_ACTIVE_START_MINUTES, DEFAULT_ACTIVE_END_MINUTES]];
   }
 
-  const quietStart = parseTimeToMinutes(settings.quietHoursStart) ?? parseTimeToMinutes(DEFAULT_QUIET_HOURS_START);
-  const quietEnd = parseTimeToMinutes(settings.quietHoursEnd) ?? parseTimeToMinutes(DEFAULT_QUIET_HOURS_END);
+  const quietRanges = normalizeQuietHoursRanges(settings).flatMap(rangeToMinuteWindows);
 
-  if (quietStart === null || quietEnd === null) {
+  if (quietRanges.length === 0) {
     return [[DEFAULT_ACTIVE_START_MINUTES, DEFAULT_ACTIVE_END_MINUTES]];
   }
 
-  if (quietStart < quietEnd) {
-    return [
-      [0, quietStart],
-      [quietEnd, MINUTES_PER_DAY],
-    ].filter(([start, end]) => end > start) as Array<[number, number]>;
+  return quietRanges.reduce(
+    (activeWindows, quietWindow) => subtractMinuteWindow(activeWindows, quietWindow),
+    [[DEFAULT_ACTIVE_START_MINUTES, DEFAULT_ACTIVE_END_MINUTES]] as Array<[number, number]>,
+  );
+}
+
+function normalizeQuietHoursRanges(settings: ReminderSettings): QuietHoursRange[] {
+  const explicitRanges = Array.isArray(settings.quietHoursRanges) ? settings.quietHoursRanges : [];
+  const normalizedRanges = explicitRanges
+    .map((range, index) => ({
+      end: isReminderTime(range.end) ? range.end : '',
+      id: typeof range.id === 'string' && range.id.length > 0 ? range.id : `quiet-${index}`,
+      start: isReminderTime(range.start) ? range.start : '',
+    }))
+    .filter((range) => range.start && range.end && range.start !== range.end)
+    .slice(0, MAX_QUIET_HOURS_RANGES);
+
+  if (normalizedRanges.length > 0 || settings.quietHoursStart === settings.quietHoursEnd) {
+    return sortQuietHoursRanges(normalizedRanges);
   }
 
-  return [[quietEnd, quietStart]];
+  if (isReminderTime(settings.quietHoursStart) && isReminderTime(settings.quietHoursEnd)) {
+    return [
+      {
+        end: settings.quietHoursEnd,
+        id: 'legacy-quiet',
+        start: settings.quietHoursStart,
+      },
+    ];
+  }
+
+  return defaultReminderSettings.quietHoursRanges;
+}
+
+function sortQuietHoursRanges(ranges: QuietHoursRange[]): QuietHoursRange[] {
+  return ranges
+    .slice()
+    .sort((a, b) => (parseTimeToMinutes(a.start) ?? 0) - (parseTimeToMinutes(b.start) ?? 0));
+}
+
+function formatQuietHoursRange(range: QuietHoursRange): string {
+  return `${range.start} - ${range.end}`;
+}
+
+function rangeToMinuteWindows(range: QuietHoursRange): Array<[number, number]> {
+  const startMinutes = parseTimeToMinutes(range.start);
+  const endMinutes = parseTimeToMinutes(range.end);
+
+  if (startMinutes === null || endMinutes === null || startMinutes === endMinutes) {
+    return [];
+  }
+
+  if (startMinutes < endMinutes) {
+    return [[startMinutes, endMinutes]];
+  }
+
+  return [
+    [startMinutes, MINUTES_PER_DAY],
+    [0, endMinutes],
+  ];
+}
+
+function subtractMinuteWindow(activeWindows: Array<[number, number]>, quietWindow: [number, number]) {
+  const [quietStart, quietEnd] = quietWindow;
+
+  return activeWindows.flatMap(([activeStart, activeEnd]) => {
+    if (quietEnd <= activeStart || quietStart >= activeEnd) {
+      return [[activeStart, activeEnd] as [number, number]];
+    }
+
+    return [
+      [activeStart, Math.max(activeStart, quietStart)] as [number, number],
+      [Math.min(activeEnd, quietEnd), activeEnd] as [number, number],
+    ].filter(([start, end]) => end > start);
+  });
 }
 
 function buildDateAtMinute(now: Date, dayOffset: number, minute: number): Date {

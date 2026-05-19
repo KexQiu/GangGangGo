@@ -2,7 +2,7 @@ import {
   defaultReminderSettings,
   normalizeReminderSettings,
 } from '../../features/reminders/reminderLogic';
-import { type ReminderSettings } from '../../features/reminders/reminderTypes';
+import { type QuietHoursRange, type ReminderSettings } from '../../features/reminders/reminderTypes';
 import { initializeDatabase } from '../db';
 
 const SETTINGS_ID = 'default';
@@ -13,6 +13,7 @@ type ReminderSettingsRow = {
   kegel_times: string;
   privacy_mode: number;
   quiet_hours_end: string;
+  quiet_hours_ranges: string | null;
   quiet_hours_start: string;
   sedentary_enabled: number;
   sedentary_interval_minutes: number;
@@ -31,6 +32,7 @@ export async function getReminderSettings(): Promise<ReminderSettings> {
         sedentary_interval_minutes,
         quiet_hours_start,
         quiet_hours_end,
+        quiet_hours_ranges,
         privacy_mode,
         updated_at
       FROM reminder_settings
@@ -62,6 +64,7 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
         sedentary_interval_minutes,
         quiet_hours_start,
         quiet_hours_end,
+        quiet_hours_ranges,
         privacy_mode,
         updated_at
       ) VALUES (
@@ -72,6 +75,7 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
         $sedentaryIntervalMinutes,
         $quietHoursStart,
         $quietHoursEnd,
+        $quietHoursRanges,
         $privacyMode,
         $updatedAt
       )
@@ -82,6 +86,7 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
         sedentary_interval_minutes = excluded.sedentary_interval_minutes,
         quiet_hours_start = excluded.quiet_hours_start,
         quiet_hours_end = excluded.quiet_hours_end,
+        quiet_hours_ranges = excluded.quiet_hours_ranges,
         privacy_mode = excluded.privacy_mode,
         updated_at = excluded.updated_at;
     `,
@@ -91,6 +96,7 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
       $kegelTimes: JSON.stringify(settings.kegelTimes),
       $privacyMode: settings.privacyMode ? 1 : 0,
       $quietHoursEnd: settings.quietHoursEnd,
+      $quietHoursRanges: JSON.stringify(settings.quietHoursRanges),
       $quietHoursStart: settings.quietHoursStart,
       $sedentaryEnabled: settings.sedentaryEnabled ? 1 : 0,
       $sedentaryIntervalMinutes: settings.sedentaryIntervalMinutes,
@@ -105,11 +111,37 @@ function rowToReminderSettings(row: ReminderSettingsRow): ReminderSettings {
     kegelTimes: parseKegelTimes(row.kegel_times),
     privacyMode: Boolean(row.privacy_mode),
     quietHoursEnd: row.quiet_hours_end,
+    quietHoursRanges: parseQuietHoursRanges(row.quiet_hours_ranges),
     quietHoursStart: row.quiet_hours_start,
     sedentaryEnabled: Boolean(row.sedentary_enabled),
     sedentaryIntervalMinutes: row.sedentary_interval_minutes,
     updatedAt: row.updated_at,
   };
+}
+
+function parseQuietHoursRanges(value: string | null): QuietHoursRange[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((item): item is QuietHoursRange => {
+      if (!item || typeof item !== 'object') {
+        return false;
+      }
+
+      const range = item as Partial<QuietHoursRange>;
+      return typeof range.id === 'string' && typeof range.start === 'string' && typeof range.end === 'string';
+    });
+  } catch {
+    return [];
+  }
 }
 
 function parseKegelTimes(value: string): string[] {

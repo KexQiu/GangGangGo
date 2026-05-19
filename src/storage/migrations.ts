@@ -52,4 +52,20 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       updated_at TEXT NOT NULL
     );
   `);
+
+  await ensureColumn(db, 'reminder_settings', 'quiet_hours_ranges', 'TEXT');
+}
+
+async function ensureColumn(
+  db: SQLiteDatabase,
+  tableName: string,
+  columnName: string,
+  columnType: string,
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName});`);
+  const hasColumn = columns.some((column) => column.name === columnName);
+
+  if (!hasColumn) {
+    await db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType};`);
+  }
 }

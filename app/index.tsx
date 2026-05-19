@@ -97,7 +97,7 @@ export default function HomeScreen() {
           />
           <OverviewMetric label="小账本" status={getHabitStatusLabel(habitCompletion)} value={`${habitCompletion}/4`} />
           <OverviewMetric
-            label="马桶计时"
+            label="蹲会儿"
             status={getToiletStatusLabel(todayToiletCount)}
             value={`${todayToiletCount} 次`}
           />
@@ -130,7 +130,7 @@ export default function HomeScreen() {
         description="5 分钟敲门，15 分钟亮红灯。"
         icon={Timer}
         onPress={() => router.push(routes.toilet)}
-        title="马桶计时"
+        title="蹲会儿"
       />
 
       <HabitQuickCheckInCard compact showDetailsButton />
@@ -142,7 +142,7 @@ export default function HomeScreen() {
           iconColor={colors.primaryPressed}
           iconTone={colors.primarySoft}
           onPress={() => router.push(routes.trends)}
-          title="最近趋势"
+          title="最近小报告"
         />
         <View style={styles.toolDivider} />
         <UtilityLink
