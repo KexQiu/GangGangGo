@@ -9,10 +9,11 @@ import {
   ShieldCheck,
   Timer,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../src/components/AppButton';
 import { AppCard } from '../src/components/AppCard';
+import { PressableScale } from '../src/components/feedback/PressableScale';
 import { PageHeader } from '../src/components/PageHeader';
 import { Screen } from '../src/components/Screen';
 import {
@@ -68,14 +69,13 @@ export default function HomeScreen() {
     <Screen>
       <View style={styles.headerRow}>
         <PageHeader eyebrow="肛肛好" subtitle="少找入口，多做正事。" title="今天轻轻安排一下" />
-        <Pressable
+        <PressableScale
           accessibilityLabel="打开设置"
-          accessibilityRole="button"
           onPress={() => router.push(routes.settings)}
-          style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
+          style={styles.settingsButton}
         >
           <Settings color={colors.text} size={22} strokeWidth={2.5} />
-        </Pressable>
+        </PressableScale>
       </View>
 
       <AppCard muted style={styles.overviewCard}>
@@ -179,11 +179,10 @@ function CompactActionRow({ description, icon: Icon, onPress, title }: RowAction
   const styles = createStyles(colors);
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityLabel={`${title}，${description}`}
-      accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.actionRow, pressed && styles.pressed]}
+      style={styles.actionRow}
     >
       <View style={[styles.rowIcon, styles.infoBadge]}>
         <Icon color={colors.info} size={22} strokeWidth={2.4} />
@@ -193,7 +192,7 @@ function CompactActionRow({ description, icon: Icon, onPress, title }: RowAction
         <Text style={styles.mutedText}>{description}</Text>
       </View>
       <ChevronRight color={colors.textSubtle} size={19} strokeWidth={2.4} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -226,11 +225,10 @@ function UtilityLink({ description, icon: Icon, iconColor, iconTone, onPress, ti
   const styles = createStyles(colors);
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityLabel={`${title}，${description}`}
-      accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.utilityRow, pressed && styles.pressed]}
+      style={styles.utilityRow}
     >
       <View style={[styles.utilityIcon, { backgroundColor: iconTone }]}>
         <Icon color={iconColor} size={19} strokeWidth={2.4} />
@@ -240,7 +238,7 @@ function UtilityLink({ description, icon: Icon, iconColor, iconTone, onPress, ti
         <Text style={styles.utilityText}>{description}</Text>
       </View>
       <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.4} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -263,10 +261,6 @@ function createStyles(colors: ThemeColors) {
       marginLeft: 14,
       marginTop: 4,
       width: 44,
-    },
-    pressed: {
-      opacity: 0.78,
-      transform: [{ scale: 0.98 }],
     },
     overviewCard: {
       marginBottom: 12,

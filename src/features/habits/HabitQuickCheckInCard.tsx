@@ -1,10 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Check, ChevronRight, Droplets, Leaf, ListChecks, Move, Smile } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, Droplets, Leaf, ListChecks, Move, Smile } from 'lucide-react-native';
+import { useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
+import { AnimatedCheckBadge } from '../../components/feedback/AnimatedCheckBadge';
+import { PressableScale } from '../../components/feedback/PressableScale';
+import { SuccessBurst } from '../../components/feedback/SuccessBurst';
 import { routes } from '../../navigation/routes';
 import { useAppTheme } from '../../theme/themeProvider';
 import {
@@ -16,36 +20,52 @@ import {
   getLocalDateKey,
 } from './habitLogic';
 import { getHabitCheckInForDate, useHabitStore } from './habitStore';
-import { type HabitKey } from './habitTypes';
+import { type HabitKey, type HabitLevel } from './habitTypes';
 
 const quickHabitItems: Array<{
-  doneLabel: string;
   icon: typeof Droplets;
   key: HabitKey;
+  levelLabels: Record<HabitLevel, string>;
   title: string;
 }> = [
   {
-    doneLabel: '饮水达标',
     icon: Droplets,
     key: 'water',
+    levelLabels: {
+      good: '达标',
+      low: '不足',
+      medium: '一般',
+    },
     title: '饮水',
   },
   {
-    doneLabel: '纤维达标',
     icon: Leaf,
     key: 'fiber',
+    levelLabels: {
+      good: '达标',
+      low: '不足',
+      medium: '一般',
+    },
     title: '纤维',
   },
   {
-    doneLabel: '活动够',
     icon: Move,
     key: 'movement',
+    levelLabels: {
+      good: '活动够',
+      low: '久坐多',
+      medium: '一般',
+    },
     title: '活动',
   },
   {
-    doneLabel: '排便顺畅',
     icon: Smile,
     key: 'bowel',
+    levelLabels: {
+      good: '顺畅',
+      low: '困难',
+      medium: '一般',
+    },
     title: '排便',
   },
 ];
@@ -66,36 +86,60 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
   const recentStats = calculateRecentHabitStats(checkIns);
   const { colors } = useAppTheme();
   const styles = createStyles(colors, compact);
+  const [burstKey, setBurstKey] = useState(0);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const justCompletedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function markGood(key: HabitKey) {
+    const nextCompletion = todayCheckIn[key] === 'good' ? completion : Math.min(completion + 1, 4);
+
     await Haptics.selectionAsync();
     await setHabitLevel(today, key, 'good');
+
+    if (completion < 4 && nextCompletion === 4) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setBurstKey((current) => current + 1);
+      setJustCompleted(true);
+
+      if (justCompletedTimerRef.current) {
+        clearTimeout(justCompletedTimerRef.current);
+      }
+
+      justCompletedTimerRef.current = setTimeout(() => {
+        setJustCompleted(false);
+      }, 2200);
+    }
   }
 
   return (
     <AppCard style={styles.card}>
+      <View style={styles.burstAnchor}>
+        <SuccessBurst playKey={burstKey} size={118} />
+      </View>
+
       <View style={styles.header}>
         <View style={styles.headerIcon}>
           <ListChecks color={colors.primaryPressed} size={23} strokeWidth={2.4} />
         </View>
         <View style={styles.headerCopy}>
           <Text style={styles.title}>今日小账本</Text>
-          <Text style={styles.subtitle}>{getHabitPositiveFeedback(todayCheckIn, streak)}</Text>
+          <Text style={styles.subtitle}>
+            {justCompleted ? '小账本满格，今日营业稳定。' : getHabitPositiveFeedback(todayCheckIn, streak)}
+          </Text>
         </View>
         <View style={styles.headerSide}>
           <View style={styles.scorePill}>
             <Text style={styles.scoreText}>{completion}/4</Text>
           </View>
           {compact && showDetailsButton ? (
-            <Pressable
+            <PressableScale
               accessibilityLabel="精细记一笔"
-              accessibilityRole="button"
               onPress={() => router.push(routes.habits)}
-              style={({ pressed }) => [styles.detailLink, pressed && styles.pressed]}
+              style={styles.detailLink}
             >
               <Text style={styles.detailLinkText}>精细记</Text>
               <ChevronRight color={colors.textSubtle} size={14} strokeWidth={2.4} />
-            </Pressable>
+            </PressableScale>
           ) : null}
         </View>
       </View>
@@ -103,37 +147,46 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
       <View style={styles.quickGrid}>
         {quickHabitItems.map((item) => {
           const Icon = item.icon;
-          const selected = todayCheckIn[item.key] === 'good';
-          const recorded = Boolean(todayCheckIn[item.key]);
+          const activeLevel = todayCheckIn[item.key];
+          const selected = activeLevel === 'good';
+          const recorded = Boolean(activeLevel);
+          const stateTone = getHabitLevelTone(colors, activeLevel);
+          const stateLabel = activeLevel ? item.levelLabels[activeLevel] : '未记录';
 
           return (
-            <Pressable
+            <PressableScale
               accessibilityHint="点一下会把这一项记为达标。"
-              accessibilityLabel={selected ? `${item.doneLabel}，已完成` : `标记${item.title}达标`}
-              accessibilityRole="button"
+              accessibilityLabel={`${item.title}，${stateLabel}，点一下标记达标`}
               accessibilityState={{ selected }}
               key={item.key}
               onPress={() => {
                 void markGood(item.key);
               }}
-              style={({ pressed }) => [
+              style={[
                 styles.quickButton,
-                recorded && styles.quickButtonRecorded,
-                selected && styles.quickButtonSelected,
-                pressed && styles.pressed,
+                recorded && {
+                  backgroundColor: stateTone.backgroundColor,
+                  borderColor: stateTone.borderColor,
+                },
               ]}
             >
-              <View style={[styles.quickIcon, selected && styles.quickIconSelected]}>
+              <View style={[styles.quickIcon, { backgroundColor: stateTone.iconBackgroundColor }]}>
+                <Icon color={stateTone.iconColor} size={18} strokeWidth={2.4} />
                 {selected ? (
-                  <Check color={colors.primaryPressed} size={18} strokeWidth={2.8} />
-                ) : (
-                  <Icon color={recorded ? colors.primaryPressed : colors.textMuted} size={18} strokeWidth={2.4} />
-                )}
+                  <View style={styles.checkBadge}>
+                    <AnimatedCheckBadge active={selected} size={12} />
+                  </View>
+                ) : null}
               </View>
-              <Text style={[styles.quickTitle, selected && styles.quickTitleSelected]}>
-                {selected ? item.doneLabel : item.title}
-              </Text>
-            </Pressable>
+              <View style={styles.quickCopy}>
+                <Text style={styles.quickTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.quickState, { color: stateTone.textColor }]} numberOfLines={1}>
+                  {stateLabel}
+                </Text>
+              </View>
+            </PressableScale>
           );
         })}
       </View>
@@ -171,7 +224,18 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 function createStyles(colors: ThemeColors, compact: boolean) {
   return StyleSheet.create({
     card: {
+      overflow: 'hidden',
       padding: compact ? 16 : 18,
+    },
+    burstAnchor: {
+      alignItems: 'center',
+      height: 0,
+      justifyContent: 'center',
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 80,
+      zIndex: 2,
     },
     header: {
       alignItems: 'center',
@@ -246,12 +310,6 @@ function createStyles(colors: ThemeColors, compact: boolean) {
       minHeight: compact ? 46 : 52,
       paddingHorizontal: compact ? 10 : 12,
     },
-    quickButtonRecorded: {
-      borderColor: colors.primary,
-    },
-    quickButtonSelected: {
-      backgroundColor: colors.primarySoft,
-    },
     quickIcon: {
       alignItems: 'center',
       backgroundColor: colors.surface,
@@ -261,17 +319,30 @@ function createStyles(colors: ThemeColors, compact: boolean) {
       marginRight: compact ? 8 : 9,
       width: compact ? 24 : 28,
     },
-    quickIconSelected: {
+    checkBadge: {
+      alignItems: 'center',
       backgroundColor: colors.surface,
+      borderRadius: 8,
+      height: 16,
+      justifyContent: 'center',
+      position: 'absolute',
+      right: -5,
+      top: -5,
+      width: 16,
+    },
+    quickCopy: {
+      flex: 1,
+      minWidth: 0,
     },
     quickTitle: {
       color: colors.text,
-      flex: 1,
       fontSize: compact ? 12 : 13,
       fontWeight: '800',
     },
-    quickTitleSelected: {
-      color: colors.primaryPressed,
+    quickState: {
+      fontSize: compact ? 11 : 12,
+      fontWeight: '800',
+      marginTop: 2,
     },
     statsRow: {
       alignItems: 'center',
@@ -304,9 +375,45 @@ function createStyles(colors: ThemeColors, compact: boolean) {
       marginTop: 14,
       minHeight: 46,
     },
-    pressed: {
-      opacity: 0.82,
-      transform: [{ scale: 0.99 }],
-    },
   });
+}
+
+function getHabitLevelTone(colors: ThemeColors, level: HabitLevel | null) {
+  if (level === 'good') {
+    return {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+      iconBackgroundColor: colors.surface,
+      iconColor: colors.primaryPressed,
+      textColor: colors.primaryPressed,
+    };
+  }
+
+  if (level === 'medium') {
+    return {
+      backgroundColor: colors.infoSoft,
+      borderColor: colors.info,
+      iconBackgroundColor: colors.surface,
+      iconColor: colors.info,
+      textColor: colors.info,
+    };
+  }
+
+  if (level === 'low') {
+    return {
+      backgroundColor: colors.warningSoft,
+      borderColor: colors.warning,
+      iconBackgroundColor: colors.surface,
+      iconColor: colors.warning,
+      textColor: colors.warning,
+    };
+  }
+
+  return {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    iconBackgroundColor: colors.surface,
+    iconColor: colors.textMuted,
+    textColor: colors.textMuted,
+  };
 }

@@ -1,12 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle2, HeartPulse } from 'lucide-react-native';
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
+import { SuccessBurst } from '../../src/components/feedback/SuccessBurst';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import { getTrainingPreset } from '../../src/features/training/presets';
@@ -26,14 +27,23 @@ export default function TrainingCompleteScreen() {
   const isCompleted = params.isCompleted === 'true';
   const durationSeconds = toNumber(params.durationSeconds);
   const completedRepetitions = toNumber(params.completedRepetitions);
+  const iconScale = useRef(new Animated.Value(isCompleted ? 0.72 : 1)).current;
+  const [burstKey, setBurstKey] = useState(0);
   const { colors } = useAppTheme();
   const styles = createStyles(colors, isCompleted);
 
   useEffect(() => {
     if (isCompleted) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setBurstKey((current) => current + 1);
+      Animated.spring(iconScale, {
+        friction: 6,
+        tension: 180,
+        toValue: 1,
+        useNativeDriver: true,
+      }).start();
     }
-  }, [isCompleted]);
+  }, [iconScale, isCompleted]);
 
   return (
     <Screen>
@@ -46,9 +56,15 @@ export default function TrainingCompleteScreen() {
       />
 
       <AppCard muted style={styles.resultCard}>
-        <View style={styles.resultIcon}>
+        {isCompleted ? (
+          <View style={styles.burstAnchor}>
+            <SuccessBurst playKey={burstKey} size={140} />
+          </View>
+        ) : null}
+
+        <Animated.View style={[styles.resultIcon, { transform: [{ scale: iconScale }] }]}>
           <CheckCircle2 color={isCompleted ? colors.primaryPressed : colors.warning} size={42} strokeWidth={2.4} />
-        </View>
+        </Animated.View>
         <Text style={styles.resultTitle}>{preset.name}</Text>
         <Text style={styles.resultText}>
           {isCompleted
@@ -101,7 +117,17 @@ function createStyles(colors: ThemeColors, isCompleted: boolean) {
     resultCard: {
       alignItems: 'center',
       marginBottom: 16,
+      overflow: 'hidden',
       paddingVertical: 32,
+    },
+    burstAnchor: {
+      alignItems: 'center',
+      height: 0,
+      justifyContent: 'center',
+      position: 'absolute',
+      top: 68,
+      width: '100%',
+      zIndex: 2,
     },
     resultIcon: {
       alignItems: 'center',
