@@ -43,7 +43,11 @@ export default function SettingsScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const toiletLiveActivityEnabled = useAppSettingsStore((state) => state.toiletLiveActivityEnabled);
+  const toiletStageNotificationEnabled = useAppSettingsStore((state) => state.toiletStageNotificationEnabled);
+  const toiletStageSoundEnabled = useAppSettingsStore((state) => state.toiletStageSoundEnabled);
   const setToiletLiveActivityEnabled = useAppSettingsStore((state) => state.setToiletLiveActivityEnabled);
+  const setToiletStageNotificationEnabled = useAppSettingsStore((state) => state.setToiletStageNotificationEnabled);
+  const setToiletStageSoundEnabled = useAppSettingsStore((state) => state.setToiletStageSoundEnabled);
   const styles = createStyles(theme.colors);
 
   return (
@@ -121,8 +125,44 @@ export default function SettingsScreen() {
           <Volume2 color={theme.colors.info} size={20} strokeWidth={2.3} />
           <View style={styles.settingText}>
             <Text style={styles.settingTitle}>声音与震动</Text>
-            <Text style={styles.settingDescription}>练习和计时只轻轻震一下，系统通知默认不出声，不搞大场面。</Text>
+            <Text style={styles.settingDescription}>蹲会儿阶段可以轻轻提醒，系统通知默认不出声，不搞大场面。</Text>
           </View>
+        </View>
+
+        <View style={styles.switchLine}>
+          <View style={styles.settingText}>
+            <Text style={styles.switchTitle}>蹲会儿离开提醒</Text>
+            <Text style={styles.settingDescription}>离开 App 后，到 5/10/15/20 分钟用消息轻轻敲门。</Text>
+          </View>
+          <Switch
+            accessibilityLabel="蹲会儿离开提醒"
+            ios_backgroundColor={theme.colors.border}
+            onValueChange={setToiletStageNotificationEnabled}
+            thumbColor={toiletStageNotificationEnabled ? theme.colors.primary : theme.colors.surface}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primarySoft,
+            }}
+            value={toiletStageNotificationEnabled}
+          />
+        </View>
+
+        <View style={styles.switchLine}>
+          <View style={styles.settingText}>
+            <Text style={styles.switchTitle}>阶段音效</Text>
+            <Text style={styles.settingDescription}>在 App 内切换阶段时播放短音效，5 分钟轻敲门，后面逐步认真。</Text>
+          </View>
+          <Switch
+            accessibilityLabel="阶段音效"
+            ios_backgroundColor={theme.colors.border}
+            onValueChange={setToiletStageSoundEnabled}
+            thumbColor={toiletStageSoundEnabled ? theme.colors.primary : theme.colors.surface}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primarySoft,
+            }}
+            value={toiletStageSoundEnabled}
+          />
         </View>
       </AppCard>
     </Screen>
@@ -165,6 +205,22 @@ function createStyles(colors: ThemeColors) {
       fontSize: 13,
       fontWeight: '500',
       lineHeight: 19,
+    },
+    switchLine: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 16,
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    switchTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 4,
     },
     inlineButton: {
       marginTop: 14,

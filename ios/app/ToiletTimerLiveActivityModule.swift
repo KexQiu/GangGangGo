@@ -61,6 +61,11 @@ class ToiletTimerLiveActivityModule: NSObject {
     resolver resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
+    guard #available(iOS 16.1, *) else {
+      resolve(nil)
+      return
+    }
+
     update(activityId: activityId, elapsedSeconds: elapsedSeconds.doubleValue, isPaused: true, resolve: resolve, reject: reject)
   }
 
@@ -71,6 +76,11 @@ class ToiletTimerLiveActivityModule: NSObject {
     resolver resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
+    guard #available(iOS 16.1, *) else {
+      resolve(nil)
+      return
+    }
+
     update(activityId: activityId, elapsedSeconds: elapsedSeconds.doubleValue, isPaused: false, resolve: resolve, reject: reject)
   }
 

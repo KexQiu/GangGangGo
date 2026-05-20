@@ -1,8 +1,9 @@
+import { useAudioPlayer } from 'expo-audio';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Armchair, Pause, Play } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AppState, type AppStateStatus, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
@@ -23,8 +24,21 @@ import {
 } from '../../src/features/toilet/toiletLiveActivity';
 import {
   getActiveToiletTimerElapsedSeconds,
+  type ActiveToiletTimerSession,
   useToiletTimerSessionStore,
 } from '../../src/features/toilet/toiletTimerSessionStore';
+import {
+  cancelToiletStageNotifications,
+  ensureToiletStageNotificationPermission,
+  syncToiletStageNotifications,
+} from '../../src/features/toilet/toiletStageNotificationService';
+import {
+  playToiletStageSound,
+  stopToiletStageSound,
+  TOILET_STAGE_SOUND_SOURCES,
+  type ToiletStageSoundPlayers,
+} from '../../src/features/toilet/toiletStageSoundService';
+import { type ToiletTimerStage } from '../../src/features/toilet/toiletTypes';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -38,8 +52,44 @@ export default function ToiletScreen() {
   const clearSession = useToiletTimerSessionStore((state) => state.clearSession);
   const setLiveActivityId = useToiletTimerSessionStore((state) => state.setLiveActivityId);
   const toiletLiveActivityEnabled = useAppSettingsStore((state) => state.toiletLiveActivityEnabled);
+  const toiletStageNotificationEnabled = useAppSettingsStore((state) => state.toiletStageNotificationEnabled);
+  const toiletStageSoundEnabled = useAppSettingsStore((state) => state.toiletStageSoundEnabled);
+  const gentleWarningSoundPlayer = useAudioPlayer(TOILET_STAGE_SOUND_SOURCES.gentle_warning, {
+    downloadFirst: true,
+    keepAudioSessionActive: true,
+    updateInterval: 80,
+  });
+  const strongWarningSoundPlayer = useAudioPlayer(TOILET_STAGE_SOUND_SOURCES.strong_warning, {
+    downloadFirst: true,
+    keepAudioSessionActive: true,
+    updateInterval: 80,
+  });
+  const overtimeSoundPlayer = useAudioPlayer(TOILET_STAGE_SOUND_SOURCES.overtime, {
+    downloadFirst: true,
+    keepAudioSessionActive: true,
+    updateInterval: 80,
+  });
+  const severeWarningSoundPlayer = useAudioPlayer(TOILET_STAGE_SOUND_SOURCES.severe_warning, {
+    downloadFirst: true,
+    keepAudioSessionActive: true,
+    updateInterval: 80,
+  });
+  const toiletStageSoundPlayers = useMemo<ToiletStageSoundPlayers>(() => ({
+    gentle_warning: gentleWarningSoundPlayer,
+    overtime: overtimeSoundPlayer,
+    severe_warning: severeWarningSoundPlayer,
+    strong_warning: strongWarningSoundPlayer,
+  }), [
+    gentleWarningSoundPlayer,
+    overtimeSoundPlayer,
+    severeWarningSoundPlayer,
+    strongWarningSoundPlayer,
+  ]);
   const lastStageRef = useRef(getToiletTimerStage(0));
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const activeSessionRef = useRef<string | null>(null);
+  const sessionRef = useRef<ActiveToiletTimerSession | null>(session);
+  const toiletStageNotificationEnabledRef = useRef(toiletStageNotificationEnabled);
   const { colors } = useAppTheme();
   const elapsedSeconds = getActiveToiletTimerElapsedSeconds(session);
   const isPaused = session?.isPaused ?? false;
@@ -47,6 +97,15 @@ export default function ToiletScreen() {
   const stageCopy = getToiletStageCopy(stage);
   const styles = createStyles(colors, stage);
   const hasStarted = Boolean(session);
+
+  sessionRef.current = session;
+  toiletStageNotificationEnabledRef.current = toiletStageNotificationEnabled;
+
+  useEffect(() => {
+    return () => {
+      stopToiletStageSound(toiletStageSoundPlayers);
+    };
+  }, [toiletStageSoundPlayers]);
 
   useEffect(() => {
     if (!hasStarted || isPaused) {
@@ -61,6 +120,35 @@ export default function ToiletScreen() {
   }, [hasStarted, isPaused]);
 
   useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const wasActive = appStateRef.current === 'active';
+      appStateRef.current = nextState;
+
+      const currentSession = sessionRef.current;
+      if (nextState === 'active') {
+        void cancelToiletStageNotifications();
+        lastStageRef.current = getToiletTimerStage(getActiveToiletTimerElapsedSeconds(currentSession));
+        setTick((current) => current + 1);
+        return;
+      }
+
+      if (wasActive && currentSession && !currentSession.isPaused && toiletStageNotificationEnabledRef.current) {
+        void syncToiletStageNotifications(getActiveToiletTimerElapsedSeconds(currentSession));
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toiletStageNotificationEnabled) {
+      void cancelToiletStageNotifications();
+    }
+  }, [toiletStageNotificationEnabled]);
+
+  useEffect(() => {
     if (activeSessionRef.current !== (session?.startedAt ?? null)) {
       activeSessionRef.current = session?.startedAt ?? null;
       lastStageRef.current = stage;
@@ -72,18 +160,32 @@ export default function ToiletScreen() {
     }
 
     lastStageRef.current = stage;
+
+    if (appStateRef.current !== 'active') {
+      return;
+    }
+
     void Haptics.notificationAsync(
       stage === 'severe_warning'
         ? Haptics.NotificationFeedbackType.Error
         : Haptics.NotificationFeedbackType.Warning,
     );
-  }, [hasStarted, session?.startedAt, stage]);
+
+    if (toiletStageSoundEnabled) {
+      void playToiletStageSound(stage, toiletStageSoundPlayers);
+    }
+  }, [hasStarted, session?.startedAt, stage, toiletStageSoundEnabled, toiletStageSoundPlayers]);
 
   async function startTimer() {
     const startedAt = new Date().toISOString();
     startSession(startedAt);
     lastStageRef.current = getToiletTimerStage(0);
     void Haptics.selectionAsync();
+    void cancelToiletStageNotifications();
+
+    if (toiletStageNotificationEnabled) {
+      void ensureToiletStageNotificationPermission();
+    }
 
     if (!toiletLiveActivityEnabled) {
       return;
@@ -108,6 +210,8 @@ export default function ToiletScreen() {
 
     const durationSeconds = elapsedSeconds;
     const startedAt = session.startedAt;
+    stopToiletStageSound(toiletStageSoundPlayers);
+    void cancelToiletStageNotifications();
     void endToiletLiveActivity(session.liveActivityId, durationSeconds);
     clearSession();
 
@@ -124,6 +228,8 @@ export default function ToiletScreen() {
     if (session) {
       void endToiletLiveActivity(session.liveActivityId, elapsedSeconds);
     }
+    stopToiletStageSound(toiletStageSoundPlayers);
+    void cancelToiletStageNotifications();
     clearSession();
     router.replace(routes.home);
   }
@@ -136,6 +242,7 @@ export default function ToiletScreen() {
     if (!wasPaused) {
       pauseSession(pausedElapsedSeconds);
       void pauseToiletLiveActivity(activityId, pausedElapsedSeconds);
+      void cancelToiletStageNotifications();
     }
 
     Alert.alert('这次不记了？', '放弃后不会保存本次记录，就当小本本没翻开。', [
@@ -173,6 +280,7 @@ export default function ToiletScreen() {
     }
 
     pauseSession(currentElapsedSeconds);
+    void cancelToiletStageNotifications();
     void pauseToiletLiveActivity(activityId, currentElapsedSeconds);
   }
 
@@ -223,13 +331,7 @@ export default function ToiletScreen() {
 
       <AppCard style={styles.warningCard}>
         <Text style={styles.warningTitle}>阶段提示</Text>
-        <Text style={styles.warningText}>
-          {stage === 'normal'
-            ? '5 分钟后会轻轻提醒：正事办完就撤。'
-            : stage === 'severe_warning'
-              ? '已经超过 20 分钟，建议先收工，给小花一点下班时间。'
-              : '办完就点收工，给小账本留个线索。'}
-        </Text>
+        <Text style={styles.warningText}>{getStageHintText(stage)}</Text>
       </AppCard>
 
       <View style={styles.actions}>
@@ -252,8 +354,23 @@ export default function ToiletScreen() {
   );
 }
 
+function getStageHintText(stage: ToiletTimerStage): string {
+  switch (stage) {
+    case 'gentle_warning':
+      return '小声敲过门了。如果已经办完，点收工就好。';
+    case 'strong_warning':
+      return '10 分钟到了，建议准备收工，别让局部压力加班。';
+    case 'overtime':
+      return '已经开成蹲会儿长会了。先收工，手机小剧场下次再播。';
+    case 'severe_warning':
+      return '已经超过 20 分钟，建议先收工，给小花一点下班时间。';
+    case 'normal':
+    default:
+      return '5 分钟后会轻轻提醒：正事办完就撤。';
+  }
+}
+
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
-type ToiletTimerStage = ReturnType<typeof getToiletTimerStage>;
 
 function createStyles(colors: ThemeColors, stage: ToiletTimerStage) {
   const accentColor = stage === 'normal'

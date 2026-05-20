@@ -27,7 +27,7 @@ export function getToiletStageCopy(stage: ToiletTimerStage): {
   switch (stage) {
     case 'severe_warning':
       return {
-        description: '已经超过 20 分钟了。先收工，别让小花继续陪坐。',
+        description: '已经超过 20 分钟了，给小花一点下班时间。',
         title: '真的该收工了',
       };
     case 'gentle_warning':
@@ -37,13 +37,13 @@ export function getToiletStageCopy(stage: ToiletTimerStage): {
       };
     case 'strong_warning':
       return {
-        description: '建议尽快结束，别让局部压力陪你加班。',
+        description: '正事办完就撤，别让局部压力加班。',
         title: '差不多该收工了',
       };
     case 'overtime':
       return {
-        description: '这次坐得有点久。如果经常这样，建议关注饮水、膳食纤维和排便习惯。',
-        title: '这会儿有点长了',
+        description: '这趟有点长，先收工，手机小剧场下次再播。',
+        title: '蹲会儿长会了',
       };
     case 'normal':
     default:

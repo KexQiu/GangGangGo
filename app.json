@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-audio"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
