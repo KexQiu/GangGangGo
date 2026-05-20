@@ -6,6 +6,7 @@ import { type HabitCheckIn, type HabitKey, type HabitLevel } from './habitTypes'
 
 type HabitState = {
   checkIns: HabitCheckIn[];
+  clearHabitLevel: (date: string, key: HabitKey) => Promise<void>;
   error: string | null;
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
@@ -15,6 +16,29 @@ type HabitState = {
 
 export const useHabitStore = create<HabitState>((set, get) => ({
   checkIns: [],
+  clearHabitLevel: async (date, key) => {
+    const existing = get().checkIns.find((checkIn) => checkIn.date === date) ?? createEmptyHabitCheckIn(date);
+    const updated: HabitCheckIn = {
+      ...existing,
+      [key]: null,
+      updatedAt: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      checkIns: [updated, ...state.checkIns.filter((checkIn) => checkIn.date !== date)].sort((left, right) =>
+        right.date.localeCompare(left.date),
+      ),
+      error: null,
+    }));
+
+    try {
+      await upsertHabitCheckIn(updated);
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : '健康打卡保存失败',
+      });
+    }
+  },
   error: null,
   hasHydrated: false,
   hydrate: async () => {

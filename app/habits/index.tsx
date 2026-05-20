@@ -1,6 +1,5 @@
 import * as Haptics from 'expo-haptics';
 import {
-  CircleDot,
   Droplets,
   Frown,
   Leaf,
@@ -33,7 +32,9 @@ import {
   createEmptyHabitCheckIn,
   getHabitPositiveFeedback,
   getLocalDateKey,
+  habitKeys,
 } from '../../src/features/habits/habitLogic';
+import { getHabitLevelStandard, habitStandards } from '../../src/features/habits/habitStandards';
 import { getHabitCheckInForDate, useHabitStore } from '../../src/features/habits/habitStore';
 import { type HabitKey, type HabitLevel } from '../../src/features/habits/habitTypes';
 import { routes } from '../../src/navigation/routes';
@@ -42,61 +43,30 @@ import { useAppTheme } from '../../src/theme/themeProvider';
 const habitItems: Array<{
   icon: typeof Droplets;
   key: HabitKey;
-  title: string;
-  options: Array<{
-    label: string;
-    level: HabitLevel;
-  }>;
-}> = [
-  {
-    icon: Droplets,
-    key: 'water',
-    options: [
-      { label: '不足', level: 'low' },
-      { label: '一般', level: 'medium' },
-      { label: '达标', level: 'good' },
-    ],
-    title: '今日饮水',
-  },
-  {
-    icon: Leaf,
-    key: 'fiber',
-    options: [
-      { label: '不足', level: 'low' },
-      { label: '一般', level: 'medium' },
-      { label: '达标', level: 'good' },
-    ],
-    title: '膳食纤维',
-  },
-  {
-    icon: Move,
-    key: 'movement',
-    options: [
-      { label: '久坐多', level: 'low' },
-      { label: '一般', level: 'medium' },
-      { label: '活动够', level: 'good' },
-    ],
-    title: '活动/走动',
-  },
-  {
-    icon: Smile,
-    key: 'bowel',
-    options: [
-      { label: '困难', level: 'low' },
-      { label: '一般', level: 'medium' },
-      { label: '顺畅', level: 'good' },
-    ],
-    title: '排便顺畅度',
-  },
-];
+}> = habitKeys.map((key) => ({
+  icon: {
+    bowel: Smile,
+    fiber: Leaf,
+    movement: Move,
+    water: Droplets,
+  }[key],
+  key,
+}));
+
+const levelOrder: HabitLevel[] = ['low', 'medium', 'good'];
+
+const habitLevelOptions: Record<HabitKey, HabitLevelOption[]> = {
+  bowel: createHabitLevelOptions('bowel'),
+  fiber: createHabitLevelOptions('fiber'),
+  movement: createHabitLevelOptions('movement'),
+  water: createHabitLevelOptions('water'),
+};
 
 const levelIcons: Record<HabitLevel, ComponentType<IconProps>> = {
   good: Smile,
   low: Frown,
   medium: Meh,
 };
-
-const levelOrder: HabitLevel[] = ['low', 'medium', 'good'];
 
 type IconProps = {
   color?: string;
@@ -159,6 +129,8 @@ export default function HabitsScreen() {
         {habitItems.map((item) => {
           const Icon = item.icon;
           const activeLevel = todayCheckIn[item.key];
+          const standard = habitStandards[item.key];
+          const options = habitLevelOptions[item.key];
 
           return (
             <AppCard key={item.key} style={styles.habitCard}>
@@ -168,30 +140,33 @@ export default function HabitsScreen() {
                 </View>
                 <View style={styles.habitHeaderCopy}>
                   <View style={styles.habitTitleRow}>
-                    <Text style={styles.habitTitle}>{item.title}</Text>
+                    <Text style={styles.habitTitle}>{standard.title}</Text>
                     {activeLevel ? (
                       <AnimatedLevelIcon
                         level={activeLevel}
-                        label={getHabitStateLabel(item.options, activeLevel)}
+                        label={getHabitStateLabel(options, activeLevel)}
                       />
                     ) : null}
                   </View>
-                  <Text style={styles.habitSubtitle}>{activeLevel ? '左右滑一滑，状态马上换。' : '未记录'}</Text>
+                  <Text style={styles.habitSubtitle}>{standard.goodReference}</Text>
                 </View>
               </View>
 
               {activeLevel ? (
-                <HabitLevelSlider
-                  level={activeLevel}
-                  options={item.options}
-                  title={item.title}
-                  onChange={(level) => {
-                    void selectHabitLevel(item.key, level);
-                  }}
-                />
+                <>
+                  <HabitLevelSlider
+                    level={activeLevel}
+                    options={options}
+                    title={standard.title}
+                    onChange={(level) => {
+                      void selectHabitLevel(item.key, level);
+                    }}
+                  />
+                  <SelectedStandardNote habitKey={item.key} level={activeLevel} />
+                </>
               ) : (
                 <PressableScale
-                  accessibilityLabel={`${item.title}，未记录，开始记录`}
+                  accessibilityLabel={`${standard.title}，未记录，按一般开始记录`}
                   onPress={() => {
                     void selectHabitLevel(item.key, 'medium');
                   }}
@@ -201,8 +176,8 @@ export default function HabitsScreen() {
                     <PlusCircle color={colors.textMuted} size={19} strokeWidth={2.4} />
                   </View>
                   <View style={styles.emptyCopy}>
-                    <Text style={styles.emptyTitle}>还没记</Text>
-                    <Text style={styles.emptyText}>点一下开始记录，再用滑块调整状态。</Text>
+                    <Text style={styles.emptyTitle}>先按一般记</Text>
+                    <Text style={styles.emptyText}>点一下展开滑块，再改成不足或达标。</Text>
                   </View>
                 </PressableScale>
               )}
@@ -210,6 +185,10 @@ export default function HabitsScreen() {
           );
         })}
       </View>
+
+      <Text style={styles.footnote}>
+        标准只是日常记录参考；如果医生有安排，听医生的。明显便血、疼痛加重或不适持续时，先看小花说明书。
+      </Text>
     </Screen>
   );
 }
@@ -218,6 +197,13 @@ type HabitLevelOption = {
   label: string;
   level: HabitLevel;
 };
+
+function createHabitLevelOptions(key: HabitKey): HabitLevelOption[] {
+  return levelOrder.map((level) => ({
+    label: habitStandards[key].levels[level].label,
+    level,
+  }));
+}
 
 type HabitLevelSliderProps = {
   level: HabitLevel;
@@ -357,6 +343,25 @@ function HabitLevelSlider({ level, onChange, options, title }: HabitLevelSliderP
           );
         })}
       </View>
+    </View>
+  );
+}
+
+type SelectedStandardNoteProps = {
+  habitKey: HabitKey;
+  level: HabitLevel;
+};
+
+function SelectedStandardNote({ habitKey, level }: SelectedStandardNoteProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+  const tone = getLevelTone(colors, level);
+  const standard = getHabitLevelStandard(habitKey, level);
+
+  return (
+    <View style={[styles.selectedStandardNote, { backgroundColor: tone.softColor }]}>
+      <Text style={[styles.selectedStandardLabel, { color: tone.color }]}>{standard.label}</Text>
+      <Text style={styles.selectedStandardText}>{standard.description}</Text>
     </View>
   );
 }
@@ -532,6 +537,32 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '600',
       lineHeight: 17,
+    },
+    selectedStandardNote: {
+      borderRadius: 14,
+      marginTop: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    selectedStandardLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      marginBottom: 4,
+    },
+    selectedStandardText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    footnote: {
+      color: colors.textSubtle,
+      fontSize: 12,
+      fontWeight: '500',
+      lineHeight: 18,
+      marginBottom: 4,
+      marginTop: 16,
+      textAlign: 'center',
     },
     sliderTrack: {
       backgroundColor: colors.surface,

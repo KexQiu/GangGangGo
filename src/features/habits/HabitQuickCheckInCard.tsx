@@ -19,53 +19,33 @@ import {
   getHabitPositiveFeedback,
   getLocalDateKey,
 } from './habitLogic';
+import { getHabitLevelStandard, habitStandards } from './habitStandards';
 import { getHabitCheckInForDate, useHabitStore } from './habitStore';
 import { type HabitKey, type HabitLevel } from './habitTypes';
 
 const quickHabitItems: Array<{
   icon: typeof Droplets;
   key: HabitKey;
-  levelLabels: Record<HabitLevel, string>;
   title: string;
 }> = [
   {
     icon: Droplets,
     key: 'water',
-    levelLabels: {
-      good: '达标',
-      low: '不足',
-      medium: '一般',
-    },
     title: '饮水',
   },
   {
     icon: Leaf,
     key: 'fiber',
-    levelLabels: {
-      good: '达标',
-      low: '不足',
-      medium: '一般',
-    },
     title: '纤维',
   },
   {
     icon: Move,
     key: 'movement',
-    levelLabels: {
-      good: '活动够',
-      low: '久坐多',
-      medium: '一般',
-    },
     title: '活动',
   },
   {
     icon: Smile,
     key: 'bowel',
-    levelLabels: {
-      good: '顺畅',
-      low: '困难',
-      medium: '一般',
-    },
     title: '排便',
   },
 ];
@@ -77,6 +57,7 @@ type HabitQuickCheckInCardProps = {
 
 export function HabitQuickCheckInCard({ compact = false, showDetailsButton = true }: HabitQuickCheckInCardProps) {
   const router = useRouter();
+  const clearHabitLevel = useHabitStore((state) => state.clearHabitLevel);
   const checkIns = useHabitStore((state) => state.checkIns);
   const setHabitLevel = useHabitStore((state) => state.setHabitLevel);
   const today = getLocalDateKey();
@@ -90,8 +71,23 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
   const [justCompleted, setJustCompleted] = useState(false);
   const justCompletedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function markGood(key: HabitKey) {
-    const nextCompletion = todayCheckIn[key] === 'good' ? completion : Math.min(completion + 1, 4);
+  async function toggleGood(key: HabitKey) {
+    const activeLevel = todayCheckIn[key];
+
+    if (activeLevel === 'good') {
+      await Haptics.selectionAsync();
+      await clearHabitLevel(today, key);
+      setJustCompleted(false);
+
+      if (justCompletedTimerRef.current) {
+        clearTimeout(justCompletedTimerRef.current);
+        justCompletedTimerRef.current = null;
+      }
+
+      return;
+    }
+
+    const nextCompletion = activeLevel ? completion : Math.min(completion + 1, 4);
 
     await Haptics.selectionAsync();
     await setHabitLevel(today, key, 'good');
@@ -151,16 +147,17 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
           const selected = activeLevel === 'good';
           const recorded = Boolean(activeLevel);
           const stateTone = getHabitLevelTone(colors, activeLevel);
-          const stateLabel = activeLevel ? item.levelLabels[activeLevel] : '未记录';
+          const stateLabel = activeLevel ? getHabitLevelStandard(item.key, activeLevel).label : '未记录';
+          const targetLabel = habitStandards[item.key].quickTargetLabel;
 
           return (
             <PressableScale
-              accessibilityHint="点一下会把这一项记为达标。"
-              accessibilityLabel={`${item.title}，${stateLabel}，点一下标记达标`}
+              accessibilityHint={selected ? '再点一下会撤销这一项。' : '点一下会把这一项记为达标。'}
+              accessibilityLabel={`${item.title}，${stateLabel}，达标参考${targetLabel}`}
               accessibilityState={{ selected }}
               key={item.key}
               onPress={() => {
-                void markGood(item.key);
+                void toggleGood(item.key);
               }}
               style={[
                 styles.quickButton,
@@ -184,6 +181,9 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
                 </Text>
                 <Text style={[styles.quickState, { color: stateTone.textColor }]} numberOfLines={1}>
                   {stateLabel}
+                </Text>
+                <Text style={styles.quickHint} numberOfLines={1}>
+                  参考 {targetLabel}
                 </Text>
               </View>
             </PressableScale>
@@ -309,6 +309,7 @@ function createStyles(colors: ThemeColors, compact: boolean) {
       flexGrow: 1,
       minHeight: compact ? 46 : 52,
       paddingHorizontal: compact ? 10 : 12,
+      paddingVertical: compact ? 8 : 10,
     },
     quickIcon: {
       alignItems: 'center',
@@ -343,6 +344,12 @@ function createStyles(colors: ThemeColors, compact: boolean) {
       fontSize: compact ? 11 : 12,
       fontWeight: '800',
       marginTop: 2,
+    },
+    quickHint: {
+      color: colors.textSubtle,
+      fontSize: compact ? 10 : 11,
+      fontWeight: '700',
+      marginTop: 1,
     },
     statsRow: {
       alignItems: 'center',

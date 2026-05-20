@@ -23,7 +23,7 @@ import {
 } from '../src/features/habits/habitLogic';
 import { getHabitCheckInForDate, useHabitStore } from '../src/features/habits/habitStore';
 import { HabitQuickCheckInCard } from '../src/features/habits/HabitQuickCheckInCard';
-import { getReminderHomeSummary } from '../src/features/reminders/reminderLogic';
+import { getReminderHomeSummary, hasAnyReminderEnabled } from '../src/features/reminders/reminderLogic';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import {
   getHabitStatusLabel,
@@ -51,6 +51,7 @@ export default function HomeScreen() {
   const today = getLocalDateKey();
   const todayCheckIn = getHabitCheckInForDate(checkIns, today) ?? createEmptyHabitCheckIn(today);
   const habitCompletion = calculateHabitCompletion(todayCheckIn);
+  const hasReminderEnabled = hasAnyReminderEnabled(reminderSettings);
   const reminderSummary = getReminderHomeSummary(reminderSettings);
   const todayFeedback = getTodayPositiveFeedback({
     habitCompletion,
@@ -105,6 +106,8 @@ export default function HomeScreen() {
         </View>
       </AppCard>
 
+      {!hasReminderEnabled ? <ReminderSetupPrompt onPress={() => router.push(routes.reminders)} /> : null}
+
       <AppCard muted style={styles.heroCard}>
         <View style={styles.heroTop}>
           <View style={styles.heroCopy}>
@@ -153,15 +156,19 @@ export default function HomeScreen() {
           title="最近小报告"
         />
         <View style={styles.toolDivider} />
-        <UtilityLink
-          description={reminderSummary.subtitle}
-          icon={Bell}
-          iconColor={colors.privacy}
-          iconTone={colors.surfaceMuted}
-          onPress={() => router.push(routes.reminders)}
-          title={reminderSummary.title}
-        />
-        <View style={styles.toolDivider} />
+        {hasReminderEnabled ? (
+          <>
+            <UtilityLink
+              description={reminderSummary.subtitle}
+              icon={Bell}
+              iconColor={colors.privacy}
+              iconTone={colors.surfaceMuted}
+              onPress={() => router.push(routes.reminders)}
+              title={reminderSummary.title}
+            />
+            <View style={styles.toolDivider} />
+          </>
+        ) : null}
         <UtilityLink
           description="明显便血、剧烈疼痛或不适加重时，先别硬扛。"
           icon={ShieldCheck}
@@ -172,6 +179,34 @@ export default function HomeScreen() {
         />
       </AppCard>
     </Screen>
+  );
+}
+
+type ReminderSetupPromptProps = {
+  onPress: () => void;
+};
+
+function ReminderSetupPrompt({ onPress }: ReminderSetupPromptProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <PressableScale
+      accessibilityLabel="小暗号还没安排，去设置隐私提醒"
+      onPress={onPress}
+      style={styles.reminderPrompt}
+    >
+      <View style={styles.reminderPromptIcon}>
+        <Bell color={colors.privacy} size={21} strokeWidth={2.4} />
+      </View>
+      <View style={styles.rowCopy}>
+        <Text style={styles.reminderPromptTitle}>小暗号还没安排</Text>
+        <Text style={styles.reminderPromptText}>设置一下，App 会用隐私文案轻轻提醒，不在通知栏大声广播。</Text>
+      </View>
+      <View style={styles.reminderPromptCta}>
+        <Text style={styles.reminderPromptCtaText}>去安排</Text>
+      </View>
+    </PressableScale>
   );
 }
 
@@ -340,6 +375,50 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 7,
       paddingVertical: 3,
       textAlign: 'center',
+    },
+    reminderPrompt: {
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 20,
+      borderWidth: 1,
+      flexDirection: 'row',
+      marginBottom: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    reminderPromptIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 18,
+      height: 36,
+      justifyContent: 'center',
+      marginRight: 11,
+      width: 36,
+    },
+    reminderPromptTitle: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+      marginBottom: 3,
+    },
+    reminderPromptText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    reminderPromptCta: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 999,
+      marginLeft: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    reminderPromptCtaText: {
+      color: colors.privacy,
+      fontSize: 12,
+      fontWeight: '800',
     },
     heroCard: {
       borderRadius: 24,
