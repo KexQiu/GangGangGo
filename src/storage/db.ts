@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { runMigrations } from './migrations';
 
-const DATABASE_NAME = 'gangganggo.db';
+const DATABASE_NAME = 'xiaotidu.db';
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let migrationPromise: Promise<void> | null = null;

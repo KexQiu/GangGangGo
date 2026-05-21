@@ -2,13 +2,13 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-private let appDeepLink = URL(string: "gangganggo://toilet")
+private let appDeepLink = URL(string: "xiaotidu://toilet")
 private let primaryColor = Color(red: 0.18, green: 0.72, blue: 0.49)
 private let warningColor = Color(red: 0.93, green: 0.56, blue: 0.18)
 private let dangerColor = Color(red: 0.90, green: 0.28, blue: 0.30)
 
 @main
-struct GangGangGoLiveActivitiesBundle: WidgetBundle {
+struct XiaoTiduLiveActivitiesBundle: WidgetBundle {
   var body: some Widget {
     ToiletTimerLiveActivityWidget()
   }

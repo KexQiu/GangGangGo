@@ -126,7 +126,7 @@ export default function ToiletCompleteScreen() {
           <View style={styles.riskHeader}>
             <AlertTriangle color={colors.danger} size={22} strokeWidth={2.4} />
             <Text style={styles.riskText}>
-              这类信号别靠意志力硬扛。肛肛好不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。
+              这类信号别靠意志力硬扛。小提督不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。
             </Text>
           </View>
           <AppButton onPress={() => router.push(routes.safety)} style={styles.riskButton} variant="secondary">

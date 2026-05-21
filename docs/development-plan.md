@@ -1,4 +1,4 @@
-# 肛肛好开发方案
+# 小提督开发方案
 
 版本：v0.3
 日期：2026-05-21
@@ -7,7 +7,7 @@
 
 ## 1. 当前工程目标
 
-当前项目是一个本地优先的 Expo + React Native 移动端 App，用于完成肛肛好 V1 的核心闭环：
+当前项目是一个本地优先的 Expo + React Native 移动端 App，用于完成小提督 V1 的核心闭环：
 
 菊花抬 -> 小暗号提醒 -> 蹲会儿 -> 小账本 -> 今日正反馈 -> 最近小报告 -> 小花说明书。
 
@@ -146,7 +146,7 @@ ios/
   app/
     ToiletTimerLiveActivityModule.swift
     ToiletTimerLiveActivityModule.m
-  GangGangGoLiveActivities/
+  XiaoTiduLiveActivities/
     Info.plist
     ToiletTimerAttributes.swift
     ToiletTimerLiveActivityWidget.swift
@@ -177,7 +177,9 @@ assets/
 
 ## 5. 本地存储
 
-数据库名：`gangganggo.db`
+数据库名：`xiaotidu.db`
+
+本版本采用全量内部改名，不迁移旧品牌版本的数据库和 kv-store key。开发/测试设备升级后看到空数据是预期行为。
 
 初始化入口：
 
@@ -239,9 +241,9 @@ assets/
 
 | key | 说明 |
 | --- | --- |
-| `gangganggo-theme-settings` | `themeMode: system | light | dark` |
-| `gangganggo-app-settings` | 灵动岛计时、蹲会儿离开提醒、阶段音效 |
-| `gangganggo-active-toilet-timer` | 正在进行的蹲会儿会话 |
+| `xiaotidu-theme-settings` | `themeMode: system | light | dark` |
+| `xiaotidu-app-settings` | 灵动岛计时、蹲会儿离开提醒、阶段音效 |
+| `xiaotidu-active-toilet-timer` | 正在进行的蹲会儿会话 |
 
 ## 6. 核心模块说明
 
@@ -327,7 +329,7 @@ assets/
 
 - `src/features/toilet/toiletLiveActivity.ts`
 - `ios/app/ToiletTimerLiveActivityModule.swift`
-- `ios/GangGangGoLiveActivities/ToiletTimerLiveActivityWidget.swift`
+- `ios/XiaoTiduLiveActivities/ToiletTimerLiveActivityWidget.swift`
 
 实现规则：
 

@@ -259,7 +259,7 @@ export default function RemindersScreen() {
       <Text style={styles.groupTitle}>隐私和勿扰</Text>
       <AppCard style={styles.settingsCard}>
         <SettingHeader
-          description="开启后通知只显示小花、GGH、换个姿势这类暗号。"
+          description="开启后通知只显示小花、小提督、换个姿势这类暗号。"
           icon={Bell}
           onValueChange={(enabled) => {
             void updateSettings({ privacyMode: enabled });

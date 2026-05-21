@@ -9,7 +9,7 @@ import {
 import { getToiletTimerStage } from './toiletLogic';
 import { type ToiletTimerStage } from './toiletTypes';
 
-const TOILET_STAGE_APP_KEY = 'gangganggo-toilet-stage';
+const TOILET_STAGE_APP_KEY = 'xiaotidu-toilet-stage';
 const TOILET_STAGE_CHANNEL_ID = 'toilet-stage-reminders';
 
 type ToiletStageNotification = {
@@ -115,7 +115,7 @@ async function scheduleToiletStageNotification(
       sound: false,
       title: notification.title,
     },
-    identifier: `gangganggo-toilet-stage-${notification.thresholdSeconds}`,
+    identifier: `xiaotidu-toilet-stage-${notification.thresholdSeconds}`,
     trigger: {
       channelId: TOILET_STAGE_CHANNEL_ID,
       date: new Date(now.getTime() + remainingSeconds * 1000),

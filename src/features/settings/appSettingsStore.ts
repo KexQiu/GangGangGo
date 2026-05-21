@@ -22,7 +22,7 @@ export const useAppSettingsStore = create<AppSettingsState>()(
       toiletStageSoundEnabled: true,
     }),
     {
-      name: 'gangganggo-app-settings',
+      name: 'xiaotidu-app-settings',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         toiletLiveActivityEnabled: state.toiletLiveActivityEnabled,

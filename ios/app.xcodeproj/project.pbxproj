@@ -15,7 +15,7 @@
 		A10000000000000000000003 /* ToiletTimerLiveActivityModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* ToiletTimerLiveActivityModule.m */; };
 		A10000000000000000000004 /* ToiletTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ToiletTimerAttributes.swift */; };
 		A10000000000000000000005 /* ToiletTimerLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */; };
-		A10000000000000000000006 /* GangGangGoLiveActivities.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* GangGangGoLiveActivities.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000006 /* XiaoTiduLiveActivities.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* XiaoTiduLiveActivities.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA87B636CC972064CCD11544 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		CE28B4BFD6B09D0C178521D5 /* libPods-app.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D63DACC3DD23B8AFF08D75DA /* libPods-app.a */; };
@@ -28,7 +28,7 @@
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = A50000000000000000000001;
-			remoteInfo = GangGangGoLiveActivities;
+			remoteInfo = XiaoTiduLiveActivities;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -39,7 +39,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A10000000000000000000006 /* GangGangGoLiveActivities.appex in Embed App Extensions */,
+				A10000000000000000000006 /* XiaoTiduLiveActivities.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -58,7 +58,7 @@
 		A20000000000000000000003 /* ToiletTimerLiveActivityModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = ToiletTimerLiveActivityModule.m; path = app/ToiletTimerLiveActivityModule.m; sourceTree = "<group>"; };
 		A20000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToiletTimerLiveActivityWidget.swift; sourceTree = "<group>"; };
-		A20000000000000000000006 /* GangGangGoLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GangGangGoLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000006 /* XiaoTiduLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = XiaoTiduLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = app/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		CB136BA2DDF9C8CA546568EF /* Pods-app.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-app.debug.xcconfig"; path = "Target Support Files/Pods-app/Pods-app.debug.xcconfig"; sourceTree = "<group>"; };
@@ -123,7 +123,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07FAE1A68108700A75B9A /* app */,
-				A40000000000000000000001 /* GangGangGoLiveActivities */,
+				A40000000000000000000001 /* XiaoTiduLiveActivities */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -139,19 +139,19 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* app.app */,
-				A20000000000000000000006 /* GangGangGoLiveActivities.appex */,
+				A20000000000000000000006 /* XiaoTiduLiveActivities.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A40000000000000000000001 /* GangGangGoLiveActivities */ = {
+		A40000000000000000000001 /* XiaoTiduLiveActivities */ = {
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000004 /* Info.plist */,
 				A20000000000000000000001 /* ToiletTimerAttributes.swift */,
 				A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */,
 			);
-			path = GangGangGoLiveActivities;
+			path = XiaoTiduLiveActivities;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -216,9 +216,9 @@
 			productReference = 13B07F961A680F5B00A75B9A /* app.app */;
 			productType = "com.apple.product-type.application";
 		};
-		A50000000000000000000001 /* GangGangGoLiveActivities */ = {
+		A50000000000000000000001 /* XiaoTiduLiveActivities */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "GangGangGoLiveActivities" */;
+			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "XiaoTiduLiveActivities" */;
 			buildPhases = (
 				A30000000000000000000001 /* Sources */,
 				A30000000000000000000002 /* Frameworks */,
@@ -228,9 +228,9 @@
 			);
 			dependencies = (
 			);
-			name = GangGangGoLiveActivities;
-			productName = GangGangGoLiveActivities;
-			productReference = A20000000000000000000006 /* GangGangGoLiveActivities.appex */;
+			name = XiaoTiduLiveActivities;
+			productName = XiaoTiduLiveActivities;
+			productReference = A20000000000000000000006 /* XiaoTiduLiveActivities.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -264,7 +264,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* app */,
-				A50000000000000000000001 /* GangGangGoLiveActivities */,
+				A50000000000000000000001 /* XiaoTiduLiveActivities */,
 			);
 		};
 /* End PBXProject section */
@@ -441,7 +441,7 @@
 /* Begin PBXTargetDependency section */
 		A60000000000000000000002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A50000000000000000000001 /* GangGangGoLiveActivities */;
+			target = A50000000000000000000001 /* XiaoTiduLiveActivities */;
 			targetProxy = A60000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -473,7 +473,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.kex.gangganggo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu;
 				PRODUCT_NAME = app;
 				SWIFT_OBJC_BRIDGING_HEADER = "app/app-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -504,7 +504,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.kex.gangganggo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu;
 				PRODUCT_NAME = app;
 				SWIFT_OBJC_BRIDGING_HEADER = "app/app-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -639,7 +639,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GangGangGoLiveActivities/Info.plist;
+				INFOPLIST_FILE = XiaoTiduLiveActivities/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -648,7 +648,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.kex.gangganggo.liveactivities;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.liveactivities;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -665,7 +665,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GangGangGoLiveActivities/Info.plist;
+				INFOPLIST_FILE = XiaoTiduLiveActivities/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -674,7 +674,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.kex.gangganggo.liveactivities;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.liveactivities;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -703,7 +703,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A70000000000000000000003 /* Build configuration list for PBXNativeTarget "GangGangGoLiveActivities" */ = {
+		A70000000000000000000003 /* Build configuration list for PBXNativeTarget "XiaoTiduLiveActivities" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A70000000000000000000001 /* Debug */,

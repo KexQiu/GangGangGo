@@ -70,7 +70,7 @@ export default function HomeScreen() {
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <PageHeader eyebrow="肛肛好" subtitle="少找入口，多做正事。" title="今天轻轻安排一下" />
+        <PageHeader eyebrow="小提督" subtitle="少找入口，多做正事。" title="今天轻轻安排一下" />
         <PressableScale
           accessibilityLabel="打开设置"
           onPress={() => router.push(routes.settings)}

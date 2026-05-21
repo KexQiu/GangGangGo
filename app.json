@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "肛肛好",
-    "slug": "gangganggo",
+    "name": "小提督",
+    "slug": "xiaotidu",
     "version": "1.0.0",
-    "scheme": "gangganggo",
+    "scheme": "xiaotidu",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
       "backgroundColor": "#F7FAF8"
     },
     "ios": {
-      "bundleIdentifier": "com.kex.gangganggo",
+      "bundleIdentifier": "com.kex.xiaotidu",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

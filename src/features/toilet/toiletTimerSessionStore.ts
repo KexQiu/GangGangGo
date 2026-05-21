@@ -74,7 +74,7 @@ export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
       }),
     }),
     {
-      name: 'gangganggo-active-toilet-timer',
+      name: 'xiaotidu-active-toilet-timer',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         session: state.session,

@@ -12,7 +12,7 @@ import {
   type ReminderSettings,
 } from './reminderTypes';
 
-const NOTIFICATION_APP_KEY = 'gangganggo';
+const NOTIFICATION_APP_KEY = 'xiaotidu';
 const NOTIFICATION_CHANNEL_ID = 'health-reminders';
 
 let notificationHandlerConfigured = false;
@@ -72,7 +72,7 @@ export async function syncReminderNotifications(settings: ReminderSettings): Pro
     for (const time of times) {
       const [hour, minute] = time.split(':').map(Number);
       await scheduleReminderNotification('kegel', settings, {
-        identifier: `gangganggo-kegel-${time}`,
+        identifier: `xiaotidu-kegel-${time}`,
         trigger: {
           channelId: NOTIFICATION_CHANNEL_ID,
           hour,
@@ -89,7 +89,7 @@ export async function syncReminderNotifications(settings: ReminderSettings): Pro
 
     for (const date of dates) {
       await scheduleReminderNotification('sedentary', settings, {
-        identifier: `gangganggo-sedentary-${date.getTime()}`,
+        identifier: `xiaotidu-sedentary-${date.getTime()}`,
         trigger: {
           channelId: NOTIFICATION_CHANNEL_ID,
           date,

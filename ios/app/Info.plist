@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>肛肛好</string>
+    <string>小提督</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,14 +27,14 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>gangganggo</string>
-          <string>com.kex.gangganggo</string>
+          <string>xiaotidu</string>
+          <string>com.kex.xiaotidu</string>
         </array>
       </dict>
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>exp+gangganggo</string>
+          <string>exp+xiaotidu</string>
         </array>
       </dict>
     </array>

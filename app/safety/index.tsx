@@ -69,14 +69,14 @@ const medicalItems: GuidanceItem[] = [
   },
   {
     title: '漏便、失禁或影响生活',
-    body: '这类情况需要专业评估。肛肛好可以帮你记账，但不能替医生拍板。',
+    body: '这类情况需要专业评估。小提督可以帮你记账，但不能替医生拍板。',
   },
 ];
 
 const mistakeItems: GuidanceItem[] = [
   {
     title: '把菊花抬当万能遥控器',
-    body: '它是健康习惯，不是治疗按钮。肛肛好不诊断、不治疗，也不能替代医生。',
+    body: '它是健康习惯，不是治疗按钮。小提督不诊断、不治疗，也不能替代医生。',
   },
   {
     title: '在厕所开长会',
@@ -125,7 +125,7 @@ export default function SafetyScreen() {
       <AppCard style={styles.disclaimerCard}>
         <HeartPulse color={colors.info} size={22} strokeWidth={2.4} />
         <Text style={styles.disclaimerText}>
-          如果你正在接受肛肠、消化、盆底康复或术后治疗，请以医生和康复师的建议为准。肛肛好负责提醒和记录，不负责当医生。
+          如果你正在接受肛肠、消化、盆底康复或术后治疗，请以医生和康复师的建议为准。小提督负责提醒和记录，不负责当医生。
         </Text>
       </AppCard>
     </Screen>

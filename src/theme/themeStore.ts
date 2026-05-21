@@ -16,7 +16,7 @@ export const useThemeStore = create<ThemeState>()(
       setThemeMode: (themeMode) => set({ themeMode }),
     }),
     {
-      name: 'gangganggo-theme-settings',
+      name: 'xiaotidu-theme-settings',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ themeMode: state.themeMode }),
     },
