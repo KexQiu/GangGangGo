@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "test": "vitest run",
@@ -12,12 +14,16 @@
   "dependencies": {
     "@hono/node-server": "^2.0.3",
     "@xiaotidu/contracts": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.12.21",
+    "jose": "^6.2.3",
     "pino": "^10.3.1",
+    "postgres": "^3.4.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.22.3",
     "typescript": "~5.9.2",
     "vitest": "^4.1.7"

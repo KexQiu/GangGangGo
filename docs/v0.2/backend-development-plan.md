@@ -191,8 +191,14 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | user_id | uuid | 用户 |
 | product_id | text | 商品 ID |
 | original_transaction_id | text | Apple 原始交易 ID |
+| latest_transaction_id | text | Apple 最新交易 ID |
+| environment | text | sandbox / production |
+| app_account_token | uuid | Apple appAccountToken |
 | status | text | active / grace_period / expired / revoked |
 | expires_at | timestamptz | 到期时间 |
+| revoked_at | timestamptz | 撤销或退款时间 |
+| auto_renew_status | text | on / off / unknown |
+| last_notification_type | text | 最近 App Store 通知类型 |
 | last_verified_at | timestamptz | 最近校验 |
 | created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
@@ -202,7 +208,29 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - `index (user_id, status)`
 - `unique (original_transaction_id)`
 
-### 5.3 teams
+### 5.3 subscription_events
+
+订阅事件流水表，用于记录 App Store Server Notifications 和订阅校验事件。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | uuid | 主键 |
+| user_id | uuid | 用户，可为空 |
+| original_transaction_id | text | Apple 原始交易 ID |
+| transaction_id | text | Apple 交易 ID |
+| environment | text | sandbox / production |
+| event_type | text | 事件类型 |
+| payload | jsonb | Apple 原始事件 payload |
+| received_at | timestamptz | 接收时间 |
+| processed_at | timestamptz | 处理时间 |
+| processing_error | text | 处理错误 |
+
+索引：
+
+- `index (original_transaction_id)`
+- `index (received_at)`
+
+### 5.4 teams
 
 小队表。
 
@@ -218,7 +246,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 
 - v0.2 每个 Pro 用户最多 1 个 active 小队。
 
-### 5.4 team_members
+### 5.5 team_members
 
 小队成员表。
 
@@ -231,6 +259,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | status | text | active / paused / removed |
 | display_name | text | 小队内昵称 |
 | joined_at | timestamptz | 加入时间 |
+| paused_at | timestamptz | 暂停共享时间 |
 | removed_at | timestamptz | 移除时间 |
 
 索引：
@@ -239,7 +268,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - `index (user_id, status)`
 - `unique (team_id, user_id)` where `removed_at is null`
 
-### 5.5 team_invites
+### 5.6 team_invites
 
 邀请表。
 
@@ -261,7 +290,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - 数据库只存 hash。
 - 过期或撤销后不可接受。
 
-### 5.6 share_settings
+### 5.7 share_settings
 
 共享设置表。
 
@@ -275,6 +304,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | share_toilet_recorded | boolean | 分享蹲会儿是否记过 |
 | share_streak | boolean | 分享连续天数 |
 | paused | boolean | 暂停共享 |
+| created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 
 默认：
@@ -283,9 +313,9 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - `paused = false`。
 - 不存在敏感共享开关，因为 v0.2 不做敏感共享。
 
-### 5.7 daily_share_snapshots
+### 5.8 daily_share_snapshots
 
-每日低敏快照。
+搭子可见的每日低敏快照。这个表只服务好友监督，不存蹲会儿长会、便血、不适、具体时长等可能尴尬或敏感的信息。
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -296,8 +326,6 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | habit_completion | smallint | 0-4 |
 | toilet_recorded | boolean | 今日是否记过蹲会儿 |
 | streak_days | integer | 连续完成天数 |
-| weekly_training_days | smallint | 近 7 天菊花抬营业天数 |
-| weekly_habit_full_days | smallint | 近 7 天小账本满格天数 |
 | created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 
@@ -310,7 +338,40 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 
 - `index (user_id, date desc)`
 
-### 5.8 buddy_nudges
+### 5.9 daily_report_snapshots
+
+用户自己的高级小报告摘要。它可以存更多聚合字段，但仍不存便血、不适、排便感受和具体蹲会儿时长。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | uuid | 主键 |
+| user_id | uuid | 用户 |
+| date | date | 日期 |
+| training_done | boolean | 今日菊花抬是否完成 |
+| habit_completion | smallint | 0-4 |
+| habit_full | boolean | 小账本是否满格 |
+| toilet_recorded | boolean | 今日是否记过蹲会儿 |
+| toilet_long_meeting | boolean | 今日是否出现蹲会儿长会，仅用户自己报告可用 |
+| streak_days | integer | 连续完成天数 |
+| weekly_training_days | smallint | 近 7 天菊花抬营业天数 |
+| weekly_habit_full_days | smallint | 近 7 天小账本满格天数 |
+| weekly_toilet_long_meeting_count | smallint | 近 7 天蹲会儿长会次数 |
+| thirty_day_training_days | smallint | 近 30 天菊花抬营业天数 |
+| thirty_day_habit_full_days | smallint | 近 30 天小账本满格天数 |
+| thirty_day_toilet_long_meeting_count | smallint | 近 30 天蹲会儿长会次数 |
+| ninety_day_training_days | smallint | 近 90 天菊花抬营业天数 |
+| ninety_day_habit_full_days | smallint | 近 90 天小账本满格天数 |
+| ninety_day_toilet_long_meeting_count | smallint | 近 90 天蹲会儿长会次数 |
+| created_at | timestamptz | 创建时间 |
+| updated_at | timestamptz | 更新时间 |
+
+约束：
+
+- `unique (user_id, date)`
+- `habit_completion between 0 and 4`
+- 7/30/90 天计数字段必须在对应范围内或非负。
+
+### 5.10 buddy_nudges
 
 搭子提醒表。
 
@@ -321,6 +382,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | from_user_id | uuid | 发起者 |
 | to_user_id | uuid | 接收者 |
 | type | text | gentle / move / not_blank / habit_left / posture |
+| message_template | text | 固定模板文案 |
 | created_at | timestamptz | 创建时间 |
 | expires_at | timestamptz | 过期时间 |
 
@@ -335,7 +397,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - `index (to_user_id, created_at desc)`
 - `index (from_user_id, to_user_id, created_at desc)`
 
-### 5.9 buddy_nudge_acks
+### 5.11 buddy_nudge_acks
 
 提醒回执表。
 
@@ -360,29 +422,34 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - 30 分钟内允许修改一次。
 - 回执只展示给发起提醒的搭子。
 
-### 5.10 buddy_nudge_limits
+### 5.12 buddy_nudge_settings
 
-单个搭子的提醒上限设置。
+单个搭子的提醒权限、每日上限和多段勿扰设置。
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | id | uuid | 主键 |
+| team_id | uuid | 小队 |
 | user_id | uuid | 被提醒者 |
 | buddy_user_id | uuid | 搭子 |
 | daily_limit | smallint | 0 / 3 / 5 / 8 |
+| enabled | boolean | 是否允许这个搭子提醒 |
+| quiet_ranges | jsonb | 多段勿扰时间 |
+| created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 
 默认：
 
 - 无记录时按 5 次处理。
 - `0` 表示关闭该搭子的主动提醒。
+- `enabled = false` 表示关闭该搭子的主动提醒，但不移除小队关系。
 
 约束：
 
-- `unique (user_id, buddy_user_id)`
+- `unique (team_id, user_id, buddy_user_id)`
 - `daily_limit in (0, 3, 5, 8)`
 
-### 5.11 push_tokens
+### 5.13 push_tokens
 
 推送 token 表。
 
@@ -393,7 +460,10 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | platform | text | ios / android |
 | provider | text | expo / apns |
 | token | text | token |
+| device_id | text | 设备标识 |
 | enabled | boolean | 是否启用 |
+| last_seen_at | timestamptz | 最近活跃时间 |
+| created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 
 索引：
@@ -401,7 +471,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 - `index (user_id, enabled)`
 - `unique (provider, token)`
 
-### 5.12 audit_events
+### 5.14 audit_events
 
 审计事件表，只记录安全与关系操作，不记录健康细节。
 
@@ -500,6 +570,7 @@ type AuthResponse = {
   user: {
     id: string;
     nickname: string;
+    timezone: string;
   };
 };
 ```
@@ -507,7 +578,10 @@ type AuthResponse = {
 MVP 策略：
 
 - 移动端使用 Bearer token。
-- 服务端验证 Apple identity token。
+- 开发和测试环境默认使用 mock Apple 校验服务，方便本地无 Apple 依赖测试。
+- 生产环境默认使用真实 Apple JWT 校验，校验 issuer、audience 和 subject。
+- B4 使用服务端 HS256 access token；`JWT_SECRET` 生产环境必填，不能使用开发默认值。
+- API 启动时如果配置了 `DATABASE_URL`，用户仓储使用 Drizzle 写入 `users` 表；未配置时自动使用 mock 用户仓储，方便无数据库测试。
 - token 到期后让用户重新登录，v0.2 初期不做复杂 refresh token。
 
 ### 6.4 会员权益
@@ -527,6 +601,16 @@ type EntitlementsResponse = {
 };
 ```
 
+权益计算规则：
+
+- 无订阅记录：`free`。
+- `active` 且未过期：`pro_active`。
+- `grace_period` 且未过期：`pro_grace_period`。
+- `expired`、`revoked` 或到期时间已过：`pro_expired`。
+- 有 `DATABASE_URL` 时从 `subscriptions` 表计算；无数据库配置时返回 mock `free`，方便本地开发。
+- `POST /subscriptions/verify` 和 `POST /subscriptions/restore` 已提供占位接口，当前返回 `pending_verification` 和现有权益。
+- 真实 StoreKit 2 / App Store Server API 交易校验、订阅事件写入和 `/app-store/notifications` 尚未实现。
+
 取消订阅策略：
 
 - 基础功能继续可用。
@@ -544,6 +628,7 @@ type EntitlementsResponse = {
 | PATCH | `/teams/current` | 更新小队名 |
 | POST | `/teams/current/leave` | 退出小队 |
 | DELETE | `/teams/current/members/:memberId` | 移除成员 |
+| PATCH | `/teams/current/members/me/status` | 暂停或恢复自己的共享状态 |
 
 规则：
 
@@ -600,8 +685,8 @@ type UpsertDailyShareSnapshotRequest = {
 | GET | `/nudges/inbox` | 收到的提醒 |
 | GET | `/nudges/sent` | 发出的提醒 |
 | POST | `/nudges/:id/ack` | 提交或修改回执 |
-| GET | `/buddy-nudge-limits` | 查询搭子提醒上限 |
-| PUT | `/buddy-nudge-limits/:buddyUserId` | 设置单个搭子提醒上限 |
+| GET | `/buddy-nudge-settings` | 查询搭子提醒设置 |
+| PUT | `/buddy-nudge-settings/:buddyUserId` | 设置单个搭子的提醒权限、次数和勿扰 |
 
 `POST /nudges` 请求：
 
@@ -647,7 +732,7 @@ type AckBuddyNudgeRequest = {
 
 - 搭子提醒。
 - 提醒回执。
-- 小队邀请接受。
+- 小队邀请接受，后续接入。
 
 推送不应包含：
 
@@ -787,8 +872,8 @@ v0.2 不需要复杂异步任务系统。可以先按请求实时聚合或每日
 
 建议策略：
 
-- 90 天报告：按 `daily_share_snapshots` 聚合。
-- 小队周报：按小队成员近 7 天快照聚合。
+- 90 天个人报告：按 `daily_report_snapshots` 聚合，只给用户自己看。
+- 小队周报：按小队成员近 7 天 `daily_share_snapshots` 聚合，只展示低敏状态。
 - 结果不长期缓存，或只缓存短期摘要。
 
 可展示指标：
@@ -798,12 +883,7 @@ v0.2 不需要复杂异步任务系统。可以先按请求实时聚合或每日
 - 蹲会儿记过天数。
 - 蹲会儿长会趋势只用本地或用户显式授权摘要，v0.2 不从云端推断敏感细节。
 
-注意：如果云端不保存具体蹲会儿时长，则云端高级报告不能准确计算“长会次数”。v0.2 有两种选择：
-
-1. 不在云端小队报告展示长会次数，只在本机高级报告展示。
-2. 上传低敏布尔摘要 `toiletLongSessionObserved`，但必须在共享设置中单独说明。
-
-推荐 v0.2 采用方案 1，避免扩大云端健康数据范围。
+注意：`daily_report_snapshots` 中的蹲会儿长会聚合只用于用户自己的高级小报告，不进入小队共享接口。
 
 ## 11. 环境变量
 
@@ -812,9 +892,13 @@ v0.2 不需要复杂异步任务系统。可以先按请求实时聚合或每日
 ```text
 NODE_ENV=development
 PORT=8787
+LOG_LEVEL=info
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/xiaotidu
+DB_SSL=false
 JWT_SECRET=replace-me
+APPLE_AUTH_MODE=mock
 APPLE_BUNDLE_ID=com.kex.xiaotidu
+APPLE_JWKS_URL=https://appleid.apple.com/auth/keys
 APPLE_ISSUER_ID=
 APPLE_KEY_ID=
 APPLE_PRIVATE_KEY=
@@ -845,6 +929,14 @@ http://localhost:8787
 
 ```bash
 curl http://localhost:8787/health
+curl http://localhost:8787/health/db
+```
+
+数据库迁移：
+
+```bash
+pnpm --filter @xiaotidu/api db:generate
+pnpm --filter @xiaotidu/api db:migrate
 ```
 
 ### 12.2 启动移动端
@@ -907,6 +999,7 @@ API base URL：
 必须验证：
 
 - `daily_share_snapshots` 不包含敏感字段。
+- `daily_report_snapshots` 不向搭子接口返回。
 - 小队接口不返回具体蹲会儿时长。
 - 回执只返回给发起提醒的搭子。
 - 移除成员后不能访问新数据。
@@ -927,7 +1020,24 @@ API base URL：
 - `GET /health` 可用。
 - 类型检查通过。
 
-### B2. Contracts 扩展
+### B2. 数据库与迁移
+
+1. 引入 `drizzle-orm`、`postgres`、`drizzle-kit`。
+2. 补充 `DATABASE_URL` 和 `DB_SSL` 环境变量。
+3. 定义 Drizzle schema。
+4. 拆分 `daily_share_snapshots` 和 `daily_report_snapshots`。
+5. 用 `buddy_nudge_settings` 承接次数、开关和多段勿扰。
+6. 生成首个 SQL migration。
+7. 增加 `GET /health/db`。
+
+验收：
+
+- `pnpm --filter @xiaotidu/api db:generate` 可生成迁移。
+- 无 `DATABASE_URL` 时 `/health/db` 返回 `database_not_configured`。
+- 数据库不可达时 `/health/db` 返回 `database_unreachable`。
+- schema 类型检查通过。
+
+### B3. Contracts 扩展
 
 1. 补充通用响应类型。
 2. 补充 auth DTO。
@@ -935,75 +1045,125 @@ API base URL：
 4. 补充 share settings DTO。
 5. 补充 nudge DTO。
 6. 补充 report DTO。
+7. 补充 constants，确保移动端和后端共用提醒类型、回执状态和每日次数选项。
 
 验收：
 
 - `@xiaotidu/api` 和 `@xiaotidu/mobile` 都从 contracts 引用共享类型。
 - contracts 不引用移动端或后端私有代码。
 
-### B3. 数据库接入
-
-1. 引入 Drizzle 和 Postgres client。
-2. 定义 schema。
-3. 生成 migration。
-4. 加入 seed。
-5. 加入本地数据库说明。
-
-验收：
-
-- migration 可跑。
-- seed 可跑。
-- 数据库表和索引符合本方案。
-
 ### B4. 认证与权益
 
-1. 实现 Apple 登录。
-2. 实现 token 签发。
+1. 实现 `POST /auth/apple` 登录链路。
+2. 实现 HS256 token 签发和验证。
 3. 实现 auth middleware。
 4. 实现 `/me`。
 5. 实现 `/me/entitlements`。
-6. 增加订阅状态占位。
+6. 实现 Drizzle 用户仓储；有 `DATABASE_URL` 时登录会 upsert `users` 表。
+7. 实现真实 Apple identity token 校验服务；生产环境默认启用。
+8. 实现 Drizzle 权益服务；有 `DATABASE_URL` 时从 `subscriptions` 表计算权益。
+9. App Store 交易校验和订阅事件处理暂不实现，留到订阅模块。
 
 验收：
 
 - 未登录接口返回 401。
 - 登录后可查询当前用户。
 - 权益状态可查询。
+- active / grace_period / expired / revoked 的权益映射有单元测试覆盖。
+- `/auth/apple`、`/me`、`/me/entitlements` 有 API 测试覆盖。
+- 生产环境如果缺少 `APPLE_BUNDLE_ID` 或使用 mock Apple 校验，应启动失败。
 
 ### B5. 小队与共享快照
 
-1. 实现小队 CRUD。
-2. 实现邀请。
-3. 实现共享设置。
-4. 实现每日快照 upsert。
-5. 实现小队快照查询。
+当前已完成第一阶段最小链路：
+
+1. 实现 `POST /teams` 创建小队。
+2. 实现 `GET /teams/current` 查询当前小队。
+3. 实现 `PATCH /teams/current` 更新小队名。
+4. 实现 `POST /teams/current/leave` 退出小队；owner 退出时归档小队。
+5. 实现 `DELETE /teams/current/members/:memberId` 移除成员。
+6. 实现 `PATCH /teams/current/members/me/status` 暂停或恢复自己的共享状态。
+7. 实现 `PUT /share-settings` 更新共享设置。
+8. 实现 `PUT /share-snapshots/today` 上传今日低敏快照。
+9. 实现 `GET /teams/current/snapshots` 查询小队快照。
+10. 实现 `POST /teams/current/invites` 创建邀请。
+11. 实现 `GET /team-invites/:token` 公开预览邀请。
+12. 实现 `POST /team-invites/:token/accept` 登录后接受邀请。
+13. 有 `DATABASE_URL` 时使用 Drizzle 写入真实表；无数据库时使用 mock service，方便本地开发。
+
+暂未实现：
+
+- 邀请撤销。
+- Pro 权益拦截。
 
 验收：
 
 - 小队链路可跑通。
-- 快照不含敏感字段。
+- 快照不含敏感字段；接口只返回 `trainingDone`、`habitCompletion`、`toiletRecorded`、`streakDays` 中用户允许共享的字段。
 - 非成员不能访问。
+- 未登录访问小队和共享接口返回 401。
+- 未创建小队时上传快照或查询快照返回 404。
+- 邀请 token 原文只返回一次，数据库只存 token hash。
+- 过期、已接受或撤销的邀请不可再次接受。
+- 每个小队最多 1 个 owner + 3 个搭子。
+- 成员暂停共享后，小队快照仍显示成员，但 `snapshot = null`。
+- 成员被移除或退出后，不能继续访问该小队。
 
 ### B6. 搭子提醒与回执
 
-1. 实现提醒创建。
-2. 实现每日上限。
-3. 实现回执创建和 30 分钟修改规则。
-4. 接入 push token。
-5. 发送 Expo Push。
+当前已完成第一阶段最小链路：
+
+1. 实现 `POST /nudges` 创建搭子提醒。
+2. 实现 `GET /nudges/inbox` 查询收到的提醒。
+3. 实现 `GET /nudges/sent` 查询发出的提醒。
+4. 实现 `POST /nudges/:id/ack` 创建或修改回执。
+5. 实现 `GET /buddy-nudge-settings` 查询单个搭子的提醒权限、每日上限和勿扰范围。
+6. 实现 `PUT /buddy-nudge-settings/:buddyUserId` 更新单个搭子的提醒权限、每日上限和勿扰范围。
+7. 实现 `POST /push-tokens` 注册 Expo/APNs push token。
+8. 搭子提醒只支持预设类型，不支持自由文本。
+9. 每个搭子的每日提醒上限按 `buddy_nudge_settings` 执行，默认 5 次，支持 0 / 3 / 5 / 8。
+10. 回执支持 `received / later / done`，30 分钟内允许修改一次。
+11. 创建搭子提醒后触发 Expo Push 发送给被提醒者。
+12. 创建或修改回执后触发 Expo Push 发送给提醒发起者。
+13. 推送发送失败不影响提醒/回执主流程。
+14. `quiet_ranges` 已生效；当前时间命中搭子免打扰范围时，创建提醒会返回 `403 forbidden`。
+15. Expo Push 返回 `DeviceNotRegistered` 时，会自动禁用对应 push token。
+
+暂未实现：
+
+- App 内接收推送后的通知 action 处理。
+- Expo Push receipt 查询和重试队列。
+- 小队邀请接受后的推送。
 
 验收：
 
 - 提醒次数限制正确。
 - 回执权限正确。
-- 推送不含敏感数据。
+- 推送 token 可以注册或更新。
+- 有可用 Expo Push token 时，提醒和回执会发起推送请求。
+- API 返回和提醒文案不含敏感健康数据。
 
 ### B7. 高级小报告
 
-1. 实现 90 天个人报告。
-2. 实现小队周报。
-3. Pro 权益校验。
-4. 不足数据的空状态。
+已完成：
+
+1. 实现 `GET /reports/advanced?range=90d`。
+2. 实现 `GET /teams/current/reports/weekly`。
+3. 两个接口都要求登录，并通过 Pro 权益校验。
+4. `pro_active` 和 `pro_grace_period` 可访问；`free / pro_expired` 返回 `403 forbidden`。
+5. 个人 90 天报告读取 `daily_report_snapshots` 最新摘要；没有数据时返回 `snapshot: null`。
+6. 小队周报基于 `daily_share_snapshots` 聚合最近 7 天成员数据。
+7. 小队周报只统计低敏字段：菊花抬营业天数、小账本满格天数、蹲会儿记过天数。
+8. Mock 模式下支持 Pro 权益注入测试，方便无数据库开发。
+9. 实现 `PUT /report-snapshots/today` 上传个人高级小报告摘要。
+10. 上传接口要求 Pro 权益，免费用户不能产生云端报告数据。
+11. 上传数据只允许低敏聚合字段，不允许便血、不适、排便感受和具体蹲会儿时长。
+
+暂未实现：
+
+- 高级小报告页面和 paywall。
+- 90 天范围内多日明细展示，目前返回最新聚合摘要。
+- 小队周报推送或定时生成。
 
 验收：
 
@@ -1013,12 +1173,10 @@ API base URL：
 
 ## 15. 当前下一步
 
-建议下一步直接实现 **B1 API 基础设施**：
+B1-B7.1 后端基础链路已经完成。下一步建议进入 **移动端 Pro 接入准备**：
 
-1. 安装 `hono`、`zod`、`pino`、`vitest`。
-2. 拆分 `apps/api/src/server.ts`。
-3. 新增 `apps/api/src/app.ts`。
-4. 新增统一响应和错误结构。
-5. 增加后端 smoke 测试。
-
-完成 B1 后再接数据库，避免一开始把框架、数据库、鉴权和订阅全部混在一起。
+1. 新增移动端 API client 和 token 存储。
+2. 接入 Apple 登录按钮与 mock/dev 后端配置。
+3. 新增 Pro paywall 占位页。
+4. 接入 `/me/entitlements` 判断 Pro 状态。
+5. 之后再开发小队 UI、搭子提醒 UI 和高级小报告页面。

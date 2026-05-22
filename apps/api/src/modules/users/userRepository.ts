@@ -1,0 +1,120 @@
+import { and, eq, isNull } from 'drizzle-orm';
+
+import type { Database } from '../../db/client.js';
+import { users } from '../../db/schema.js';
+import type { CurrentUser } from './userTypes.js';
+import { mockCurrentUser } from './userTypes.js';
+
+export type UserRepository = {
+  findById: (userId: string) => Promise<CurrentUser | null>;
+  upsertFromApple: (input: { appleUserId: string; nickname?: string }) => Promise<CurrentUser>;
+};
+
+function toCurrentUser(user: typeof users.$inferSelect): CurrentUser {
+  return {
+    appleUserId: user.appleUserId,
+    avatarUrl: user.avatarUrl,
+    id: user.id,
+    nickname: user.nickname,
+    timezone: user.timezone,
+  };
+}
+
+export function createMockUserRepository(): UserRepository {
+  const usersByAppleUserId = new Map<string, CurrentUser>();
+  const usersById = new Map<string, CurrentUser>();
+
+  function createMockUser(input: { appleUserId: string; nickname?: string }) {
+    const index = usersByAppleUserId.size + 1;
+    const user: CurrentUser = {
+      appleUserId: input.appleUserId,
+      avatarUrl: null,
+      id:
+        index === 1
+          ? mockCurrentUser.id
+          : `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      nickname: input.nickname ?? (index === 1 ? mockCurrentUser.nickname : `小提督用户 ${index}`),
+      timezone: 'Asia/Shanghai',
+    };
+
+    usersByAppleUserId.set(input.appleUserId, user);
+    usersById.set(user.id, user);
+
+    return user;
+  }
+
+  return {
+    async findById(userId) {
+      return usersById.get(userId) ?? null;
+    },
+    async upsertFromApple(input) {
+      const existingUser = usersByAppleUserId.get(input.appleUserId);
+
+      if (!existingUser) {
+        return createMockUser(input);
+      }
+
+      if (!input.nickname) {
+        return existingUser;
+      }
+
+      const updatedUser = {
+        ...existingUser,
+        nickname: input.nickname,
+      };
+
+      usersByAppleUserId.set(input.appleUserId, updatedUser);
+      usersById.set(updatedUser.id, updatedUser);
+
+      return updatedUser;
+    },
+  };
+}
+
+export function createDrizzleUserRepository(db: Database): UserRepository {
+  return {
+    async findById(userId) {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+        .limit(1);
+
+      return user ? toCurrentUser(user) : null;
+    },
+    async upsertFromApple(input) {
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.appleUserId, input.appleUserId), isNull(users.deletedAt)))
+        .limit(1);
+
+      if (existingUser) {
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            nickname: input.nickname ?? existingUser.nickname,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingUser.id))
+          .returning();
+
+        return toCurrentUser(updatedUser ?? existingUser);
+      }
+
+      const [createdUser] = await db
+        .insert(users)
+        .values({
+          appleUserId: input.appleUserId,
+          nickname: input.nickname,
+        })
+        .returning();
+
+      if (!createdUser) {
+        throw new Error('Failed to create user.');
+      }
+
+      return toCurrentUser(createdUser);
+    },
+  };
+}

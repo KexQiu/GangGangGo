@@ -3,19 +3,59 @@ import { requestId } from 'hono/request-id';
 import type { Logger } from 'pino';
 import { ZodError } from 'zod';
 
+import type { DatabaseHealthChecker } from './db/health.js';
+import { createAuthMiddleware } from './http/middleware/auth.js';
 import { ApiError, isApiError } from './http/apiError.js';
 import { toErrorResponse } from './http/responses.js';
 import { logger as defaultLogger } from './lib/logger.js';
-import { healthRoute } from './routes/health.js';
-import { meRoute } from './routes/me.js';
+import type { AppleAuthService } from './modules/auth/appleAuthService.js';
+import { createMockAppleAuthService } from './modules/auth/appleAuthService.js';
+import type { EntitlementsService } from './modules/entitlements/entitlementsService.js';
+import { createMockEntitlementsService } from './modules/entitlements/entitlementsService.js';
+import type { NudgeService } from './modules/nudges/nudgeService.js';
+import { createMockNudgeService } from './modules/nudges/nudgeService.js';
+import type { PushTokenService } from './modules/push/pushTokenService.js';
+import { createMockPushTokenService } from './modules/push/pushTokenService.js';
+import type { ReportService } from './modules/reports/reportService.js';
+import { createMockReportService } from './modules/reports/reportService.js';
+import type { TeamService } from './modules/teams/teamService.js';
+import { createMockTeamService } from './modules/teams/teamService.js';
+import type { UserRepository } from './modules/users/userRepository.js';
+import { createMockUserRepository } from './modules/users/userRepository.js';
+import { createAuthRoute } from './routes/auth.js';
+import { createHealthRoute } from './routes/health.js';
+import { createMeRoute } from './routes/me.js';
+import { createBuddyNudgeSettingsRoute, createNudgesRoute } from './routes/nudges.js';
+import { createPushTokensRoute } from './routes/pushTokens.js';
+import { createReportsRoute } from './routes/reports.js';
+import { createShareSettingsRoute, createShareSnapshotsRoute } from './routes/share.js';
+import { createSubscriptionsRoute } from './routes/subscriptions.js';
+import { createTeamInvitesRoute } from './routes/teamInvites.js';
+import { createTeamsRoute } from './routes/teams.js';
 
 type CreateApiAppOptions = {
+  appleAuthService?: AppleAuthService;
+  databaseHealthChecker?: DatabaseHealthChecker;
+  entitlementsService?: EntitlementsService;
   logger?: Logger;
+  nudgeService?: NudgeService;
+  pushTokenService?: PushTokenService;
+  reportService?: ReportService;
+  teamService?: TeamService;
+  userRepository?: UserRepository;
 };
 
 export function createApiApp(options: CreateApiAppOptions = {}) {
   const log = options.logger ?? defaultLogger;
+  const appleAuthService = options.appleAuthService ?? createMockAppleAuthService();
+  const entitlementsService = options.entitlementsService ?? createMockEntitlementsService();
+  const teamService = options.teamService ?? createMockTeamService();
+  const nudgeService = options.nudgeService ?? createMockNudgeService({ teamService });
+  const pushTokenService = options.pushTokenService ?? createMockPushTokenService();
+  const reportService = options.reportService ?? createMockReportService({ teamService });
+  const userRepository = options.userRepository ?? createMockUserRepository();
   const app = new Hono();
+  const authMiddleware = createAuthMiddleware(userRepository);
 
   app.use('*', requestId());
   app.use('*', async (context, next) => {
@@ -35,8 +75,38 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
     );
   });
 
-  app.route('/', healthRoute);
-  app.route('/me', meRoute);
+  app.route('/', createHealthRoute({ databaseHealthChecker: options.databaseHealthChecker }));
+  app.route('/auth', createAuthRoute({ appleAuthService, userRepository }));
+  app.use('/me/*', authMiddleware);
+  app.use('/me', authMiddleware);
+  app.route('/me', createMeRoute({ entitlementsService }));
+  app.route('/team-invites', createTeamInvitesRoute({ authMiddleware, teamService }));
+  app.use('/teams/*', authMiddleware);
+  app.use('/teams', authMiddleware);
+  app.route('/teams', createTeamsRoute({ teamService }));
+  app.use('/share-settings/*', authMiddleware);
+  app.use('/share-settings', authMiddleware);
+  app.route('/share-settings', createShareSettingsRoute({ teamService }));
+  app.use('/share-snapshots/*', authMiddleware);
+  app.use('/share-snapshots', authMiddleware);
+  app.route('/share-snapshots', createShareSnapshotsRoute({ teamService }));
+  app.use('/nudges/*', authMiddleware);
+  app.use('/nudges', authMiddleware);
+  app.route('/nudges', createNudgesRoute({ nudgeService }));
+  app.use('/buddy-nudge-settings/*', authMiddleware);
+  app.use('/buddy-nudge-settings', authMiddleware);
+  app.route('/buddy-nudge-settings', createBuddyNudgeSettingsRoute({ nudgeService }));
+  app.use('/push-tokens/*', authMiddleware);
+  app.use('/push-tokens', authMiddleware);
+  app.route('/push-tokens', createPushTokensRoute({ pushTokenService }));
+  app.use('/subscriptions/*', authMiddleware);
+  app.use('/subscriptions', authMiddleware);
+  app.route('/subscriptions', createSubscriptionsRoute({ entitlementsService }));
+  app.use('/reports/*', authMiddleware);
+  app.use('/report-snapshots/*', authMiddleware);
+  app.use('/report-snapshots', authMiddleware);
+  app.use('/teams/current/reports/*', authMiddleware);
+  app.route('/', createReportsRoute({ entitlementsService, reportService }));
 
   app.notFound((context) => {
     const error = new ApiError(404, 'not_found', '没有找到这个接口。');
