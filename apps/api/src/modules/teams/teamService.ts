@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
 
 import type {
@@ -601,6 +601,29 @@ export function createDrizzleTeamService(db: Database): TeamService {
       }
 
       await db.transaction(async (transaction) => {
+        const now = new Date();
+        const [acceptedInvite] = await transaction
+          .update(teamInvites)
+          .set({
+            acceptedAt: now,
+            acceptedByUserId: currentUser.id,
+          })
+          .where(
+            and(
+              eq(teamInvites.id, invite.id),
+              isNull(teamInvites.acceptedAt),
+              isNull(teamInvites.revokedAt),
+              gt(teamInvites.expiresAt, now),
+            ),
+          )
+          .returning({
+            id: teamInvites.id,
+          });
+
+        if (!acceptedInvite) {
+          throw new ApiError(409, 'conflict', '这个邀请已经不能使用了。');
+        }
+
         await transaction.insert(teamMembers).values({
           displayName: input.displayName ?? currentUser.nickname,
           role: 'buddy',
@@ -615,13 +638,6 @@ export function createDrizzleTeamService(db: Database): TeamService {
           userId: currentUser.id,
         });
 
-        await transaction
-          .update(teamInvites)
-          .set({
-            acceptedAt: new Date(),
-            acceptedByUserId: currentUser.id,
-          })
-          .where(eq(teamInvites.id, invite.id));
       });
 
       return this.getCurrentTeam(currentUser);

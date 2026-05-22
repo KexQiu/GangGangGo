@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler } from 'hono';
 import { z } from 'zod';
 
 import type {
@@ -52,12 +52,18 @@ const updateBuddyNudgeSettingsRequestSchema = z.object({
 
 type CreateNudgesRouteOptions = {
   nudgeService: NudgeService;
+  proMiddleware?: MiddlewareHandler<{ Variables: AuthVariables }>;
+};
+
+const passThroughMiddleware: MiddlewareHandler<{ Variables: AuthVariables }> = async (_context, next) => {
+  await next();
 };
 
 export function createNudgesRoute(options: CreateNudgesRouteOptions) {
   const route = new Hono<{ Variables: AuthVariables }>();
+  const proMiddleware = options.proMiddleware ?? passThroughMiddleware;
 
-  route.post('/', async (context) => {
+  route.post('/', proMiddleware, async (context) => {
     const request = createBuddyNudgeRequestSchema.parse(await context.req.json()) satisfies CreateBuddyNudgeRequest;
     const body: BuddyNudge = await options.nudgeService.createNudge(context.get('currentUser'), request);
 

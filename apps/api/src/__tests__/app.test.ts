@@ -20,6 +20,22 @@ function createTestApp() {
   return createApiApp({ logger: testLogger });
 }
 
+const proEntitlementsService: EntitlementsService = {
+  async getEntitlements() {
+    return {
+      proStatus: 'pro_active',
+    };
+  },
+};
+
+function createProTestApp(options: Parameters<typeof createApiApp>[0] = {}) {
+  return createApiApp({
+    entitlementsService: proEntitlementsService,
+    logger: testLogger,
+    ...options,
+  });
+}
+
 async function login(
   app: ReturnType<typeof createApiApp>,
   input: { identityToken?: string; nickname?: string } = {},
@@ -402,6 +418,88 @@ describe('api app', () => {
     });
   });
 
+  it('filters team weekly report by member share settings', async () => {
+    const app = createProTestApp();
+    const ownerToken = await login(app, {
+      identityToken: 'weekly-owner-token',
+      nickname: '队长',
+    });
+
+    await app.request('/teams', {
+      body: JSON.stringify({
+        name: '周报隐私队',
+      }),
+      headers: {
+        authorization: `Bearer ${ownerToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+
+    const inviteResponse = await app.request('/teams/current/invites', {
+      headers: {
+        authorization: `Bearer ${ownerToken}`,
+      },
+      method: 'POST',
+    });
+    const inviteBody = await inviteResponse.json();
+    const buddyToken = await login(app, {
+      identityToken: 'weekly-buddy-token',
+      nickname: '搭子',
+    });
+
+    await app.request(`/team-invites/${inviteBody.data.token}/accept`, {
+      body: JSON.stringify({
+        shareSettings: {
+          shareHabitCompletion: false,
+          shareToiletRecorded: false,
+          shareTraining: false,
+        },
+      }),
+      headers: {
+        authorization: `Bearer ${buddyToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    await app.request('/share-snapshots/today', {
+      body: JSON.stringify({
+        snapshot: {
+          date: today,
+          habitCompletion: 4,
+          streakDays: 7,
+          toiletRecorded: true,
+          trainingDone: true,
+        },
+      }),
+      headers: {
+        authorization: `Bearer ${buddyToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'PUT',
+    });
+
+    const reportResponse = await app.request('/teams/current/reports/weekly', {
+      headers: {
+        authorization: `Bearer ${ownerToken}`,
+      },
+    });
+    const reportBody = await reportResponse.json();
+    const buddySummary = reportBody.data.summaries.find(
+      (summary: { member: { user: { nickname: string } } }) => summary.member.user.nickname === '搭子',
+    );
+
+    expect(reportResponse.status).toBe(200);
+    expect(buddySummary).toMatchObject({
+      habitFullDays: 0,
+      toiletRecordedDays: 0,
+      trainingDays: 0,
+    });
+  });
+
   it('upserts a Pro daily report snapshot and reads it back', async () => {
     const proEntitlementsService: EntitlementsService = {
       async getEntitlements() {
@@ -510,8 +608,29 @@ describe('api app', () => {
     expect(body.error.code).toBe('unauthorized');
   });
 
+  it('requires Pro to create a team', async () => {
+    const app = createTestApp();
+    const token = await login(app, {
+      identityToken: 'free-team-token',
+    });
+    const response = await app.request('/teams', {
+      body: JSON.stringify({
+        name: '免费用户小队',
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error.code).toBe('forbidden');
+  });
+
   it('creates a team and exposes low-sensitivity team snapshots', async () => {
-    const appWithTeams = createTestApp();
+    const appWithTeams = createProTestApp();
     const token = await login(appWithTeams);
     const authHeaders = {
       authorization: `Bearer ${token}`,
@@ -631,7 +750,7 @@ describe('api app', () => {
   });
 
   it('creates, previews, and accepts a team invite', async () => {
-    const appWithInvites = createTestApp();
+    const appWithInvites = createProTestApp();
     const ownerToken = await login(appWithInvites, {
       identityToken: 'owner-token',
       nickname: '队长',
@@ -720,7 +839,7 @@ describe('api app', () => {
   });
 
   it('updates team name, pauses sharing, removes a member, and leaves a team', async () => {
-    const appWithTeamManagement = createTestApp();
+    const appWithTeamManagement = createProTestApp();
     const ownerToken = await login(appWithTeamManagement, {
       identityToken: 'manage-owner-token',
       nickname: '队长',
@@ -826,7 +945,7 @@ describe('api app', () => {
   it('sends buddy nudges, applies settings, records acks, and registers push tokens', async () => {
     const sentNotifications: PushNotificationPayload[] = [];
     const teamService = createMockTeamService();
-    const appWithNudges = createApiApp({
+    const appWithNudges = createProTestApp({
       logger: testLogger,
       nudgeService: createMockNudgeService({
         pushNotificationService: {

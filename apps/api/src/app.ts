@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 
 import type { DatabaseHealthChecker } from './db/health.js';
 import { createAuthMiddleware } from './http/middleware/auth.js';
+import { createProMiddleware } from './http/middleware/pro.js';
 import { ApiError, isApiError } from './http/apiError.js';
 import { toErrorResponse } from './http/responses.js';
 import { logger as defaultLogger } from './lib/logger.js';
@@ -56,6 +57,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const userRepository = options.userRepository ?? createMockUserRepository();
   const app = new Hono();
   const authMiddleware = createAuthMiddleware(userRepository);
+  const proMiddleware = createProMiddleware(entitlementsService);
 
   app.use('*', requestId());
   app.use('*', async (context, next) => {
@@ -83,7 +85,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   app.route('/team-invites', createTeamInvitesRoute({ authMiddleware, teamService }));
   app.use('/teams/*', authMiddleware);
   app.use('/teams', authMiddleware);
-  app.route('/teams', createTeamsRoute({ teamService }));
+  app.route('/teams', createTeamsRoute({ proMiddleware, teamService }));
   app.use('/share-settings/*', authMiddleware);
   app.use('/share-settings', authMiddleware);
   app.route('/share-settings', createShareSettingsRoute({ teamService }));
@@ -92,7 +94,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   app.route('/share-snapshots', createShareSnapshotsRoute({ teamService }));
   app.use('/nudges/*', authMiddleware);
   app.use('/nudges', authMiddleware);
-  app.route('/nudges', createNudgesRoute({ nudgeService }));
+  app.route('/nudges', createNudgesRoute({ nudgeService, proMiddleware }));
   app.use('/buddy-nudge-settings/*', authMiddleware);
   app.use('/buddy-nudge-settings', authMiddleware);
   app.route('/buddy-nudge-settings', createBuddyNudgeSettingsRoute({ nudgeService }));

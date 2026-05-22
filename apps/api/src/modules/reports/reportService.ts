@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lte, ne } from 'drizzle-orm';
 
 import type {
   AdvancedReportResponse,
@@ -9,7 +9,14 @@ import type {
 } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
-import { dailyReportSnapshots, dailyShareSnapshots, teamMembers, teams, users } from '../../db/schema.js';
+import {
+  dailyReportSnapshots,
+  dailyShareSnapshots,
+  shareSettings,
+  teamMembers,
+  teams,
+  users,
+} from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
 import type { TeamService } from '../teams/teamService.js';
 import type { CurrentUser } from '../users/userTypes.js';
@@ -81,6 +88,20 @@ function toWeeklyMember(member: Pick<TeamMember, 'displayName' | 'id' | 'user'>)
     user: member.user,
   };
 }
+
+type ReportShareSettings = {
+  paused: boolean;
+  shareHabitCompletion: boolean;
+  shareToiletRecorded: boolean;
+  shareTraining: boolean;
+};
+
+const defaultReportShareSettings: ReportShareSettings = {
+  paused: false,
+  shareHabitCompletion: true,
+  shareToiletRecorded: true,
+  shareTraining: true,
+};
 
 export function createMockReportService(options: { teamService: TeamService }): ReportService {
   const snapshotsByUserAndDate = new Map<string, DailyReportSnapshot>();
@@ -174,7 +195,7 @@ export function createDrizzleReportService(db: Database): ReportService {
       .where(
         and(
           eq(teamMembers.userId, currentUser.id),
-          eq(teamMembers.status, 'active'),
+          ne(teamMembers.status, 'removed'),
           isNull(teams.archivedAt),
         ),
       )
@@ -217,6 +238,27 @@ export function createDrizzleReportService(db: Database): ReportService {
         .innerJoin(users, eq(teamMembers.userId, users.id))
         .where(and(eq(teamMembers.teamId, team.id), isNull(users.deletedAt)));
       const activeMembers = members.filter((member) => member.status !== 'removed');
+      const settingsRows = await db
+        .select({
+          paused: shareSettings.paused,
+          shareHabitCompletion: shareSettings.shareHabitCompletion,
+          shareToiletRecorded: shareSettings.shareToiletRecorded,
+          shareTraining: shareSettings.shareTraining,
+          userId: shareSettings.userId,
+        })
+        .from(shareSettings)
+        .where(eq(shareSettings.teamId, team.id));
+      const settingsByUserId = new Map(
+        settingsRows.map((settings) => [
+          settings.userId,
+          {
+            paused: settings.paused,
+            shareHabitCompletion: settings.shareHabitCompletion,
+            shareToiletRecorded: settings.shareToiletRecorded,
+            shareTraining: settings.shareTraining,
+          },
+        ]),
+      );
       const snapshots = await db
         .select()
         .from(dailyShareSnapshots)
@@ -236,10 +278,15 @@ export function createDrizzleReportService(db: Database): ReportService {
         memberCount: activeMembers.length,
         startedAt,
         summaries: activeMembers.map((member) => {
+          const memberShareSettings = settingsByUserId.get(member.userId) ?? defaultReportShareSettings;
           const memberSnapshots = snapshots.filter((snapshot) => snapshot.userId === member.userId);
+          const visibleSnapshots =
+            member.status === 'paused' || memberShareSettings.paused ? [] : memberSnapshots;
 
           return {
-            habitFullDays: memberSnapshots.filter((snapshot) => snapshot.habitCompletion === 4).length,
+            habitFullDays: memberShareSettings.shareHabitCompletion
+              ? visibleSnapshots.filter((snapshot) => snapshot.habitCompletion === 4).length
+              : 0,
             member: {
               displayName: member.displayName,
               id: member.id,
@@ -249,8 +296,12 @@ export function createDrizzleReportService(db: Database): ReportService {
                 nickname: member.nickname,
               },
             },
-            toiletRecordedDays: memberSnapshots.filter((snapshot) => snapshot.toiletRecorded).length,
-            trainingDays: memberSnapshots.filter((snapshot) => snapshot.trainingDone).length,
+            toiletRecordedDays: memberShareSettings.shareToiletRecorded
+              ? visibleSnapshots.filter((snapshot) => snapshot.toiletRecorded).length
+              : 0,
+            trainingDays: memberShareSettings.shareTraining
+              ? visibleSnapshots.filter((snapshot) => snapshot.trainingDone).length
+              : 0,
           };
         }),
       };

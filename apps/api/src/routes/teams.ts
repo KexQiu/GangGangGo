@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler } from 'hono';
 import { z } from 'zod';
 
 import type {
@@ -30,6 +30,7 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const memberIdSchema = z.uuid();
 
 type CreateTeamsRouteOptions = {
+  proMiddleware?: MiddlewareHandler<{ Variables: AuthVariables }>;
   teamService: TeamService;
 };
 
@@ -37,10 +38,15 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const passThroughMiddleware: MiddlewareHandler<{ Variables: AuthVariables }> = async (_context, next) => {
+  await next();
+};
+
 export function createTeamsRoute(options: CreateTeamsRouteOptions) {
   const route = new Hono<{ Variables: AuthVariables }>();
+  const proMiddleware = options.proMiddleware ?? passThroughMiddleware;
 
-  route.post('/', async (context) => {
+  route.post('/', proMiddleware, async (context) => {
     const request = createTeamRequestSchema.parse(await context.req.json()) satisfies CreateTeamRequest;
     const body: TeamResponse = await options.teamService.createTeam(context.get('currentUser'), request);
 
@@ -66,7 +72,7 @@ export function createTeamsRoute(options: CreateTeamsRouteOptions) {
     return context.json(toSuccessResponse(body));
   });
 
-  route.post('/current/invites', async (context) => {
+  route.post('/current/invites', proMiddleware, async (context) => {
     const body: CreateTeamInviteResponse = await options.teamService.createInvite(context.get('currentUser'));
 
     return context.json(toSuccessResponse(body));
