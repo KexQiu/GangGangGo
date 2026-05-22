@@ -12,6 +12,8 @@ packages/contracts   # 前后端共享类型
 
 工程结构详见：[项目结构说明](./project-structure.md)。
 
+整体开发步骤详见：[开发路线图](./development-roadmap.md)。
+
 ## v0.1 当前完成版
 
 - [产品定位](./v0.1/product-positioning.md)
@@ -26,5 +28,6 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 
 - [需求文档](./v0.2/prd.md)
 - [开发方案](./v0.2/development-plan.md)
+- [后端详细开发方案](./v0.2/backend-development-plan.md)
 
 v0.2 规划为小提督 Pro 的第一版商业化验证，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。

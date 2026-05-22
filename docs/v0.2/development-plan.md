@@ -7,6 +7,10 @@
 
 工程结构总览：[项目结构说明](../project-structure.md)
 
+详细开发步骤：[整体开发路线图](../development-roadmap.md)
+
+后端细化方案：[后端详细开发方案](./backend-development-plan.md)
+
 ## 1. 开发目标
 
 v0.2 在 v0.1 本地优先 App 之上增加云端与会员能力：
@@ -278,14 +282,18 @@ Apple Watch：
 
 ## 7. 开发顺序建议
 
-1. 账号与会员权益底座。
-2. Pro paywall 和订阅恢复。
-3. 小队和邀请流程。
-4. 低敏状态共享快照。
-5. 搭子提醒和提醒回执。
-6. 高级小报告。
-7. Apple Watch target 和 WatchConnectivity。
-8. 全链路隐私与异常处理验收。
+详细里程碑以 [整体开发路线图](../development-roadmap.md) 为准。v0.2 推荐开发顺序：
+
+1. 后端基础设施。
+2. 数据库与迁移。
+3. 账号与会员权益底座。
+4. Pro paywall 和订阅恢复。
+5. 低敏状态共享快照。
+6. 小队和邀请流程。
+7. 搭子提醒和提醒回执。
+8. 高级小报告。
+9. Apple Watch target 和 WatchConnectivity。
+10. 全链路隐私与异常处理验收。
 
 ## 8. 当前结论
 

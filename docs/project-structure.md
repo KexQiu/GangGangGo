@@ -146,6 +146,7 @@ iOS 原生能力包括 ActivityKit + WidgetKit Extension，用于蹲会儿灵动
 - Expo Go 不能验证 Live Activity。
 - Development Build 或正式包才能验证灵动岛计时。
 - `eas.json` 在 `apps/mobile` 内，EAS 构建命令应从移动端目录执行。
+- 如果出现 `The sandbox is not in sync with the Podfile.lock`，需要在 `apps/mobile/ios` 下执行 `pod install` 同步 CocoaPods sandbox。
 
 ```bash
 cd apps/mobile
