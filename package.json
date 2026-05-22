@@ -5,6 +5,7 @@
   "scripts": {
     "api:dev": "pnpm --filter @xiaotidu/api dev",
     "api:start": "pnpm --filter @xiaotidu/api start",
+    "api:test": "pnpm --filter @xiaotidu/api test",
     "mobile:start": "pnpm --filter @xiaotidu/mobile start",
     "mobile:ios": "pnpm --filter @xiaotidu/mobile ios",
     "mobile:android": "pnpm --filter @xiaotidu/mobile android",
