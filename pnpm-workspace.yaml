@@ -1,3 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+
 allowBuilds:
-  dtrace-provider: set this to true or false
+  dtrace-provider: false
+  esbuild: true
 nodeLinker: hoisted

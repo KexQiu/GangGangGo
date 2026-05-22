@@ -1,8 +1,8 @@
 # 小提督整体风格设计指南
 
-版本：v0.3
-日期：2026-05-21
-阶段：当前视觉与文案规范
+版本：v0.1
+日期：2026-05-22
+阶段：v0.1 当前视觉与文案规范
 关联文档：[产品定位文档](./product-positioning.md)、[PRD](./prd-v0.1.md)
 
 ## 1. 设计定位
@@ -69,7 +69,7 @@
 
 ## 5. 色彩系统
 
-当前颜色 token 位于 `src/theme/colors.ts`。页面必须通过 theme token 使用颜色，不直接写死色值。
+当前颜色 token 位于 `apps/mobile/src/theme/colors.ts`。页面必须通过 theme token 使用颜色，不直接写死色值。
 
 当前主色方向为 **清爽绿色健康工具风**：浅绿背景、绿色主行动、蓝色信息、紫色隐私、橙色警示、红色风险。
 
@@ -377,12 +377,12 @@
 
 ## 11. 设计资产说明
 
-`docs/previews/` 中的早期预览图仅作为历史参考，不是当前 UI 的实现标准。
+`docs/archive/previews/` 中的早期预览图仅作为历史参考，不是当前 UI 的实现标准。
 
 当前 UI 的真实标准以以下内容为准：
 
 - 本风格指南。
-- `src/theme/colors.ts` 的主题 token。
+- `apps/mobile/src/theme/colors.ts` 的主题 token。
 - 当前 App 页面实现。
 
 后续如需生成视觉预览，应优先使用位图预览，不以 SVG 作为最终视觉交付。

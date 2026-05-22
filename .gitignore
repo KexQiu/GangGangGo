@@ -39,3 +39,8 @@ yarn-error.*
 
 # generated native folders
 /android
+apps/mobile/android
+
+# backend build output
+apps/api/dist
+packages/*/dist

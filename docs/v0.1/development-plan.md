@@ -1,13 +1,15 @@
 # 小提督开发方案
 
-版本：v0.3
-日期：2026-05-21
-阶段：当前工程说明与后续开发基线
+版本：v0.1
+日期：2026-05-22
+阶段：v0.1 当前工程说明与后续开发基线
 关联文档：[产品定位文档](./product-positioning.md)、[PRD](./prd-v0.1.md)
+
+工程结构总览：[项目结构说明](../project-structure.md)
 
 ## 1. 当前工程目标
 
-当前项目是一个本地优先的 Expo + React Native 移动端 App，用于完成小提督 V1 的核心闭环：
+当前仓库已经整理为轻量 monorepo。v0.1 的移动端 App 位于 `apps/mobile`，用于完成小提督 V1 的核心闭环：
 
 菊花抬 -> 小暗号提醒 -> 蹲会儿 -> 小账本 -> 今日正反馈 -> 最近小报告 -> 小花说明书。
 
@@ -19,6 +21,7 @@ V1 不依赖服务端，不要求登录，不上传健康数据。所有训练�
 - 语言：TypeScript
 - 路由：Expo Router
 - 包管理：pnpm
+- 工作区：pnpm workspace
 - 状态管理：zustand
 - 本地数据：expo-sqlite
 - kv 持久化：expo-sqlite/kv-store + zustand persist
@@ -34,19 +37,41 @@ V1 不依赖服务端，不要求登录，不上传健康数据。所有训练�
 当前脚本：
 
 ```bash
-pnpm start
-pnpm run ios
-pnpm run android
-pnpm start:dev-client
+pnpm mobile:start
+pnpm mobile:ios
+pnpm mobile:android
+pnpm mobile:dev-client
 pnpm run typecheck
-pnpm expo install --check
+pnpm --filter @xiaotidu/mobile exec expo install --check
 pnpm peers check
 ```
 
-## 3. 当前路由结构
+EAS 构建相关命令需要在移动端包目录执行：
+
+```bash
+cd apps/mobile
+pnpm exec eas build --profile development --platform ios
+```
+
+## 3. 当前仓库结构
 
 ```text
-app/
+apps/
+  mobile/              # v0.1 Expo App
+  api/                 # v0.2 后端骨架
+packages/
+  contracts/           # v0.2 前后端共享类型
+docs/
+  v0.1/
+  v0.2/
+```
+
+当前 v0.1 移动端仍是核心交付物；`apps/api` 和 `packages/contracts` 是 v0.2 的开发准备，不影响 v0.1 本地单人闭环。
+
+## 4. 当前路由结构
+
+```text
+apps/mobile/app/
   _layout.tsx
   index.tsx
   settings/
@@ -71,17 +96,17 @@ app/
 当前导航原则：
 
 - 不使用底部 Tab。
-- `app/index.tsx` 是唯一主首页。
+- `apps/mobile/app/index.tsx` 是唯一主首页。
 - 设置入口在首页右上角。
 - 二级页统一使用 `AppTopBar` 返回或关闭。
 - 训练中、蹲会儿进行中关闭需要确认。
 
-路由常量维护在 `src/navigation/routes.ts`，新增页面必须同步新增常量，避免散落字符串。
+路由常量维护在 `apps/mobile/src/navigation/routes.ts`，新增页面必须同步新增常量，避免散落字符串。
 
-## 4. 当前源码结构
+## 5. 当前源码结构
 
 ```text
-src/
+apps/mobile/src/
   components/
     feedback/
       AnimatedCheckBadge.tsx
@@ -142,7 +167,7 @@ src/
 iOS 原生文件：
 
 ```text
-ios/
+apps/mobile/ios/
   app/
     ToiletTimerLiveActivityModule.swift
     ToiletTimerLiveActivityModule.m
@@ -155,7 +180,7 @@ ios/
 资源文件：
 
 ```text
-assets/
+apps/mobile/assets/
   icon.png
   adaptive-icon.png
   splash-icon.png
@@ -175,7 +200,7 @@ assets/
 - 页面只组合 UI、store 和业务函数。
 - 原生能力必须有 JS no-op/fallback，不能阻塞主流程。
 
-## 5. 本地存储
+## 6. 本地存储
 
 数据库名：`xiaotidu.db`
 
@@ -183,8 +208,8 @@ assets/
 
 初始化入口：
 
-- `src/storage/db.ts`
-- `src/storage/migrations.ts`
+- `apps/mobile/src/storage/db.ts`
+- `apps/mobile/src/storage/migrations.ts`
 
 ### training_sessions
 
@@ -245,17 +270,17 @@ assets/
 | `xiaotidu-app-settings` | 灵动岛计时、蹲会儿离开提醒、阶段音效 |
 | `xiaotidu-active-toilet-timer` | 正在进行的蹲会儿会话 |
 
-## 6. 核心模块说明
+## 7. 核心模块说明
 
-### 6.1 菊花抬训练
+### 7.1 菊花抬训练
 
 关键文件：
 
-- `src/features/training/presets.ts`
-- `src/features/training/trainingLogic.ts`
-- `src/features/training/trainingStore.ts`
-- `src/features/training/FlowerLiftIcon.tsx`
-- `app/training/*`
+- `apps/mobile/src/features/training/presets.ts`
+- `apps/mobile/src/features/training/trainingLogic.ts`
+- `apps/mobile/src/features/training/trainingStore.ts`
+- `apps/mobile/src/features/training/FlowerLiftIcon.tsx`
+- `apps/mobile/app/training/*`
 
 实现规则：
 
@@ -268,14 +293,14 @@ assets/
 - 手动结束会写入未完整完成记录，但首页今日完成数只统计完整完成。
 - 完成页完整完成时触发 success haptic 和轻量动效。
 
-### 6.2 小暗号提醒
+### 7.2 小暗号提醒
 
 关键文件：
 
-- `src/features/reminders/reminderLogic.ts`
-- `src/features/reminders/notificationService.ts`
-- `src/features/reminders/reminderStore.ts`
-- `app/reminders/index.tsx`
+- `apps/mobile/src/features/reminders/reminderLogic.ts`
+- `apps/mobile/src/features/reminders/notificationService.ts`
+- `apps/mobile/src/features/reminders/reminderStore.ts`
+- `apps/mobile/app/reminders/index.tsx`
 
 实现规则：
 
@@ -291,16 +316,16 @@ assets/
 - 久坐提醒是定时活动提醒，不检测真实坐姿。
 - 系统通知权限被拒绝时，设置可保存但不会触发系统通知。
 
-### 6.3 蹲会儿
+### 7.3 蹲会儿
 
 关键文件：
 
-- `src/features/toilet/toiletLogic.ts`
-- `src/features/toilet/toiletStore.ts`
-- `src/features/toilet/toiletTimerSessionStore.ts`
-- `src/features/toilet/toiletStageNotificationService.ts`
-- `src/features/toilet/toiletStageSoundService.ts`
-- `app/toilet/*`
+- `apps/mobile/src/features/toilet/toiletLogic.ts`
+- `apps/mobile/src/features/toilet/toiletStore.ts`
+- `apps/mobile/src/features/toilet/toiletTimerSessionStore.ts`
+- `apps/mobile/src/features/toilet/toiletStageNotificationService.ts`
+- `apps/mobile/src/features/toilet/toiletStageSoundService.ts`
+- `apps/mobile/app/toilet/*`
 
 阶段规则：
 
@@ -323,13 +348,13 @@ assets/
 - 15 分钟以上计入最近小报告“蹲会儿长会”。
 - 便血或明显不舒服计入最近小报告“小信号”。
 
-### 6.4 iOS 灵动岛 / Live Activity
+### 7.4 iOS 灵动岛 / Live Activity
 
 关键文件：
 
-- `src/features/toilet/toiletLiveActivity.ts`
-- `ios/app/ToiletTimerLiveActivityModule.swift`
-- `ios/XiaoTiduLiveActivities/ToiletTimerLiveActivityWidget.swift`
+- `apps/mobile/src/features/toilet/toiletLiveActivity.ts`
+- `apps/mobile/ios/app/ToiletTimerLiveActivityModule.swift`
+- `apps/mobile/ios/XiaoTiduLiveActivities/ToiletTimerLiveActivityWidget.swift`
 
 实现规则：
 
@@ -340,15 +365,15 @@ assets/
 - Expo Go 不支持；需要 development build 或正式包。
 - 当前不使用服务端 push 更新 Live Activity。
 
-### 6.5 小账本
+### 7.5 小账本
 
 关键文件：
 
-- `src/features/habits/HabitQuickCheckInCard.tsx`
-- `src/features/habits/habitStandards.ts`
-- `src/features/habits/habitLogic.ts`
-- `src/features/habits/habitStore.ts`
-- `app/habits/index.tsx`
+- `apps/mobile/src/features/habits/HabitQuickCheckInCard.tsx`
+- `apps/mobile/src/features/habits/habitStandards.ts`
+- `apps/mobile/src/features/habits/habitLogic.ts`
+- `apps/mobile/src/features/habits/habitStore.ts`
+- `apps/mobile/app/habits/index.tsx`
 
 实现规则：
 
@@ -361,12 +386,12 @@ assets/
 - 4 项都有值即小账本满格。
 - 最近统计由 `calculateRecentHabitStats` 计算。
 
-### 6.6 今日正反馈
+### 7.6 今日正反馈
 
 关键文件：
 
-- `src/features/today/todayFeedback.ts`
-- `app/index.tsx`
+- `apps/mobile/src/features/today/todayFeedback.ts`
+- `apps/mobile/app/index.tsx`
 
 输入：
 
@@ -388,12 +413,12 @@ assets/
 - 不鼓励超量训练。
 - 不鼓励增加蹲会儿次数。
 
-### 6.7 最近小报告
+### 7.7 最近小报告
 
 关键文件：
 
-- `src/features/trends/trendLogic.ts`
-- `app/trends/index.tsx`
+- `apps/mobile/src/features/trends/trendLogic.ts`
+- `apps/mobile/app/trends/index.tsx`
 
 实现规则：
 
@@ -403,11 +428,11 @@ assets/
 - 蹲会儿长会和小信号用 warning/danger 色，不做庆祝表达。
 - 无记录时显示空状态，不渲染空图表。
 
-### 6.8 小花说明书
+### 7.8 小花说明书
 
 关键文件：
 
-- `app/safety/index.tsx`
+- `apps/mobile/app/safety/index.tsx`
 
 当前为静态内容页，包含：
 
@@ -423,13 +448,13 @@ assets/
 - 不承诺改善。
 - 明显便血、剧烈疼痛、不适加重等场景建议咨询医生。
 
-### 6.9 主题
+### 7.9 主题
 
 关键文件：
 
-- `src/theme/colors.ts`
-- `src/theme/themeProvider.tsx`
-- `src/theme/themeStore.ts`
+- `apps/mobile/src/theme/colors.ts`
+- `apps/mobile/src/theme/themeProvider.tsx`
+- `apps/mobile/src/theme/themeStore.ts`
 
 实现规则：
 
@@ -437,21 +462,21 @@ assets/
 - 支持 `light` 和 `dark` 手动模式。
 - 页面只能使用 theme token，不直接写死颜色。
 - 当前主题为绿色健康工具风。
-- `app.json` 的 `userInterfaceStyle` 为 `automatic`。
+- `apps/mobile/app.json` 的 `userInterfaceStyle` 为 `automatic`。
 
-## 7. 开发流程
+## 8. 开发流程
 
 新增页面：
 
-1. 在 `app/` 下新增路由页面。
-2. 在 `src/navigation/routes.ts` 增加路由常量。
+1. 在 `apps/mobile/app/` 下新增路由页面。
+2. 在 `apps/mobile/src/navigation/routes.ts` 增加路由常量。
 3. 使用 `Screen`、`AppTopBar`、`PageHeader`、`AppCard`、`AppButton` 等现有组件。
 4. 路由 fallback 指向 `routes.home` 或 `routes.settings`。
 5. 运行类型检查。
 
 新增业务逻辑：
 
-1. 优先放到对应 `src/features/*/*Logic.ts`。
+1. 优先放到对应 `apps/mobile/src/features/*/*Logic.ts`。
 2. 尽量写成纯函数。
 3. 页面不要直接散落复杂计算。
 4. 如果需要持久化，再新增 repository 和 migration。
@@ -470,13 +495,13 @@ assets/
 - 小暗号：避免通知栏敏感词。
 - 风险场景：必须明确，不玩笑化。
 
-## 8. 验证策略
+## 9. 验证策略
 
 每次功能性修改后运行：
 
 ```bash
 pnpm run typecheck
-pnpm expo install --check
+pnpm --filter @xiaotidu/mobile exec expo install --check
 pnpm peers check
 git diff --check
 ```
@@ -499,7 +524,7 @@ iOS 原生验收：
 - Development build 或正式包验证灵动岛计时。
 - iOS 16.1+ 支持 Live Activity；有灵动岛的设备显示 Dynamic Island，其他设备显示锁屏 Live Activity。
 
-## 9. 已知边界
+## 10. 已知边界
 
 - 还没有登录和云同步。
 - 还没有数据导出和清除入口。
@@ -510,19 +535,20 @@ iOS 原生验收：
 - 安全说明还未接入医生审核内容库。
 - Live Activity 当前只做本地开始/暂停/继续/结束，不做服务端推送更新。
 
-## 10. 后续建议
+## 11. 后续建议
 
-下一阶段建议优先级：
+下一阶段规划见：[小提督 v0.2 需求文档](../v0.2/prd.md)。
 
-1. 轻量新手引导：解释菊花抬、小暗号、小账本、蹲会儿和安全边界。
-2. 数据管理：清除本地数据、导出 JSON/CSV。
-3. 自动化测试：优先覆盖 `trendLogic`、`todayFeedback`、`trainingLogic`、`toiletLogic`、`reminderLogic`。
-4. 真机验收：development build 验证通知、音效和 Live Activity。
-5. App Store/TestFlight 准备。
+v0.2 建议重点：
 
-暂不建议立即做：
+1. 小提督 Pro 会员体系。
+2. 好友监督和轻量数据分享。
+3. Apple Watch 联动。
+4. 高级小报告。
+
+仍不建议立即做：
 
 - AI 健康助手。
-- 社区。
-- 订阅付费。
-- 复杂健康报告。
+- 开放社区。
+- 在线问诊。
+- 疾病治疗计划。
