@@ -1122,6 +1122,28 @@ describe('api app', () => {
     expect(thirdAckResponse.status).toBe(409);
     expect(thirdAckBody.error.code).toBe('conflict');
 
+    const invalidQuietRangeResponse = await appWithNudges.request(`/buddy-nudge-settings/${ownerMember.user.id}`, {
+      body: JSON.stringify({
+        dailyLimit: 5,
+        enabled: true,
+        quietRanges: [
+          {
+            end: '24:00',
+            start: '99:99',
+          },
+        ],
+      }),
+      headers: {
+        authorization: `Bearer ${buddyToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'PUT',
+    });
+    const invalidQuietRangeBody = await invalidQuietRangeResponse.json();
+
+    expect(invalidQuietRangeResponse.status).toBe(400);
+    expect(invalidQuietRangeBody.error.code).toBe('validation_error');
+
     const settingsResponse = await appWithNudges.request(`/buddy-nudge-settings/${ownerMember.user.id}`, {
       body: JSON.stringify({
         dailyLimit: 5,

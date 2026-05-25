@@ -26,7 +26,7 @@ const nudgeAckStatusSchema = z.union([z.literal('received'), z.literal('later'),
 const nudgeDailyLimitSchema = z.union([z.literal(0), z.literal(3), z.literal(5), z.literal(8)]);
 const userIdSchema = z.uuid();
 const nudgeIdSchema = z.string().min(1).max(80);
-const quietTimeSchema = z.string().regex(/^\d{2}:\d{2}$/);
+const quietTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 const createBuddyNudgeRequestSchema = z.object({
   toUserId: userIdSchema,

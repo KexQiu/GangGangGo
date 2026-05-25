@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, ne } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
 
 import type {
@@ -729,12 +729,15 @@ export function createDrizzleTeamService(db: Database): TeamService {
       const snapshotRows = await db
         .select()
         .from(dailyShareSnapshots)
-        .where(eq(dailyShareSnapshots.date, date));
+        .where(
+          and(
+            eq(dailyShareSnapshots.date, date),
+            inArray(dailyShareSnapshots.userId, memberUserIds),
+          ),
+        );
       const settingsByUserId = new Map(settingsRows.map((row) => [row.userId, toShareSettings(row)]));
       const snapshotsByUserId = new Map(
-        snapshotRows
-          .filter((row) => memberUserIds.includes(row.userId))
-          .map((row) => [row.userId, toDailyShareSnapshot(row)]),
+        snapshotRows.map((row) => [row.userId, toDailyShareSnapshot(row)]),
       );
 
       return {

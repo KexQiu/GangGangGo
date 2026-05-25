@@ -69,6 +69,7 @@ type TeamMemberSummary = {
 };
 
 const defaultDailyLimit: BuddyNudgeDailyLimit = 5;
+const defaultTimezone = 'Asia/Shanghai';
 const nudgeTtlMs = 24 * 60 * 60 * 1000;
 const ackRevisionWindowMs = 30 * 60 * 1000;
 
@@ -91,11 +92,59 @@ function parseTimeToMinutes(time: string) {
   return Number(hour) * 60 + Number(minute);
 }
 
+function getTimezoneParts(timezone: string, now: Date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false,
+    hourCycle: 'h23',
+    minute: '2-digit',
+    month: '2-digit',
+    second: '2-digit',
+    timeZone: timezone,
+    year: 'numeric',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    day: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute),
+    month: Number(values.month),
+    second: Number(values.second),
+    year: Number(values.year),
+  };
+}
+
+function getSafeTimezoneParts(timezone: string | null | undefined, now: Date) {
+  try {
+    return getTimezoneParts(timezone || defaultTimezone, now);
+  } catch {
+    return getTimezoneParts(defaultTimezone, now);
+  }
+}
+
+function getTimezoneOffsetMs(timezone: string | null | undefined, date: Date) {
+  const parts = getSafeTimezoneParts(timezone, date);
+  const zonedAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+  );
+
+  return zonedAsUtc - date.getTime();
+}
+
 function isInQuietRanges(
   quietRanges: Array<{ end: string; start: string }>,
+  timezone: string | null | undefined,
   now = new Date(),
 ) {
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const parts = getSafeTimezoneParts(timezone, now);
+  const currentMinutes = parts.hour * 60 + parts.minute;
 
   return quietRanges.some((range) => {
     const startMinutes = parseTimeToMinutes(range.start);
@@ -163,12 +212,17 @@ function toSettings(input: {
   };
 }
 
-function todayStartUtc(now = new Date()) {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+function todayStartInTimezone(timezone: string | null | undefined, now = new Date()) {
+  const parts = getSafeTimezoneParts(timezone, now);
+  const localMidnightAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day);
+  const timezoneOffsetMs = getTimezoneOffsetMs(timezone, new Date(localMidnightAsUtc));
+
+  return new Date(localMidnightAsUtc - timezoneOffsetMs);
 }
 
 function assertCanNudge(input: {
   currentUser: CurrentUser;
+  recipientTimezone?: string | null;
   settings: BuddyNudgeSettings;
   team: Team;
   toUserId: string;
@@ -193,7 +247,7 @@ function assertCanNudge(input: {
     throw new ApiError(403, 'forbidden', '这个搭子暂时关闭了主动提醒。');
   }
 
-  if (isInQuietRanges(input.settings.quietRanges)) {
+  if (isInQuietRanges(input.settings.quietRanges, input.recipientTimezone)) {
     throw new ApiError(403, 'forbidden', '现在是搭子的免打扰时间。');
   }
 
@@ -333,11 +387,12 @@ export function createMockNudgeService(options: {
         (nudge) =>
           nudge.fromUser.id === currentUser.id &&
           nudge.toUser.id === input.toUserId &&
-          nudge.createdAt >= todayStartUtc(),
+          nudge.createdAt >= todayStartInTimezone(defaultTimezone),
       ).length;
 
       assertCanNudge({
         currentUser,
+        recipientTimezone: defaultTimezone,
         settings,
         team,
         toUserId: input.toUserId,
@@ -519,6 +574,18 @@ export function createDrizzleNudgeService(
     return user;
   }
 
+  async function findUserTimezone(userId: string) {
+    const [user] = await db
+      .select({
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    return user?.timezone ?? defaultTimezone;
+  }
+
   async function getNudgeRecord(nudgeId: string) {
     const [nudge] = await db.select().from(buddyNudges).where(eq(buddyNudges.id, nudgeId)).limit(1);
 
@@ -667,6 +734,7 @@ export function createDrizzleNudgeService(
           teamId: team.id,
           userId: input.toUserId,
         });
+      const recipientTimezone = await findUserTimezone(input.toUserId);
       const todayRows = await db
         .select({ id: buddyNudges.id })
         .from(buddyNudges)
@@ -674,12 +742,13 @@ export function createDrizzleNudgeService(
           and(
             eq(buddyNudges.fromUserId, currentUser.id),
             eq(buddyNudges.toUserId, input.toUserId),
-            gte(buddyNudges.createdAt, todayStartUtc()),
+            gte(buddyNudges.createdAt, todayStartInTimezone(recipientTimezone)),
           ),
         );
 
       assertCanNudge({
         currentUser,
+        recipientTimezone,
         settings,
         team,
         toUserId: input.toUserId,

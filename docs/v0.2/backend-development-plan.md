@@ -1130,7 +1130,9 @@ API base URL：
 12. 创建或修改回执后触发 Expo Push 发送给提醒发起者。
 13. 推送发送失败不影响提醒/回执主流程。
 14. `quiet_ranges` 已生效；当前时间命中搭子免打扰范围时，创建提醒会返回 `403 forbidden`。
-15. Expo Push 返回 `DeviceNotRegistered` 时，会自动禁用对应 push token。
+15. 免打扰时间格式限制为 `HH:mm` 且必须落在 `00:00-23:59`。
+16. 搭子提醒的免打扰判断和每日次数日切按被提醒人的 `timezone` 计算，避免部署服务器时区影响午休/夜间范围。
+17. Expo Push 返回 `DeviceNotRegistered` 时，会自动禁用对应 push token。
 
 暂未实现：
 
