@@ -29,5 +29,7 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 - [需求文档](./v0.2/prd.md)
 - [开发方案](./v0.2/development-plan.md)
 - [后端详细开发方案](./v0.2/backend-development-plan.md)
+- [后端接口文档](./v0.2/api-reference.md)
+- [Apifox/OpenAPI 导入文件](./v0.2/openapi.json)
 
 v0.2 规划为小提督 Pro 的第一版商业化验证，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。

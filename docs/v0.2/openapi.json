@@ -1,0 +1,2218 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "小提督 API",
+    "description": "小提督 v0.2 后端接口。当前为开发联调版，订阅校验仍为占位实现。",
+    "version": "0.2.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8787",
+      "description": "本地开发环境"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "服务健康检查"
+    },
+    {
+      "name": "Auth",
+      "description": "登录与退出"
+    },
+    {
+      "name": "Me",
+      "description": "当前用户和会员权益"
+    },
+    {
+      "name": "Subscriptions",
+      "description": "订阅校验占位接口"
+    },
+    {
+      "name": "Teams",
+      "description": "小队、成员和邀请"
+    },
+    {
+      "name": "Sharing",
+      "description": "共享设置和低敏共享快照"
+    },
+    {
+      "name": "Nudges",
+      "description": "搭子提醒和回执"
+    },
+    {
+      "name": "Push",
+      "description": "推送 token"
+    },
+    {
+      "name": "Reports",
+      "description": "高级小报告"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "服务健康检查",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "服务可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiHealthSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/db": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "数据库健康检查",
+        "operationId": "getDatabaseHealth",
+        "responses": {
+          "200": {
+            "description": "数据库可达",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatabaseHealthSuccess"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/auth/apple": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Apple 登录",
+        "description": "开发环境可使用 mock identityToken；生产环境应使用真实 Apple identity token。",
+        "operationId": "loginWithApple",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "退出登录",
+        "description": "当前为占位接口，只返回 ok。",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "退出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": ["Me"],
+        "summary": "获取当前用户",
+        "operationId": "getMe",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/me/entitlements": {
+      "get": {
+        "tags": ["Me"],
+        "summary": "获取会员权益",
+        "operationId": "getMyEntitlements",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "会员权益",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementsSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subscriptions/verify": {
+      "post": {
+        "tags": ["Subscriptions"],
+        "summary": "校验订阅交易",
+        "description": "当前为占位接口，返回 pending_verification，不会写入真实订阅。",
+        "operationId": "verifySubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "占位响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionActionSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subscriptions/restore": {
+      "post": {
+        "tags": ["Subscriptions"],
+        "summary": "恢复购买",
+        "description": "当前为占位接口，返回 pending_verification。",
+        "operationId": "restoreSubscriptions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "占位响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionActionSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams": {
+      "post": {
+        "tags": ["Teams"],
+        "summary": "创建小队",
+        "description": "小提督 Pro 功能。",
+        "operationId": "createTeam",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current": {
+      "get": {
+        "tags": ["Teams"],
+        "summary": "获取当前小队",
+        "operationId": "getCurrentTeam",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前小队",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Teams"],
+        "summary": "修改小队名称",
+        "operationId": "updateCurrentTeam",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current/leave": {
+      "post": {
+        "tags": ["Teams"],
+        "summary": "退出当前小队",
+        "operationId": "leaveCurrentTeam",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "退出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current/invites": {
+      "post": {
+        "tags": ["Teams"],
+        "summary": "创建小队邀请",
+        "description": "小提督 Pro 功能。token 原文只在响应中返回一次。",
+        "operationId": "createTeamInvite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "邀请创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTeamInviteSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current/members/{memberId}": {
+      "delete": {
+        "tags": ["Teams"],
+        "summary": "移除小队成员",
+        "operationId": "removeTeamMember",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "移除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current/members/me/status": {
+      "patch": {
+        "tags": ["Teams"],
+        "summary": "暂停或恢复自己的共享状态",
+        "operationId": "updateCurrentMemberStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamMemberStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current/snapshots": {
+      "get": {
+        "tags": ["Teams", "Sharing"],
+        "summary": "获取当前小队某天共享快照",
+        "operationId": "getCurrentTeamSnapshots",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "example": "2026-05-25"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "共享快照",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSnapshotsSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/team-invites/{token}": {
+      "get": {
+        "tags": ["Teams"],
+        "summary": "预览小队邀请",
+        "operationId": "previewTeamInvite",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 256
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "邀请预览",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamInvitePreviewSuccess"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/team-invites/{token}/accept": {
+      "post": {
+        "tags": ["Teams"],
+        "summary": "接受小队邀请",
+        "operationId": "acceptTeamInvite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTeamInviteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "加入成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/share-settings": {
+      "put": {
+        "tags": ["Sharing"],
+        "summary": "更新自己的共享设置",
+        "operationId": "updateShareSettings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareSettingsSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/share-snapshots/today": {
+      "put": {
+        "tags": ["Sharing"],
+        "summary": "上传今天的低敏共享快照",
+        "operationId": "upsertDailyShareSnapshot",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertDailyShareSnapshotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyShareSnapshotSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/nudges": {
+      "post": {
+        "tags": ["Nudges"],
+        "summary": "发送搭子提醒",
+        "description": "小提督 Pro 功能。只允许预设提醒，不支持自由文本。",
+        "operationId": "createNudge",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBuddyNudgeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "提醒创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuddyNudgeSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/nudges/inbox": {
+      "get": {
+        "tags": ["Nudges"],
+        "summary": "查询收到的提醒",
+        "operationId": "listInboxNudges",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "收到的提醒",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuddyNudgesSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/nudges/sent": {
+      "get": {
+        "tags": ["Nudges"],
+        "summary": "查询发出的提醒",
+        "operationId": "listSentNudges",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "发出的提醒",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuddyNudgesSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/nudges/{id}/ack": {
+      "post": {
+        "tags": ["Nudges"],
+        "summary": "回复提醒回执",
+        "operationId": "ackNudge",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AckBuddyNudgeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "回执成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuddyNudgeAckSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/buddy-nudge-settings": {
+      "get": {
+        "tags": ["Nudges"],
+        "summary": "查询搭子提醒设置",
+        "operationId": "getBuddyNudgeSettings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "搭子提醒设置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuddyNudgeSettingsSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/buddy-nudge-settings/{buddyUserId}": {
+      "put": {
+        "tags": ["Nudges"],
+        "summary": "更新某个搭子的提醒权限",
+        "operationId": "updateBuddyNudgeSettings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "buddyUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBuddyNudgeSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuddyNudgeSettingsSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/push-tokens": {
+      "post": {
+        "tags": ["Push"],
+        "summary": "注册或更新推送 token",
+        "operationId": "registerPushToken",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPushTokenSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/reports/advanced": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "获取个人高级小报告",
+        "description": "小提督 Pro 功能。",
+        "operationId": "getAdvancedReport",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["90d"],
+              "default": "90d"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "高级小报告",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvancedReportSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/report-snapshots/today": {
+      "put": {
+        "tags": ["Reports"],
+        "summary": "上传个人高级小报告摘要",
+        "description": "小提督 Pro 功能。该数据只用于用户自己的高级小报告，不给搭子看。",
+        "operationId": "upsertDailyReportSnapshot",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertDailyReportSnapshotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReportSnapshotSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/current/reports/weekly": {
+      "get": {
+        "tags": ["Reports", "Teams"],
+        "summary": "获取小队周报",
+        "description": "小提督 Pro 功能。只基于低敏共享快照聚合，并遵守成员共享设置。",
+        "operationId": "getTeamWeeklyReport",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "小队周报",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamWeeklyReportSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "错误响应",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "bad_request",
+                  "conflict",
+                  "database_not_configured",
+                  "database_unreachable",
+                  "forbidden",
+                  "internal_error",
+                  "internal_server_error",
+                  "not_found",
+                  "rate_limited",
+                  "unauthorized",
+                  "validation_error"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "OkSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["ok"],
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "example": true
+              }
+            }
+          }
+        }
+      },
+      "ApiHealthSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiHealthResponse"
+          }
+        }
+      },
+      "ApiHealthResponse": {
+        "type": "object",
+        "required": ["ok", "service", "version"],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          },
+          "service": {
+            "type": "string",
+            "example": "xiaotidu-api"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.2.0"
+          }
+        }
+      },
+      "DatabaseHealthSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DatabaseHealthResponse"
+          }
+        }
+      },
+      "DatabaseHealthResponse": {
+        "type": "object",
+        "required": ["database", "ok"],
+        "properties": {
+          "database": {
+            "type": "string",
+            "enum": ["reachable"]
+          },
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "AppleLoginRequest": {
+        "type": "object",
+        "required": ["identityToken"],
+        "properties": {
+          "identityToken": {
+            "type": "string",
+            "minLength": 1,
+            "example": "test-token"
+          },
+          "authorizationCode": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "example": "测试用户"
+          }
+        }
+      },
+      "AuthSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AuthResponse"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": ["token", "user"],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "UserProfileSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "UserProfile": {
+        "type": "object",
+        "required": ["avatarUrl", "id", "nickname", "timezone"],
+        "properties": {
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Asia/Shanghai"
+          }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "required": ["avatarUrl", "id", "nickname"],
+        "properties": {
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EntitlementsSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/EntitlementsResponse"
+          }
+        }
+      },
+      "EntitlementsResponse": {
+        "type": "object",
+        "required": ["proStatus"],
+        "properties": {
+          "proStatus": {
+            "$ref": "#/components/schemas/ProStatus"
+          }
+        }
+      },
+      "ProStatus": {
+        "type": "string",
+        "enum": ["free", "pro_active", "pro_grace_period", "pro_expired"]
+      },
+      "SubscriptionProductId": {
+        "type": "string",
+        "enum": ["xiaotidu.pro.monthly", "xiaotidu.pro.yearly"]
+      },
+      "VerifySubscriptionRequest": {
+        "type": "object",
+        "required": ["productId", "transactionId"],
+        "properties": {
+          "productId": {
+            "$ref": "#/components/schemas/SubscriptionProductId"
+          },
+          "transactionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "RestoreSubscriptionRequest": {
+        "type": "object",
+        "required": ["transactionIds"],
+        "properties": {
+          "transactionIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        }
+      },
+      "SubscriptionActionSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubscriptionActionResponse"
+          }
+        }
+      },
+      "SubscriptionActionResponse": {
+        "type": "object",
+        "required": ["entitlements", "status"],
+        "properties": {
+          "entitlements": {
+            "$ref": "#/components/schemas/EntitlementsResponse"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending_verification"]
+          }
+        }
+      },
+      "CreateTeamRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "example": "轻轻监督队"
+          }
+        }
+      },
+      "UpdateTeamRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        }
+      },
+      "UpdateTeamMemberStatusRequest": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["active", "paused"]
+          }
+        }
+      },
+      "TeamSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TeamResponse"
+          }
+        }
+      },
+      "TeamResponse": {
+        "type": "object",
+        "required": ["team"],
+        "properties": {
+          "team": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Team"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "required": ["id", "members", "name", "ownerUserId"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamMember": {
+        "type": "object",
+        "required": ["displayName", "id", "joinedAt", "role", "status", "user"],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "buddy"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "paused", "removed"]
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          }
+        }
+      },
+      "CreateTeamInviteSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateTeamInviteResponse"
+          }
+        }
+      },
+      "CreateTeamInviteResponse": {
+        "type": "object",
+        "required": ["expiresAt", "inviteId", "inviteUrl", "token"],
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inviteId": {
+            "type": "string"
+          },
+          "inviteUrl": {
+            "type": "string",
+            "example": "xiaotidu://team-invites/token"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamInvitePreviewSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TeamInvitePreviewResponse"
+          }
+        }
+      },
+      "TeamInvitePreviewResponse": {
+        "type": "object",
+        "required": ["expiresAt", "inviterNickname", "teamName"],
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inviterNickname": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamName": {
+            "type": "string"
+          }
+        }
+      },
+      "AcceptTeamInviteRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "shareSettings": {
+            "$ref": "#/components/schemas/PartialShareSettings"
+          }
+        }
+      },
+      "ShareSettings": {
+        "type": "object",
+        "required": [
+          "paused",
+          "shareHabitCompletion",
+          "shareStreak",
+          "shareToiletRecorded",
+          "shareTraining"
+        ],
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          },
+          "shareHabitCompletion": {
+            "type": "boolean"
+          },
+          "shareStreak": {
+            "type": "boolean"
+          },
+          "shareToiletRecorded": {
+            "type": "boolean"
+          },
+          "shareTraining": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PartialShareSettings": {
+        "type": "object",
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          },
+          "shareHabitCompletion": {
+            "type": "boolean"
+          },
+          "shareStreak": {
+            "type": "boolean"
+          },
+          "shareToiletRecorded": {
+            "type": "boolean"
+          },
+          "shareTraining": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ShareSettingsSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["settings"],
+            "properties": {
+              "settings": {
+                "$ref": "#/components/schemas/ShareSettings"
+              }
+            }
+          }
+        }
+      },
+      "DailyShareSnapshot": {
+        "type": "object",
+        "required": ["date", "habitCompletion", "streakDays", "toiletRecorded", "trainingDone"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "example": "2026-05-25"
+          },
+          "habitCompletion": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "streakDays": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toiletRecorded": {
+            "type": "boolean"
+          },
+          "trainingDone": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TeamDailyShareSnapshot": {
+        "type": "object",
+        "required": ["date"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "habitCompletion": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "streakDays": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toiletRecorded": {
+            "type": "boolean"
+          },
+          "trainingDone": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpsertDailyShareSnapshotRequest": {
+        "type": "object",
+        "required": ["snapshot"],
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyShareSnapshot"
+          }
+        }
+      },
+      "DailyShareSnapshotSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["snapshot"],
+            "properties": {
+              "snapshot": {
+                "$ref": "#/components/schemas/DailyShareSnapshot"
+              }
+            }
+          }
+        }
+      },
+      "TeamSnapshot": {
+        "type": "object",
+        "required": ["member", "shareSettings", "snapshot"],
+        "properties": {
+          "member": {
+            "$ref": "#/components/schemas/TeamMember"
+          },
+          "shareSettings": {
+            "$ref": "#/components/schemas/ShareSettings"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamDailyShareSnapshot"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "TeamSnapshotsSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["date", "snapshots"],
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "snapshots": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TeamSnapshot"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BuddyNudgeType": {
+        "type": "string",
+        "enum": ["gentle", "move", "not_blank", "habit_left", "posture"]
+      },
+      "BuddyNudgeAckStatus": {
+        "type": "string",
+        "enum": ["received", "later", "done"]
+      },
+      "CreateBuddyNudgeRequest": {
+        "type": "object",
+        "required": ["toUserId", "type"],
+        "properties": {
+          "toUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/BuddyNudgeType"
+          }
+        }
+      },
+      "BuddyNudge": {
+        "type": "object",
+        "required": [
+          "ack",
+          "createdAt",
+          "expiresAt",
+          "fromUser",
+          "id",
+          "messageTemplate",
+          "teamId",
+          "toUser",
+          "type"
+        ],
+        "properties": {
+          "ack": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BuddyNudgeAck"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fromUser": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "id": {
+            "type": "string"
+          },
+          "messageTemplate": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "toUser": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "type": {
+            "$ref": "#/components/schemas/BuddyNudgeType"
+          }
+        }
+      },
+      "BuddyNudgeSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BuddyNudge"
+          }
+        }
+      },
+      "BuddyNudgesSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["nudges"],
+            "properties": {
+              "nudges": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BuddyNudge"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BuddyNudgeAck": {
+        "type": "object",
+        "required": ["createdAt", "revisionCount", "status", "updatedAt"],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revisionCount": {
+            "type": "integer",
+            "enum": [0, 1]
+          },
+          "status": {
+            "$ref": "#/components/schemas/BuddyNudgeAckStatus"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AckBuddyNudgeRequest": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/BuddyNudgeAckStatus"
+          }
+        }
+      },
+      "BuddyNudgeAckSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["ack"],
+            "properties": {
+              "ack": {
+                "$ref": "#/components/schemas/BuddyNudgeAck"
+              }
+            }
+          }
+        }
+      },
+      "QuietRange": {
+        "type": "object",
+        "required": ["end", "start"],
+        "properties": {
+          "end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "example": "14:00"
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "example": "12:30"
+          }
+        }
+      },
+      "BuddyNudgeDailyLimit": {
+        "type": "integer",
+        "enum": [0, 3, 5, 8]
+      },
+      "BuddyNudgeSettings": {
+        "type": "object",
+        "required": ["buddyUserId", "dailyLimit", "enabled", "quietRanges", "teamId", "userId"],
+        "properties": {
+          "buddyUserId": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "$ref": "#/components/schemas/BuddyNudgeDailyLimit"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "quietRanges": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/QuietRange"
+            }
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateBuddyNudgeSettingsRequest": {
+        "type": "object",
+        "required": ["dailyLimit", "enabled", "quietRanges"],
+        "properties": {
+          "dailyLimit": {
+            "$ref": "#/components/schemas/BuddyNudgeDailyLimit"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "quietRanges": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/QuietRange"
+            }
+          }
+        }
+      },
+      "BuddyNudgeSettingsSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["settings"],
+            "properties": {
+              "settings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BuddyNudgeSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RegisterPushTokenRequest": {
+        "type": "object",
+        "required": ["platform", "provider", "token"],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "platform": {
+            "type": "string",
+            "enum": ["ios", "android"]
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["expo", "apns"]
+          },
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        }
+      },
+      "RegisterPushTokenSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "DailyReportSnapshot": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DailyShareSnapshot"
+          },
+          {
+            "type": "object",
+            "required": [
+              "habitFull",
+              "ninetyDayHabitFullDays",
+              "ninetyDayToiletLongMeetingCount",
+              "ninetyDayTrainingDays",
+              "thirtyDayHabitFullDays",
+              "thirtyDayToiletLongMeetingCount",
+              "thirtyDayTrainingDays",
+              "toiletLongMeeting",
+              "weeklyHabitFullDays",
+              "weeklyToiletLongMeetingCount",
+              "weeklyTrainingDays"
+            ],
+            "properties": {
+              "habitFull": {
+                "type": "boolean"
+              },
+              "ninetyDayHabitFullDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 90
+              },
+              "ninetyDayToiletLongMeetingCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ninetyDayTrainingDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 90
+              },
+              "thirtyDayHabitFullDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 30
+              },
+              "thirtyDayToiletLongMeetingCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "thirtyDayTrainingDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 30
+              },
+              "toiletLongMeeting": {
+                "type": "boolean"
+              },
+              "weeklyHabitFullDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              },
+              "weeklyToiletLongMeetingCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "weeklyTrainingDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              }
+            }
+          }
+        ]
+      },
+      "UpsertDailyReportSnapshotRequest": {
+        "type": "object",
+        "required": ["snapshot"],
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyReportSnapshot"
+          }
+        }
+      },
+      "DailyReportSnapshotSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["snapshot"],
+            "properties": {
+              "snapshot": {
+                "$ref": "#/components/schemas/DailyReportSnapshot"
+              }
+            }
+          }
+        }
+      },
+      "AdvancedReportSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["range", "snapshot"],
+            "properties": {
+              "range": {
+                "type": "string",
+                "enum": ["90d"]
+              },
+              "snapshot": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DailyReportSnapshot"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "TeamWeeklyReportSuccess": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TeamWeeklyReportResponse"
+          }
+        }
+      },
+      "TeamWeeklyReportResponse": {
+        "type": "object",
+        "required": ["endedAt", "memberCount", "startedAt", "summaries"],
+        "properties": {
+          "endedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "memberCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "startedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "summaries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamWeeklyReportSummary"
+            }
+          }
+        }
+      },
+      "TeamWeeklyReportSummary": {
+        "type": "object",
+        "required": ["habitFullDays", "member", "toiletRecordedDays", "trainingDays"],
+        "properties": {
+          "habitFullDays": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "member": {
+            "type": "object",
+            "required": ["displayName", "id", "user"],
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "nullable": true
+              },
+              "id": {
+                "type": "string"
+              },
+              "user": {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            }
+          },
+          "toiletRecordedDays": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trainingDays": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

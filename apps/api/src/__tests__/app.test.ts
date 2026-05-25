@@ -100,6 +100,26 @@ describe('api app', () => {
     });
   });
 
+  it('returns validation errors for invalid JSON request bodies', async () => {
+    const app = createTestApp();
+    const response = await app.request('/auth/apple', {
+      body: '',
+      headers: {
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({
+      error: {
+        code: 'validation_error',
+        message: '请求体不是有效 JSON。',
+      },
+    });
+  });
+
   it('requires auth for current user information', async () => {
     const app = createTestApp();
     const response = await app.request('/me');

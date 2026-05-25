@@ -11,6 +11,10 @@
 
 后端细化方案：[后端详细开发方案](./backend-development-plan.md)
 
+后端接口文档：[后端接口文档](./api-reference.md)
+
+Apifox/OpenAPI 导入文件：[openapi.json](./openapi.json)
+
 ## 1. 开发目标
 
 v0.2 在 v0.1 本地优先 App 之上增加云端与会员能力：

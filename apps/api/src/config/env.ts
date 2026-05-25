@@ -1,4 +1,53 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { z } from 'zod';
+
+function parseDotEnv(content: string) {
+  const values: Record<string, string> = {};
+
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+
+    const separatorIndex = trimmed.indexOf('=');
+
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    let value = trimmed.slice(separatorIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (value === '') {
+      continue;
+    }
+
+    values[key] = value;
+  }
+
+  return values;
+}
+
+function loadDotEnv() {
+  const envPath = resolve(process.cwd(), '.env');
+
+  if (!existsSync(envPath)) {
+    return {};
+  }
+
+  return parseDotEnv(readFileSync(envPath, 'utf8'));
+}
 
 const envSchema = z
   .object({
@@ -53,7 +102,9 @@ const envSchema = z
 export type ApiEnv = z.infer<typeof envSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
-  const parsedEnv = envSchema.parse(source);
+  const shouldLoadDotEnv = source === process.env && source.NODE_ENV !== 'test';
+  const input = shouldLoadDotEnv ? { ...loadDotEnv(), ...source } : source;
+  const parsedEnv = envSchema.parse(input);
 
   return {
     ...parsedEnv,

@@ -893,7 +893,7 @@ v0.2 不需要复杂异步任务系统。可以先按请求实时聚合或每日
 NODE_ENV=development
 PORT=8787
 LOG_LEVEL=info
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/xiaotidu
+DATABASE_URL=postgres://<local-user>@localhost:5432/xiaotidu
 DB_SSL=false
 JWT_SECRET=replace-me
 APPLE_AUTH_MODE=mock
@@ -909,7 +909,9 @@ EXPO_PUSH_ACCESS_TOKEN=
 
 - `.env` 不提交。
 - `.env.example` 提交。
+- 开发模式会自动读取 `apps/api/.env`；`NODE_ENV=test` 不读取 `.env`，保证测试不依赖本机数据库。
 - 环境变量必须经过 `config/env.ts` 校验。
+- 本机 Homebrew Postgres 通常使用当前 macOS 用户作为数据库用户，例如 `postgres://kex@localhost:5432/xiaotidu`。
 
 ## 12. 本地开发流程
 

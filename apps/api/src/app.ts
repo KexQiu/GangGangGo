@@ -46,6 +46,10 @@ type CreateApiAppOptions = {
   userRepository?: UserRepository;
 };
 
+function isJsonParseError(error: unknown) {
+  return error instanceof SyntaxError && /JSON|Unexpected end/.test(error.message);
+}
+
 export function createApiApp(options: CreateApiAppOptions = {}) {
   const log = options.logger ?? defaultLogger;
   const appleAuthService = options.appleAuthService ?? createMockAppleAuthService();
@@ -122,6 +126,10 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
 
     if (error instanceof ZodError) {
       return context.json(toErrorResponse('validation_error', '请求参数不符合预期。', error.issues), 400);
+    }
+
+    if (isJsonParseError(error)) {
+      return context.json(toErrorResponse('validation_error', '请求体不是有效 JSON。'), 400);
     }
 
     log.error(
