@@ -134,6 +134,35 @@ describe('api app', () => {
     });
   });
 
+  it('requires auth for logout', async () => {
+    const app = createTestApp();
+    const unauthorizedResponse = await app.request('/auth/logout', {
+      method: 'POST',
+    });
+    const unauthorizedBody = await unauthorizedResponse.json();
+
+    expect(unauthorizedResponse.status).toBe(401);
+    expect(unauthorizedBody.error.code).toBe('unauthorized');
+
+    const token = await login(app, {
+      identityToken: 'logout-token',
+    });
+    const response = await app.request('/auth/logout', {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      method: 'POST',
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      data: {
+        ok: true,
+      },
+    });
+  });
+
   it('returns current user information with a token', async () => {
     const app = createTestApp();
     const loginResponse = await app.request('/auth/apple', {
@@ -162,6 +191,102 @@ describe('api app', () => {
         timezone: 'Asia/Shanghai',
       },
     });
+  });
+
+  it('updates current user profile with a token', async () => {
+    const app = createTestApp();
+    const token = await login(app, {
+      identityToken: 'profile-token',
+      nickname: '旧昵称',
+    });
+    const updateResponse = await app.request('/me', {
+      body: JSON.stringify({
+        avatarUrl: 'preset:mint',
+        nickname: '搭子队长',
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PATCH',
+    });
+    const updateBody = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateBody.data).toMatchObject({
+      avatarUrl: 'preset:mint',
+      nickname: '搭子队长',
+    });
+
+    const meResponse = await app.request('/me', {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const meBody = await meResponse.json();
+
+    expect(meBody.data).toMatchObject({
+      avatarUrl: 'preset:mint',
+      nickname: '搭子队长',
+    });
+  });
+
+  it('creates a mock avatar upload and stores the avatar URL', async () => {
+    const app = createTestApp();
+    const token = await login(app, {
+      identityToken: 'avatar-token',
+      nickname: '头像用户',
+    });
+    const uploadResponse = await app.request('/me/avatar-upload', {
+      body: JSON.stringify({
+        contentLength: 3,
+        contentType: 'image/jpeg',
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+    const uploadBody = await uploadResponse.json();
+
+    expect(uploadResponse.status).toBe(200);
+    expect(uploadBody.data).toMatchObject({
+      objectKey: expect.stringContaining('avatars/'),
+      uploadMethod: 'mock_put',
+    });
+
+    const uploadUrl = new URL(uploadBody.data.uploadUrl);
+    const putResponse = await app.request(`${uploadUrl.pathname}${uploadUrl.search}`, {
+      body: new Uint8Array([1, 2, 3]).buffer,
+      headers: {
+        'content-type': 'image/jpeg',
+      },
+      method: 'PUT',
+    });
+
+    expect(putResponse.status).toBe(204);
+
+    const imageUrl = new URL(uploadBody.data.publicUrl);
+    const imageResponse = await app.request(imageUrl.pathname);
+
+    expect(imageResponse.status).toBe(200);
+    expect(imageResponse.headers.get('content-type')).toBe('image/jpeg');
+
+    const updateResponse = await app.request('/me', {
+      body: JSON.stringify({
+        avatarUrl: uploadBody.data.publicUrl,
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PATCH',
+    });
+    const updateBody = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateBody.data.avatarUrl).toBe(uploadBody.data.publicUrl);
   });
 
   it('requires auth for entitlements and returns mock entitlements with a token', async () => {

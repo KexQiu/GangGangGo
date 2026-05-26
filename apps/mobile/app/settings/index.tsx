@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.home} title="设置" />
 
-      <PageHeader eyebrow="我的" subtitle="提醒、外观和安全说明都放这里，低调但管用。" title="设置" />
+      <PageHeader eyebrow="应用配置" subtitle="外观、提醒和安全边界放这里。" title="设置" />
 
       <Text style={styles.groupTitle}>外观模式</Text>
       <View style={styles.optionGroup}>

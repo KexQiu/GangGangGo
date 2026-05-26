@@ -1,10 +1,15 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { useAuthStore } from '../src/features/account/authStore';
 import { useHabitStore } from '../src/features/habits/habitStore';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
+import { registerPushTokenIfAllowed } from '../src/features/sync/pushTokenSync';
+import { syncTodayReportSnapshot } from '../src/features/sync/reportSnapshotSync';
+import { syncTodayShareSnapshot } from '../src/features/sync/shareSnapshotSync';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
 import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
@@ -15,6 +20,10 @@ function RootStack() {
   const hydrateReminders = useReminderStore((state) => state.hydrate);
   const hydrateToilet = useToiletStore((state) => state.hydrate);
   const hydrateTraining = useTrainingStore((state) => state.hydrate);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const habitCheckIns = useHabitStore((state) => state.checkIns);
+  const toiletSessions = useToiletStore((state) => state.sessions);
+  const trainingSessions = useTrainingStore((state) => state.sessions);
 
   useEffect(() => {
     void hydrateTraining();
@@ -22,6 +31,32 @@ function RootStack() {
     void hydrateHabits();
     void hydrateReminders();
   }, [hydrateHabits, hydrateReminders, hydrateToilet, hydrateTraining]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+
+    void syncCloudState();
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+
+    void syncCloudState();
+  }, [accessToken, habitCheckIns, toiletSessions, trainingSessions]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void syncCloudState();
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   return (
     <>
@@ -36,6 +71,12 @@ function RootStack() {
       />
     </>
   );
+}
+
+async function syncCloudState() {
+  await syncTodayShareSnapshot();
+  await syncTodayReportSnapshot();
+  await registerPushTokenIfAllowed();
 }
 
 export default function RootLayout() {

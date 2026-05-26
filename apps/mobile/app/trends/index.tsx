@@ -1,4 +1,5 @@
-import { type ComponentType } from 'react';
+import { useRouter } from 'expo-router';
+import { type ComponentType, useEffect } from 'react';
 import {
   AlertTriangle,
   BookOpenCheck,
@@ -7,11 +8,14 @@ import {
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
+import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
 import { useHabitStore } from '../../src/features/habits/habitStore';
+import { useReportStore } from '../../src/features/reports/reportStore';
 import { useToiletStore } from '../../src/features/toilet/toiletStore';
 import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { useTrainingStore } from '../../src/features/training/trainingStore';
@@ -25,7 +29,13 @@ import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
 export default function TrendsScreen() {
+  const router = useRouter();
   const habitCheckIns = useHabitStore((state) => state.checkIns);
+  const proStatus = useAuthStore((state) => state.proStatus);
+  const user = useAuthStore((state) => state.user);
+  const advancedReport = useReportStore((state) => state.advancedReport);
+  const loadAdvancedReport = useReportStore((state) => state.loadAdvancedReport);
+  const reportError = useReportStore((state) => state.error);
   const toiletSessions = useToiletStore((state) => state.sessions);
   const trainingSessions = useTrainingStore((state) => state.sessions);
   const trendInput = {
@@ -38,6 +48,13 @@ export default function TrendsScreen() {
   const feedback = getTrendPositiveFeedback(sevenDayTrend);
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
+  const isPro = isProStatus(proStatus);
+
+  useEffect(() => {
+    if (isPro) {
+      void loadAdvancedReport();
+    }
+  }, [isPro, loadAdvancedReport]);
 
   return (
     <Screen>
@@ -118,6 +135,45 @@ export default function TrendsScreen() {
           <Text style={styles.riskText}>近 30 天出现过需要留意的小信号。小报告只负责帮你记住；明显便血、不适加重或剧烈疼痛时，建议咨询医生。</Text>
         </AppCard>
       ) : null}
+
+      <Text style={styles.sectionTitle}>Pro 高级小报告</Text>
+      <AppCard style={styles.proCard}>
+        {isPro ? (
+          <>
+            <Text style={styles.proTitle}>90 天回看</Text>
+            {advancedReport?.snapshot ? (
+              <View style={styles.summaryGrid}>
+                <SummaryTile
+                  label="小花营业"
+                  tone="primary"
+                  value={`${advancedReport.snapshot.ninetyDayTrainingDays} 天`}
+                />
+                <SummaryTile
+                  label="小账本满格"
+                  tone="primary"
+                  value={`${advancedReport.snapshot.ninetyDayHabitFullDays} 天`}
+                />
+                <SummaryTile
+                  label="蹲会儿长会"
+                  tone="warning"
+                  value={`${advancedReport.snapshot.ninetyDayToiletLongMeetingCount} 次`}
+                />
+              </View>
+            ) : (
+              <Text style={styles.mutedText}>高级小报告还在等第一笔云端摘要。完成今天的本地记录后会自动同步。</Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.proTitle}>{user ? '解锁 90 天小报告' : '登录后查看 Pro 能力'}</Text>
+            <Text style={styles.mutedText}>基础小报告继续免费。Pro 会看更长周期，但仍不上传敏感细节。</Text>
+            <AppButton onPress={() => router.push(user ? routes.pro : routes.me)} style={styles.proButton} variant="secondary">
+              {user ? '了解 Pro' : '去登录'}
+            </AppButton>
+          </>
+        )}
+        {reportError ? <Text style={styles.errorText}>{reportError}</Text> : null}
+      </AppCard>
     </Screen>
   );
 }
@@ -380,6 +436,24 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
       lineHeight: 20,
       marginLeft: 10,
+    },
+    proButton: {
+      marginTop: 12,
+    },
+    proCard: {
+      gap: 8,
+      marginBottom: 16,
+    },
+    proTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '900',
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 19,
     },
   });
 }

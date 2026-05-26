@@ -32,6 +32,25 @@ export type UserProfile = {
   timezone: string;
 };
 
+export type UpdateUserProfileRequest = {
+  avatarUrl?: null | string;
+  nickname?: null | string;
+  timezone?: string;
+};
+
+export type CreateAvatarUploadRequest = {
+  contentLength: number;
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp';
+};
+
+export type CreateAvatarUploadResponse = {
+  expiresAt: string;
+  objectKey: string;
+  publicUrl: string;
+  uploadMethod: 'mock_put' | 'presigned_put';
+  uploadUrl: string;
+};
+
 export type AppleLoginRequest = {
   authorizationCode?: string;
   identityToken: string;

@@ -13,6 +13,10 @@
 
 后端接口文档：[后端接口文档](./api-reference.md)
 
+移动端后端接入计划：[移动端后端接入计划](./mobile-integration-plan.md)
+
+Apple Watch 开发计划：[Apple Watch 开发计划](./apple-watch-development-plan.md)
+
 Apifox/OpenAPI 导入文件：[openapi.json](./openapi.json)
 
 ## 1. 开发目标

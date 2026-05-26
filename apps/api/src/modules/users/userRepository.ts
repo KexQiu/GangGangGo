@@ -7,6 +7,10 @@ import { mockCurrentUser } from './userTypes.js';
 
 export type UserRepository = {
   findById: (userId: string) => Promise<CurrentUser | null>;
+  updateProfile: (
+    userId: string,
+    input: { avatarUrl?: null | string; nickname?: null | string; timezone?: string },
+  ) => Promise<CurrentUser>;
   upsertFromApple: (input: { appleUserId: string; nickname?: string }) => Promise<CurrentUser>;
 };
 
@@ -47,6 +51,25 @@ export function createMockUserRepository(): UserRepository {
     async findById(userId) {
       return usersById.get(userId) ?? null;
     },
+    async updateProfile(userId, input) {
+      const existingUser = usersById.get(userId);
+
+      if (!existingUser) {
+        throw new Error('User not found.');
+      }
+
+      const updatedUser = {
+        ...existingUser,
+        avatarUrl: input.avatarUrl === undefined ? existingUser.avatarUrl : input.avatarUrl,
+        nickname: input.nickname === undefined ? existingUser.nickname : input.nickname,
+        timezone: input.timezone ?? existingUser.timezone,
+      };
+
+      usersByAppleUserId.set(updatedUser.appleUserId, updatedUser);
+      usersById.set(updatedUser.id, updatedUser);
+
+      return updatedUser;
+    },
     async upsertFromApple(input) {
       const existingUser = usersByAppleUserId.get(input.appleUserId);
 
@@ -81,6 +104,24 @@ export function createDrizzleUserRepository(db: Database): UserRepository {
         .limit(1);
 
       return user ? toCurrentUser(user) : null;
+    },
+    async updateProfile(userId, input) {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          ...(input.avatarUrl === undefined ? {} : { avatarUrl: input.avatarUrl }),
+          ...(input.nickname === undefined ? {} : { nickname: input.nickname }),
+          ...(input.timezone === undefined ? {} : { timezone: input.timezone }),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error('User not found.');
+      }
+
+      return toCurrentUser(updatedUser);
     },
     async upsertFromApple(input) {
       const [existingUser] = await db

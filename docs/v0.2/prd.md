@@ -3,7 +3,7 @@
 版本：v0.2
 日期：2026-05-22
 阶段：下一版本需求规划
-关联文档：[v0.1 PRD](../v0.1/prd-v0.1.md)、[v0.1 产品定位文档](../v0.1/product-positioning.md)、[v0.2 开发方案](./development-plan.md)
+关联文档：[v0.1 PRD](../v0.1/prd-v0.1.md)、[v0.1 产品定位文档](../v0.1/product-positioning.md)、[v0.2 开发方案](./development-plan.md)、[Apple Watch 需求文档](./apple-watch-prd.md)
 
 ## 1. 版本目标
 
@@ -166,6 +166,8 @@ v0.1 的核心单人功能继续免费：
 - 风险数据不参与好友正反馈，不向好友暴露。
 
 ## 4. Apple Watch 联动
+
+详细需求见：[Apple Watch 需求文档](./apple-watch-prd.md)。
 
 ### 4.1 产品目标
 

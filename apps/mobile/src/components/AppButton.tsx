@@ -6,6 +6,7 @@ import { useAppTheme } from '../theme/themeProvider';
 type AppButtonProps = PropsWithChildren<{
   accessibilityHint?: string;
   accessibilityLabel?: string;
+  disabled?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   variant?: 'primary' | 'secondary' | 'warning';
@@ -15,6 +16,7 @@ export function AppButton({
   accessibilityHint,
   accessibilityLabel,
   children,
+  disabled = false,
   onPress,
   style,
   variant = 'primary',
@@ -28,8 +30,10 @@ export function AppButton({
       accessibilityHint={accessibilityHint}
       accessibilityLabel={label}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed, style]}
+      style={({ pressed }) => [styles.button, disabled && styles.disabled, pressed && !disabled && styles.pressed, style]}
     >
       <Text style={styles.text}>{children}</Text>
     </Pressable>
@@ -72,6 +76,9 @@ function createStyles(colors: ThemeColors, variant: NonNullable<AppButtonProps['
     pressed: {
       backgroundColor: active.pressedColor,
       transform: [{ scale: 0.99 }],
+    },
+    disabled: {
+      opacity: 0.55,
     },
     text: {
       color: active.color,

@@ -1,9 +1,10 @@
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler } from 'hono';
 import { z } from 'zod';
 
 import type { AuthResponse } from '@xiaotidu/contracts';
 
 import { toSuccessResponse } from '../http/responses.js';
+import type { AuthVariables } from '../http/middleware/auth.js';
 import type { AppleAuthService } from '../modules/auth/appleAuthService.js';
 import { issueAccessToken } from '../modules/auth/token.js';
 import type { UserRepository } from '../modules/users/userRepository.js';
@@ -16,11 +17,17 @@ const appleLoginRequestSchema = z.object({
 
 type CreateAuthRouteOptions = {
   appleAuthService: AppleAuthService;
+  authMiddleware?: MiddlewareHandler<{ Variables: AuthVariables }>;
   userRepository: UserRepository;
+};
+
+const passThroughMiddleware: MiddlewareHandler<{ Variables: AuthVariables }> = async (_context, next) => {
+  await next();
 };
 
 export function createAuthRoute(options: CreateAuthRouteOptions) {
   const route = new Hono();
+  const authMiddleware = options.authMiddleware ?? passThroughMiddleware;
 
   route.post('/apple', async (context) => {
     const request = appleLoginRequestSchema.parse(await context.req.json());
@@ -39,7 +46,7 @@ export function createAuthRoute(options: CreateAuthRouteOptions) {
     return context.json(toSuccessResponse(body));
   });
 
-  route.post('/logout', (context) => context.json(toSuccessResponse({ ok: true })));
+  route.post('/logout', authMiddleware, (context) => context.json(toSuccessResponse({ ok: true })));
 
   return route;
 }

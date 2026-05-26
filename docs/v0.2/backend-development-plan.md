@@ -172,7 +172,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | id | uuid | 主键 |
 | apple_user_id | text | Apple sub，唯一 |
 | nickname | text | 昵称 |
-| avatar_url | text | 头像，v0.2 可为空 |
+| avatar_url | text | 头像公开访问 URL，v0.2 可为空 |
 | created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 | deleted_at | timestamptz | 注销时间 |
@@ -551,6 +551,8 @@ type ApiHealthResponse = {
 | POST | `/auth/apple` | Apple 登录 |
 | POST | `/auth/logout` | 退出登录 |
 | GET | `/me` | 当前用户 |
+| PATCH | `/me` | 更新昵称、头像 URL、时区 |
+| POST | `/me/avatar-upload` | 创建头像上传地址 |
 
 `POST /auth/apple` 请求：
 
@@ -583,6 +585,9 @@ MVP 策略：
 - B4 使用服务端 HS256 access token；`JWT_SECRET` 生产环境必填，不能使用开发默认值。
 - API 启动时如果配置了 `DATABASE_URL`，用户仓储使用 Drizzle 写入 `users` 表；未配置时自动使用 mock 用户仓储，方便无数据库测试。
 - token 到期后让用户重新登录，v0.2 初期不做复杂 refresh token。
+- 头像采用对象存储模式：数据库只保存 `avatar_url`，不保存 base64 或图片二进制。
+- 当前开发环境的 `POST /me/avatar-upload` 使用 mock storage provider，返回 `/mock-storage/...` 上传地址；后续接正式 OSS/S3/R2 时保持接口结构不变。
+- 头像上传限制为 `image/jpeg`、`image/png`、`image/webp`，单文件最大 `300KB`，上传地址短期有效。
 
 ### 6.4 会员权益
 
@@ -1185,7 +1190,7 @@ API base URL：
 B1-B7.1 后端基础链路已经完成。下一步建议进入 **移动端 Pro 接入准备**：
 
 1. 新增移动端 API client 和 token 存储。
-2. 接入 Apple 登录按钮与 mock/dev 后端配置。
+2. 当前继续使用 mock/dev 登录配置；Apple Developer Program 和签名能力准备好后，再恢复 Apple 登录按钮并完成真机联调。
 3. 新增 Pro paywall 占位页。
 4. 接入 `/me/entitlements` 判断 Pro 状态。
 5. 之后再开发小队 UI、搭子提醒 UI 和高级小报告页面。

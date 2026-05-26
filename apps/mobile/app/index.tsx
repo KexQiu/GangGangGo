@@ -8,6 +8,7 @@ import {
   Hourglass,
   Settings,
   ShieldCheck,
+  UserRound,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -70,14 +71,25 @@ export default function HomeScreen() {
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <PageHeader eyebrow="小提督" subtitle="少找入口，多做正事。" title="今天轻轻安排一下" />
-        <PressableScale
-          accessibilityLabel="打开设置"
-          onPress={() => router.push(routes.settings)}
-          style={styles.settingsButton}
-        >
-          <Settings color={colors.text} size={22} strokeWidth={2.5} />
-        </PressableScale>
+        <View style={styles.headerCopy}>
+          <PageHeader eyebrow="小提督" subtitle="少找入口，多做正事。" title="今天轻轻安排一下" />
+        </View>
+        <View style={styles.headerActions}>
+          <PressableScale
+            accessibilityLabel="打开我的"
+            onPress={() => router.push(routes.me)}
+            style={styles.headerButton}
+          >
+            <UserRound color={colors.text} size={21} strokeWidth={2.5} />
+          </PressableScale>
+          <PressableScale
+            accessibilityLabel="打开设置"
+            onPress={() => router.push(routes.settings)}
+            style={styles.headerButton}
+          >
+            <Settings color={colors.text} size={21} strokeWidth={2.5} />
+          </PressableScale>
+        </View>
       </View>
 
       <AppCard muted style={styles.overviewCard}>
@@ -155,9 +167,9 @@ export default function HomeScreen() {
           onPress={() => router.push(routes.trends)}
           title="最近小报告"
         />
-        <View style={styles.toolDivider} />
         {hasReminderEnabled ? (
           <>
+            <View style={styles.toolDivider} />
             <UtilityLink
               description={reminderSummary.subtitle}
               icon={Bell}
@@ -166,9 +178,9 @@ export default function HomeScreen() {
               onPress={() => router.push(routes.reminders)}
               title={reminderSummary.title}
             />
-            <View style={styles.toolDivider} />
           </>
         ) : null}
+        <View style={styles.toolDivider} />
         <UtilityLink
           description="明显便血、剧烈疼痛或不适加重时，先别硬扛。"
           icon={ShieldCheck}
@@ -301,15 +313,22 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       marginBottom: 4,
     },
-    settingsButton: {
+    headerCopy: {
+      flex: 1,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+      marginLeft: 12,
+      marginTop: 4,
+    },
+    headerButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
-      borderRadius: 22,
-      height: 44,
+      borderRadius: 20,
+      height: 40,
       justifyContent: 'center',
-      marginLeft: 14,
-      marginTop: 4,
-      width: 44,
+      width: 40,
     },
     overviewCard: {
       marginBottom: 12,

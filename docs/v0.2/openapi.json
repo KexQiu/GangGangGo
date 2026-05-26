@@ -52,7 +52,9 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "服务健康检查",
         "operationId": "getHealth",
         "responses": {
@@ -71,7 +73,9 @@
     },
     "/health/db": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "数据库健康检查",
         "operationId": "getDatabaseHealth",
         "responses": {
@@ -93,7 +97,9 @@
     },
     "/auth/apple": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Apple 登录",
         "description": "开发环境可使用 mock identityToken；生产环境应使用真实 Apple identity token。",
         "operationId": "loginWithApple",
@@ -126,10 +132,17 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "退出登录",
-        "description": "当前为占位接口，只返回 ok。",
+        "description": "需要 Bearer token。当前仍由客户端删除本地 token，服务端不维护 session 或 token 黑名单。",
         "operationId": "logout",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "退出成功",
@@ -146,7 +159,9 @@
     },
     "/me": {
       "get": {
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "summary": "获取当前用户",
         "operationId": "getMe",
         "security": [
@@ -169,11 +184,53 @@
             "$ref": "#/components/responses/Error"
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "更新当前用户资料",
+        "operationId": "updateMe",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的当前用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     },
     "/me/entitlements": {
       "get": {
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "summary": "获取会员权益",
         "operationId": "getMyEntitlements",
         "security": [
@@ -200,7 +257,9 @@
     },
     "/subscriptions/verify": {
       "post": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "summary": "校验订阅交易",
         "description": "当前为占位接口，返回 pending_verification，不会写入真实订阅。",
         "operationId": "verifySubscription",
@@ -238,7 +297,9 @@
     },
     "/subscriptions/restore": {
       "post": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "summary": "恢复购买",
         "description": "当前为占位接口，返回 pending_verification。",
         "operationId": "restoreSubscriptions",
@@ -276,7 +337,9 @@
     },
     "/teams": {
       "post": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "创建小队",
         "description": "小提督 Pro 功能。",
         "operationId": "createTeam",
@@ -320,7 +383,9 @@
     },
     "/teams/current": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "获取当前小队",
         "operationId": "getCurrentTeam",
         "security": [
@@ -345,7 +410,9 @@
         }
       },
       "patch": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "修改小队名称",
         "operationId": "updateCurrentTeam",
         "security": [
@@ -385,7 +452,9 @@
     },
     "/teams/current/leave": {
       "post": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "退出当前小队",
         "operationId": "leaveCurrentTeam",
         "security": [
@@ -412,7 +481,9 @@
     },
     "/teams/current/invites": {
       "post": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "创建小队邀请",
         "description": "小提督 Pro 功能。token 原文只在响应中返回一次。",
         "operationId": "createTeamInvite",
@@ -446,7 +517,9 @@
     },
     "/teams/current/members/{memberId}": {
       "delete": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "移除小队成员",
         "operationId": "removeTeamMember",
         "security": [
@@ -490,7 +563,9 @@
     },
     "/teams/current/members/me/status": {
       "patch": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "暂停或恢复自己的共享状态",
         "operationId": "updateCurrentMemberStatus",
         "security": [
@@ -530,7 +605,10 @@
     },
     "/teams/current/snapshots": {
       "get": {
-        "tags": ["Teams", "Sharing"],
+        "tags": [
+          "Teams",
+          "Sharing"
+        ],
         "summary": "获取当前小队某天共享快照",
         "operationId": "getCurrentTeamSnapshots",
         "security": [
@@ -572,7 +650,9 @@
     },
     "/team-invites/{token}": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "预览小队邀请",
         "operationId": "previewTeamInvite",
         "parameters": [
@@ -606,7 +686,9 @@
     },
     "/team-invites/{token}/accept": {
       "post": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "接受小队邀请",
         "operationId": "acceptTeamInvite",
         "security": [
@@ -661,7 +743,9 @@
     },
     "/share-settings": {
       "put": {
-        "tags": ["Sharing"],
+        "tags": [
+          "Sharing"
+        ],
         "summary": "更新自己的共享设置",
         "operationId": "updateShareSettings",
         "security": [
@@ -698,7 +782,9 @@
     },
     "/share-snapshots/today": {
       "put": {
-        "tags": ["Sharing"],
+        "tags": [
+          "Sharing"
+        ],
         "summary": "上传今天的低敏共享快照",
         "operationId": "upsertDailyShareSnapshot",
         "security": [
@@ -735,7 +821,9 @@
     },
     "/nudges": {
       "post": {
-        "tags": ["Nudges"],
+        "tags": [
+          "Nudges"
+        ],
         "summary": "发送搭子提醒",
         "description": "小提督 Pro 功能。只允许预设提醒，不支持自由文本。",
         "operationId": "createNudge",
@@ -779,7 +867,9 @@
     },
     "/nudges/inbox": {
       "get": {
-        "tags": ["Nudges"],
+        "tags": [
+          "Nudges"
+        ],
         "summary": "查询收到的提醒",
         "operationId": "listInboxNudges",
         "security": [
@@ -806,7 +896,9 @@
     },
     "/nudges/sent": {
       "get": {
-        "tags": ["Nudges"],
+        "tags": [
+          "Nudges"
+        ],
         "summary": "查询发出的提醒",
         "operationId": "listSentNudges",
         "security": [
@@ -833,7 +925,9 @@
     },
     "/nudges/{id}/ack": {
       "post": {
-        "tags": ["Nudges"],
+        "tags": [
+          "Nudges"
+        ],
         "summary": "回复提醒回执",
         "operationId": "ackNudge",
         "security": [
@@ -888,7 +982,9 @@
     },
     "/buddy-nudge-settings": {
       "get": {
-        "tags": ["Nudges"],
+        "tags": [
+          "Nudges"
+        ],
         "summary": "查询搭子提醒设置",
         "operationId": "getBuddyNudgeSettings",
         "security": [
@@ -915,7 +1011,9 @@
     },
     "/buddy-nudge-settings/{buddyUserId}": {
       "put": {
-        "tags": ["Nudges"],
+        "tags": [
+          "Nudges"
+        ],
         "summary": "更新某个搭子的提醒权限",
         "operationId": "updateBuddyNudgeSettings",
         "security": [
@@ -969,7 +1067,9 @@
     },
     "/push-tokens": {
       "post": {
-        "tags": ["Push"],
+        "tags": [
+          "Push"
+        ],
         "summary": "注册或更新推送 token",
         "operationId": "registerPushToken",
         "security": [
@@ -1006,7 +1106,9 @@
     },
     "/reports/advanced": {
       "get": {
-        "tags": ["Reports"],
+        "tags": [
+          "Reports"
+        ],
         "summary": "获取个人高级小报告",
         "description": "小提督 Pro 功能。",
         "operationId": "getAdvancedReport",
@@ -1022,7 +1124,9 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["90d"],
+              "enum": [
+                "90d"
+              ],
               "default": "90d"
             }
           }
@@ -1049,7 +1153,9 @@
     },
     "/report-snapshots/today": {
       "put": {
-        "tags": ["Reports"],
+        "tags": [
+          "Reports"
+        ],
         "summary": "上传个人高级小报告摘要",
         "description": "小提督 Pro 功能。该数据只用于用户自己的高级小报告，不给搭子看。",
         "operationId": "upsertDailyReportSnapshot",
@@ -1090,7 +1196,10 @@
     },
     "/teams/current/reports/weekly": {
       "get": {
-        "tags": ["Reports", "Teams"],
+        "tags": [
+          "Reports",
+          "Teams"
+        ],
         "summary": "获取小队周报",
         "description": "小提督 Pro 功能。只基于低敏共享快照聚合，并遵守成员共享设置。",
         "operationId": "getTeamWeeklyReport",
@@ -1114,6 +1223,49 @@
             "$ref": "#/components/responses/Error"
           },
           "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/me/avatar-upload": {
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "创建头像上传地址",
+        "description": "创建头像上传地址。当前开发环境返回 mock 上传地址，后续可替换为正式对象存储预签名 URL。",
+        "operationId": "createAvatarUpload",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAvatarUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "头像上传地址",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAvatarUploadSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
             "$ref": "#/components/responses/Error"
           }
         }
@@ -1143,11 +1295,16 @@
     "schemas": {
       "ApiErrorResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "object",
-            "required": ["code", "message"],
+            "required": [
+              "code",
+              "message"
+            ],
             "properties": {
               "code": {
                 "type": "string",
@@ -1177,11 +1334,15 @@
       },
       "OkSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["ok"],
+            "required": [
+              "ok"
+            ],
             "properties": {
               "ok": {
                 "type": "boolean",
@@ -1193,7 +1354,9 @@
       },
       "ApiHealthSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ApiHealthResponse"
@@ -1202,7 +1365,11 @@
       },
       "ApiHealthResponse": {
         "type": "object",
-        "required": ["ok", "service", "version"],
+        "required": [
+          "ok",
+          "service",
+          "version"
+        ],
         "properties": {
           "ok": {
             "type": "boolean",
@@ -1220,7 +1387,9 @@
       },
       "DatabaseHealthSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/DatabaseHealthResponse"
@@ -1229,11 +1398,16 @@
       },
       "DatabaseHealthResponse": {
         "type": "object",
-        "required": ["database", "ok"],
+        "required": [
+          "database",
+          "ok"
+        ],
         "properties": {
           "database": {
             "type": "string",
-            "enum": ["reachable"]
+            "enum": [
+              "reachable"
+            ]
           },
           "ok": {
             "type": "boolean",
@@ -1243,7 +1417,9 @@
       },
       "AppleLoginRequest": {
         "type": "object",
-        "required": ["identityToken"],
+        "required": [
+          "identityToken"
+        ],
         "properties": {
           "identityToken": {
             "type": "string",
@@ -1263,7 +1439,9 @@
       },
       "AuthSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/AuthResponse"
@@ -1272,7 +1450,10 @@
       },
       "AuthResponse": {
         "type": "object",
-        "required": ["token", "user"],
+        "required": [
+          "token",
+          "user"
+        ],
         "properties": {
           "token": {
             "type": "string"
@@ -1284,7 +1465,9 @@
       },
       "UserProfileSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/UserProfile"
@@ -1293,7 +1476,12 @@
       },
       "UserProfile": {
         "type": "object",
-        "required": ["avatarUrl", "id", "nickname", "timezone"],
+        "required": [
+          "avatarUrl",
+          "id",
+          "nickname",
+          "timezone"
+        ],
         "properties": {
           "avatarUrl": {
             "type": "string",
@@ -1313,9 +1501,37 @@
           }
         }
       },
+      "UpdateUserProfileRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500,
+            "example": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 20,
+            "example": "搭子队长"
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 64,
+            "example": "Asia/Shanghai"
+          }
+        }
+      },
       "UserSummary": {
         "type": "object",
-        "required": ["avatarUrl", "id", "nickname"],
+        "required": [
+          "avatarUrl",
+          "id",
+          "nickname"
+        ],
         "properties": {
           "avatarUrl": {
             "type": "string",
@@ -1332,7 +1548,9 @@
       },
       "EntitlementsSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/EntitlementsResponse"
@@ -1341,7 +1559,9 @@
       },
       "EntitlementsResponse": {
         "type": "object",
-        "required": ["proStatus"],
+        "required": [
+          "proStatus"
+        ],
         "properties": {
           "proStatus": {
             "$ref": "#/components/schemas/ProStatus"
@@ -1350,15 +1570,26 @@
       },
       "ProStatus": {
         "type": "string",
-        "enum": ["free", "pro_active", "pro_grace_period", "pro_expired"]
+        "enum": [
+          "free",
+          "pro_active",
+          "pro_grace_period",
+          "pro_expired"
+        ]
       },
       "SubscriptionProductId": {
         "type": "string",
-        "enum": ["xiaotidu.pro.monthly", "xiaotidu.pro.yearly"]
+        "enum": [
+          "xiaotidu.pro.monthly",
+          "xiaotidu.pro.yearly"
+        ]
       },
       "VerifySubscriptionRequest": {
         "type": "object",
-        "required": ["productId", "transactionId"],
+        "required": [
+          "productId",
+          "transactionId"
+        ],
         "properties": {
           "productId": {
             "$ref": "#/components/schemas/SubscriptionProductId"
@@ -1372,7 +1603,9 @@
       },
       "RestoreSubscriptionRequest": {
         "type": "object",
-        "required": ["transactionIds"],
+        "required": [
+          "transactionIds"
+        ],
         "properties": {
           "transactionIds": {
             "type": "array",
@@ -1388,7 +1621,9 @@
       },
       "SubscriptionActionSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SubscriptionActionResponse"
@@ -1397,14 +1632,19 @@
       },
       "SubscriptionActionResponse": {
         "type": "object",
-        "required": ["entitlements", "status"],
+        "required": [
+          "entitlements",
+          "status"
+        ],
         "properties": {
           "entitlements": {
             "$ref": "#/components/schemas/EntitlementsResponse"
           },
           "status": {
             "type": "string",
-            "enum": ["pending_verification"]
+            "enum": [
+              "pending_verification"
+            ]
           }
         }
       },
@@ -1421,7 +1661,9 @@
       },
       "UpdateTeamRequest": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -1432,17 +1674,24 @@
       },
       "UpdateTeamMemberStatusRequest": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["active", "paused"]
+            "enum": [
+              "active",
+              "paused"
+            ]
           }
         }
       },
       "TeamSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TeamResponse"
@@ -1451,7 +1700,9 @@
       },
       "TeamResponse": {
         "type": "object",
-        "required": ["team"],
+        "required": [
+          "team"
+        ],
         "properties": {
           "team": {
             "allOf": [
@@ -1465,7 +1716,12 @@
       },
       "Team": {
         "type": "object",
-        "required": ["id", "members", "name", "ownerUserId"],
+        "required": [
+          "id",
+          "members",
+          "name",
+          "ownerUserId"
+        ],
         "properties": {
           "id": {
             "type": "string"
@@ -1486,7 +1742,14 @@
       },
       "TeamMember": {
         "type": "object",
-        "required": ["displayName", "id", "joinedAt", "role", "status", "user"],
+        "required": [
+          "displayName",
+          "id",
+          "joinedAt",
+          "role",
+          "status",
+          "user"
+        ],
         "properties": {
           "displayName": {
             "type": "string",
@@ -1501,11 +1764,18 @@
           },
           "role": {
             "type": "string",
-            "enum": ["owner", "buddy"]
+            "enum": [
+              "owner",
+              "buddy"
+            ]
           },
           "status": {
             "type": "string",
-            "enum": ["active", "paused", "removed"]
+            "enum": [
+              "active",
+              "paused",
+              "removed"
+            ]
           },
           "user": {
             "$ref": "#/components/schemas/UserSummary"
@@ -1514,7 +1784,9 @@
       },
       "CreateTeamInviteSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CreateTeamInviteResponse"
@@ -1523,7 +1795,12 @@
       },
       "CreateTeamInviteResponse": {
         "type": "object",
-        "required": ["expiresAt", "inviteId", "inviteUrl", "token"],
+        "required": [
+          "expiresAt",
+          "inviteId",
+          "inviteUrl",
+          "token"
+        ],
         "properties": {
           "expiresAt": {
             "type": "string",
@@ -1543,7 +1820,9 @@
       },
       "TeamInvitePreviewSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TeamInvitePreviewResponse"
@@ -1552,7 +1831,11 @@
       },
       "TeamInvitePreviewResponse": {
         "type": "object",
-        "required": ["expiresAt", "inviterNickname", "teamName"],
+        "required": [
+          "expiresAt",
+          "inviterNickname",
+          "teamName"
+        ],
         "properties": {
           "expiresAt": {
             "type": "string",
@@ -1629,11 +1912,15 @@
       },
       "ShareSettingsSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["settings"],
+            "required": [
+              "settings"
+            ],
             "properties": {
               "settings": {
                 "$ref": "#/components/schemas/ShareSettings"
@@ -1644,7 +1931,13 @@
       },
       "DailyShareSnapshot": {
         "type": "object",
-        "required": ["date", "habitCompletion", "streakDays", "toiletRecorded", "trainingDone"],
+        "required": [
+          "date",
+          "habitCompletion",
+          "streakDays",
+          "toiletRecorded",
+          "trainingDone"
+        ],
         "properties": {
           "date": {
             "type": "string",
@@ -1670,7 +1963,9 @@
       },
       "TeamDailyShareSnapshot": {
         "type": "object",
-        "required": ["date"],
+        "required": [
+          "date"
+        ],
         "properties": {
           "date": {
             "type": "string",
@@ -1695,7 +1990,9 @@
       },
       "UpsertDailyShareSnapshotRequest": {
         "type": "object",
-        "required": ["snapshot"],
+        "required": [
+          "snapshot"
+        ],
         "properties": {
           "snapshot": {
             "$ref": "#/components/schemas/DailyShareSnapshot"
@@ -1704,11 +2001,15 @@
       },
       "DailyShareSnapshotSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["snapshot"],
+            "required": [
+              "snapshot"
+            ],
             "properties": {
               "snapshot": {
                 "$ref": "#/components/schemas/DailyShareSnapshot"
@@ -1719,7 +2020,11 @@
       },
       "TeamSnapshot": {
         "type": "object",
-        "required": ["member", "shareSettings", "snapshot"],
+        "required": [
+          "member",
+          "shareSettings",
+          "snapshot"
+        ],
         "properties": {
           "member": {
             "$ref": "#/components/schemas/TeamMember"
@@ -1739,11 +2044,16 @@
       },
       "TeamSnapshotsSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["date", "snapshots"],
+            "required": [
+              "date",
+              "snapshots"
+            ],
             "properties": {
               "date": {
                 "type": "string"
@@ -1760,15 +2070,28 @@
       },
       "BuddyNudgeType": {
         "type": "string",
-        "enum": ["gentle", "move", "not_blank", "habit_left", "posture"]
+        "enum": [
+          "gentle",
+          "move",
+          "not_blank",
+          "habit_left",
+          "posture"
+        ]
       },
       "BuddyNudgeAckStatus": {
         "type": "string",
-        "enum": ["received", "later", "done"]
+        "enum": [
+          "received",
+          "later",
+          "done"
+        ]
       },
       "CreateBuddyNudgeRequest": {
         "type": "object",
-        "required": ["toUserId", "type"],
+        "required": [
+          "toUserId",
+          "type"
+        ],
         "properties": {
           "toUserId": {
             "type": "string",
@@ -1831,7 +2154,9 @@
       },
       "BuddyNudgeSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/BuddyNudge"
@@ -1840,11 +2165,15 @@
       },
       "BuddyNudgesSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["nudges"],
+            "required": [
+              "nudges"
+            ],
             "properties": {
               "nudges": {
                 "type": "array",
@@ -1858,7 +2187,12 @@
       },
       "BuddyNudgeAck": {
         "type": "object",
-        "required": ["createdAt", "revisionCount", "status", "updatedAt"],
+        "required": [
+          "createdAt",
+          "revisionCount",
+          "status",
+          "updatedAt"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1866,7 +2200,10 @@
           },
           "revisionCount": {
             "type": "integer",
-            "enum": [0, 1]
+            "enum": [
+              0,
+              1
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/BuddyNudgeAckStatus"
@@ -1879,7 +2216,9 @@
       },
       "AckBuddyNudgeRequest": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "$ref": "#/components/schemas/BuddyNudgeAckStatus"
@@ -1888,11 +2227,15 @@
       },
       "BuddyNudgeAckSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["ack"],
+            "required": [
+              "ack"
+            ],
             "properties": {
               "ack": {
                 "$ref": "#/components/schemas/BuddyNudgeAck"
@@ -1903,7 +2246,10 @@
       },
       "QuietRange": {
         "type": "object",
-        "required": ["end", "start"],
+        "required": [
+          "end",
+          "start"
+        ],
         "properties": {
           "end": {
             "type": "string",
@@ -1919,11 +2265,23 @@
       },
       "BuddyNudgeDailyLimit": {
         "type": "integer",
-        "enum": [0, 3, 5, 8]
+        "enum": [
+          0,
+          3,
+          5,
+          8
+        ]
       },
       "BuddyNudgeSettings": {
         "type": "object",
-        "required": ["buddyUserId", "dailyLimit", "enabled", "quietRanges", "teamId", "userId"],
+        "required": [
+          "buddyUserId",
+          "dailyLimit",
+          "enabled",
+          "quietRanges",
+          "teamId",
+          "userId"
+        ],
         "properties": {
           "buddyUserId": {
             "type": "string"
@@ -1951,7 +2309,11 @@
       },
       "UpdateBuddyNudgeSettingsRequest": {
         "type": "object",
-        "required": ["dailyLimit", "enabled", "quietRanges"],
+        "required": [
+          "dailyLimit",
+          "enabled",
+          "quietRanges"
+        ],
         "properties": {
           "dailyLimit": {
             "$ref": "#/components/schemas/BuddyNudgeDailyLimit"
@@ -1970,11 +2332,15 @@
       },
       "BuddyNudgeSettingsSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["settings"],
+            "required": [
+              "settings"
+            ],
             "properties": {
               "settings": {
                 "type": "array",
@@ -1988,7 +2354,11 @@
       },
       "RegisterPushTokenRequest": {
         "type": "object",
-        "required": ["platform", "provider", "token"],
+        "required": [
+          "platform",
+          "provider",
+          "token"
+        ],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -1997,11 +2367,17 @@
           },
           "platform": {
             "type": "string",
-            "enum": ["ios", "android"]
+            "enum": [
+              "ios",
+              "android"
+            ]
           },
           "provider": {
             "type": "string",
-            "enum": ["expo", "apns"]
+            "enum": [
+              "expo",
+              "apns"
+            ]
           },
           "token": {
             "type": "string",
@@ -2012,11 +2388,15 @@
       },
       "RegisterPushTokenSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["id"],
+            "required": [
+              "id"
+            ],
             "properties": {
               "id": {
                 "type": "string"
@@ -2100,7 +2480,9 @@
       },
       "UpsertDailyReportSnapshotRequest": {
         "type": "object",
-        "required": ["snapshot"],
+        "required": [
+          "snapshot"
+        ],
         "properties": {
           "snapshot": {
             "$ref": "#/components/schemas/DailyReportSnapshot"
@@ -2109,11 +2491,15 @@
       },
       "DailyReportSnapshotSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["snapshot"],
+            "required": [
+              "snapshot"
+            ],
             "properties": {
               "snapshot": {
                 "$ref": "#/components/schemas/DailyReportSnapshot"
@@ -2124,15 +2510,22 @@
       },
       "AdvancedReportSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["range", "snapshot"],
+            "required": [
+              "range",
+              "snapshot"
+            ],
             "properties": {
               "range": {
                 "type": "string",
-                "enum": ["90d"]
+                "enum": [
+                  "90d"
+                ]
               },
               "snapshot": {
                 "allOf": [
@@ -2148,7 +2541,9 @@
       },
       "TeamWeeklyReportSuccess": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TeamWeeklyReportResponse"
@@ -2157,7 +2552,12 @@
       },
       "TeamWeeklyReportResponse": {
         "type": "object",
-        "required": ["endedAt", "memberCount", "startedAt", "summaries"],
+        "required": [
+          "endedAt",
+          "memberCount",
+          "startedAt",
+          "summaries"
+        ],
         "properties": {
           "endedAt": {
             "type": "string",
@@ -2181,7 +2581,12 @@
       },
       "TeamWeeklyReportSummary": {
         "type": "object",
-        "required": ["habitFullDays", "member", "toiletRecordedDays", "trainingDays"],
+        "required": [
+          "habitFullDays",
+          "member",
+          "toiletRecordedDays",
+          "trainingDays"
+        ],
         "properties": {
           "habitFullDays": {
             "type": "integer",
@@ -2189,7 +2594,11 @@
           },
           "member": {
             "type": "object",
-            "required": ["displayName", "id", "user"],
+            "required": [
+              "displayName",
+              "id",
+              "user"
+            ],
             "properties": {
               "displayName": {
                 "type": "string",
@@ -2210,6 +2619,81 @@
           "trainingDays": {
             "type": "integer",
             "minimum": 0
+          }
+        }
+      },
+      "CreateAvatarUploadRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contentLength",
+          "contentType"
+        ],
+        "properties": {
+          "contentLength": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 307200,
+            "example": 48231
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "example": "image/jpeg"
+          }
+        }
+      },
+      "CreateAvatarUploadResponse": {
+        "type": "object",
+        "required": [
+          "expiresAt",
+          "objectKey",
+          "publicUrl",
+          "uploadMethod",
+          "uploadUrl"
+        ],
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-26T10:05:00.000Z"
+          },
+          "objectKey": {
+            "type": "string",
+            "example": "avatars/user-id/avatar-id.jpg"
+          },
+          "publicUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg"
+          },
+          "uploadMethod": {
+            "type": "string",
+            "enum": [
+              "mock_put",
+              "presigned_put"
+            ],
+            "example": "mock_put"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg?token=upload-token"
+          }
+        }
+      },
+      "CreateAvatarUploadSuccess": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateAvatarUploadResponse"
           }
         }
       }

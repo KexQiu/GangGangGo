@@ -27,7 +27,7 @@ Apifox 可导入文件：[openapi.json](./openapi.json)。
 仍是占位或待完善：
 
 - App Store 订阅真实校验。
-- 真实 Apple 登录移动端联调。
+- 后端支持真实 Apple identity token 校验；移动端真实 Apple 登录入口因签名能力限制已临时关闭。
 - Push receipt 查询和重试队列。
 - 真实 Postgres 集成测试。
 - 并发强一致加固。
@@ -287,11 +287,11 @@ type DailyReportSnapshot = DailyShareSnapshot & {
 
 ### POST /auth/logout
 
-鉴权：不需要
+鉴权：需要
 
-用途：退出登录占位接口。
+用途：退出登录。
 
-当前状态：只返回成功，不做服务端 session 回收。
+当前状态：需要 Bearer token，但只返回成功。服务端仍不维护 session 或 token 黑名单，客户端需要删除本地 token。
 
 响应：
 
@@ -323,6 +323,83 @@ type DailyReportSnapshot = DailyShareSnapshot & {
   }
 }
 ```
+
+### PATCH /me
+
+鉴权：需要
+
+用途：更新当前用户资料。用于小队和搭子互动里的轻社交展示。
+
+请求：
+
+```json
+{
+  "avatarUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar.jpg",
+  "nickname": "搭子队长",
+  "timezone": "Asia/Shanghai"
+}
+```
+
+字段说明：
+
+- `nickname`：1-20 个字符，可传 `null` 清空。
+- `avatarUrl`：头像公开访问 URL。当前开发环境由头像上传骨架返回 `/mock-storage/...`，后续接正式对象存储后保存 CDN/对象存储 URL。
+- `timezone`：可选，默认 `Asia/Shanghai`。
+
+响应：
+
+```json
+{
+  "data": {
+    "avatarUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar.jpg",
+    "id": "user-id",
+    "nickname": "搭子队长",
+    "timezone": "Asia/Shanghai"
+  }
+}
+```
+
+### POST /me/avatar-upload
+
+鉴权：需要
+
+用途：创建头像上传地址。当前是对象存储骨架，开发环境返回 mock 上传地址；后续接入正式 OSS/S3/R2 后，接口结构保持不变。
+
+请求：
+
+```json
+{
+  "contentLength": 48231,
+  "contentType": "image/jpeg"
+}
+```
+
+限制：
+
+- `contentType`：只允许 `image/jpeg`、`image/png`、`image/webp`。
+- `contentLength`：必须大于 0，最大 `300KB`。
+- 上传地址有效期：当前 mock 为 5 分钟。
+
+响应：
+
+```json
+{
+  "data": {
+    "expiresAt": "2026-05-26T10:05:00.000Z",
+    "objectKey": "avatars/user-id/avatar-id.jpg",
+    "publicUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg",
+    "uploadMethod": "mock_put",
+    "uploadUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg?token=upload-token"
+  }
+}
+```
+
+开发环境上传流程：
+
+1. 调用 `POST /me/avatar-upload` 获取 `uploadUrl` 和 `publicUrl`。
+2. 客户端用 `PUT uploadUrl` 上传压缩后的图片二进制。
+3. 上传成功后调用 `PATCH /me`，把 `avatarUrl` 更新为 `publicUrl`。
+4. 正式对象存储接入后，`uploadUrl` 会替换为预签名上传地址，数据库仍只保存 `publicUrl`。
 
 ### GET /me/entitlements
 
