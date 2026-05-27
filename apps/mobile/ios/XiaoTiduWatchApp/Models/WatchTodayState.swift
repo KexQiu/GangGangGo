@@ -71,6 +71,10 @@ enum WatchToiletStage: String {
 }
 
 extension WatchTodayState {
+  var isPro: Bool {
+    proStatus == "pro_active" || proStatus == "pro_grace_period"
+  }
+
   func currentToiletElapsedSeconds(now: Date = Date()) -> Int {
     guard toilet.isRunning, !toilet.isPaused else {
       return toilet.elapsedSeconds

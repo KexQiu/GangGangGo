@@ -29,6 +29,7 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 - [需求文档](./v0.2/prd.md)
 - [Apple Watch 需求文档](./v0.2/apple-watch-prd.md)
 - [Apple Watch 开发计划](./v0.2/apple-watch-development-plan.md)
+- [Apple Watch 手动测试清单](./v0.2/apple-watch-manual-test-checklist.md)
 - [开发方案](./v0.2/development-plan.md)
 - [后端详细开发方案](./v0.2/backend-development-plan.md)
 - [后端接口文档](./v0.2/api-reference.md)

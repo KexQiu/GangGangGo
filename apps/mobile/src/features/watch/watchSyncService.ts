@@ -1,14 +1,18 @@
 import { buildWatchTodayState } from './watchStateBuilder';
 import { addWatchConnectivityEventListener, replyToWatchMessage, sendWatchTodayState } from './watchConnectivity';
+import { useWatchDebugStore } from './watchDebugStore';
 import { handleWatchEvent } from './watchEventHandler';
 import { type WatchEvent, type WatchSyncResult, type WatchTodayState } from './watchTypes';
 
 let eventListenerStarted = false;
 
-export async function syncWatchTodayState(now = new Date()): Promise<WatchSyncResult> {
+export async function syncWatchTodayState(now = new Date(), source = 'auto'): Promise<WatchSyncResult> {
   const state = buildWatchTodayState(now);
+  useWatchDebugStore.getState().recordBuiltState(state);
+  const result = await sendWatchTodayState(state);
+  useWatchDebugStore.getState().recordSyncResult(result, source);
 
-  return sendWatchTodayState(state);
+  return result;
 }
 
 export function getCurrentWatchTodayState(now = new Date()): WatchTodayState {
@@ -28,40 +32,49 @@ export function startWatchConnectivityEventListener() {
 }
 
 async function handleIncomingWatchPayload(payload: unknown) {
+  useWatchDebugStore.getState().recordIncomingPayload(payload);
   const replyId = extractReplyId(payload);
 
   if (isWatchStateRequest(payload)) {
     const state = getCurrentWatchTodayState();
     const stateJson = JSON.stringify(state);
+    useWatchDebugStore.getState().recordBuiltState(state);
     await sendWatchTodayState(state);
-    await replyToWatchMessage(replyId, {
+    const ack = {
       eventId: 'request_today_state',
       state,
       stateJson,
       status: 'accepted',
-    });
+    } as const;
+    useWatchDebugStore.getState().recordAck(ack);
+    await replyToWatchMessage(replyId, ack);
     return;
   }
 
   const event = extractWatchEvent(payload);
 
   if (!event) {
-    await replyToWatchMessage(replyId, {
+    const ack = {
       eventId: 'unknown',
       message: '手表消息格式不对。',
       status: 'rejected',
-    });
+    } as const;
+    useWatchDebugStore.getState().recordAck(ack);
+    await replyToWatchMessage(replyId, ack);
     return;
   }
 
   const ack = await handleWatchEvent(event);
   const state = getCurrentWatchTodayState();
   const stateJson = JSON.stringify(state);
-  await replyToWatchMessage(replyId, {
+  const ackWithState = {
     ...ack,
     state,
     stateJson,
-  });
+  };
+  useWatchDebugStore.getState().recordBuiltState(state);
+  useWatchDebugStore.getState().recordAck(ackWithState);
+  await replyToWatchMessage(replyId, ackWithState);
   await sendWatchTodayState(state);
 }
 

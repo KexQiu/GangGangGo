@@ -97,10 +97,17 @@ Xcode target：
 - Watch -> iPhone 事件 ACK 已收口：iPhone 原生层暂存 reply handler，JS 处理完事件后返回 `accepted / duplicate / rejected`，Watch 首页展示同步结果或错误。
 - Watch 离线事件队列已增加去重、24 小时过期清理和最多 25 条的容量限制。
 - Watch 蹲会儿页面已支持基于 iPhone 快照本地滚动计时，并按 5/10/15/20 分钟阶段触发不同 haptic；暂停、继续、收工会使用 Watch 当前计算出的用时回传 iPhone。
+- Watch 端体验已补齐第一轮收口：
+  - 免费版/未开通 Pro 时展示 Pro 锁定态，避免误触云端联动。
+  - 菊花抬支持训练中暂停、继续、结束确认和完成页。
+  - 蹲会儿收工增加确认，避免手表误触。
+  - 首页显示离线待同步队列摘要。
+  - 新增 WidgetKit Complication 扩展骨架 `XiaoTiduWatchComplications`，提供圆形、矩形和 inline 表盘入口；当前先展示静态低敏入口，后续再接共享状态缓存。
+- `/watch` iPhone 调试页已增加同步面板：连接状态、最近发送、最近 Watch 消息、最近 ACK、当前待同步 JSON 和事件日志。
 
 尚未完成：
 
-- Complication。
+- Complication 读取实时今日状态。
 - 真机 haptic 验收。
 - 完整 iPhone + Watch 模拟器构建验证：当前 Codex 沙箱无法访问 CoreSimulator，需要在本机终端执行一次模拟器构建确认。
 

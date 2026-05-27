@@ -5,16 +5,28 @@ struct WatchTrainingView: View {
   @EnvironmentObject private var session: WatchSessionManager
   @State private var selectedMode: WatchTrainingMode = .standard
   @State private var trainingSession: WatchTrainingSession?
+  @State private var completedTraining: WatchTrainingCompletion?
+  @State private var showingCancelConfirmation = false
 
   private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
     Group {
-      if let trainingSession {
+      if !session.todayState.isPro {
+        WatchProLockedContent()
+      } else if let completedTraining {
+        TrainingCompletionContent(
+          completion: completedTraining,
+          onDone: resetTraining
+        )
+      } else if let trainingSession {
         TrainingSessionContent(
           mode: selectedMode,
           session: trainingSession,
-          onStop: stopTraining
+          onCancel: {
+            showingCancelConfirmation = true
+          },
+          onTogglePause: togglePause
         )
       } else {
         TrainingModePicker(
@@ -24,6 +36,15 @@ struct WatchTrainingView: View {
       }
     }
     .navigationTitle("菊花抬")
+    .navigationBarBackButtonHidden(trainingSession != nil)
+    .confirmationDialog("要结束这组训练吗？", isPresented: $showingCancelConfirmation, titleVisibility: .visible) {
+      Button("结束，不记录", role: .destructive) {
+        cancelTraining()
+      }
+      Button("继续训练", role: .cancel) {}
+    } message: {
+      Text("这组还没完成，结束后不会记入今日菊花抬。")
+    }
     .onReceive(tick) { _ in
       advanceTraining()
     }
@@ -34,13 +55,32 @@ struct WatchTrainingView: View {
     WKInterfaceDevice.current().play(.start)
   }
 
-  private func stopTraining() {
+  private func cancelTraining() {
     trainingSession = nil
+    WKInterfaceDevice.current().play(.click)
+  }
+
+  private func resetTraining() {
+    completedTraining = nil
+    trainingSession = nil
+  }
+
+  private func togglePause() {
+    guard var currentSession = trainingSession else {
+      return
+    }
+
+    currentSession.isPaused.toggle()
+    trainingSession = currentSession
     WKInterfaceDevice.current().play(.click)
   }
 
   private func advanceTraining() {
     guard var currentSession = trainingSession else {
+      return
+    }
+
+    guard !currentSession.isPaused else {
       return
     }
 
@@ -57,6 +97,10 @@ struct WatchTrainingView: View {
       session.sendTrainingCompleted(
         mode: selectedMode.id,
         completedSets: 1,
+        durationSeconds: selectedMode.totalDurationSeconds
+      )
+      completedTraining = WatchTrainingCompletion(
+        mode: selectedMode,
         durationSeconds: selectedMode.totalDurationSeconds
       )
     }
@@ -109,11 +153,12 @@ private struct TrainingModePicker: View {
 private struct TrainingSessionContent: View {
   var mode: WatchTrainingMode
   var session: WatchTrainingSession
-  var onStop: () -> Void
+  var onCancel: () -> Void
+  var onTogglePause: () -> Void
 
   var body: some View {
     VStack(spacing: 10) {
-      Text(session.phase.title)
+      Text(session.isPaused ? "已暂停" : session.phase.title)
         .font(.headline)
 
       Text("\(session.remainingSeconds)")
@@ -128,10 +173,46 @@ private struct TrainingSessionContent: View {
         .font(.caption2)
         .foregroundStyle(.secondary)
 
-      Button("先停一下") {
-        onStop()
+      Button(session.isPaused ? "继续" : "暂停") {
+        onTogglePause()
       }
       .font(.caption)
+
+      Button("结束本组", role: .destructive) {
+        onCancel()
+      }
+      .font(.caption2)
+    }
+    .padding()
+  }
+}
+
+private struct TrainingCompletionContent: View {
+  var completion: WatchTrainingCompletion
+  var onDone: () -> Void
+
+  var body: some View {
+    VStack(spacing: 12) {
+      Image(systemName: "checkmark.circle.fill")
+        .font(.system(size: 38, weight: .bold))
+        .foregroundStyle(.green)
+
+      Text("一组完成")
+        .font(.headline)
+
+      Text("\(completion.mode.title) · \(completion.durationSeconds) 秒")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Text("已发给 iPhone，同步后会计入今日菊花抬。")
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+
+      Button("完成") {
+        onDone()
+      }
+      .buttonStyle(.borderedProminent)
     }
     .padding()
   }
@@ -225,6 +306,7 @@ private struct WatchTrainingSession {
   var remainingSeconds: Int
   var roundIndex = 0
   var elapsedSeconds = 0
+  var isPaused = false
   let mode: WatchTrainingMode
 
   init(mode: WatchTrainingMode) {
@@ -260,6 +342,11 @@ private struct WatchTrainingSession {
 
     return WatchTrainingAdvanceResult(session: self, haptic: .phase)
   }
+}
+
+private struct WatchTrainingCompletion {
+  var mode: WatchTrainingMode
+  var durationSeconds: Int
 }
 
 private struct WatchTrainingAdvanceResult {

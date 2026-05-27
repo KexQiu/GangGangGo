@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { RefreshCw, Watch } from 'lucide-react-native';
+import { Bug, RefreshCw, Watch } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -11,6 +11,7 @@ import { PageSection, PageStack } from '../../src/components/PageStack';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
 import { getWatchConnectivityStatus } from '../../src/features/watch/watchConnectivity';
+import { useWatchDebugStore } from '../../src/features/watch/watchDebugStore';
 import { getCurrentWatchTodayState, syncWatchTodayState } from '../../src/features/watch/watchSyncService';
 import { type WatchConnectivityStatus, type WatchTodayState } from '../../src/features/watch/watchTypes';
 import { routes } from '../../src/navigation/routes';
@@ -27,11 +28,21 @@ export default function WatchScreen() {
   const [todayState, setTodayState] = useState<WatchTodayState>(() => getCurrentWatchTodayState());
   const [message, setMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const lastAck = useWatchDebugStore((state) => state.lastAck);
+  const lastBuiltState = useWatchDebugStore((state) => state.lastBuiltState);
+  const lastConnectivityStatus = useWatchDebugStore((state) => state.lastConnectivityStatus);
+  const lastIncomingPayload = useWatchDebugStore((state) => state.lastIncomingPayload);
+  const lastSyncResult = useWatchDebugStore((state) => state.lastSyncResult);
+  const logs = useWatchDebugStore((state) => state.logs);
+  const recordConnectivityStatus = useWatchDebugStore((state) => state.recordConnectivityStatus);
+  const stateJson = JSON.stringify(lastBuiltState ?? todayState, null, 2);
 
   const refresh = useCallback(async () => {
     setTodayState(getCurrentWatchTodayState());
-    setStatus(await getWatchConnectivityStatus());
-  }, []);
+    const nextStatus = await getWatchConnectivityStatus();
+    setStatus(nextStatus);
+    recordConnectivityStatus(nextStatus);
+  }, [recordConnectivityStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,9 +55,11 @@ export default function WatchScreen() {
     setMessage(null);
 
     try {
-      const result = await syncWatchTodayState();
+      const result = await syncWatchTodayState(new Date(), 'watch_page_manual');
       setTodayState(getCurrentWatchTodayState());
-      setStatus(await getWatchConnectivityStatus());
+      const nextStatus = await getWatchConnectivityStatus();
+      setStatus(nextStatus);
+      recordConnectivityStatus(nextStatus);
       setMessage(result.sent ? '今日状态已发送给手表。' : 'WatchConnectivity 还没接入，当前只展示待同步状态。');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '同步到手表失败。');
@@ -118,6 +131,63 @@ export default function WatchScreen() {
             {isSyncing ? '同步中...' : '同步今日状态'}
           </AppButton>
         </AppCard>
+
+        <PageSection subtitle="用于定位 App 到 Watch、Watch 到 App 的同步链路。" title="联动调试">
+          <AppCard style={styles.debugCard}>
+            <View style={styles.actionHeader}>
+              <Bug color={colors.privacy} size={22} strokeWidth={2.4} />
+              <View style={styles.copy}>
+                <Text style={styles.actionTitle}>连接状态</Text>
+                <Text style={styles.actionBody}>这些值来自 iPhone 原生 WatchConnectivity。</Text>
+              </View>
+            </View>
+            <View style={styles.debugRows}>
+              <StatusRow label="支持" value={formatBoolean((lastConnectivityStatus ?? status)?.isSupported)} />
+              <StatusRow label="已配对" value={formatBoolean((lastConnectivityStatus ?? status)?.isPaired)} />
+              <StatusRow label="Watch App" value={formatBoolean((lastConnectivityStatus ?? status)?.isWatchAppInstalled)} />
+              <StatusRow label="可达" value={formatBoolean((lastConnectivityStatus ?? status)?.isReachable)} />
+            </View>
+          </AppCard>
+
+          <AppCard style={styles.debugCard}>
+            <Text style={styles.debugTitle}>最近记录</Text>
+            <DebugRow label="最近构建" value={lastBuiltState ? formatDebugTime(lastBuiltState.generatedAt) : '暂无'} />
+            <DebugRow
+              label="最近发送"
+              value={
+                lastSyncResult
+                  ? `${lastSyncResult.sent ? '已发出' : '未发出'} · ${lastSyncResult.source}${lastSyncResult.reason ? ` · ${lastSyncResult.reason}` : ''}`
+                  : '暂无'
+              }
+            />
+            <DebugRow label="最近 Watch 消息" value={lastIncomingPayload ?? '暂无'} />
+            <DebugRow label="最近 ACK" value={lastAck ? `${lastAck.status} · ${lastAck.eventId}` : '暂无'} />
+          </AppCard>
+
+          <AppCard style={styles.debugCard}>
+            <Text style={styles.debugTitle}>当前待同步 JSON</Text>
+            <Text selectable style={styles.jsonText}>
+              {stateJson}
+            </Text>
+          </AppCard>
+
+          <AppCard style={styles.debugCard}>
+            <Text style={styles.debugTitle}>事件日志</Text>
+            {logs.length > 0 ? (
+              logs.slice(0, 8).map((log) => (
+                <View key={log.id} style={styles.logItem}>
+                  <View style={styles.logHeader}>
+                    <Text style={styles.logTitle}>{log.title}</Text>
+                    <Text style={styles.logTime}>{formatDebugTime(log.at)}</Text>
+                  </View>
+                  {log.detail ? <Text style={styles.logDetail}>{log.detail}</Text> : null}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.actionBody}>还没有同步日志。点一次同步或在 Watch 上操作后会出现记录。</Text>
+            )}
+          </AppCard>
+        </PageSection>
       </PageStack>
     </Screen>
   );
@@ -173,6 +243,40 @@ function formatProStatus(status: WatchTodayState['proStatus']) {
   }
 }
 
+function formatBoolean(value: boolean | undefined): string {
+  if (value === undefined) {
+    return '未知';
+  }
+
+  return value ? '是' : '否';
+}
+
+function formatDebugTime(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function DebugRow({ label, value }: { label: string; value: string }) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <View style={styles.debugRow}>
+      <Text style={styles.debugLabel}>{label}</Text>
+      <Text style={styles.debugValue}>{value}</Text>
+    </View>
+  );
+}
+
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 function createStyles(colors: ThemeColors) {
@@ -199,6 +303,38 @@ function createStyles(colors: ThemeColors) {
     },
     copy: {
       flex: 1,
+    },
+    debugCard: {
+      gap: 12,
+    },
+    debugLabel: {
+      color: colors.textMuted,
+      flexShrink: 0,
+      fontSize: 12,
+      fontWeight: '800',
+      width: 88,
+    },
+    debugRow: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: 10,
+    },
+    debugRows: {
+      gap: 8,
+    },
+    debugTitle: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '900',
+      lineHeight: 21,
+    },
+    debugValue: {
+      color: colors.text,
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 18,
+      textAlign: 'right',
     },
     divider: {
       backgroundColor: colors.border,
@@ -249,6 +385,44 @@ function createStyles(colors: ThemeColors) {
       fontSize: 17,
       fontWeight: '900',
     },
+    jsonText: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 12,
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
+      lineHeight: 16,
+      padding: 12,
+    },
+    logDetail: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    logHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    logItem: {
+      borderTopColor: colors.border,
+      borderTopWidth: 1,
+      gap: 4,
+      paddingTop: 10,
+    },
+    logTime: {
+      color: colors.textSubtle,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    logTitle: {
+      color: colors.text,
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '900',
+    },
     statusCard: {
       paddingHorizontal: 14,
       paddingVertical: 6,
@@ -271,4 +445,3 @@ function createStyles(colors: ThemeColors) {
     },
   });
 }
-

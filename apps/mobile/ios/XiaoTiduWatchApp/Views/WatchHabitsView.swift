@@ -12,26 +12,32 @@ struct WatchHabitsView: View {
   ]
 
   var body: some View {
-    List(items) { item in
-      let isDone = item.isDone(in: session.todayState)
+    Group {
+      if !session.todayState.isPro {
+        WatchProLockedContent()
+      } else {
+        List(items) { item in
+          let isDone = item.isDone(in: session.todayState)
 
-      Button {
-        WKInterfaceDevice.current().play(.click)
-        session.sendHabitToggle(habitKey: item.key, level: isDone ? nil : "good")
-      } label: {
-        HStack {
-          VStack(alignment: .leading, spacing: 3) {
-            Text(item.title)
-              .fontWeight(.semibold)
-            Text(isDone ? "已达标" : item.detail)
-              .font(.caption2)
-              .foregroundStyle(.secondary)
+          Button {
+            WKInterfaceDevice.current().play(.click)
+            session.sendHabitToggle(habitKey: item.key, level: isDone ? nil : "good")
+          } label: {
+            HStack {
+              VStack(alignment: .leading, spacing: 3) {
+                Text(item.title)
+                  .fontWeight(.semibold)
+                Text(isDone ? "已达标" : item.detail)
+                  .font(.caption2)
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+
+              Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isDone ? .green : .secondary)
+            }
           }
-
-          Spacer()
-
-          Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-            .foregroundStyle(isDone ? .green : .secondary)
         }
       }
     }

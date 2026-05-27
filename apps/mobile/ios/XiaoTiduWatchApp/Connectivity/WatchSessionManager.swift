@@ -8,6 +8,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
   @Published private(set) var lastError: String?
   @Published private(set) var lastSyncedAt: Date?
   @Published private(set) var pendingEventCount = 0
+  @Published private(set) var pendingEventSummaries: [String] = []
   @Published private(set) var todayState = WatchTodayState.placeholder
 
   private let session: WCSession? = WCSession.isSupported() ? WCSession.default : nil
@@ -122,7 +123,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     purgeExpiredPendingEvents()
 
     if let eventId = eventId(from: message), pendingEvents.contains(where: { self.eventId(from: $0) == eventId }) {
-      pendingEventCount = pendingEvents.count
+      refreshPendingEventState()
       return
     }
 
@@ -131,7 +132,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     pendingEvents.append(message)
-    pendingEventCount = pendingEvents.count
+    refreshPendingEventState()
     persistPendingEvents()
   }
 
@@ -144,7 +145,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     let events = pendingEvents
     pendingEvents.removeAll()
-    pendingEventCount = 0
+    refreshPendingEventState()
     persistPendingEvents()
 
     for event in events {
@@ -336,7 +337,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     purgeExpiredPendingEvents()
-    pendingEventCount = pendingEvents.count
+    refreshPendingEventState()
   }
 
   private func persistPendingEvents() {
@@ -367,8 +368,67 @@ final class WatchSessionManager: NSObject, ObservableObject {
       pendingEvents.removeFirst(pendingEvents.count - maxPendingEvents)
     }
 
-    pendingEventCount = pendingEvents.count
+    refreshPendingEventState()
     persistPendingEvents()
+  }
+
+  private func refreshPendingEventState() {
+    pendingEventCount = pendingEvents.count
+    pendingEventSummaries = pendingEvents.compactMap { summary(from: $0) }
+  }
+
+  private func summary(from message: [String: Any]) -> String? {
+    guard let event = message["event"] as? [String: Any],
+          let type = event["type"] as? String else {
+      return nil
+    }
+
+    switch type {
+    case "training_completed":
+      return "菊花抬完成待同步"
+    case "habit_toggled":
+      guard let payload = event["payload"] as? [String: Any],
+            let habitKey = payload["habitKey"] as? String else {
+        return "小账本待同步"
+      }
+      return "\(habitTitle(for: habitKey))待同步"
+    case "toilet_timer_action":
+      guard let payload = event["payload"] as? [String: Any],
+            let action = payload["action"] as? String else {
+        return "蹲会儿操作待同步"
+      }
+      return "\(toiletActionTitle(for: action))待同步"
+    default:
+      return "待同步事件"
+    }
+  }
+
+  private func habitTitle(for key: String) -> String {
+    switch key {
+    case "water":
+      return "喝水"
+    case "fiber":
+      return "纤维"
+    case "movement":
+      return "活动"
+    case "bowel":
+      return "顺畅"
+    default:
+      return "小账本"
+    }
+  }
+
+  private func toiletActionTitle(for action: String) -> String {
+    switch action {
+    case "pause":
+      return "蹲会儿暂停"
+    case "resume":
+      return "蹲会儿继续"
+    case "finish":
+      return "蹲会儿收工"
+    default:
+      return "蹲会儿"
+    }
   }
 
   private func eventId(from message: [String: Any]) -> String? {

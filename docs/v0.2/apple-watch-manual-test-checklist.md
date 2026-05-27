@@ -1,0 +1,142 @@
+# Apple Watch 手动测试清单
+
+版本：v0.2 开发验证版
+
+本文用于验证小提督 Apple Watch 联动。当前阶段重点验证 iPhone 与 Watch 的数据同步协议、页面反馈、离线兜底和表盘 Complication 骨架，不包含真机 haptic 手感验收。
+
+## 测试前准备
+
+- [ ] 在 Xcode 打开 `apps/mobile/ios/app.xcworkspace`。
+- [ ] Scheme 先选择 `app`，Destination 选择已配对的 `iPhone + Apple Watch` 模拟器组合。
+- [ ] 启动 Metro：
+
+```bash
+pnpm mobile:start -- --clear
+```
+
+- [ ] Run `app`，确认 iPhone 模拟器进入小提督。
+- [ ] 切换 Scheme 到 `XiaoTiduWatchApp`，Destination 选择配对的 Apple Watch 模拟器。
+- [ ] Run `XiaoTiduWatchApp`，确认 Watch 上能打开小提督。
+- [ ] iPhone 进入 `我的 -> Apple Watch`，打开联动调试面板。
+
+## 基础连接
+
+- [ ] `/watch` 页面显示 `支持 = 是`。
+- [ ] `/watch` 页面显示 `已配对 = 是`。
+- [ ] `/watch` 页面显示 Watch App 状态。
+- [ ] Watch App 首页不再显示底层英文错误。
+- [ ] 点击 iPhone `/watch` 的 `同步今日状态`。
+- [ ] `/watch` 调试面板 `最近发送` 变为 `已发出` 或显示明确原因。
+- [ ] Watch 首页能看到今日状态。
+
+## App 到 Watch：小账本
+
+- [ ] iPhone 首页小账本点击 `饮水` 达标。
+- [ ] Watch 小账本页最多 5 秒内显示饮水已达标。
+- [ ] iPhone 首页再次点击 `饮水` 撤销。
+- [ ] Watch 小账本页最多 5 秒内显示饮水未达标。
+- [ ] iPhone 依次修改纤维、活动、排便。
+- [ ] Watch 首页的小账本完成度同步变化。
+- [ ] `/watch` 调试面板 `当前待同步 JSON` 中 `habits.completion` 与 iPhone UI 一致。
+
+## Watch 到 App：小账本
+
+- [ ] Watch 小账本页点击 `饮水` 达标。
+- [ ] Watch UI 立即乐观显示已达标。
+- [ ] iPhone 首页小账本同步变为达标。
+- [ ] `/watch` 调试面板 `最近 Watch 消息` 显示 `habit_toggled`。
+- [ ] `/watch` 调试面板 `最近 ACK` 显示 `accepted`。
+- [ ] Watch 再次点击饮水撤销。
+- [ ] iPhone 首页小账本同步撤销。
+
+## App 到 Watch：蹲会儿
+
+- [ ] iPhone 进入蹲会儿并开始计时。
+- [ ] Watch 首页显示蹲会儿进行中。
+- [ ] Watch 蹲会儿页计时开始滚动。
+- [ ] iPhone 点击暂停。
+- [ ] Watch 蹲会儿页最多 5 秒内显示已暂停。
+- [ ] iPhone 点击继续。
+- [ ] Watch 蹲会儿页最多 5 秒内恢复滚动。
+- [ ] iPhone 收工或放弃计时。
+- [ ] Watch 蹲会儿页最多 5 秒内显示未进行。
+
+## Watch 到 App：蹲会儿
+
+- [ ] iPhone 先开始蹲会儿。
+- [ ] Watch 蹲会儿页点击暂停。
+- [ ] iPhone 蹲会儿页显示已暂停。
+- [ ] Watch 蹲会儿页点击继续。
+- [ ] iPhone 蹲会儿页恢复计时。
+- [ ] Watch 蹲会儿页点击收工。
+- [ ] iPhone 蹲会儿计时结束并保存记录。
+- [ ] `/watch` 调试面板 `最近 Watch 消息` 显示 `toilet_timer_action`。
+
+## Watch 到 App：菊花抬
+
+- [ ] Watch 进入菊花抬页面。
+- [ ] 选择一种模式并完成一组。
+- [ ] 训练中点击暂停，倒计时停止。
+- [ ] 点击继续，倒计时恢复。
+- [ ] 训练中点击结束本组，出现确认。
+- [ ] 确认结束后不记录本组。
+- [ ] iPhone 今日菊花抬完成组数增加。
+- [ ] 完成后 Watch 显示完成页。
+- [ ] Watch 首页训练状态同步更新。
+- [ ] `/watch` 调试面板 `最近 Watch 消息` 显示 `training_completed`。
+
+## Pro 门槛
+
+- [ ] 免费版或未登录状态下，Watch 首页只显示今日低敏状态。
+- [ ] 免费版或未登录状态下，Watch 操作入口显示 Pro 锁定说明。
+- [ ] iPhone 端手动开通 Pro 并同步后，Watch 操作入口恢复可用。
+
+## ACK 与重复事件
+
+- [ ] Watch 触发一次小账本打卡。
+- [ ] Watch 首页显示 `iPhone 已同步` 或等价成功反馈。
+- [ ] 重复触发同一个待同步事件时，Watch 不应产生重复记录。
+- [ ] 如果 iPhone 拒绝事件，Watch 应显示中文错误，不显示底层英文。
+
+## 离线队列
+
+- [ ] 先让 Watch App 打开。
+- [ ] 关闭 iPhone App 或让 WatchConnectivity 暂不可达。
+- [ ] 在 Watch 上执行一次小账本打卡。
+- [ ] Watch 不崩溃，事件进入待同步队列。
+- [ ] 重新打开 iPhone App 并进入 `/watch`。
+- [ ] Watch 队列被 flush，iPhone 状态更新。
+- [ ] Watch 首页待同步数量回到 0。
+- [ ] Watch 首页 `待同步队列` 展示待同步事件摘要。
+
+## Complication 骨架
+
+- [ ] Xcode 能识别 `XiaoTiduWatchComplications` target。
+- [ ] Watch App 构建时包含 Complication 扩展。
+- [ ] 表盘组件显示 `小提督` 或 `今日` 的静态入口。
+- [ ] 点击表盘入口可以回到小提督 Watch App。
+- [ ] 当前表盘组件不展示敏感数据。
+
+## 隐私边界
+
+- [ ] Watch 今日状态不显示便血、不适、排便感受详情。
+- [ ] Watch 只显示低敏状态：训练、小账本完成度、蹲会儿是否进行中。
+- [ ] `/watch` JSON 调试信息仅用于开发，不应在正式版中作为普通用户入口长期暴露。
+
+## 常见问题定位
+
+- 如果 iPhone 状态变化但 Watch 不变：
+  - [ ] 查看 `/watch` 的 `当前待同步 JSON` 是否已变。
+  - [ ] 查看 `最近发送` 是否已发出。
+  - [ ] 查看 Watch 是否可达。
+  - [ ] 保持 iPhone App 在前台，等待 Watch 5 秒主动拉取。
+
+- 如果 Watch 操作后 iPhone 不变：
+  - [ ] 查看 `/watch` 的 `最近 Watch 消息`。
+  - [ ] 查看 `最近 ACK` 是否为 `accepted`。
+  - [ ] 如果没有消息，优先检查 WatchConnectivity 配对和可达状态。
+
+- 如果 Xcode 启动的是 Live Activity 扩展：
+  - [ ] Scheme 明确选择 `app` 或 `XiaoTiduWatchApp`。
+  - [ ] 不要选择 `XiaoTiduLiveActivities`。
+  - [ ] 必要时清理 DerivedData 后重新打开 workspace。

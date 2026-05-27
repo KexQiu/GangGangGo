@@ -16,15 +16,27 @@ struct WatchHomeView: View {
           StatusTile(title: "蹲会儿", value: toiletValue)
         }
 
-        Section {
-          NavigationLink("开始菊花抬") {
-            WatchTrainingView()
+        if session.todayState.isPro {
+          Section {
+            NavigationLink("开始菊花抬") {
+              WatchTrainingView()
+            }
+            NavigationLink("小账本快记") {
+              WatchHabitsView()
+            }
+            NavigationLink("蹲会儿状态") {
+              WatchToiletView()
+            }
           }
-          NavigationLink("小账本快记") {
-            WatchHabitsView()
-          }
-          NavigationLink("蹲会儿状态") {
-            WatchToiletView()
+        } else {
+          Section {
+            VStack(alignment: .leading, spacing: 5) {
+              Text("Watch 联动在 Pro 里")
+                .fontWeight(.semibold)
+              Text("先在 iPhone 上开通或刷新 Pro 状态。手表仍会显示今日低敏状态。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
           }
         }
 
@@ -43,6 +55,27 @@ struct WatchHomeView: View {
             Text(lastError)
               .font(.footnote)
               .foregroundStyle(.orange)
+          }
+
+          if let lastSyncedAt = session.lastSyncedAt {
+            Text("上次同步 \(lastSyncedAt.formatted(date: .omitted, time: .standard))")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+          }
+        } header: {
+          Text("同步")
+        }
+
+        if session.pendingEventCount > 0 {
+          Section {
+            ForEach(Array(session.pendingEventSummaries.enumerated()), id: \.offset) { _, summary in
+              Label(summary, systemImage: "clock.arrow.circlepath")
+                .font(.caption)
+            }
+          } header: {
+            Text("待同步队列")
+          } footer: {
+            Text("iPhone 回到前台后会自动补同步。")
           }
         }
       }
@@ -93,5 +126,24 @@ private struct StatusTile: View {
         .fontWeight(.semibold)
         .foregroundStyle(.green)
     }
+  }
+}
+
+struct WatchProLockedContent: View {
+  var body: some View {
+    VStack(spacing: 10) {
+      Image(systemName: "lock.circle.fill")
+        .font(.system(size: 34, weight: .bold))
+        .foregroundStyle(.yellow)
+
+      Text("Pro 功能")
+        .font(.headline)
+
+      Text("请先在 iPhone 上开通或刷新小提督 Pro，再继续使用手表联动。")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+    }
+    .padding()
   }
 }

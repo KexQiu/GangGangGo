@@ -6,52 +6,67 @@ struct WatchToiletView: View {
   @EnvironmentObject private var session: WatchSessionManager
   @State private var lastNotifiedStage: WatchToiletStage?
   @State private var now = Date()
+  @State private var showingFinishConfirmation = false
 
   private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
-    VStack(spacing: 12) {
-      Text("蹲会儿")
-        .font(.headline)
-
-      if let stage = session.todayState.currentToiletStage(now: now) {
-        Text(stage.title)
-          .font(.caption)
-          .fontWeight(.semibold)
-          .foregroundStyle(stageColor(stage))
-      }
-
-      Text(timeText)
-        .font(.system(size: 42, weight: .bold, design: .rounded))
-        .monospacedDigit()
-
-      Text(statusText)
-        .font(.footnote)
-        .multilineTextAlignment(.center)
-        .foregroundStyle(.secondary)
-
-      if session.todayState.toilet.isRunning {
-        Button(session.todayState.toilet.isPaused ? "继续" : "暂停") {
-          WKInterfaceDevice.current().play(.click)
-          session.sendToiletAction(
-            session.todayState.toilet.isPaused ? "resume" : "pause",
-            elapsedSeconds: elapsedSeconds
-          )
-        }
-
-        Button("收工") {
-          WKInterfaceDevice.current().play(.success)
-          session.sendToiletAction("finish", elapsedSeconds: elapsedSeconds)
-        }
-        .buttonStyle(.borderedProminent)
+    Group {
+      if !session.todayState.isPro {
+        WatchProLockedContent()
       } else {
-        Text("需要从 iPhone 开始计时。")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        VStack(spacing: 12) {
+          Text("蹲会儿")
+            .font(.headline)
+
+          if let stage = session.todayState.currentToiletStage(now: now) {
+            Text(stage.title)
+              .font(.caption)
+              .fontWeight(.semibold)
+              .foregroundStyle(stageColor(stage))
+          }
+
+          Text(timeText)
+            .font(.system(size: 42, weight: .bold, design: .rounded))
+            .monospacedDigit()
+
+          Text(statusText)
+            .font(.footnote)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(.secondary)
+
+          if session.todayState.toilet.isRunning {
+            Button(session.todayState.toilet.isPaused ? "继续" : "暂停") {
+              WKInterfaceDevice.current().play(.click)
+              session.sendToiletAction(
+                session.todayState.toilet.isPaused ? "resume" : "pause",
+                elapsedSeconds: elapsedSeconds
+              )
+            }
+
+            Button("收工") {
+              showingFinishConfirmation = true
+            }
+            .buttonStyle(.borderedProminent)
+          } else {
+            Text("需要从 iPhone 开始计时。")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
       }
     }
     .padding()
     .navigationTitle("蹲会儿")
+    .confirmationDialog("确认收工？", isPresented: $showingFinishConfirmation, titleVisibility: .visible) {
+      Button("收工并同步", role: .destructive) {
+        WKInterfaceDevice.current().play(.success)
+        session.sendToiletAction("finish", elapsedSeconds: elapsedSeconds)
+      }
+      Button("再等等", role: .cancel) {}
+    } message: {
+      Text("会把当前蹲会儿记录发给 iPhone。")
+    }
     .onReceive(tick) { date in
       now = date
       notifyStageIfNeeded()
