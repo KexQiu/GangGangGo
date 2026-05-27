@@ -361,6 +361,12 @@ extension WatchSessionManager: WCSessionDelegate {
     }
   }
 
+  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    DispatchQueue.main.async {
+      self.updateState(from: userInfo)
+    }
+  }
+
   func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
     DispatchQueue.main.async {
       self.updateState(from: message)

@@ -88,6 +88,7 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
 
     do {
       try session.updateApplicationContext(payload)
+      session.transferUserInfo(payload)
       if session.isReachable {
         session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
       }
