@@ -11,6 +11,7 @@ import { registerPushTokenIfAllowed } from '../src/features/sync/pushTokenSync';
 import { syncTodayReportSnapshot } from '../src/features/sync/reportSnapshotSync';
 import { syncTodayShareSnapshot } from '../src/features/sync/shareSnapshotSync';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
+import { useToiletTimerSessionStore } from '../src/features/toilet/toiletTimerSessionStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
 import { startWatchConnectivityEventListener, syncWatchTodayState } from '../src/features/watch/watchSyncService';
 import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
@@ -23,6 +24,7 @@ function RootStack() {
   const hydrateTraining = useTrainingStore((state) => state.hydrate);
   const accessToken = useAuthStore((state) => state.accessToken);
   const habitCheckIns = useHabitStore((state) => state.checkIns);
+  const activeToiletTimerSession = useToiletTimerSessionStore((state) => state.session);
   const toiletSessions = useToiletStore((state) => state.sessions);
   const trainingSessions = useTrainingStore((state) => state.sessions);
 
@@ -32,6 +34,7 @@ function RootStack() {
     void hydrateHabits();
     void hydrateReminders();
     startWatchConnectivityEventListener();
+    void syncWatchTodayState();
   }, [hydrateHabits, hydrateReminders, hydrateToilet, hydrateTraining]);
 
   useEffect(() => {
@@ -51,9 +54,16 @@ function RootStack() {
   }, [accessToken, habitCheckIns, toiletSessions, trainingSessions]);
 
   useEffect(() => {
+    void syncWatchTodayState();
+  }, [activeToiletTimerSession, habitCheckIns, toiletSessions, trainingSessions]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        void syncCloudState();
+        void syncWatchTodayState();
+        if (useAuthStore.getState().accessToken) {
+          void syncCloudState();
+        }
       }
     });
 
@@ -79,7 +89,6 @@ async function syncCloudState() {
   await syncTodayShareSnapshot();
   await syncTodayReportSnapshot();
   await registerPushTokenIfAllowed();
-  await syncWatchTodayState();
 }
 
 export default function RootLayout() {
