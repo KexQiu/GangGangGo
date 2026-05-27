@@ -48,6 +48,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   func sendHabitToggle(habitKey: String, level: String?) {
+    applyHabitToggle(habitKey: habitKey, isDone: level != nil)
     var payload: [String: Any] = [
       "habitKey": habitKey,
     ]
@@ -100,7 +101,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         },
         errorHandler: { [weak self] error in
           DispatchQueue.main.async {
-            self?.lastError = error.localizedDescription
+            self?.lastError = self?.friendlyConnectivityMessage(for: error)
             self?.queue(message)
           }
         }
@@ -153,12 +154,15 @@ final class WatchSessionManager: NSObject, ObservableObject {
     case "accepted":
       lastAckMessage = "iPhone 已同步。"
       lastError = nil
+      requestLatestStateIfPossible()
     case "duplicate":
       lastAckMessage = "这条记录已经同步过。"
       lastError = nil
+      requestLatestStateIfPossible()
     case "rejected":
       lastAckMessage = nil
       lastError = message ?? "iPhone 暂时没有接住这次操作。"
+      requestLatestStateIfPossible()
     default:
       lastAckMessage = nil
       lastError = nil
@@ -198,10 +202,24 @@ final class WatchSessionManager: NSObject, ObservableObject {
       },
       errorHandler: { [weak self] error in
         DispatchQueue.main.async {
-          self?.lastError = error.localizedDescription
+          self?.lastError = self?.friendlyConnectivityMessage(for: error)
         }
       }
     )
+  }
+
+  private func friendlyConnectivityMessage(for error: Error) -> String {
+    let message = error.localizedDescription
+
+    if message.localizedCaseInsensitiveContains("not reachable") {
+      return "打开 iPhone 上的小提督，再到「我的」里的 Apple Watch 页面点同步。"
+    }
+
+    if message.localizedCaseInsensitiveContains("not paired") {
+      return "还没有找到配对的 Apple Watch。"
+    }
+
+    return message
   }
 
   private func loadPersistedState() {
@@ -219,6 +237,30 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     UserDefaults.standard.set(data, forKey: stateStorageKey)
+  }
+
+  private func applyHabitToggle(habitKey: String, isDone: Bool) {
+    switch habitKey {
+    case "water":
+      todayState.habits.waterDone = isDone
+    case "fiber":
+      todayState.habits.fiberDone = isDone
+    case "movement":
+      todayState.habits.movementDone = isDone
+    case "bowel":
+      todayState.habits.bowelDone = isDone
+    default:
+      return
+    }
+
+    todayState.habits.completion = [
+      todayState.habits.waterDone,
+      todayState.habits.fiberDone,
+      todayState.habits.movementDone,
+      todayState.habits.bowelDone,
+    ].filter { $0 }.count
+    todayState.generatedAt = ISO8601DateFormatter().string(from: Date())
+    persistTodayState()
   }
 
   private func loadPendingEvents() {
@@ -299,7 +341,7 @@ extension WatchSessionManager: WCSessionDelegate {
   ) {
     DispatchQueue.main.async {
       self.isReachable = session.isReachable
-      self.lastError = error?.localizedDescription
+      self.lastError = error.map { self.friendlyConnectivityMessage(for: $0) }
       self.flushPendingEventsIfPossible()
       self.requestLatestStateIfPossible()
     }
