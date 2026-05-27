@@ -13,7 +13,7 @@ type NativeWatchConnectivityModule = {
   addListener: (eventName: string) => void;
   removeListeners: (count: number) => void;
   replyToWatchMessage?: (replyId: string, ack: WatchEventAck) => Promise<void>;
-  sendTodayState?: (state: WatchTodayState) => Promise<WatchSyncResult | void>;
+  sendTodayState?: (state: WatchTodayState & { stateJson: string }) => Promise<WatchSyncResult | void>;
 };
 
 const nativeModule = NativeModules.WatchConnectivityModule as NativeWatchConnectivityModule | undefined;
@@ -52,7 +52,10 @@ export async function sendWatchTodayState(state: WatchTodayState): Promise<Watch
 
   try {
     await nativeModule?.activate?.();
-    const result = await nativeModule?.sendTodayState?.(state);
+    const result = await nativeModule?.sendTodayState?.({
+      ...state,
+      stateJson: JSON.stringify(state),
+    });
 
     if (result && typeof result === 'object' && 'sent' in result) {
       return result;

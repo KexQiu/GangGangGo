@@ -16,12 +16,18 @@ final class WatchSessionManager: NSObject, ObservableObject {
   private let stateStorageKey = "xiaotidu-watch-today-state"
   private let pendingEventsStorageKey = "xiaotidu-watch-pending-events"
   private var pendingEvents: [[String: Any]] = []
+  private var stateRefreshTimer: Timer?
 
   override init() {
     super.init()
     loadPersistedState()
     loadPendingEvents()
     activate()
+    startStateRefreshTimer()
+  }
+
+  deinit {
+    stateRefreshTimer?.invalidate()
   }
 
   func activate() {
@@ -149,40 +155,79 @@ final class WatchSessionManager: NSObject, ObservableObject {
   private func handleReply(_ reply: [String: Any]) {
     let status = reply["status"] as? String
     let message = reply["message"] as? String
+    let didUpdateState = updateStateIfPresent(in: reply)
 
     switch status {
     case "accepted":
       lastAckMessage = "iPhone 已同步。"
       lastError = nil
-      requestLatestStateIfPossible()
     case "duplicate":
       lastAckMessage = "这条记录已经同步过。"
       lastError = nil
-      requestLatestStateIfPossible()
     case "rejected":
       lastAckMessage = nil
       lastError = message ?? "iPhone 暂时没有接住这次操作。"
-      requestLatestStateIfPossible()
     default:
       lastAckMessage = nil
-      lastError = nil
+      if !didUpdateState {
+        lastError = nil
+      }
     }
   }
 
-  private func updateState(from payload: [String: Any]) {
-    let rawState = payload["state"] as? [String: Any] ?? payload
+  @discardableResult
+  private func updateState(from payload: [String: Any]) -> Bool {
+    if let stateJson = payload["stateJson"] as? String,
+       let data = stateJson.data(using: .utf8),
+       let decoded = try? JSONDecoder().decode(WatchTodayState.self, from: data) {
+      todayState = decoded
+      lastError = nil
+      lastSyncedAt = Date()
+      persistTodayState()
+      return true
+    }
+
+    let rawState = dictionaryValue(payload["state"]) ?? payload
 
     guard JSONSerialization.isValidJSONObject(rawState),
           let data = try? JSONSerialization.data(withJSONObject: rawState),
           let decoded = try? JSONDecoder().decode(WatchTodayState.self, from: data) else {
       lastError = "手表收到的今日状态格式不对。"
-      return
+      return false
     }
 
     todayState = decoded
     lastError = nil
     lastSyncedAt = Date()
     persistTodayState()
+    return true
+  }
+
+  private func updateStateIfPresent(in payload: [String: Any]) -> Bool {
+    guard payload["stateJson"] is String || dictionaryValue(payload["state"]) != nil else {
+      return false
+    }
+
+    return updateState(from: payload)
+  }
+
+  private func dictionaryValue(_ value: Any?) -> [String: Any]? {
+    if let dictionary = value as? [String: Any] {
+      return dictionary
+    }
+
+    if let dictionary = value as? NSDictionary {
+      var result: [String: Any] = [:]
+      for (key, value) in dictionary {
+        guard let key = key as? String else {
+          continue
+        }
+        result[key] = value
+      }
+      return result
+    }
+
+    return nil
   }
 
   private func requestLatestStateIfPossible() {
@@ -195,9 +240,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
         "requestedAt": ISO8601DateFormatter().string(from: Date()),
         "type": "request_today_state",
       ],
-      replyHandler: { [weak self] _ in
+      replyHandler: { [weak self] reply in
         DispatchQueue.main.async {
-          self?.lastError = nil
+          if self?.updateStateIfPresent(in: reply) != true {
+            self?.lastError = nil
+          }
         }
       },
       errorHandler: { [weak self] error in
@@ -206,6 +253,15 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
       }
     )
+  }
+
+  private func startStateRefreshTimer() {
+    stateRefreshTimer?.invalidate()
+    stateRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+      DispatchQueue.main.async {
+        self?.requestLatestStateIfPossible()
+      }
+    }
   }
 
   private func friendlyConnectivityMessage(for error: Error) -> String {
@@ -361,7 +417,7 @@ extension WatchSessionManager: WCSessionDelegate {
     }
   }
 
-  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
     DispatchQueue.main.async {
       self.updateState(from: userInfo)
     }

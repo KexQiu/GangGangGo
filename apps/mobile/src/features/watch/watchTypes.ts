@@ -65,6 +65,8 @@ export type WatchEvent =
 export type WatchEventAck = {
   eventId: string;
   message?: string;
+  state?: WatchTodayState;
+  stateJson?: string;
   status: 'accepted' | 'duplicate' | 'rejected';
 };
 
@@ -79,4 +81,3 @@ export type WatchSyncResult = {
   reason?: string;
   sent: boolean;
 };
-

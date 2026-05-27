@@ -31,9 +31,13 @@ async function handleIncomingWatchPayload(payload: unknown) {
   const replyId = extractReplyId(payload);
 
   if (isWatchStateRequest(payload)) {
-    await syncWatchTodayState();
+    const state = getCurrentWatchTodayState();
+    const stateJson = JSON.stringify(state);
+    await sendWatchTodayState(state);
     await replyToWatchMessage(replyId, {
       eventId: 'request_today_state',
+      state,
+      stateJson,
       status: 'accepted',
     });
     return;
@@ -51,8 +55,14 @@ async function handleIncomingWatchPayload(payload: unknown) {
   }
 
   const ack = await handleWatchEvent(event);
-  await replyToWatchMessage(replyId, ack);
-  await syncWatchTodayState();
+  const state = getCurrentWatchTodayState();
+  const stateJson = JSON.stringify(state);
+  await replyToWatchMessage(replyId, {
+    ...ack,
+    state,
+    stateJson,
+  });
+  await sendWatchTodayState(state);
 }
 
 function extractWatchEvent(payload: unknown): WatchEvent | null {

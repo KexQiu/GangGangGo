@@ -6,6 +6,7 @@ import WatchConnectivity
 class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
   private let eventName = "WatchConnectivityEvent"
   private var hasListeners = false
+  private var lastTodayStatePayload: [String: Any]?
   private var pendingReplies: [String: ([String: Any]) -> Void] = [:]
   private var pendingReplyTimeouts: [String: DispatchWorkItem] = [:]
   private let session: WCSession? = WCSession.isSupported() ? WCSession.default : nil
@@ -68,23 +69,20 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
       return
     }
 
-    guard session.isWatchAppInstalled else {
-      resolve([
-        "reason": "watch_app_not_installed",
-        "sent": false,
-      ])
-      return
-    }
-
     if session.activationState == .notActivated {
       session.activate()
     }
 
-    let payload: [String: Any] = [
+    let statePayload = sanitizedDictionary(state)
+    var payload: [String: Any] = [
       "sentAt": ISO8601DateFormatter().string(from: Date()),
-      "state": state,
+      "state": statePayload,
       "type": "today_state",
     ]
+    if let stateJson = state["stateJson"] as? String {
+      payload["stateJson"] = stateJson
+    }
+    lastTodayStatePayload = payload
 
     do {
       try session.updateApplicationContext(payload)
@@ -111,7 +109,7 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
     DispatchQueue.main.async {
-      self.completePendingReply(replyId as String, response: ack as? [String: Any] ?? [:])
+      self.completePendingReply(replyId as String, response: self.sanitizedDictionary(ack))
       resolve(nil)
     }
   }
@@ -143,6 +141,15 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
   ) {
     DispatchQueue.main.async {
       guard self.hasListeners else {
+        if (message["type"] as? String) == "request_today_state", let statePayload = self.lastTodayStatePayload {
+          var reply = statePayload
+          reply["eventId"] = "request_today_state"
+          reply["repliedAt"] = ISO8601DateFormatter().string(from: Date())
+          reply["status"] = "accepted"
+          replyHandler(reply)
+          return
+        }
+
         replyHandler([
           "message": "iPhone 暂时没有准备好处理手表操作。",
           "repliedAt": ISO8601DateFormatter().string(from: Date()),
@@ -213,5 +220,35 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
       "isReachable": session.isReachable,
       "isWatchAppInstalled": session.isWatchAppInstalled,
     ]
+  }
+
+  private func sanitizedDictionary(_ dictionary: NSDictionary) -> [String: Any] {
+    var result: [String: Any] = [:]
+
+    for (key, value) in dictionary {
+      guard let key = key as? String, let sanitizedValue = sanitizedValue(value) else {
+        continue
+      }
+
+      result[key] = sanitizedValue
+    }
+
+    return result
+  }
+
+  private func sanitizedValue(_ value: Any) -> Any? {
+    if value is NSNull {
+      return nil
+    }
+
+    if let dictionary = value as? NSDictionary {
+      return sanitizedDictionary(dictionary)
+    }
+
+    if let array = value as? NSArray {
+      return array.compactMap { sanitizedValue($0) }
+    }
+
+    return value
   }
 }
