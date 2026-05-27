@@ -79,6 +79,31 @@ Xcode target：
 - Watch 端本地状态缓存与事件队列。
 - React Native 端 watch 同步服务。
 
+### 2.3 当前执行状态
+
+已完成第一阶段 iPhone 端骨架：
+
+- `WatchTodayState`、`WatchEvent`、`WatchEventAck` TypeScript 类型。
+- 从现有本地 store 计算低敏今日状态。
+- iPhone 原生 `WatchConnectivityModule` 初版：可激活 `WCSession`、读取配对/可达状态、通过 `updateApplicationContext` 发送今日状态。
+- WatchConnectivity JS adapter：未接原生模块时安全返回 unsupported，接入原生模块后转为真实通道。
+- Watch 同步服务：App 启动、前台恢复、本地记录变化时可尝试同步今日状态。
+- Watch 事件接收骨架：原生模块收到 Watch 消息后发给 JS，JS 处理 `training_completed`、`habit_toggled`、`toilet_timer_action` 后回同步今日状态。
+- `/watch` 页面：展示配对/支持状态、今日低敏状态和手动同步入口。
+- Watch 端 SwiftUI 源码骨架：`XiaoTiduWatchApp`、`WatchSessionManager`、首页、菊花抬、小账本、蹲会儿页面已创建，等待加入 watchOS target 后编译验证。
+- `XiaoTiduWatchApp` 已注册为 Xcode watchOS target，并由 iPhone `app` target 的 `Embed Watch Content` 阶段嵌入。
+- Watch 菊花抬页面已从占位按钮升级为三种模式选择、收紧/放松倒计时和阶段震动节奏，完成后发送 `training_completed`。
+- Watch 小账本页面已支持按当前状态显示达标项，并通过再次点击发送撤销事件。
+- Watch -> iPhone 事件 ACK 已收口：iPhone 原生层暂存 reply handler，JS 处理完事件后返回 `accepted / duplicate / rejected`，Watch 首页展示同步结果或错误。
+- Watch 离线事件队列已增加去重、24 小时过期清理和最多 25 条的容量限制。
+- Watch 蹲会儿页面已支持基于 iPhone 快照本地滚动计时，并按 5/10/15/20 分钟阶段触发不同 haptic；暂停、继续、收工会使用 Watch 当前计算出的用时回传 iPhone。
+
+尚未完成：
+
+- Complication。
+- 真机 haptic 验收。
+- 完整 iPhone + Watch 模拟器构建验证：当前 Codex 沙箱无法访问 CoreSimulator，需要在本机终端执行一次模拟器构建确认。
+
 ## 3. 技术选型
 
 ### 3.1 Watch 端
@@ -584,4 +609,3 @@ pnpm --filter @xiaotidu/mobile exec expo run:ios --device "iPhone 17 Pro"
 8. 做蹲会儿。
 9. 做 complication。
 10. 最后真机验收和 Pro 权限回归。
-

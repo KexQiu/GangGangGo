@@ -12,6 +12,7 @@ import { syncTodayReportSnapshot } from '../src/features/sync/reportSnapshotSync
 import { syncTodayShareSnapshot } from '../src/features/sync/shareSnapshotSync';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
+import { startWatchConnectivityEventListener, syncWatchTodayState } from '../src/features/watch/watchSyncService';
 import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
 
 function RootStack() {
@@ -30,6 +31,7 @@ function RootStack() {
     void hydrateToilet();
     void hydrateHabits();
     void hydrateReminders();
+    startWatchConnectivityEventListener();
   }, [hydrateHabits, hydrateReminders, hydrateToilet, hydrateTraining]);
 
   useEffect(() => {
@@ -77,6 +79,7 @@ async function syncCloudState() {
   await syncTodayShareSnapshot();
   await syncTodayReportSnapshot();
   await registerPushTokenIfAllowed();
+  await syncWatchTodayState();
 }
 
 export default function RootLayout() {

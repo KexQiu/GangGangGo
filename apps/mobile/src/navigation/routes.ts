@@ -16,4 +16,5 @@ export const routes = {
   training: '/training',
   trainingComplete: '/training/complete',
   trainingSession: '/training/session',
+  watch: '/watch',
 } as const;

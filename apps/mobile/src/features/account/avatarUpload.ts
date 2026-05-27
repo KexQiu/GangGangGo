@@ -1,12 +1,10 @@
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
-
 import { apiClient } from '../../api/client';
 
 const avatarContentType = 'image/jpeg';
 const maxAvatarBytes = 300 * 1024;
 
 export async function pickAndUploadAvatar(token: string): Promise<null | string> {
+  const { ImageManipulator, ImagePicker } = await loadAvatarNativeModules();
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
   if (!permission.granted) {
@@ -59,4 +57,20 @@ export async function pickAndUploadAvatar(token: string): Promise<null | string>
   }
 
   return upload.publicUrl;
+}
+
+async function loadAvatarNativeModules() {
+  try {
+    const [ImagePicker, ImageManipulator] = await Promise.all([
+      import('expo-image-picker'),
+      import('expo-image-manipulator'),
+    ]);
+
+    return {
+      ImageManipulator,
+      ImagePicker,
+    };
+  } catch (error) {
+    throw new Error('头像功能需要重新构建开发包后才能使用。');
+  }
 }

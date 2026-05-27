@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Bell, ChartNoAxesColumnIncreasing, Crown, UsersRound } from 'lucide-react-native';
+import { Bell, ChartNoAxesColumnIncreasing, Crown, UsersRound, Watch } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -164,6 +164,14 @@ export default function MeScreen() {
               icon={ChartNoAxesColumnIncreasing}
               onPress={() => router.push(routes.trends)}
               title="高级小报告"
+              tone="info"
+            />
+            <View style={styles.divider} />
+            <MeLink
+              body="手表联动会从这里检查配对状态，后续接入训练和打卡。"
+              icon={Watch}
+              onPress={() => router.push(routes.watch)}
+              title="Apple Watch"
               tone="info"
             />
           </AppCard>
