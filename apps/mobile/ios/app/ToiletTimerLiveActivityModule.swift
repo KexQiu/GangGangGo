@@ -36,6 +36,11 @@ class ToiletTimerLiveActivityModule: NSObject {
 
     Task {
       do {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+          reject("toilet_live_activity_disabled", "Live Activity is disabled for this app or device.", nil)
+          return
+        }
+
         await endExistingActivities()
 
         let elapsed = max(0, elapsedSeconds.doubleValue)
@@ -47,8 +52,10 @@ class ToiletTimerLiveActivityModule: NSObject {
           pushType: nil
         )
 
+        print("[ToiletLiveActivity] started \(activity.id)")
         resolve(activity.id)
       } catch {
+        print("[ToiletLiveActivity] start failed: \(error.localizedDescription)")
         reject("toilet_live_activity_start_failed", error.localizedDescription, error)
       }
     }

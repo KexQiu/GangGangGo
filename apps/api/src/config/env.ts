@@ -60,6 +60,7 @@ const envSchema = z
       .default('false')
       .transform((value) => value === '1' || value === 'true' || value === 'require'),
     EXPO_PUSH_ACCESS_TOKEN: z.string().min(1).optional(),
+    HOST: z.string().min(1).default('0.0.0.0'),
     JWT_SECRET: z.string().min(16).default('xiaotidu-dev-secret'),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

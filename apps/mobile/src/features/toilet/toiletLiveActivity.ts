@@ -26,12 +26,16 @@ export async function isToiletLiveActivitySupported(): Promise<boolean> {
 
 export async function startToiletLiveActivity(startedAtISO: string, elapsedSeconds: number): Promise<string | null> {
   if (!nativeModule) {
+    console.warn('[ToiletLiveActivity] native module is unavailable.');
     return null;
   }
 
   try {
-    return await nativeModule.start(startedAtISO, elapsedSeconds);
-  } catch {
+    const activityId = await nativeModule.start(startedAtISO, elapsedSeconds);
+    console.log('[ToiletLiveActivity] started', activityId);
+    return activityId;
+  } catch (error) {
+    console.warn('[ToiletLiveActivity] start failed', error);
     return null;
   }
 }

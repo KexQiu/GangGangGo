@@ -18,12 +18,14 @@ const app = createApiApp({
 
 serve({
   fetch: app.fetch,
+  hostname: env.HOST,
   port: env.PORT,
 });
 
 logger.info({
+  host: env.HOST,
   port: env.PORT,
-}, `xiaotidu api listening on http://localhost:${env.PORT}`);
+}, `xiaotidu api listening on http://${env.HOST}:${env.PORT}`);
 
 async function shutdown() {
   await dependencies.close();

@@ -59,5 +59,15 @@ target 'app' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'expo-dev-launcher-EXDevLauncher'
+
+      target.build_configurations.each do |build_config|
+        next unless build_config.name == 'Release'
+
+        build_config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = 'Assets.xcassets'
+      end
+    end
   end
 end
