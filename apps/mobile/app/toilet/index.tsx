@@ -21,6 +21,7 @@ import {
   pauseToiletLiveActivity,
   resumeToiletLiveActivity,
   startToiletLiveActivity,
+  syncToiletLiveActivity,
 } from '../../src/features/toilet/toiletLiveActivity';
 import {
   getActiveToiletTimerElapsedSeconds,
@@ -126,14 +127,29 @@ export default function ToiletScreen() {
 
       const currentSession = sessionRef.current;
       if (nextState === 'active') {
+        const currentElapsedSeconds = getActiveToiletTimerElapsedSeconds(currentSession);
+        void syncToiletLiveActivity(
+          currentSession?.liveActivityId ?? null,
+          currentElapsedSeconds,
+          currentSession?.isPaused ?? false,
+        );
         void cancelToiletStageNotifications();
-        lastStageRef.current = getToiletTimerStage(getActiveToiletTimerElapsedSeconds(currentSession));
+        lastStageRef.current = getToiletTimerStage(currentElapsedSeconds);
         setTick((current) => current + 1);
         return;
       }
 
-      if (wasActive && currentSession && !currentSession.isPaused && toiletStageNotificationEnabledRef.current) {
-        void syncToiletStageNotifications(getActiveToiletTimerElapsedSeconds(currentSession));
+      if (wasActive && currentSession) {
+        const currentElapsedSeconds = getActiveToiletTimerElapsedSeconds(currentSession);
+        void syncToiletLiveActivity(
+          currentSession.liveActivityId,
+          currentElapsedSeconds,
+          currentSession.isPaused,
+        );
+
+        if (!currentSession.isPaused && toiletStageNotificationEnabledRef.current) {
+          void syncToiletStageNotifications(currentElapsedSeconds);
+        }
       }
     });
 
@@ -160,6 +176,7 @@ export default function ToiletScreen() {
     }
 
     lastStageRef.current = stage;
+    void syncToiletLiveActivity(session?.liveActivityId ?? null, elapsedSeconds, isPaused);
 
     if (appStateRef.current !== 'active') {
       return;

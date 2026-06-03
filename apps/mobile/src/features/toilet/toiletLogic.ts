@@ -1,5 +1,17 @@
 import { type ToiletTimerStage } from './toiletTypes';
 
+export const TOILET_TIMER_TARGET_SECONDS = 20 * 60;
+
+const TOILET_TIMER_CUE_SECONDS = [5 * 60, 10 * 60, 15 * 60, TOILET_TIMER_TARGET_SECONDS] as const;
+
+export type ToiletLiveActivitySnapshot = {
+  nextCueSeconds: number;
+  stageKey: ToiletTimerStage;
+  stageMessage: string;
+  stageTitle: string;
+  targetSeconds: number;
+};
+
 export function getToiletTimerStage(durationSeconds: number): ToiletTimerStage {
   if (durationSeconds >= 20 * 60) {
     return 'severe_warning';
@@ -54,6 +66,20 @@ export function getToiletStageCopy(stage: ToiletTimerStage): {
   }
 }
 
+export function getToiletLiveActivitySnapshot(durationSeconds: number): ToiletLiveActivitySnapshot {
+  const normalizedSeconds = Math.max(0, Math.floor(durationSeconds));
+  const stageKey = getToiletTimerStage(normalizedSeconds);
+  const nextCueSeconds = TOILET_TIMER_CUE_SECONDS.find((cueSeconds) => cueSeconds > normalizedSeconds)
+    ?? TOILET_TIMER_TARGET_SECONDS;
+
+  return {
+    nextCueSeconds,
+    stageKey,
+    targetSeconds: TOILET_TIMER_TARGET_SECONDS,
+    ...getToiletLiveActivityStageCopy(stageKey),
+  };
+}
+
 export function isLongToiletSession(durationSeconds: number): boolean {
   return durationSeconds >= 15 * 60;
 }
@@ -63,4 +89,38 @@ export function formatToiletDuration(seconds: number): string {
   const remainingSeconds = seconds % 60;
 
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+function getToiletLiveActivityStageCopy(stage: ToiletTimerStage): {
+  stageMessage: string;
+  stageTitle: string;
+} {
+  switch (stage) {
+    case 'severe_warning':
+      return {
+        stageMessage: '小花过劳了',
+        stageTitle: '小花过劳了',
+      };
+    case 'gentle_warning':
+      return {
+        stageMessage: '小花该下班了',
+        stageTitle: '小花该下班了',
+      };
+    case 'strong_warning':
+      return {
+        stageMessage: '别再加班了',
+        stageTitle: '别再加班了',
+      };
+    case 'overtime':
+      return {
+        stageMessage: '小花过劳了',
+        stageTitle: '小花过劳了',
+      };
+    case 'normal':
+    default:
+      return {
+        stageMessage: '小花值班中',
+        stageTitle: '小花值班中',
+      };
+  }
 }

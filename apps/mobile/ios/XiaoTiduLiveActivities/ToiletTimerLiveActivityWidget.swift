@@ -4,10 +4,23 @@ import WidgetKit
 
 private let appDeepLink = URL(string: "xiaotidu://toilet")
 private let primaryColor = Color(red: 0.12, green: 0.63, blue: 0.43)
+private let infoColor = Color(red: 0.24, green: 0.49, blue: 0.94)
 private let warningColor = Color(red: 0.89, green: 0.49, blue: 0.15)
 private let dangerColor = Color(red: 0.85, green: 0.20, blue: 0.26)
 private let inkColor = Color(red: 0.09, green: 0.12, blue: 0.13)
 private let quietColor = Color(red: 0.38, green: 0.45, blue: 0.45)
+
+private struct ToiletMilestone: Hashable {
+  let seconds: Double
+  let label: String
+}
+
+private let toiletMilestones = [
+  ToiletMilestone(seconds: 5 * 60, label: "5"),
+  ToiletMilestone(seconds: 10 * 60, label: "10"),
+  ToiletMilestone(seconds: 15 * 60, label: "15"),
+  ToiletMilestone(seconds: 20 * 60, label: "20")
+]
 
 @main
 struct XiaoTiduLiveActivitiesBundle: WidgetBundle {
@@ -25,29 +38,59 @@ struct ToiletTimerLiveActivityWidget: Widget {
         .widgetURL(appDeepLink)
     } dynamicIsland: { context in
       DynamicIsland {
-        DynamicIslandExpandedRegion(.leading) {
-          IslandStatusView(state: context.state)
-        }
-
-        DynamicIslandExpandedRegion(.trailing) {
-          IslandTimerView(state: context.state)
+        DynamicIslandExpandedRegion(.center) {
+          IslandSummaryView(state: context.state)
         }
 
         DynamicIslandExpandedRegion(.bottom) {
           IslandBottomView(state: context.state)
         }
       } compactLeading: {
-        CompactBadgeView(state: context.state)
+        CompactStageView(state: context.state)
+          .accessibilityLabel(compactAccessibilityLabel(for: context.state))
       } compactTrailing: {
-        elapsedText(for: context.state)
-          .font(.caption2.monospacedDigit().weight(.semibold))
-          .foregroundStyle(toiletAccentColor(for: context.state))
+        CompactTimerView(state: context.state)
       } minimal: {
-        MinimalBadgeView(state: context.state)
+        FlowerBadgeView(state: context.state, size: 22, isCompact: true)
+          .accessibilityLabel(compactAccessibilityLabel(for: context.state))
       }
       .widgetURL(appDeepLink)
       .keylineTint(toiletAccentColor(for: context.state))
     }
+  }
+}
+
+private struct CompactStageView: View {
+  let state: ToiletTimerAttributes.ContentState
+
+  var body: some View {
+    let compactText = compactStageText(for: state)
+
+    HStack(spacing: 2) {
+      FlowerBadgeView(state: state, size: 18, isCompact: true)
+
+      if !compactText.isEmpty {
+        Text(compactText)
+          .font(.caption2.weight(.bold))
+          .foregroundStyle(toiletAccentColor(for: state))
+          .lineLimit(1)
+          .minimumScaleFactor(0.68)
+      }
+    }
+    .frame(width: compactText.isEmpty ? 20 : 56, alignment: .leading)
+  }
+}
+
+private struct CompactTimerView: View {
+  let state: ToiletTimerAttributes.ContentState
+
+  var body: some View {
+    elapsedText(for: state)
+      .font(.caption2.monospacedDigit().weight(.semibold))
+      .foregroundStyle(toiletAccentColor(for: state))
+      .lineLimit(1)
+      .minimumScaleFactor(0.72)
+      .frame(width: 43, alignment: .trailing)
   }
 }
 
@@ -56,44 +99,55 @@ private struct LockScreenLiveActivityView: View {
 
   var body: some View {
     let accent = toiletAccentColor(for: state)
+    let titleText = displayedTitle(for: state)
+    let messageText = displayedMessage(for: state)
+    let cue = cueText(for: state)
 
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .center, spacing: 12) {
-        LiveActivityBadge(state: state, size: 46)
+        FlowerBadgeView(state: state, size: 50)
 
-        VStack(alignment: .leading, spacing: 4) {
-          HStack(spacing: 6) {
-            Text("蹲会儿")
-              .font(.headline.weight(.semibold))
-              .foregroundStyle(inkColor)
-            StatePillView(state: state)
+        VStack(alignment: .leading, spacing: 5) {
+          HStack(spacing: 7) {
+            Text("蹲会儿计时")
+              .font(.caption.weight(.bold))
+              .foregroundStyle(quietColor)
+            StagePillView(state: state)
           }
 
-          Text(statusText(for: state))
-            .font(.caption.weight(.medium))
-            .foregroundStyle(quietColor)
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
+          if !titleText.isEmpty {
+            Text(titleText)
+              .font(.headline.weight(.heavy))
+              .foregroundStyle(inkColor)
+              .lineLimit(1)
+              .minimumScaleFactor(0.82)
+          }
+
+          if !messageText.isEmpty && messageText != titleText {
+            Text(messageText)
+              .font(.caption.weight(.medium))
+              .foregroundStyle(quietColor)
+              .lineLimit(2)
+              .minimumScaleFactor(0.82)
+          }
         }
 
         Spacer(minLength: 10)
 
-        elapsedText(for: state)
-          .font(.title2.monospacedDigit().weight(.heavy))
-          .foregroundStyle(accent)
-      }
-
-      VStack(alignment: .leading, spacing: 8) {
-        TimelineBarView(state: state)
-
-        HStack {
-          Text(stageLabel(for: state))
-            .font(.caption2.weight(.semibold))
+        VStack(alignment: .trailing, spacing: 4) {
+          elapsedText(for: state)
+            .font(.title2.monospacedDigit().weight(.heavy))
             .foregroundStyle(accent)
-          Spacer(minLength: 8)
-          Text(state.isPaused ? "回来继续" : "办完就撤")
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(quietColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.76)
+
+          if !cue.isEmpty {
+            Text(cue)
+              .font(.caption2.weight(.semibold))
+              .foregroundStyle(accent)
+              .lineLimit(1)
+              .minimumScaleFactor(0.75)
+          }
         }
       }
     }
@@ -101,22 +155,65 @@ private struct LockScreenLiveActivityView: View {
   }
 }
 
+private struct IslandSummaryView: View {
+  let state: ToiletTimerAttributes.ContentState
+
+  var body: some View {
+    let titleText = displayedTitle(for: state)
+    let cue = cueText(for: state)
+
+    HStack(alignment: .center, spacing: 8) {
+      FlowerBadgeView(state: state, size: 28)
+
+      VStack(alignment: .leading, spacing: 2) {
+        if !titleText.isEmpty {
+          Text(titleText)
+            .font(.subheadline.weight(.heavy))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+        }
+
+        if !cue.isEmpty && cue != titleText {
+          Text(cue)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.64))
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+        }
+      }
+
+      elapsedText(for: state)
+        .font(.subheadline.monospacedDigit().weight(.heavy))
+        .foregroundStyle(toiletAccentColor(for: state))
+        .lineLimit(1)
+        .minimumScaleFactor(0.74)
+    }
+    .frame(width: 212, alignment: .center)
+    .padding(.vertical, 1)
+  }
+}
+
 private struct IslandStatusView: View {
   let state: ToiletTimerAttributes.ContentState
 
   var body: some View {
-    HStack(spacing: 9) {
-      LiveActivityBadge(state: state, size: 32)
+    let titleText = displayedTitle(for: state)
+
+    HStack(spacing: 8) {
+      FlowerBadgeView(state: state, size: 32)
 
       VStack(alignment: .leading, spacing: 2) {
-        Text("蹲会儿")
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(.white.opacity(0.72))
-        Text(state.isPaused ? "暂停中" : stageLabel(for: state))
-          .font(.headline.weight(.bold))
-          .foregroundStyle(.white)
-          .lineLimit(1)
-          .minimumScaleFactor(0.8)
+        Text("蹲会儿计时")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.white.opacity(0.66))
+        if !titleText.isEmpty {
+          Text(titleText)
+            .font(.headline.weight(.heavy))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+        }
       }
     }
   }
@@ -126,14 +223,22 @@ private struct IslandTimerView: View {
   let state: ToiletTimerAttributes.ContentState
 
   var body: some View {
-    VStack(alignment: .trailing, spacing: 2) {
+    let cue = cueText(for: state)
+
+    VStack(alignment: .trailing, spacing: 3) {
       elapsedText(for: state)
         .font(.title3.monospacedDigit().weight(.heavy))
         .foregroundStyle(toiletAccentColor(for: state))
+        .lineLimit(1)
+        .minimumScaleFactor(0.74)
 
-      Text(state.isPaused ? "已暂停" : "计时中")
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(.white.opacity(0.62))
+      if !cue.isEmpty {
+        Text(cue)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.white.opacity(0.62))
+          .lineLimit(1)
+          .minimumScaleFactor(0.72)
+      }
     }
   }
 }
@@ -142,126 +247,84 @@ private struct IslandBottomView: View {
   let state: ToiletTimerAttributes.ContentState
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 7) {
-      Text(statusText(for: state))
-        .font(.caption.weight(.medium))
-        .foregroundStyle(.white.opacity(0.78))
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
+    let messageText = displayedMessage(for: state)
 
-      StaticTimelineBarView(state: state, backgroundOpacity: 0.18)
+    if !messageText.isEmpty {
+      Text(messageText)
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.white.opacity(0.80))
+        .lineLimit(1)
+        .minimumScaleFactor(0.78)
+        .multilineTextAlignment(.center)
+        .padding(.top, 2)
+        .frame(width: 212, alignment: .center)
     }
-    .padding(.top, 2)
   }
 }
 
-private struct LiveActivityBadge: View {
+private struct FlowerBadgeView: View {
   let state: ToiletTimerAttributes.ContentState
   let size: CGFloat
+  var isCompact = false
 
   var body: some View {
     let accent = toiletAccentColor(for: state)
+    let petalSize = size * 0.34
+    let petalDistance = size * 0.22
 
     ZStack {
       Circle()
-        .fill(accent.opacity(0.16))
+        .fill(accent.opacity(isCompact ? 0.12 : 0.16))
+        .frame(width: size, height: size)
+
+      ForEach(0..<6, id: \.self) { index in
+        let angle = (Double(index) / 6.0) * Double.pi * 2.0
+
+        Circle()
+          .fill(accent.opacity(state.isPaused ? 0.36 : 0.58))
+          .frame(width: petalSize, height: petalSize)
+          .offset(
+            x: CGFloat(cos(angle)) * petalDistance,
+            y: CGFloat(sin(angle)) * petalDistance
+          )
+      }
+
       Circle()
-        .strokeBorder(accent.opacity(0.28), lineWidth: 1)
-      Image(systemName: state.isPaused ? "pause.fill" : "timer")
-        .font(.system(size: size * 0.38, weight: .bold))
-        .foregroundStyle(accent)
+        .fill(accent)
+        .frame(width: size * 0.32, height: size * 0.32)
+
+      if state.isPaused {
+        Image(systemName: "pause.fill")
+          .font(.system(size: max(size * 0.20, 7), weight: .heavy))
+          .foregroundStyle(.white)
+      } else if currentStageKey(for: state) == "severe_warning" {
+        Text("!")
+          .font(.system(size: max(size * 0.24, 8), weight: .heavy))
+          .foregroundStyle(.white)
+      }
     }
     .frame(width: size, height: size)
   }
 }
 
-private struct CompactBadgeView: View {
+private struct StagePillView: View {
   let state: ToiletTimerAttributes.ContentState
 
   var body: some View {
-    Text(state.isPaused ? "Ⅱ" : "蹲")
-      .font(.caption.weight(.bold))
-      .foregroundStyle(toiletAccentColor(for: state))
-      .frame(width: 18, height: 18)
-      .accessibilityLabel(state.isPaused ? "蹲会儿暂停中" : "蹲会儿计时中")
-  }
-}
+    let pillText = stagePillText(for: state)
 
-private struct MinimalBadgeView: View {
-  let state: ToiletTimerAttributes.ContentState
-
-  var body: some View {
-    ZStack {
-      Circle()
-        .fill(toiletAccentColor(for: state).opacity(0.22))
-      Text(state.isPaused ? "Ⅱ" : "蹲")
-        .font(.caption2.weight(.heavy))
+    if !pillText.isEmpty {
+      Text(pillText)
+        .font(.caption2.weight(.bold))
         .foregroundStyle(toiletAccentColor(for: state))
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(
+          Capsule()
+            .fill(toiletAccentColor(for: state).opacity(0.13))
+        )
+        .lineLimit(1)
     }
-    .frame(width: 22, height: 22)
-  }
-}
-
-private struct StatePillView: View {
-  let state: ToiletTimerAttributes.ContentState
-
-  var body: some View {
-    Text(state.isPaused ? "暂停" : stageLabel(for: state))
-      .font(.caption2.weight(.bold))
-      .foregroundStyle(toiletAccentColor(for: state))
-      .padding(.horizontal, 7)
-      .padding(.vertical, 3)
-      .background(
-        Capsule()
-          .fill(toiletAccentColor(for: state).opacity(0.12))
-      )
-      .lineLimit(1)
-  }
-}
-
-private struct TimelineBarView: View {
-  let state: ToiletTimerAttributes.ContentState
-  var backgroundOpacity = 0.12
-
-  var body: some View {
-    GeometryReader { proxy in
-      let progress = min(currentElapsedSeconds(for: state) / (20 * 60), 1)
-      let width = max(6, proxy.size.width * progress)
-
-      ZStack(alignment: .leading) {
-        Capsule()
-          .fill(toiletAccentColor(for: state).opacity(backgroundOpacity))
-        Capsule()
-          .fill(
-            LinearGradient(
-              colors: [
-                primaryColor,
-                toiletAccentColor(for: state)
-              ],
-              startPoint: .leading,
-              endPoint: .trailing
-            )
-          )
-          .frame(width: width)
-      }
-    }
-    .frame(height: 6)
-  }
-}
-
-private struct StaticTimelineBarView: View {
-  let state: ToiletTimerAttributes.ContentState
-  var backgroundOpacity = 0.12
-
-  var body: some View {
-    let progress = min(currentElapsedSeconds(for: state) / (20 * 60), 1)
-
-    ProgressView(value: progress)
-      .progressViewStyle(.linear)
-      .tint(toiletAccentColor(for: state))
-      .background(toiletAccentColor(for: state).opacity(backgroundOpacity))
-      .clipShape(Capsule())
-      .frame(height: 5)
   }
 }
 
@@ -287,48 +350,161 @@ private func formatElapsed(_ seconds: Double) -> String {
   return String(format: "%02d:%02d", minutes, seconds)
 }
 
-private func stageLabel(for state: ToiletTimerAttributes.ContentState) -> String {
+private func displayedTitle(for state: ToiletTimerAttributes.ContentState) -> String {
   if state.isPaused {
-    return "暂停中"
+    return ""
   }
 
-  let elapsedSeconds = currentElapsedSeconds(for: state)
-  if elapsedSeconds >= 20 * 60 {
-    return "该收工"
-  }
-  if elapsedSeconds >= 15 * 60 {
-    return "有点久"
-  }
-  if elapsedSeconds >= 10 * 60 {
-    return "准备收"
-  }
-  if elapsedSeconds >= 5 * 60 {
-    return "轻提醒"
-  }
-
-  return "刚开始"
+  return fallbackStageTitle(for: currentStageKey(for: state))
 }
 
-private func statusText(for state: ToiletTimerAttributes.ContentState) -> String {
+private func displayedMessage(for state: ToiletTimerAttributes.ContentState) -> String {
   if state.isPaused {
-    return "暂停中，回来继续也行"
+    return ""
   }
 
+  return fallbackStageMessage(for: currentStageKey(for: state))
+}
+
+private func stagePillText(for state: ToiletTimerAttributes.ContentState) -> String {
+  if state.isPaused {
+    return ""
+  }
+
+  switch currentStageKey(for: state) {
+  case "severe_warning":
+    return "过劳中"
+  case "overtime":
+    return "过劳中"
+  case "strong_warning":
+    return "加班中"
+  case "gentle_warning":
+    return "值班中"
+  default:
+    return "值班中"
+  }
+}
+
+private func compactStageText(for state: ToiletTimerAttributes.ContentState) -> String {
+  if state.isPaused {
+    return ""
+  }
+
+  switch currentStageKey(for: state) {
+  case "severe_warning":
+    return "过劳中"
+  case "overtime":
+    return "过劳中"
+  case "strong_warning":
+    return "加班中"
+  case "gentle_warning":
+    return "值班中"
+  default:
+    return "值班中"
+  }
+}
+
+private func cueText(for state: ToiletTimerAttributes.ContentState) -> String {
+  if state.isPaused {
+    return ""
+  }
+
+  return fallbackStageMessage(for: currentStageKey(for: state))
+}
+
+private func compactAccessibilityLabel(for state: ToiletTimerAttributes.ContentState) -> String {
+  if state.isPaused {
+    return "蹲会儿暂停中"
+  }
+
+  return "蹲会儿\(displayedTitle(for: state))"
+}
+
+private func formatCueSeconds(_ seconds: Double) -> String {
+  let totalSeconds = max(0, Int(seconds.rounded()))
+  let minutes = totalSeconds / 60
+  let remainingSeconds = totalSeconds % 60
+
+  return String(format: "%02d:%02d", minutes, remainingSeconds)
+}
+
+private func nextCueSeconds(for state: ToiletTimerAttributes.ContentState) -> Double {
   let elapsedSeconds = currentElapsedSeconds(for: state)
+
+  if let nextCueSeconds = state.nextCueSeconds,
+     nextCueSeconds > elapsedSeconds,
+     nextCueSeconds <= targetSeconds(for: state) {
+    return nextCueSeconds
+  }
+
+  return toiletMilestones.first { $0.seconds > elapsedSeconds }?.seconds ?? targetSeconds(for: state)
+}
+
+private func targetSeconds(for state: ToiletTimerAttributes.ContentState) -> Double {
+  guard let targetSeconds = state.targetSeconds, targetSeconds > 0 else {
+    return 20 * 60
+  }
+
+  return targetSeconds
+}
+
+private func snapshotMatchesCurrentStage(_ state: ToiletTimerAttributes.ContentState) -> Bool {
+  guard let stageKey = nonEmpty(state.stageKey) else {
+    return false
+  }
+
+  return stageKey == currentStageKey(for: state)
+}
+
+private func currentStageKey(for state: ToiletTimerAttributes.ContentState) -> String {
+  stageKey(for: currentElapsedSeconds(for: state))
+}
+
+private func stageKey(for elapsedSeconds: Double) -> String {
   if elapsedSeconds >= 20 * 60 {
-    return "超过 20 分钟了，建议先收工"
+    return "severe_warning"
   }
   if elapsedSeconds >= 15 * 60 {
-    return "这会儿有点长了，办完就撤"
+    return "overtime"
   }
   if elapsedSeconds >= 10 * 60 {
-    return "差不多该收工了"
+    return "strong_warning"
   }
   if elapsedSeconds >= 5 * 60 {
-    return "小声敲门：正事办完就撤"
+    return "gentle_warning"
   }
 
-  return "办完就收工，别让小花陪坐太久"
+  return "normal"
+}
+
+private func fallbackStageTitle(for stageKey: String) -> String {
+  switch stageKey {
+  case "severe_warning":
+    return "小花过劳了"
+  case "overtime":
+    return "小花过劳了"
+  case "strong_warning":
+    return "别再加班了"
+  case "gentle_warning":
+    return "小花该下班了"
+  default:
+    return "小花值班中"
+  }
+}
+
+private func fallbackStageMessage(for stageKey: String) -> String {
+  switch stageKey {
+  case "severe_warning":
+    return "小花过劳了"
+  case "overtime":
+    return "小花过劳了"
+  case "strong_warning":
+    return "别再加班了"
+  case "gentle_warning":
+    return "小花该下班了"
+  default:
+    return "小花值班中"
+  }
 }
 
 private func toiletAccentColor(for state: ToiletTimerAttributes.ContentState) -> Color {
@@ -336,7 +512,16 @@ private func toiletAccentColor(for state: ToiletTimerAttributes.ContentState) ->
     return warningColor
   }
 
-  return currentElapsedSeconds(for: state) >= 20 * 60 ? dangerColor : primaryColor
+  switch currentStageKey(for: state) {
+  case "severe_warning":
+    return dangerColor
+  case "overtime", "strong_warning":
+    return warningColor
+  case "gentle_warning":
+    return infoColor
+  default:
+    return primaryColor
+  }
 }
 
 private func backgroundColor(for state: ToiletTimerAttributes.ContentState) -> Color {
@@ -344,11 +529,16 @@ private func backgroundColor(for state: ToiletTimerAttributes.ContentState) -> C
     return Color(red: 1.00, green: 0.97, blue: 0.91)
   }
 
-  if currentElapsedSeconds(for: state) >= 20 * 60 {
+  switch currentStageKey(for: state) {
+  case "severe_warning":
     return Color(red: 1.00, green: 0.94, blue: 0.94)
+  case "overtime", "strong_warning":
+    return Color(red: 1.00, green: 0.96, blue: 0.88)
+  case "gentle_warning":
+    return Color(red: 0.94, green: 0.97, blue: 1.00)
+  default:
+    return Color(red: 0.94, green: 0.99, blue: 0.96)
   }
-
-  return Color(red: 0.94, green: 0.99, blue: 0.96)
 }
 
 private func currentElapsedSeconds(for state: ToiletTimerAttributes.ContentState) -> Double {
@@ -357,4 +547,13 @@ private func currentElapsedSeconds(for state: ToiletTimerAttributes.ContentState
   }
 
   return max(0, Date().timeIntervalSince(state.timerStartDate))
+}
+
+private func nonEmpty(_ value: String?) -> String? {
+  guard let value else {
+    return nil
+  }
+
+  let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+  return trimmedValue.isEmpty ? nil : trimmedValue
 }
