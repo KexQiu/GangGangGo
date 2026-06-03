@@ -308,7 +308,7 @@ export default function ToiletScreen() {
 
         <PageHeader
           eyebrow="蹲会儿"
-          subtitle="开始后只留计时，不刷信息流，不开小剧场。"
+          subtitle="开始后小花只负责计时和轻提醒。"
           title="蹲会儿"
         />
 
@@ -316,8 +316,8 @@ export default function ToiletScreen() {
           <View style={styles.startIcon}>
             <Armchair color={colors.info} size={38} strokeWidth={2.4} />
           </View>
-          <Text style={styles.startTitle}>开始前先把手机小剧场关一关</Text>
-          <Text style={styles.startText}>5 分钟轻敲门，10 分钟催收工，20 分钟认真请你收工。</Text>
+          <Text style={styles.startTitle}>小花开始值班</Text>
+          <Text style={styles.startText}>5 分钟看一眼，10 分钟准备收工，时间久了就先结束。</Text>
         </AppCard>
 
         <AppButton onPress={startTimer}>开始计时</AppButton>
@@ -335,7 +335,7 @@ export default function ToiletScreen() {
       />
 
       <View>
-        <PageHeader eyebrow="蹲会儿" subtitle="专心办正事，结束就收工。" title="办正事中" />
+        <PageHeader eyebrow="蹲会儿" subtitle="小花值班中，办完就收工。" title="办正事中" />
       </View>
 
       <AppCard style={styles.timerCard}>
@@ -374,16 +374,16 @@ export default function ToiletScreen() {
 function getStageHintText(stage: ToiletTimerStage): string {
   switch (stage) {
     case 'gentle_warning':
-      return '小声敲过门了。如果已经办完，点收工就好。';
+      return '小花该下班了。如果已经办完，点收工就好。';
     case 'strong_warning':
-      return '10 分钟到了，建议准备收工，别让局部压力加班。';
+      return '别再加班了。继续久蹲可能不舒服。';
     case 'overtime':
-      return '已经开成蹲会儿长会了。先收工，手机小剧场下次再播。';
+      return '小花过劳了。先结束，站起来活动一下。';
     case 'severe_warning':
-      return '已经超过 20 分钟，建议先收工，给小花一点下班时间。';
+      return '小花过劳了。请先结束，休息一下再说。';
     case 'normal':
     default:
-      return '5 分钟后会轻轻提醒：正事办完就撤。';
+      return '小花值班中。5 分钟后提醒你看一眼时间。';
   }
 }
 
