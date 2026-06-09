@@ -629,7 +629,7 @@ Pro：需要
   "data": {
     "expiresAt": "2026-06-01T00:00:00.000Z",
     "inviteId": "invite-id",
-    "inviteUrl": "xiaotidu://team-invites/token",
+    "inviteUrl": "xiaotidu://team/join/token",
     "token": "token"
   }
 }

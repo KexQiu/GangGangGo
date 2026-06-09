@@ -100,7 +100,6 @@ export default function TeamScreen() {
               </View>
               <View style={styles.teamActions}>
                 <AppButton
-                  disabled={!isPro}
                   onPress={() => (isPro ? router.push(routes.teamInvite) : router.push(routes.pro))}
                   style={styles.flexButton}
                   variant="secondary"

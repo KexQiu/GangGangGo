@@ -925,7 +925,7 @@ describe('api app', () => {
     expect(inviteBody.data).toEqual({
       expiresAt: expect.any(String),
       inviteId: expect.any(String),
-      inviteUrl: `xiaotidu://team-invites/${inviteBody.data.token}`,
+      inviteUrl: `xiaotidu://team/join/${inviteBody.data.token}`,
       token: expect.any(String),
     });
 

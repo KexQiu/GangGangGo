@@ -1811,7 +1811,7 @@
           },
           "inviteUrl": {
             "type": "string",
-            "example": "xiaotidu://team-invites/token"
+            "example": "xiaotidu://team/join/token"
           },
           "token": {
             "type": "string"

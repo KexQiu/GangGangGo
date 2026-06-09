@@ -135,7 +135,7 @@ function hashInviteToken(token: string) {
 }
 
 function createInviteUrl(token: string) {
-  return `xiaotidu://team-invites/${token}`;
+  return `xiaotidu://team/join/${token}`;
 }
 
 function createInviteExpiration(now = new Date()) {

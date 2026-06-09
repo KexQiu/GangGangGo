@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { UsersRound } from 'lucide-react-native';
 
 import { AppButton } from '../../../../src/components/AppButton';
@@ -21,6 +21,7 @@ export default function JoinTeamScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
+  const authIsLoading = useAuthStore((state) => state.isLoading);
   const user = useAuthStore((state) => state.user);
   const acceptInvite = useTeamStore((state) => state.acceptInvite);
   const error = useTeamStore((state) => state.error);
@@ -35,6 +36,10 @@ export default function JoinTeamScreen() {
     }
   }, [loadInvitePreview, token]);
 
+  const hasPreview = Boolean(invitePreview);
+  const canAccept = Boolean(token && hasPreview && user && !isMutating);
+  const title = invitePreview?.teamName ?? (isLoading ? '正在查看邀请' : '邀请暂时不可用');
+
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="加入小队" />
@@ -45,31 +50,51 @@ export default function JoinTeamScreen() {
           <View style={styles.iconCircle}>
             <UsersRound color={colors.privacy} size={28} strokeWidth={2.4} />
           </View>
-          <Text style={styles.title}>{invitePreview?.teamName ?? '小提督小队'}</Text>
+          {isLoading && !invitePreview ? <ActivityIndicator color={colors.primaryPressed} /> : null}
+          <Text style={styles.title}>{title}</Text>
           <Text style={styles.description}>
             {invitePreview
               ? `${invitePreview.inviterNickname ?? '搭子'} 邀请你加入。默认只共享低敏完成状态。`
               : isLoading
                 ? '正在查看邀请...'
-                : '邀请信息暂时不可用。'}
+                : token
+                  ? '这个邀请可能已经过期、被使用，或链接不完整。'
+                  : '这个邀请链接缺少必要信息。'}
           </Text>
+          {invitePreview ? (
+            <View style={styles.privacyBox}>
+              <Text style={styles.privacyTitle}>加入后会共享</Text>
+              <Text style={styles.privacyText}>训练完成、小账本进度、是否记录蹲会儿和连续天数。</Text>
+              <Text style={styles.privacyTitle}>不会共享</Text>
+              <Text style={styles.privacyText}>具体时长、身体不适、备注和本地隐私记录。</Text>
+            </View>
+          ) : null}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          {!user ? (
-            <AppButton onPress={() => void loginWithMockApple()}>先登录小提督</AppButton>
+          {!user && hasPreview ? (
+            <AppButton disabled={authIsLoading} onPress={() => void loginWithMockApple()}>
+              {authIsLoading ? '登录中...' : '先登录小提督'}
+            </AppButton>
           ) : (
             <AppButton
-              disabled={!token || isMutating}
+              disabled={!canAccept}
               onPress={() => {
-                if (!token) {
+                if (!token || !canAccept) {
                   return;
                 }
 
-                void acceptInvite(token).then(() => router.replace(routes.team));
+                void acceptInvite(token)
+                  .then(() => router.replace(routes.team))
+                  .catch(() => undefined);
               }}
             >
-              加入小队
+              {isMutating ? '加入中...' : hasPreview ? '加入小队' : '邀请暂不可用'}
             </AppButton>
           )}
+          {token && !invitePreview && !isLoading ? (
+            <AppButton disabled={isLoading} onPress={() => void loadInvitePreview(token)} variant="secondary">
+              重新查看邀请
+            </AppButton>
+          ) : null}
         </AppCard>
       </PageStack>
     </Screen>
@@ -97,6 +122,25 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       lineHeight: 19,
       textAlign: 'center',
+    },
+    privacyBox: {
+      alignSelf: 'stretch',
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 16,
+      gap: 6,
+      padding: 14,
+    },
+    privacyText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 19,
+    },
+    privacyTitle: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '900',
+      marginTop: 2,
     },
     iconCircle: {
       alignItems: 'center',

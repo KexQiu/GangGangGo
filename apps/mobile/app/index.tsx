@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { type ComponentType } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, type ComponentType } from 'react';
 import {
   Bell,
   ChevronRight,
@@ -9,7 +9,9 @@ import {
   Settings,
   ShieldCheck,
   UserRound,
+  UsersRound,
 } from 'lucide-react-native';
+import type { Team, TeamSnapshotsResponse } from '@xiaotidu/contracts';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../src/components/AppButton';
@@ -17,6 +19,7 @@ import { AppCard } from '../src/components/AppCard';
 import { PressableScale } from '../src/components/feedback/PressableScale';
 import { PageHeader } from '../src/components/PageHeader';
 import { Screen } from '../src/components/Screen';
+import { useAuthStore } from '../src/features/account/authStore';
 import {
   calculateHabitCompletion,
   createEmptyHabitCheckIn,
@@ -32,6 +35,7 @@ import {
   getToiletStatusLabel,
   getTrainingStatusLabel,
 } from '../src/features/today/todayFeedback';
+import { useTeamStore } from '../src/features/team/teamStore';
 import { getTodayToiletSessionCount, useToiletStore } from '../src/features/toilet/toiletStore';
 import { FlowerLiftIcon } from '../src/features/training/FlowerLiftIcon';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../src/features/training/trainingStore';
@@ -43,10 +47,17 @@ const trainingTarget = 2;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
   const checkIns = useHabitStore((state) => state.checkIns);
   const reminderSettings = useReminderStore((state) => state.settings);
   const toiletSessions = useToiletStore((state) => state.sessions);
   const trainingSessions = useTrainingStore((state) => state.sessions);
+  const team = useTeamStore((state) => state.team);
+  const teamError = useTeamStore((state) => state.error);
+  const teamIsLoading = useTeamStore((state) => state.isLoading);
+  const teamSnapshots = useTeamStore((state) => state.snapshots);
+  const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
   const todayTrainingCount = getTodayCompletedTrainingCount(trainingSessions);
   const todayToiletCount = getTodayToiletSessionCount(toiletSessions);
   const today = getLocalDateKey();
@@ -67,6 +78,22 @@ export default function HomeScreen() {
   });
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
+  const userId = user?.id;
+
+  const refreshTeamHomeCard = useCallback(() => {
+    if (!accessToken) {
+      void loadCurrentTeam();
+      return;
+    }
+
+    if (!userId) {
+      return;
+    }
+
+    void loadCurrentTeam();
+  }, [accessToken, loadCurrentTeam, userId]);
+
+  useFocusEffect(refreshTeamHomeCard);
 
   return (
     <Screen>
@@ -117,6 +144,16 @@ export default function HomeScreen() {
           />
         </View>
       </AppCard>
+
+      {user ? (
+        <TeamHomeCard
+          error={teamError}
+          isLoading={teamIsLoading}
+          onPress={() => router.push(routes.team)}
+          snapshots={teamSnapshots}
+          team={team}
+        />
+      ) : null}
 
       {!hasReminderEnabled ? <ReminderSetupPrompt onPress={() => router.push(routes.reminders)} /> : null}
 
@@ -192,6 +229,89 @@ export default function HomeScreen() {
       </AppCard>
     </Screen>
   );
+}
+
+type TeamHomeCardProps = {
+  error: null | string;
+  isLoading: boolean;
+  onPress: () => void;
+  snapshots: TeamSnapshotsResponse | null;
+  team: Team | null;
+};
+
+function TeamHomeCard({ error, isLoading, onPress, snapshots, team }: TeamHomeCardProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+  const activeMembers = team?.members.filter((member) => member.status !== 'removed') ?? [];
+  const title = team?.name ?? '还没有监督搭子';
+  const memberLabel = team ? `成员 ${activeMembers.length}/4` : '小队';
+  const description = getTeamHomeDescription({
+    activeMemberCount: activeMembers.length,
+    error,
+    isLoading,
+    snapshots,
+    team,
+  });
+
+  return (
+    <PressableScale
+      accessibilityLabel={`监督搭子，${description}`}
+      onPress={onPress}
+      style={styles.teamHomeCard}
+    >
+      <View style={styles.teamHomeIcon}>
+        <UsersRound color={colors.privacy} size={21} strokeWidth={2.4} />
+      </View>
+      <View style={styles.teamHomeCopy}>
+        <View style={styles.teamHomeTitleRow}>
+          <Text numberOfLines={1} style={styles.teamHomeTitle}>
+            {title}
+          </Text>
+          <Text style={styles.teamHomePill}>{memberLabel}</Text>
+        </View>
+        <Text style={styles.teamHomeDescription}>{description}</Text>
+      </View>
+      <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.4} />
+    </PressableScale>
+  );
+}
+
+type TeamHomeDescriptionInput = {
+  activeMemberCount: number;
+  error: null | string;
+  isLoading: boolean;
+  snapshots: TeamSnapshotsResponse | null;
+  team: Team | null;
+};
+
+function getTeamHomeDescription({ activeMemberCount, error, isLoading, snapshots, team }: TeamHomeDescriptionInput) {
+  if (isLoading && !snapshots) {
+    return '小队状态同步中...';
+  }
+
+  if (error) {
+    return '暂时无法同步小队状态，点进去再试试。';
+  }
+
+  if (!team) {
+    return '进去创建小队或处理邀请，先把搭子关系建起来。';
+  }
+
+  if (!snapshots) {
+    return '打开小队查看今日状态。';
+  }
+
+  const activeSnapshotCount = snapshots.snapshots.filter((item) => {
+    return item.member.status !== 'removed' && item.snapshot !== null;
+  }).length;
+  const pausedCount = team.members.filter((member) => member.status === 'paused').length;
+  const parts = [`今日已同步 ${activeSnapshotCount}/${activeMemberCount} 人`];
+
+  if (pausedCount > 0) {
+    parts.push(`${pausedCount} 人暂停共享`);
+  }
+
+  return parts.join(' · ');
 }
 
 type ReminderSetupPromptProps = {
@@ -438,6 +558,58 @@ function createStyles(colors: ThemeColors) {
       color: colors.privacy,
       fontSize: 12,
       fontWeight: '800',
+    },
+    teamHomeCard: {
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 20,
+      borderWidth: 1,
+      flexDirection: 'row',
+      marginBottom: 12,
+      padding: 14,
+    },
+    teamHomeCopy: {
+      flex: 1,
+      marginRight: 10,
+    },
+    teamHomeDescription: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    teamHomeIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 19,
+      height: 38,
+      justifyContent: 'center',
+      marginRight: 12,
+      width: 38,
+    },
+    teamHomePill: {
+      backgroundColor: colors.primarySoft,
+      borderRadius: 999,
+      color: colors.primaryPressed,
+      flexShrink: 0,
+      fontSize: 11,
+      fontWeight: '800',
+      overflow: 'hidden',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    teamHomeTitle: {
+      color: colors.text,
+      flexShrink: 1,
+      fontSize: 15,
+      fontWeight: '900',
+      marginRight: 8,
+    },
+    teamHomeTitleRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      marginBottom: 4,
     },
     heroCard: {
       borderRadius: 24,
