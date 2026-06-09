@@ -46,12 +46,12 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
     }));
   },
   recordBuiltState: (builtState) => {
+    const toiletDetail = builtState.toilet.isRunning ? '进行中' : `${builtState.toilet.sessionCount} 次`;
+
     set((state) => ({
       lastBuiltState: builtState,
       logs: prependLog(state.logs, {
-        detail: `${builtState.date} · 小账本 ${builtState.habits.completion}/4 · 蹲会儿 ${
-          builtState.toilet.isRunning ? '进行中' : '未进行'
-        }`,
+        detail: `${builtState.date} · 小账本 ${builtState.habits.completion}/4 · 蹲会儿 ${toiletDetail}`,
         direction: 'state',
         title: '构建 WatchTodayState',
       }),

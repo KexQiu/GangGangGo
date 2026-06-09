@@ -10,10 +10,15 @@ import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
-import { getWatchConnectivityStatus } from '../../src/features/watch/watchConnectivity';
+import { getWatchConnectivityDebugInfo } from '../../src/features/watch/watchConnectivity';
 import { useWatchDebugStore } from '../../src/features/watch/watchDebugStore';
 import { getCurrentWatchTodayState, syncWatchTodayState } from '../../src/features/watch/watchSyncService';
-import { type WatchConnectivityStatus, type WatchTodayState } from '../../src/features/watch/watchTypes';
+import {
+  type WatchConnectivityDebugInfo,
+  type WatchConnectivityStatus,
+  type WatchSyncResult,
+  type WatchTodayState,
+} from '../../src/features/watch/watchTypes';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -25,6 +30,7 @@ export default function WatchScreen() {
   const proStatus = useAuthStore((state) => state.proStatus);
   const isPro = isProStatus(proStatus);
   const [status, setStatus] = useState<WatchConnectivityStatus | null>(null);
+  const [debugInfo, setDebugInfo] = useState<WatchConnectivityDebugInfo | null>(null);
   const [todayState, setTodayState] = useState<WatchTodayState>(() => getCurrentWatchTodayState());
   const [message, setMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -39,9 +45,10 @@ export default function WatchScreen() {
 
   const refresh = useCallback(async () => {
     setTodayState(getCurrentWatchTodayState());
-    const nextStatus = await getWatchConnectivityStatus();
-    setStatus(nextStatus);
-    recordConnectivityStatus(nextStatus);
+    const nextDebugInfo = await getWatchConnectivityDebugInfo();
+    setDebugInfo(nextDebugInfo);
+    setStatus(nextDebugInfo);
+    recordConnectivityStatus(nextDebugInfo);
   }, [recordConnectivityStatus]);
 
   useFocusEffect(
@@ -57,10 +64,11 @@ export default function WatchScreen() {
     try {
       const result = await syncWatchTodayState(new Date(), 'watch_page_manual');
       setTodayState(getCurrentWatchTodayState());
-      const nextStatus = await getWatchConnectivityStatus();
-      setStatus(nextStatus);
-      recordConnectivityStatus(nextStatus);
-      setMessage(result.sent ? '今日状态已发送给手表。' : 'WatchConnectivity 还没接入，当前只展示待同步状态。');
+      const nextDebugInfo = await getWatchConnectivityDebugInfo();
+      setDebugInfo(nextDebugInfo);
+      setStatus(nextDebugInfo);
+      recordConnectivityStatus(nextDebugInfo);
+      setMessage(formatSyncResultMessage(result));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '同步到手表失败。');
     } finally {
@@ -146,6 +154,7 @@ export default function WatchScreen() {
               <StatusRow label="已配对" value={formatBoolean((lastConnectivityStatus ?? status)?.isPaired)} />
               <StatusRow label="Watch App" value={formatBoolean((lastConnectivityStatus ?? status)?.isWatchAppInstalled)} />
               <StatusRow label="可达" value={formatBoolean((lastConnectivityStatus ?? status)?.isReachable)} />
+              <StatusRow label="激活" value={debugInfo?.activationState ?? '未知'} />
             </View>
           </AppCard>
 
@@ -162,6 +171,9 @@ export default function WatchScreen() {
             />
             <DebugRow label="最近 Watch 消息" value={lastIncomingPayload ?? '暂无'} />
             <DebugRow label="最近 ACK" value={lastAck ? `${lastAck.status} · ${lastAck.eventId}` : '暂无'} />
+            <DebugRow label="iPhone Bundle" value={debugInfo?.iPhoneBundleIdentifier ?? '未知'} />
+            <DebugRow label="嵌入 Watch" value={formatBundleList(debugInfo?.embeddedWatchBundleIdentifiers)} />
+            <DebugRow label="激活错误" value={debugInfo?.activationError ?? '无'} />
           </AppCard>
 
           <AppCard style={styles.debugCard}>
@@ -217,7 +229,30 @@ function formatWatchStatus(status: WatchConnectivityStatus): string {
   return status.isReachable ? 'Apple Watch 当前可达。' : 'Apple Watch 暂时不可达，后续会走待同步队列。';
 }
 
+function formatSyncResultMessage(result: WatchSyncResult): string {
+  if (result.sent) {
+    return '今日状态已发送给手表。';
+  }
+
+  switch (result.reason) {
+    case 'watch_app_not_installed':
+      return '系统还没识别到小提督 Watch App，请重新运行 Watch target 后再试。';
+    case 'watch_connectivity_unavailable':
+      return 'WatchConnectivity 原生通道未接入，请重新安装当前 iOS 构建。';
+    case 'watch_not_paired':
+      return '还没有检测到已配对的 Apple Watch。';
+    case 'watch_session_unavailable':
+      return '当前设备暂时不支持 WatchConnectivity。';
+    default:
+      return result.reason ? `同步到手表失败：${result.reason}` : '同步到手表失败。';
+  }
+}
+
 function formatToiletState(state: WatchTodayState): string {
+  if (!isProStatus(state.proStatus)) {
+    return `${state.toilet.sessionCount} 次`;
+  }
+
   if (!state.toilet.isRunning) {
     return '未进行';
   }
@@ -249,6 +284,14 @@ function formatBoolean(value: boolean | undefined): string {
   }
 
   return value ? '是' : '否';
+}
+
+function formatBundleList(values: string[] | undefined): string {
+  if (!values || values.length === 0) {
+    return '无';
+  }
+
+  return values.join(', ');
 }
 
 function formatDebugTime(value: string): string {

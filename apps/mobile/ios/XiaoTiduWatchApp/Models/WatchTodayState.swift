@@ -18,7 +18,26 @@ struct WatchTodayState: Codable, Equatable {
     var elapsedSeconds: Int
     var isPaused: Bool
     var isRunning: Bool
+    var sessionCount: Int
     var stage: String?
+
+    init(elapsedSeconds: Int, isPaused: Bool, isRunning: Bool, sessionCount: Int, stage: String?) {
+      self.elapsedSeconds = elapsedSeconds
+      self.isPaused = isPaused
+      self.isRunning = isRunning
+      self.sessionCount = sessionCount
+      self.stage = stage
+    }
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+
+      elapsedSeconds = try container.decodeIfPresent(Int.self, forKey: .elapsedSeconds) ?? 0
+      isPaused = try container.decodeIfPresent(Bool.self, forKey: .isPaused) ?? false
+      isRunning = try container.decodeIfPresent(Bool.self, forKey: .isRunning) ?? false
+      sessionCount = try container.decodeIfPresent(Int.self, forKey: .sessionCount) ?? 0
+      stage = try container.decodeIfPresent(String.self, forKey: .stage)
+    }
   }
 
   struct Training: Codable, Equatable {
@@ -42,7 +61,7 @@ struct WatchTodayState: Codable, Equatable {
     habits: Habits(bowelDone: false, completion: 0, fiberDone: false, movementDone: false, waterDone: false),
     pendingEventCount: 0,
     proStatus: "free",
-    toilet: Toilet(elapsedSeconds: 0, isPaused: false, isRunning: false, stage: nil),
+    toilet: Toilet(elapsedSeconds: 0, isPaused: false, isRunning: false, sessionCount: 0, stage: nil),
     training: Training(completedSets: 0, done: false)
   )
 }

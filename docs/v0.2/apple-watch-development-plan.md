@@ -97,8 +97,9 @@ Xcode target：
 - Watch -> iPhone 事件 ACK 已收口：iPhone 原生层暂存 reply handler，JS 处理完事件后返回 `accepted / duplicate / rejected`，Watch 首页展示同步结果或错误。
 - Watch 离线事件队列已增加去重、24 小时过期清理和最多 25 条的容量限制。
 - Watch 蹲会儿页面已支持基于 iPhone 快照本地滚动计时，并按 5/10/15/20 分钟阶段触发不同 haptic；暂停、继续、收工会使用 Watch 当前计算出的用时回传 iPhone。
+- 非 Pro 用户的蹲会儿 Watch 同步已收口为只展示今日次数；iPhone 端构建状态时会清空计时字段，Watch 端也会阻止计时事件进入待同步队列。
 - Watch 端体验已补齐第一轮收口：
-  - 免费版/未开通 Pro 时展示 Pro 锁定态，避免误触云端联动。
+  - 免费版/未开通 Pro 时展示今日低敏状态和 Pro 锁定态，蹲会儿只展示次数，避免误触云端联动。
   - 菊花抬支持训练中暂停、继续、结束确认和完成页。
   - 蹲会儿收工增加确认，避免手表误触。
   - 首页显示离线待同步队列摘要。
@@ -180,6 +181,7 @@ type WatchTodayState = {
     elapsedSeconds: number;
     isPaused: boolean;
     isRunning: boolean;
+    sessionCount: number;
     stage: 'normal' | 'gentle_warning' | 'strong_warning' | 'overtime' | 'severe_warning' | null;
   };
   pendingEventCount: number;
@@ -256,12 +258,14 @@ apps/mobile/src/features/watch/watchStateBuilder.ts
 
 - 从本地训练、小账本、蹲会儿、auth store 计算 `WatchTodayState`。
 - 保持低敏字段。
+- 非 Pro 用户只同步蹲会儿今日次数，不同步进行中计时、暂停状态或阶段。
 - 不访问后端。
 
 验收：
 
 - 单元或类型测试覆盖状态结构。
 - 未登录、免费、Pro、蹲会儿进行中状态都能生成。
+- 免费用户即使 iPhone 有进行中蹲会儿，Watch state 也应表现为 `isRunning = false` 且只带 `sessionCount`。
 
 ### I2. WatchConnectivity 原生桥接
 
@@ -577,12 +581,13 @@ pnpm --filter @xiaotidu/mobile exec expo run:ios --device "iPhone 17 Pro"
 ### 8.3 手动验收
 
 - 未登录时 Watch 显示登录提示。
-- 免费用户 Watch 显示 Pro 提示。
+- 免费用户 Watch 显示今日低敏状态和 Pro 提示，蹲会儿只显示次数。
 - Pro 用户 Watch 首页显示今日状态。
 - Watch 菊花抬完成后 iPhone 更新。
 - Watch 小账本打卡后 iPhone 更新。
 - iPhone 开始蹲会儿后 Watch 显示计时。
 - Watch 收工后 iPhone 收到事件。
+- 免费用户不能从 Watch 发送蹲会儿暂停、继续或收工事件。
 - iPhone 不可达时 Watch 事件进入待同步。
 - 重连后待同步事件清空。
 

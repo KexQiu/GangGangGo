@@ -68,6 +68,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   func sendToiletAction(_ action: String, elapsedSeconds: Int) {
+    guard todayState.isPro else {
+      lastAckMessage = nil
+      lastError = "蹲会儿计时同步需要小提督 Pro。"
+      return
+    }
+
     sendEvent(
       type: "toilet_timer_action",
       payload: [

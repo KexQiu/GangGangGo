@@ -95,6 +95,10 @@ struct WatchHomeView: View {
   }
 
   private var toiletValue: String {
+    if !session.todayState.isPro {
+      return "\(session.todayState.toilet.sessionCount) 次"
+    }
+
     guard session.todayState.toilet.isRunning else {
       return "未进行"
     }

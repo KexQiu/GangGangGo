@@ -75,7 +75,7 @@
 		B30000000000000000000104 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
 				B10000000000000000000108 /* XiaoTiduWatchApp.app in Embed Watch Content */,

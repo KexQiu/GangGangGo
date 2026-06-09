@@ -39,7 +39,6 @@ async function handleIncomingWatchPayload(payload: unknown) {
     const state = getCurrentWatchTodayState();
     const stateJson = JSON.stringify(state);
     useWatchDebugStore.getState().recordBuiltState(state);
-    await sendWatchTodayState(state);
     const ack = {
       eventId: 'request_today_state',
       state,
@@ -48,6 +47,7 @@ async function handleIncomingWatchPayload(payload: unknown) {
     } as const;
     useWatchDebugStore.getState().recordAck(ack);
     await replyToWatchMessage(replyId, ack);
+    void syncWatchTodayState(new Date(), 'watch_state_request');
     return;
   }
 

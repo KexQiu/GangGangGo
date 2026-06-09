@@ -9,6 +9,9 @@ RCT_EXTERN_METHOD(activate:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(getLastReachability:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(getDebugInfo:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(sendTodayState:(NSDictionary *)state
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)

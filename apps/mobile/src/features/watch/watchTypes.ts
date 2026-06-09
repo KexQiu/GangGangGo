@@ -24,6 +24,7 @@ export type WatchTodayState = {
     elapsedSeconds: number;
     isPaused: boolean;
     isRunning: boolean;
+    sessionCount: number;
     stage: null | ToiletTimerStage;
   };
   training: {
@@ -75,6 +76,14 @@ export type WatchConnectivityStatus = {
   isReachable: boolean;
   isSupported: boolean;
   isWatchAppInstalled: boolean;
+};
+
+export type WatchConnectivityDebugInfo = WatchConnectivityStatus & {
+  activationError?: string | null;
+  activationState: string;
+  embeddedWatchBundleIdentifiers: string[];
+  iPhoneBundleIdentifier?: string | null;
+  isSessionSupported: boolean;
 };
 
 export type WatchSyncResult = {

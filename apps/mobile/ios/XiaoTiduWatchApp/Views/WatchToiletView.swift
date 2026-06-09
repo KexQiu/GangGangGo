@@ -13,7 +13,19 @@ struct WatchToiletView: View {
   var body: some View {
     Group {
       if !session.todayState.isPro {
-        WatchProLockedContent()
+        VStack(spacing: 10) {
+          Text("蹲会儿")
+            .font(.headline)
+
+          Text("\(session.todayState.toilet.sessionCount) 次")
+            .font(.system(size: 38, weight: .bold, design: .rounded))
+            .monospacedDigit()
+
+          Text("计时同步需要小提督 Pro。")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
       } else {
         VStack(spacing: 12) {
           Text("蹲会儿")

@@ -51,6 +51,7 @@ pnpm mobile:start -- --clear
 
 ## App 到 Watch：蹲会儿
 
+- [ ] 当前账号为 Pro 或 Pro 宽限期。
 - [ ] iPhone 进入蹲会儿并开始计时。
 - [ ] Watch 首页显示蹲会儿进行中。
 - [ ] Watch 蹲会儿页计时开始滚动。
@@ -63,6 +64,7 @@ pnpm mobile:start -- --clear
 
 ## Watch 到 App：蹲会儿
 
+- [ ] 当前账号为 Pro 或 Pro 宽限期。
 - [ ] iPhone 先开始蹲会儿。
 - [ ] Watch 蹲会儿页点击暂停。
 - [ ] iPhone 蹲会儿页显示已暂停。
@@ -88,6 +90,10 @@ pnpm mobile:start -- --clear
 ## Pro 门槛
 
 - [ ] 免费版或未登录状态下，Watch 首页只显示今日低敏状态。
+- [ ] 免费版状态下，Watch 首页蹲会儿只显示今日次数，例如 `1 次`。
+- [ ] 免费版状态下，即使 iPhone 正在蹲会儿，Watch 也不显示计时、暂停或阶段状态。
+- [ ] 免费版状态下，Watch 蹲会儿页只显示今日次数和 Pro 提示，不显示暂停、继续、收工按钮。
+- [ ] 免费版状态下，iPhone `/watch` 的待同步 JSON 中 `toilet.sessionCount` 为今日次数，`elapsedSeconds = 0`，`isRunning = false`，`isPaused = false`，`stage = null`。
 - [ ] 免费版或未登录状态下，Watch 操作入口显示 Pro 锁定说明。
 - [ ] iPhone 端手动开通 Pro 并同步后，Watch 操作入口恢复可用。
 
@@ -120,7 +126,7 @@ pnpm mobile:start -- --clear
 ## 隐私边界
 
 - [ ] Watch 今日状态不显示便血、不适、排便感受详情。
-- [ ] Watch 只显示低敏状态：训练、小账本完成度、蹲会儿是否进行中。
+- [ ] Watch 只显示低敏状态：训练、小账本完成度、蹲会儿今日次数；Pro 用户可额外显示当前蹲会儿是否进行中。
 - [ ] `/watch` JSON 调试信息仅用于开发，不应在正式版中作为普通用户入口长期暴露。
 
 ## 常见问题定位

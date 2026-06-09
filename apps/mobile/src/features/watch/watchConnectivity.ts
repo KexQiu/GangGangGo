@@ -2,6 +2,7 @@ import { NativeEventEmitter, NativeModules, Platform, type EmitterSubscription }
 
 import {
   type WatchConnectivityStatus,
+  type WatchConnectivityDebugInfo,
   type WatchEventAck,
   type WatchSyncResult,
   type WatchTodayState,
@@ -9,6 +10,7 @@ import {
 
 type NativeWatchConnectivityModule = {
   activate?: () => Promise<boolean>;
+  getDebugInfo?: () => Promise<Omit<WatchConnectivityDebugInfo, 'isSupported'>>;
   getLastReachability?: () => Promise<Omit<WatchConnectivityStatus, 'isSupported'>>;
   addListener: (eventName: string) => void;
   removeListeners: (count: number) => void;
@@ -39,6 +41,34 @@ export async function getWatchConnectivityStatus(): Promise<WatchConnectivitySta
     isReachable: reachability?.isReachable ?? false,
     isSupported: true,
     isWatchAppInstalled: reachability?.isWatchAppInstalled ?? false,
+  };
+}
+
+export async function getWatchConnectivityDebugInfo(): Promise<WatchConnectivityDebugInfo> {
+  if (!isWatchConnectivitySupported()) {
+    return {
+      activationState: 'unsupported',
+      embeddedWatchBundleIdentifiers: [],
+      isPaired: false,
+      isReachable: false,
+      isSessionSupported: false,
+      isSupported: false,
+      isWatchAppInstalled: false,
+    };
+  }
+
+  const debugInfo = await nativeModule?.getDebugInfo?.();
+
+  return {
+    activationError: debugInfo?.activationError ?? null,
+    activationState: debugInfo?.activationState ?? 'unknown',
+    embeddedWatchBundleIdentifiers: debugInfo?.embeddedWatchBundleIdentifiers ?? [],
+    iPhoneBundleIdentifier: debugInfo?.iPhoneBundleIdentifier ?? null,
+    isPaired: debugInfo?.isPaired ?? false,
+    isReachable: debugInfo?.isReachable ?? false,
+    isSessionSupported: debugInfo?.isSessionSupported ?? true,
+    isSupported: true,
+    isWatchAppInstalled: debugInfo?.isWatchAppInstalled ?? false,
   };
 }
 

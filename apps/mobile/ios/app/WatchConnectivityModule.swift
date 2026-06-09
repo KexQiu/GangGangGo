@@ -6,6 +6,8 @@ import WatchConnectivity
 class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
   private let eventName = "WatchConnectivityEvent"
   private var hasListeners = false
+  private var activationCompletions: [(Bool, Error?) -> Void] = []
+  private var isActivating = false
   private var lastTodayStatePayload: [String: Any]?
   private var pendingReplies: [String: ([String: Any]) -> Void] = [:]
   private var pendingReplyTimeouts: [String: DispatchWorkItem] = [:]
@@ -33,13 +35,9 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     _ resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
-    guard configureSession() else {
-      resolve(false)
-      return
+    activateSession { isActivated, _ in
+      resolve(isActivated)
     }
-
-    session?.activate()
-    resolve(true)
   }
 
   @objc(getLastReachability:rejecter:)
@@ -47,7 +45,25 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     _ resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
-    resolve(reachabilityPayload())
+    activateSession { _, _ in
+      resolve(self.reachabilityPayload())
+    }
+  }
+
+  @objc(getDebugInfo:rejecter:)
+  func getDebugInfo(
+    _ resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    activateSession { _, error in
+      var payload = self.reachabilityPayload()
+      payload["activationError"] = error?.localizedDescription
+      payload["activationState"] = self.activationStateDescription()
+      payload["embeddedWatchBundleIdentifiers"] = self.embeddedWatchBundleIdentifiers()
+      payload["iPhoneBundleIdentifier"] = Bundle.main.bundleIdentifier
+      payload["isSessionSupported"] = WCSession.isSupported()
+      resolve(payload)
+    }
   }
 
   @objc(sendTodayState:resolver:rejecter:)
@@ -56,48 +72,57 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     resolver resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
-    guard configureSession(), let session else {
-      resolve(nil)
-      return
-    }
-
-    guard session.isPaired else {
-      resolve([
-        "reason": "watch_not_paired",
-        "sent": false,
-      ])
-      return
-    }
-
-    if session.activationState == .notActivated {
-      session.activate()
-    }
-
-    let statePayload = sanitizedDictionary(state)
-    var payload: [String: Any] = [
-      "sentAt": ISO8601DateFormatter().string(from: Date()),
-      "state": statePayload,
-      "type": "today_state",
-    ]
-    if let stateJson = state["stateJson"] as? String {
-      payload["stateJson"] = stateJson
-    }
-    lastTodayStatePayload = payload
-
-    do {
-      try session.updateApplicationContext(payload)
-      session.transferUserInfo(payload)
-      if session.isReachable {
-        session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+    activateSession { isActivated, error in
+      guard isActivated, let session = self.session else {
+        resolve([
+          "reason": error?.localizedDescription ?? "watch_session_unavailable",
+          "sent": false,
+        ])
+        return
       }
-      resolve([
-        "sent": true,
-      ])
-    } catch {
-      resolve([
-        "reason": error.localizedDescription,
-        "sent": false,
-      ])
+
+      guard session.isPaired else {
+        resolve([
+          "reason": "watch_not_paired",
+          "sent": false,
+        ])
+        return
+      }
+
+      guard session.isWatchAppInstalled else {
+        resolve([
+          "reason": "watch_app_not_installed",
+          "sent": false,
+        ])
+        return
+      }
+
+      let statePayload = self.sanitizedDictionary(state)
+      var payload: [String: Any] = [
+        "sentAt": ISO8601DateFormatter().string(from: Date()),
+        "state": statePayload,
+        "type": "today_state",
+      ]
+      if let stateJson = state["stateJson"] as? String {
+        payload["stateJson"] = stateJson
+      }
+      self.lastTodayStatePayload = payload
+
+      do {
+        try session.updateApplicationContext(payload)
+        session.transferUserInfo(payload)
+        if session.isReachable {
+          session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        }
+        resolve([
+          "sent": true,
+        ])
+      } catch {
+        resolve([
+          "reason": error.localizedDescription,
+          "sent": false,
+        ])
+      }
     }
   }
 
@@ -119,7 +144,14 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     activationDidCompleteWith activationState: WCSessionActivationState,
     error: Error?
   ) {
-    // React Native polls reachability for now. Watch-originated events will be bridged in the watchOS target phase.
+    DispatchQueue.main.async {
+      let completions = self.activationCompletions
+      self.activationCompletions.removeAll()
+      self.isActivating = false
+      completions.forEach { completion in
+        completion(activationState == .activated, error)
+      }
+    }
   }
 
   func sessionDidBecomeInactive(_ session: WCSession) {
@@ -140,16 +172,16 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     replyHandler: @escaping ([String: Any]) -> Void
   ) {
     DispatchQueue.main.async {
-      guard self.hasListeners else {
-        if (message["type"] as? String) == "request_today_state", let statePayload = self.lastTodayStatePayload {
-          var reply = statePayload
-          reply["eventId"] = "request_today_state"
-          reply["repliedAt"] = ISO8601DateFormatter().string(from: Date())
-          reply["status"] = "accepted"
-          replyHandler(reply)
-          return
-        }
+      if (message["type"] as? String) == "request_today_state", let statePayload = self.lastTodayStatePayload {
+        var reply = statePayload
+        reply["eventId"] = "request_today_state"
+        reply["repliedAt"] = ISO8601DateFormatter().string(from: Date())
+        reply["status"] = "accepted"
+        replyHandler(reply)
+        return
+      }
 
+      guard self.hasListeners else {
         replyHandler([
           "message": "iPhone 暂时没有准备好处理手表操作。",
           "repliedAt": ISO8601DateFormatter().string(from: Date()),
@@ -186,6 +218,29 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     return true
   }
 
+  private func activateSession(completion: @escaping (Bool, Error?) -> Void) {
+    DispatchQueue.main.async {
+      guard self.configureSession(), let session = self.session else {
+        completion(false, nil)
+        return
+      }
+
+      if session.activationState == .activated {
+        completion(true, nil)
+        return
+      }
+
+      self.activationCompletions.append(completion)
+
+      guard !self.isActivating else {
+        return
+      }
+
+      self.isActivating = true
+      session.activate()
+    }
+  }
+
   private func emitIncomingMessage(_ message: [String: Any]) {
     guard hasListeners else {
       return
@@ -220,6 +275,37 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
       "isReachable": session.isReachable,
       "isWatchAppInstalled": session.isWatchAppInstalled,
     ]
+  }
+
+  private func activationStateDescription() -> String {
+    guard let session else {
+      return "unsupported"
+    }
+
+    switch session.activationState {
+    case .activated:
+      return "activated"
+    case .inactive:
+      return "inactive"
+    case .notActivated:
+      return "not_activated"
+    @unknown default:
+      return "unknown"
+    }
+  }
+
+  private func embeddedWatchBundleIdentifiers() -> [String] {
+    let watchURL = Bundle.main.bundleURL.appendingPathComponent("Watch", isDirectory: true)
+    guard let watchAppURLs = try? FileManager.default.contentsOfDirectory(
+      at: watchURL,
+      includingPropertiesForKeys: nil
+    ) else {
+      return []
+    }
+
+    return watchAppURLs.compactMap { url in
+      Bundle(url: url)?.bundleIdentifier
+    }
   }
 
   private func sanitizedDictionary(_ dictionary: NSDictionary) -> [String: Any] {

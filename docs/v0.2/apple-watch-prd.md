@@ -33,7 +33,9 @@ Apple Watch 联动属于 **小提督 Pro** 功能。
 
 - iPhone 端 v0.1 本地功能保持完整可用。
 - 可以看到 Apple Watch 功能介绍和 Pro 引导。
-- 不提供 Watch App 的完整同步能力。
+- Watch App 可展示今日低敏状态，其中蹲会儿只展示今日次数。
+- 不提供 Watch App 的完整操作同步能力。
+- 不允许使用 Watch 蹲会儿计时同步、暂停、继续或收工。
 
 Pro 用户：
 
@@ -122,7 +124,9 @@ Watch 首页展示今日低敏状态：
 
 - 菊花抬：`未开始 / 已营业 / 已完成`
 - 小账本：`0/4 - 4/4`
-- 蹲会儿：`未开始 / 进行中 / 已记过`
+- 蹲会儿：
+  - Pro：`未开始 / 进行中 / 已记过`
+  - 非 Pro：只展示今日蹲会儿次数，例如 `1 次`
 - 下一次小暗号：可选展示，只显示隐私文案。
 
 推荐文案：
@@ -158,6 +162,8 @@ Watch 首页展示今日低敏状态：
 
 - 标题：`手腕小助手在 Pro 里`
 - 文案：`Apple Watch 联动属于小提督 Pro。`
+- 首页仍可展示今日低敏状态；蹲会儿只展示次数，不展示计时状态。
+- 训练、小账本、蹲会儿操作入口保持锁定。
 
 ## 7. 菊花抬训练
 
@@ -301,6 +307,8 @@ Watch 只做快速达标，不做三档精细调整。
 ### 9.1 Watch 端目标
 
 Watch 端只做状态查看和快速收工，不鼓励用户在 Watch 上长时间操作。
+
+蹲会儿计时同步属于 Pro 能力。非 Pro 用户在 Watch 端只能看到今日蹲会儿次数，不能查看进行中计时，也不能从 Watch 暂停、继续或收工。
 
 支持：
 
@@ -480,11 +488,21 @@ type WatchTodayState = {
   };
   toilet: {
     elapsedSeconds: number;
+    isPaused: boolean;
     isRunning: boolean;
+    sessionCount: number;
     stage: 'normal' | 'gentle_warning' | 'strong_warning' | 'overtime' | 'severe_warning' | null;
   };
 };
 ```
+
+非 Pro 用户的 `toilet` 字段必须只暴露今日次数：
+
+- `sessionCount` 为今日蹲会儿次数。
+- `elapsedSeconds = 0`。
+- `isRunning = false`。
+- `isPaused = false`。
+- `stage = null`。
 
 ### 11.4 冲突处理
 
@@ -508,8 +526,8 @@ Watch 端可展示：
 
 - 今日是否完成。
 - 小账本完成度。
-- 当前蹲会儿是否进行中。
-- 已用时间。
+- 今日蹲会儿次数。
+- Pro 用户可展示当前蹲会儿是否进行中和已用时间。
 - Pro 状态。
 
 锁屏/表盘 complication 要更克制：
@@ -670,4 +688,3 @@ Watch 端可展示：
 - 真机配对测试。
 - 离线补同步测试。
 - Pro 权限回归。
-

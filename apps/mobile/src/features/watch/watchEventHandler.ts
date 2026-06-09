@@ -1,5 +1,6 @@
 import { getLocalDateKey } from '../habits/habitLogic';
 import { useHabitStore } from '../habits/habitStore';
+import { isProStatus, useAuthStore } from '../account/authStore';
 import { useToiletStore } from '../toilet/toiletStore';
 import {
   getActiveToiletTimerElapsedSeconds,
@@ -75,6 +76,10 @@ async function handleHabitToggled(event: Extract<WatchEvent, { type: 'habit_togg
 }
 
 async function handleToiletTimerAction(event: Extract<WatchEvent, { type: 'toilet_timer_action' }>) {
+  if (!isProStatus(useAuthStore.getState().proStatus)) {
+    throw new Error('蹲会儿计时同步需要小提督 Pro。');
+  }
+
   const sessionStore = useToiletTimerSessionStore.getState();
   const activeSession = sessionStore.session;
 
