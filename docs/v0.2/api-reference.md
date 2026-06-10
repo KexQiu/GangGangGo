@@ -1,7 +1,7 @@
 # 小提督 v0.2 后端接口文档
 
 版本：v0.2
-日期：2026-05-25
+日期：2026-06-10
 阶段：开发联调版
 关联文档：[v0.2 PRD](./prd.md)、[v0.2 开发方案](./development-plan.md)、[后端详细开发方案](./backend-development-plan.md)
 
@@ -93,6 +93,7 @@ POST /auth/apple
 - `GET /reports/advanced`
 - `GET /teams/current/reports/weekly`
 - `PUT /report-snapshots/today`
+- `PUT /report-snapshots/bulk`
 
 以下接口允许免费用户继续使用，便于取消订阅后保留关系和基本数据控制：
 
@@ -176,6 +177,46 @@ type DailyReportSnapshot = DailyShareSnapshot & {
   ninetyDayHabitFullDays: number;
   ninetyDayToiletLongMeetingCount: number;
   ninetyDayTrainingDays: number;
+};
+```
+
+### 3.6 AdvancedReportDay
+
+```ts
+type AdvancedReportDay = {
+  date: string; // YYYY-MM-DD
+  trainingDone: boolean;
+  habitCompletion: 0 | 1 | 2 | 3 | 4;
+  habitFull: boolean;
+  toiletRecorded: boolean;
+  toiletLongMeeting: boolean;
+};
+```
+
+### 3.7 AdvancedReportSummary
+
+```ts
+type AdvancedReportSummary = {
+  recordDays: number;
+  trainingDays: number;
+  habitFullDays: number;
+  toiletRecordDays: number;
+  toiletLongMeetingCount: number;
+  currentStreakDays: number;
+  hasAnyRecord: boolean;
+};
+```
+
+### 3.8 AdvancedReportResponse
+
+```ts
+type AdvancedReportResponse = {
+  range: '90d';
+  startedAt: string; // YYYY-MM-DD
+  endedAt: string; // YYYY-MM-DD
+  summary: AdvancedReportSummary;
+  days: AdvancedReportDay[];
+  snapshot: DailyReportSnapshot | null;
 };
 ```
 
@@ -1117,7 +1158,7 @@ Pro：需要
 鉴权：需要
 Pro：需要
 
-用途：查询个人高级小报告。
+用途：查询个人 90 天高级小报告。服务端按当前用户 `timezone` 计算最近 90 天窗口，`days` 按日期升序返回。`snapshot` 保留窗口内最新一天记录，用于兼容旧调用方。
 
 查询参数：
 
@@ -1127,10 +1168,33 @@ Pro：需要
 
 响应：
 
+示例中的 `days` 仅展示一条，实际响应会返回 90 天窗口内的完整每日序列。
+
 ```json
 {
   "data": {
     "range": "90d",
+    "startedAt": "2026-03-13",
+    "endedAt": "2026-06-10",
+    "summary": {
+      "recordDays": 0,
+      "trainingDays": 0,
+      "habitFullDays": 0,
+      "toiletRecordDays": 0,
+      "toiletLongMeetingCount": 0,
+      "currentStreakDays": 0,
+      "hasAnyRecord": false
+    },
+    "days": [
+      {
+        "date": "2026-03-13",
+        "trainingDone": false,
+        "habitCompletion": 0,
+        "habitFull": false,
+        "toiletRecorded": false,
+        "toiletLongMeeting": false
+      }
+    ],
     "snapshot": null
   }
 }
@@ -1142,8 +1206,29 @@ Pro：需要
 {
   "data": {
     "range": "90d",
+    "startedAt": "2026-03-13",
+    "endedAt": "2026-06-10",
+    "summary": {
+      "recordDays": 45,
+      "trainingDays": 36,
+      "habitFullDays": 24,
+      "toiletRecordDays": 39,
+      "toiletLongMeetingCount": 2,
+      "currentStreakDays": 9,
+      "hasAnyRecord": true
+    },
+    "days": [
+      {
+        "date": "2026-06-10",
+        "trainingDone": true,
+        "habitCompletion": 4,
+        "habitFull": true,
+        "toiletRecorded": true,
+        "toiletLongMeeting": false
+      }
+    ],
     "snapshot": {
-      "date": "2026-05-25",
+      "date": "2026-06-10",
       "habitCompletion": 4,
       "habitFull": true,
       "ninetyDayHabitFullDays": 24,
@@ -1169,9 +1254,9 @@ Pro：需要
 鉴权：需要
 Pro：需要
 
-用途：上传个人高级小报告摘要。
+用途：上传单日个人高级小报告摘要。
 
-注意：该快照只用于用户自己的高级报告，不给搭子看。
+注意：该快照只用于用户自己的高级报告，不给搭子看。移动端当前主要使用批量上传接口补齐最近 90 天，单日接口保留用于兼容和调试。
 
 请求：
 
@@ -1221,6 +1306,112 @@ Pro：需要
       "weeklyToiletLongMeetingCount": 0,
       "weeklyTrainingDays": 5
     }
+  }
+}
+```
+
+### PUT /report-snapshots/bulk
+
+鉴权：需要
+Pro：需要
+
+用途：批量上传个人高级小报告摘要，单批最多 90 条。
+
+规则：
+
+- 请求体验证失败时，整批拒绝。
+- 同一批内同一天重复数据保留请求内最后一条。
+- 服务端按 `userId + date` upsert。
+- 该快照只用于用户自己的高级报告，不给搭子看。
+
+请求：
+
+```json
+{
+  "snapshots": [
+    {
+      "date": "2026-06-09",
+      "habitCompletion": 2,
+      "habitFull": false,
+      "ninetyDayHabitFullDays": 23,
+      "ninetyDayToiletLongMeetingCount": 2,
+      "ninetyDayTrainingDays": 35,
+      "streakDays": 8,
+      "thirtyDayHabitFullDays": 9,
+      "thirtyDayToiletLongMeetingCount": 1,
+      "thirtyDayTrainingDays": 12,
+      "toiletLongMeeting": false,
+      "toiletRecorded": true,
+      "trainingDone": false,
+      "weeklyHabitFullDays": 3,
+      "weeklyToiletLongMeetingCount": 0,
+      "weeklyTrainingDays": 4
+    },
+    {
+      "date": "2026-06-10",
+      "habitCompletion": 4,
+      "habitFull": true,
+      "ninetyDayHabitFullDays": 24,
+      "ninetyDayToiletLongMeetingCount": 2,
+      "ninetyDayTrainingDays": 36,
+      "streakDays": 9,
+      "thirtyDayHabitFullDays": 10,
+      "thirtyDayToiletLongMeetingCount": 1,
+      "thirtyDayTrainingDays": 13,
+      "toiletLongMeeting": false,
+      "toiletRecorded": true,
+      "trainingDone": true,
+      "weeklyHabitFullDays": 4,
+      "weeklyToiletLongMeetingCount": 0,
+      "weeklyTrainingDays": 5
+    }
+  ]
+}
+```
+
+响应：
+
+```json
+{
+  "data": {
+    "snapshots": [
+      {
+        "date": "2026-06-09",
+        "habitCompletion": 2,
+        "habitFull": false,
+        "ninetyDayHabitFullDays": 23,
+        "ninetyDayToiletLongMeetingCount": 2,
+        "ninetyDayTrainingDays": 35,
+        "streakDays": 8,
+        "thirtyDayHabitFullDays": 9,
+        "thirtyDayToiletLongMeetingCount": 1,
+        "thirtyDayTrainingDays": 12,
+        "toiletLongMeeting": false,
+        "toiletRecorded": true,
+        "trainingDone": false,
+        "weeklyHabitFullDays": 3,
+        "weeklyToiletLongMeetingCount": 0,
+        "weeklyTrainingDays": 4
+      },
+      {
+        "date": "2026-06-10",
+        "habitCompletion": 4,
+        "habitFull": true,
+        "ninetyDayHabitFullDays": 24,
+        "ninetyDayToiletLongMeetingCount": 2,
+        "ninetyDayTrainingDays": 36,
+        "streakDays": 9,
+        "thirtyDayHabitFullDays": 10,
+        "thirtyDayToiletLongMeetingCount": 1,
+        "thirtyDayTrainingDays": 13,
+        "toiletLongMeeting": false,
+        "toiletRecorded": true,
+        "trainingDone": true,
+        "weeklyHabitFullDays": 4,
+        "weeklyToiletLongMeetingCount": 0,
+        "weeklyTrainingDays": 5
+      }
+    ]
   }
 }
 ```
@@ -1329,4 +1520,5 @@ curl http://localhost:8787/health/db
 11. `POST /push-tokens`
 12. `POST /nudges`、`GET /nudges/inbox`、`POST /nudges/:id/ack`
 13. `GET /reports/advanced`
-14. `GET /teams/current/reports/weekly`
+14. `PUT /report-snapshots/bulk`
+15. `GET /teams/current/reports/weekly`

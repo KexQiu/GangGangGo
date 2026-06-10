@@ -119,7 +119,7 @@ apps/mobile/src/
 | `features/habits` | 小账本标准、快速打卡、详情滑块 |
 | `features/reminders` | 小暗号提醒、多段勿扰、本地通知 |
 | `features/today` | 首页今日正反馈 |
-| `features/trends` | 最近小报告 7 天与 30 天统计 |
+| `features/trends` | 最近小报告 7 天与 30 天统计、90 天高级小报告同步与展示 |
 | `features/settings` | App 设置、灵动岛计时、阶段音效开关 |
 
 ### 3.3 iOS 原生工程

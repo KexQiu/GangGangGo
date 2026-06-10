@@ -353,13 +353,13 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | toilet_recorded | boolean | 今日是否记过蹲会儿 |
 | toilet_long_meeting | boolean | 今日是否出现蹲会儿长会，仅用户自己报告可用 |
 | streak_days | integer | 连续完成天数 |
-| weekly_training_days | smallint | 近 7 天菊花抬营业天数 |
+| weekly_training_days | smallint | 近 7 天小花训练达标天数 |
 | weekly_habit_full_days | smallint | 近 7 天小账本满格天数 |
 | weekly_toilet_long_meeting_count | smallint | 近 7 天蹲会儿长会次数 |
-| thirty_day_training_days | smallint | 近 30 天菊花抬营业天数 |
+| thirty_day_training_days | smallint | 近 30 天小花训练达标天数 |
 | thirty_day_habit_full_days | smallint | 近 30 天小账本满格天数 |
 | thirty_day_toilet_long_meeting_count | smallint | 近 30 天蹲会儿长会次数 |
-| ninety_day_training_days | smallint | 近 90 天菊花抬营业天数 |
+| ninety_day_training_days | smallint | 近 90 天小花训练达标天数 |
 | ninety_day_habit_full_days | smallint | 近 90 天小账本满格天数 |
 | ninety_day_toilet_long_meeting_count | smallint | 近 90 天蹲会儿长会次数 |
 | created_at | timestamptz | 创建时间 |
@@ -878,12 +878,13 @@ v0.2 不需要复杂异步任务系统。可以先按请求实时聚合或每日
 建议策略：
 
 - 90 天个人报告：按 `daily_report_snapshots` 聚合，只给用户自己看。
+- 90 天个人报告返回用户时区内最近 90 天升序每日序列、汇总指标和最新 `snapshot` 兼容字段。
 - 小队周报：按小队成员近 7 天 `daily_share_snapshots` 聚合，只展示低敏状态。
 - 结果不长期缓存，或只缓存短期摘要。
 
 可展示指标：
 
-- 菊花抬营业天数。
+- 小花训练达标天数。
 - 小账本满格天数。
 - 蹲会儿记过天数。
 - 蹲会儿长会趋势只用本地或用户显式授权摘要，v0.2 不从云端推断敏感细节。
@@ -1166,18 +1167,19 @@ API base URL：
 4. `pro_active` 和 `pro_grace_period` 可访问；`free / pro_expired` 返回 `403 forbidden`。
 5. 个人 90 天报告读取 `daily_report_snapshots` 最新摘要；没有数据时返回 `snapshot: null`。
 6. 小队周报基于 `daily_share_snapshots` 聚合最近 7 天成员数据。
-7. 小队周报只统计低敏字段：菊花抬营业天数、小账本满格天数、蹲会儿记过天数。
+7. 小队周报只统计低敏字段：小花训练达标天数、小账本满格天数、蹲会儿记过天数。
 8. 小队周报会应用成员共享设置；暂停共享或关闭某项共享后，对应字段不会计入周报。
 9. Mock 模式下支持 Pro 权益注入测试，方便无数据库开发。
-10. 实现 `PUT /report-snapshots/today` 上传个人高级小报告摘要。
-11. 上传接口要求 Pro 权益，免费用户不能产生云端报告数据。
-12. 上传数据只允许低敏聚合字段，不允许便血、不适、排便感受和具体蹲会儿时长。
+10. 保留 `PUT /report-snapshots/today` 上传单日个人高级小报告摘要。
+11. 实现 `PUT /report-snapshots/bulk` 批量上传最近 90 天个人高级小报告摘要，单批最多 90 条。
+12. 上传接口要求 Pro 权益，免费用户不能产生云端报告数据。
+13. 上传数据按 `user_id + date` upsert；同一批内同一天重复数据以请求内最后一条为准。
+14. 上传数据只允许低敏聚合字段，不允许便血、不适、排便感受和具体蹲会儿时长。
 
 暂未实现：
 
-- 高级小报告页面和 paywall。
-- 90 天范围内多日明细展示，目前返回最新聚合摘要。
 - 小队周报推送或定时生成。
+- 90 天报告的更多对比维度，例如最近 30 天对比前 30 天。
 
 验收：
 
