@@ -104,7 +104,7 @@ export function getReminderHomeSummary(settings: ReminderSettings, now = new Dat
   if (settings.kegelEnabled && nextKegelTime) {
     return {
       subtitle: settings.privacyMode
-        ? `下一次小花营业 ${nextKegelTime}`
+        ? `下一次小花锻炼 ${nextKegelTime}`
         : `下一次菊花抬 ${nextKegelTime}`,
       title: settings.privacyMode ? '小暗号已开启' : '菊花抬已安排',
     };
@@ -128,7 +128,7 @@ export function getReminderCopy(kind: ReminderKind, privacyMode: boolean) {
     return privacyMode
       ? {
           body: '1 分钟，暗号已到。',
-          title: '小花营业时间',
+          title: '小花锻炼时间',
         }
       : {
           body: '轻提轻放，1 分钟就好。',
