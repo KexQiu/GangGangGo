@@ -141,27 +141,31 @@ export default function TrendsScreen() {
         {isPro ? (
           <>
             <Text style={styles.proTitle}>90 天回看</Text>
-            {advancedReport?.snapshot ? (
+            {advancedReport?.summary.hasAnyRecord ? (
               <View style={styles.summaryGrid}>
                 <SummaryTile
                   label="小花营业"
                   tone="primary"
-                  value={`${advancedReport.snapshot.ninetyDayTrainingDays} 天`}
+                  value={`${advancedReport.summary.trainingDays} 天`}
                 />
                 <SummaryTile
                   label="小账本满格"
                   tone="primary"
-                  value={`${advancedReport.snapshot.ninetyDayHabitFullDays} 天`}
+                  value={`${advancedReport.summary.habitFullDays} 天`}
                 />
                 <SummaryTile
                   label="蹲会儿长会"
                   tone="warning"
-                  value={`${advancedReport.snapshot.ninetyDayToiletLongMeetingCount} 次`}
+                  value={`${advancedReport.summary.toiletLongMeetingCount} 次`}
                 />
+                <SummaryTile label="有记录" tone="primary" value={`${advancedReport.summary.recordDays} 天`} />
               </View>
             ) : (
               <Text style={styles.mutedText}>高级小报告还在等第一笔云端摘要。完成今天的本地记录后会自动同步。</Text>
             )}
+            <AppButton onPress={() => router.push(routes.advancedReport)} style={styles.proButton} variant="secondary">
+              查看 90 天回看
+            </AppButton>
           </>
         ) : (
           <>

@@ -4,6 +4,7 @@ import {
   BUDDY_NUDGE_ACK_STATUSES,
   BUDDY_NUDGE_DAILY_LIMITS,
   BUDDY_NUDGE_TYPES,
+  type AdvancedReportResponse,
   type ApiSuccessResponse,
   type DailyShareSnapshot,
   type TeamSnapshotsResponse,
@@ -39,5 +40,38 @@ describe('contracts exports', () => {
       'toiletRecorded',
       'trainingDone',
     ]);
+  });
+
+  it('keeps advanced report responses compatible with daily snapshot summaries', () => {
+    const response = {
+      data: {
+        days: [
+          {
+            date: '2026-05-22',
+            habitCompletion: 4,
+            habitFull: true,
+            toiletLongMeeting: false,
+            toiletRecorded: true,
+            trainingDone: true,
+          },
+        ],
+        endedAt: '2026-05-22',
+        range: '90d',
+        snapshot: null,
+        startedAt: '2026-02-22',
+        summary: {
+          currentStreakDays: 3,
+          habitFullDays: 1,
+          hasAnyRecord: true,
+          recordDays: 1,
+          toiletLongMeetingCount: 0,
+          toiletRecordDays: 1,
+          trainingDays: 1,
+        },
+      },
+    } satisfies ApiSuccessResponse<AdvancedReportResponse>;
+
+    expect(response.data.range).toBe('90d');
+    expect(response.data.days[0]?.habitCompletion).toBe(4);
   });
 });

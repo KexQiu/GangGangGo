@@ -17,6 +17,7 @@ import type {
   CreateTeamInviteResponse,
   CreateTeamRequest,
   DailyReportSnapshotResponse,
+  DailyReportSnapshotsBulkResponse,
   DailyShareSnapshotResponse,
   DatabaseHealthResponse,
   EntitlementsResponse,
@@ -35,6 +36,7 @@ import type {
   UpdateTeamMemberStatusRequest,
   UpdateTeamRequest,
   UpsertDailyReportSnapshotRequest,
+  UpsertDailyReportSnapshotsBulkRequest,
   UpsertDailyShareSnapshotRequest,
   VerifySubscriptionRequest,
 } from '@xiaotidu/contracts';
@@ -154,6 +156,8 @@ export const apiClient = {
     request<AuthResponse['user']>('/me', { body, method: 'PATCH', token }),
   upsertReportSnapshot: (body: UpsertDailyReportSnapshotRequest, token: string) =>
     request<DailyReportSnapshotResponse>('/report-snapshots/today', { body, method: 'PUT', token }),
+  upsertReportSnapshotsBulk: (body: UpsertDailyReportSnapshotsBulkRequest, token: string) =>
+    request<DailyReportSnapshotsBulkResponse>('/report-snapshots/bulk', { body, method: 'PUT', token }),
   upsertShareSnapshot: (body: UpsertDailyShareSnapshotRequest, token: string) =>
     request<DailyShareSnapshotResponse>('/share-snapshots/today', { body, method: 'PUT', token }),
   verifySubscription: (body: VerifySubscriptionRequest, token: string) =>

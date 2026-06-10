@@ -13,6 +13,7 @@ export const routes = {
   toilet: '/toilet',
   toiletComplete: '/toilet/complete',
   trends: '/trends',
+  advancedReport: '/trends/advanced',
   training: '/training',
   trainingComplete: '/training/complete',
   trainingSession: '/training/session',

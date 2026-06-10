@@ -10,7 +10,13 @@ import { useTrainingStore } from '../training/trainingStore';
 import { buildSevenDayTrend, buildThirtyDaySummary } from '../trends/trendLogic';
 import { buildTodayShareSnapshot } from './shareSnapshotSync';
 
+const recentReportDays = 90;
+
 export async function syncTodayReportSnapshot(): Promise<boolean> {
+  return syncRecentReportSnapshots();
+}
+
+export async function syncRecentReportSnapshots(): Promise<boolean> {
   const { accessToken, proStatus } = useAuthStore.getState();
 
   if (!accessToken || !isProStatus(proStatus)) {
@@ -18,9 +24,9 @@ export async function syncTodayReportSnapshot(): Promise<boolean> {
   }
 
   try {
-    await apiClient.upsertReportSnapshot(
+    await apiClient.upsertReportSnapshotsBulk(
       {
-        snapshot: buildTodayReportSnapshot(),
+        snapshots: buildRecentReportSnapshots(),
       },
       accessToken,
     );
@@ -31,6 +37,14 @@ export async function syncTodayReportSnapshot(): Promise<boolean> {
 }
 
 export function buildTodayReportSnapshot(now = new Date()): DailyReportSnapshot {
+  return buildReportSnapshotForDate(now);
+}
+
+export function buildRecentReportSnapshots(now = new Date()): DailyReportSnapshot[] {
+  return buildRecentDates(recentReportDays, now).map((date) => buildReportSnapshotForDate(date));
+}
+
+function buildReportSnapshotForDate(now = new Date()): DailyReportSnapshot {
   const habitCheckIns = useHabitStore.getState().checkIns;
   const toiletSessions = useToiletStore.getState().sessions;
   const trainingSessions = useTrainingStore.getState().sessions;
@@ -58,6 +72,17 @@ export function buildTodayReportSnapshot(now = new Date()): DailyReportSnapshot 
     weeklyToiletLongMeetingCount: sevenDay.longToiletCount,
     weeklyTrainingDays: clampWeekCount(sevenDay.trainingActiveDays),
   };
+}
+
+function buildRecentDates(days: number, now: Date) {
+  const end = new Date(now);
+  end.setHours(12, 0, 0, 0);
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(end);
+    date.setDate(end.getDate() - (days - 1 - index));
+    return date;
+  });
 }
 
 function buildRangeSummary(days: number, now: Date) {

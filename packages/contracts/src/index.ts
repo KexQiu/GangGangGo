@@ -149,8 +149,16 @@ export type UpsertDailyReportSnapshotRequest = {
   snapshot: DailyReportSnapshot;
 };
 
+export type UpsertDailyReportSnapshotsBulkRequest = {
+  snapshots: DailyReportSnapshot[];
+};
+
 export type DailyReportSnapshotResponse = {
   snapshot: DailyReportSnapshot;
+};
+
+export type DailyReportSnapshotsBulkResponse = {
+  snapshots: DailyReportSnapshot[];
 };
 
 export type TeamMemberRole = 'owner' | 'buddy';
@@ -306,9 +314,32 @@ export type RegisterPushTokenResponse = {
 
 export type AdvancedReportRange = '90d';
 
+export type AdvancedReportDay = {
+  date: string;
+  habitCompletion: 0 | 1 | 2 | 3 | 4;
+  habitFull: boolean;
+  toiletLongMeeting: boolean;
+  toiletRecorded: boolean;
+  trainingDone: boolean;
+};
+
+export type AdvancedReportSummary = {
+  currentStreakDays: number;
+  habitFullDays: number;
+  hasAnyRecord: boolean;
+  recordDays: number;
+  toiletLongMeetingCount: number;
+  toiletRecordDays: number;
+  trainingDays: number;
+};
+
 export type AdvancedReportResponse = {
+  days: AdvancedReportDay[];
+  endedAt: string;
   range: AdvancedReportRange;
   snapshot: DailyReportSnapshot | null;
+  startedAt: string;
+  summary: AdvancedReportSummary;
 };
 
 export type TeamWeeklyReportResponse = {

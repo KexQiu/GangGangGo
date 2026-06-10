@@ -4,6 +4,7 @@ import type { AdvancedReportResponse, TeamWeeklyReportResponse } from '@xiaotidu
 
 import { apiClient } from '../../api/client';
 import { isProStatus, toUserMessage, useAuthStore } from '../account/authStore';
+import { syncRecentReportSnapshots } from '../sync/reportSnapshotSync';
 
 type ReportState = {
   advancedReport: AdvancedReportResponse | null;
@@ -29,6 +30,7 @@ export const useReportStore = create<ReportState>((set) => ({
     set({ error: null, isLoading: true });
 
     try {
+      await syncRecentReportSnapshots();
       const advancedReport = await apiClient.getAdvancedReport(accessToken);
       set({ advancedReport, error: null, isLoading: false });
     } catch (error) {

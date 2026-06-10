@@ -4,9 +4,11 @@ import { z } from 'zod';
 import type {
   AdvancedReportResponse,
   DailyReportSnapshotResponse,
+  DailyReportSnapshotsBulkResponse,
   ProStatus,
   TeamWeeklyReportResponse,
   UpsertDailyReportSnapshotRequest,
+  UpsertDailyReportSnapshotsBulkRequest,
 } from '@xiaotidu/contracts';
 
 import { ApiError } from '../http/apiError.js';
@@ -47,6 +49,9 @@ const dailyReportSnapshotSchema = z.object({
 });
 const upsertDailyReportSnapshotSchema = z.object({
   snapshot: dailyReportSnapshotSchema,
+});
+const upsertDailyReportSnapshotsBulkSchema = z.object({
+  snapshots: z.array(dailyReportSnapshotSchema).min(1).max(90),
 });
 
 type CreateReportsRouteOptions = {
@@ -101,6 +106,22 @@ export function createReportsRoute(options: CreateReportsRouteOptions) {
     const body: DailyReportSnapshotResponse = await options.reportService.upsertDailyReportSnapshot(
       currentUser,
       request.snapshot,
+    );
+
+    return context.json(toSuccessResponse(body));
+  });
+
+  route.put('/report-snapshots/bulk', async (context) => {
+    const currentUser = context.get('currentUser');
+    const request = upsertDailyReportSnapshotsBulkSchema.parse(
+      await context.req.json(),
+    ) satisfies UpsertDailyReportSnapshotsBulkRequest;
+
+    await requirePro(options.entitlementsService, currentUser);
+
+    const body: DailyReportSnapshotsBulkResponse = await options.reportService.upsertDailyReportSnapshots(
+      currentUser,
+      request.snapshots,
     );
 
     return context.json(toSuccessResponse(body));

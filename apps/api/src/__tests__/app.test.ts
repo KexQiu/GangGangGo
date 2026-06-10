@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TeamMember } from '@xiaotidu/contracts';
+import type { DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { createApiApp } from '../app.js';
 import { ApiError } from '../http/apiError.js';
@@ -53,6 +53,47 @@ async function login(
   const loginBody = await loginResponse.json();
 
   return loginBody.data.token as string;
+}
+
+function getTestDateKey(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return date.toISOString().slice(0, 10);
+}
+
+function createDailyReportSnapshot(input: Partial<DailyReportSnapshot> = {}): DailyReportSnapshot {
+  return {
+    date: getTestDateKey(),
+    habitCompletion: 4,
+    habitFull: true,
+    ninetyDayHabitFullDays: 24,
+    ninetyDayToiletLongMeetingCount: 2,
+    ninetyDayTrainingDays: 36,
+    streakDays: 9,
+    thirtyDayHabitFullDays: 10,
+    thirtyDayToiletLongMeetingCount: 1,
+    thirtyDayTrainingDays: 13,
+    toiletLongMeeting: false,
+    toiletRecorded: true,
+    trainingDone: true,
+    weeklyHabitFullDays: 4,
+    weeklyToiletLongMeetingCount: 0,
+    weeklyTrainingDays: 5,
+    ...input,
+  };
 }
 
 describe('api app', () => {
@@ -399,25 +440,42 @@ describe('api app', () => {
     };
     const reportService: ReportService = {
       async getAdvancedReport(_currentUser, range) {
+        const snapshot = createDailyReportSnapshot({
+          date: '2026-05-22',
+          ninetyDayHabitFullDays: 20,
+          ninetyDayToiletLongMeetingCount: 2,
+          ninetyDayTrainingDays: 31,
+          streakDays: 8,
+          thirtyDayHabitFullDays: 9,
+          thirtyDayToiletLongMeetingCount: 1,
+          thirtyDayTrainingDays: 12,
+          weeklyHabitFullDays: 3,
+          weeklyTrainingDays: 4,
+        });
+
         return {
+          days: [
+            {
+              date: snapshot.date,
+              habitCompletion: snapshot.habitCompletion,
+              habitFull: snapshot.habitFull,
+              toiletLongMeeting: snapshot.toiletLongMeeting,
+              toiletRecorded: snapshot.toiletRecorded,
+              trainingDone: snapshot.trainingDone,
+            },
+          ],
+          endedAt: snapshot.date,
           range,
-          snapshot: {
-            date: '2026-05-22',
-            habitCompletion: 4,
-            habitFull: true,
-            ninetyDayHabitFullDays: 20,
-            ninetyDayToiletLongMeetingCount: 2,
-            ninetyDayTrainingDays: 31,
-            streakDays: 8,
-            thirtyDayHabitFullDays: 9,
-            thirtyDayToiletLongMeetingCount: 1,
-            thirtyDayTrainingDays: 12,
-            toiletLongMeeting: false,
-            toiletRecorded: true,
-            trainingDone: true,
-            weeklyHabitFullDays: 3,
-            weeklyToiletLongMeetingCount: 0,
-            weeklyTrainingDays: 4,
+          snapshot,
+          startedAt: '2026-02-22',
+          summary: {
+            currentStreakDays: snapshot.streakDays,
+            habitFullDays: 20,
+            hasAnyRecord: true,
+            recordDays: 31,
+            toiletLongMeetingCount: 2,
+            toiletRecordDays: 20,
+            trainingDays: 31,
           },
         };
       },
@@ -432,6 +490,11 @@ describe('api app', () => {
       async upsertDailyReportSnapshot(_currentUser, snapshot) {
         return {
           snapshot,
+        };
+      },
+      async upsertDailyReportSnapshots(_currentUser, snapshots) {
+        return {
+          snapshots,
         };
       },
     };
@@ -490,8 +553,20 @@ describe('api app', () => {
     const reportService: ReportService = {
       async getAdvancedReport() {
         return {
+          days: [],
+          endedAt: '2026-05-22',
           range: '90d',
           snapshot: null,
+          startedAt: '2026-02-22',
+          summary: {
+            currentStreakDays: 0,
+            habitFullDays: 0,
+            hasAnyRecord: false,
+            recordDays: 0,
+            toiletLongMeetingCount: 0,
+            toiletRecordDays: 0,
+            trainingDays: 0,
+          },
         };
       },
       async getTeamWeeklyReport(currentUser) {
@@ -520,6 +595,11 @@ describe('api app', () => {
       async upsertDailyReportSnapshot(_currentUser, snapshot) {
         return {
           snapshot,
+        };
+      },
+      async upsertDailyReportSnapshots(_currentUser, snapshots) {
+        return {
+          snapshots,
         };
       },
     };
@@ -660,24 +740,7 @@ describe('api app', () => {
     const token = await login(app, {
       identityToken: 'report-snapshot-token',
     });
-    const snapshot = {
-      date: '2026-05-22',
-      habitCompletion: 4,
-      habitFull: true,
-      ninetyDayHabitFullDays: 24,
-      ninetyDayToiletLongMeetingCount: 2,
-      ninetyDayTrainingDays: 36,
-      streakDays: 9,
-      thirtyDayHabitFullDays: 10,
-      thirtyDayToiletLongMeetingCount: 1,
-      thirtyDayTrainingDays: 13,
-      toiletLongMeeting: false,
-      toiletRecorded: true,
-      trainingDone: true,
-      weeklyHabitFullDays: 4,
-      weeklyToiletLongMeetingCount: 0,
-      weeklyTrainingDays: 5,
-    };
+    const snapshot = createDailyReportSnapshot();
     const upsertResponse = await app.request('/report-snapshots/today', {
       body: JSON.stringify({ snapshot }),
       headers: {
@@ -700,6 +763,128 @@ describe('api app', () => {
 
     expect(reportResponse.status).toBe(200);
     expect(reportBody.data.snapshot).toEqual(snapshot);
+    expect(reportBody.data.days).toHaveLength(90);
+    expect(reportBody.data.days.at(-1)).toMatchObject({
+      date: snapshot.date,
+      habitFull: true,
+      trainingDone: true,
+    });
+    expect(reportBody.data.summary).toMatchObject({
+      currentStreakDays: 9,
+      habitFullDays: 1,
+      hasAnyRecord: true,
+      recordDays: 1,
+      toiletLongMeetingCount: 2,
+      toiletRecordDays: 1,
+      trainingDays: 1,
+    });
+  });
+
+  it('bulk upserts Pro report snapshots with 90-day validation and duplicate date handling', async () => {
+    const snapshotDate = getTestDateKey();
+    const previousDate = addDaysToDateKey(snapshotDate, -1);
+    const freeApp = createTestApp();
+    const freeToken = await login(freeApp, {
+      identityToken: 'bulk-report-free-token',
+    });
+    const freeResponse = await freeApp.request('/report-snapshots/bulk', {
+      body: JSON.stringify({
+        snapshots: [createDailyReportSnapshot({ date: snapshotDate })],
+      }),
+      headers: {
+        authorization: `Bearer ${freeToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'PUT',
+    });
+
+    expect(freeResponse.status).toBe(403);
+
+    const app = createApiApp({
+      entitlementsService: proEntitlementsService,
+      logger: testLogger,
+    });
+    const token = await login(app, {
+      identityToken: 'bulk-report-pro-token',
+    });
+    const staleSnapshot = createDailyReportSnapshot({
+      date: previousDate,
+      habitCompletion: 1,
+      habitFull: false,
+      ninetyDayHabitFullDays: 1,
+      ninetyDayTrainingDays: 1,
+      toiletRecorded: false,
+      trainingDone: false,
+      weeklyHabitFullDays: 1,
+      weeklyTrainingDays: 1,
+    });
+    const latestPreviousSnapshot = createDailyReportSnapshot({
+      date: previousDate,
+      ninetyDayHabitFullDays: 2,
+      ninetyDayTrainingDays: 2,
+    });
+    const latestSnapshot = createDailyReportSnapshot({
+      date: snapshotDate,
+      ninetyDayHabitFullDays: 3,
+      ninetyDayToiletLongMeetingCount: 4,
+      ninetyDayTrainingDays: 3,
+      streakDays: 2,
+    });
+    const bulkResponse = await app.request('/report-snapshots/bulk', {
+      body: JSON.stringify({
+        snapshots: [staleSnapshot, latestPreviousSnapshot, latestSnapshot],
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PUT',
+    });
+    const bulkBody = await bulkResponse.json();
+
+    expect(bulkResponse.status).toBe(200);
+    expect(bulkBody.data.snapshots).toHaveLength(2);
+    expect(bulkBody.data.snapshots[0]).toMatchObject({
+      date: previousDate,
+      ninetyDayHabitFullDays: 2,
+    });
+
+    const reportResponse = await app.request('/reports/advanced?range=90d', {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const reportBody = await reportResponse.json();
+    const previousDay = reportBody.data.days.find((day: { date: string }) => day.date === previousDate);
+
+    expect(reportResponse.status).toBe(200);
+    expect(reportBody.data.days).toHaveLength(90);
+    expect(previousDay).toMatchObject({
+      habitFull: true,
+      trainingDone: true,
+    });
+    expect(reportBody.data.summary).toMatchObject({
+      currentStreakDays: 2,
+      habitFullDays: 2,
+      recordDays: 2,
+      toiletLongMeetingCount: 4,
+      trainingDays: 2,
+    });
+
+    const oversizedResponse = await app.request('/report-snapshots/bulk', {
+      body: JSON.stringify({
+        snapshots: Array.from({ length: 91 }, () => latestSnapshot),
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PUT',
+    });
+    const oversizedBody = await oversizedResponse.json();
+
+    expect(oversizedResponse.status).toBe(400);
+    expect(oversizedBody.error.code).toBe('validation_error');
   });
 
   it('returns pending subscription verification placeholders', async () => {

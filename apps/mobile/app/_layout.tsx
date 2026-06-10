@@ -8,7 +8,7 @@ import { useAuthStore } from '../src/features/account/authStore';
 import { useHabitStore } from '../src/features/habits/habitStore';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import { registerPushTokenIfAllowed } from '../src/features/sync/pushTokenSync';
-import { syncTodayReportSnapshot } from '../src/features/sync/reportSnapshotSync';
+import { syncRecentReportSnapshots } from '../src/features/sync/reportSnapshotSync';
 import { syncTodayShareSnapshot } from '../src/features/sync/shareSnapshotSync';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useToiletTimerSessionStore } from '../src/features/toilet/toiletTimerSessionStore';
@@ -87,7 +87,7 @@ function RootStack() {
 
 async function syncCloudState() {
   await syncTodayShareSnapshot();
-  await syncTodayReportSnapshot();
+  await syncRecentReportSnapshots();
   await registerPushTokenIfAllowed();
 }
 
