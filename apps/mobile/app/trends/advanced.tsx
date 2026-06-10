@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { AlertTriangle, BookOpenCheck, ChartNoAxesColumnIncreasing, Crown, Hourglass, RefreshCw } from 'lucide-react-native';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Modal, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AdvancedReportDay, AdvancedReportResponse } from '@xiaotidu/contracts';
 
 import { AppButton } from '../../src/components/AppButton';
@@ -71,16 +71,22 @@ export default function AdvancedReportScreen() {
         {user && isPro ? (
           <>
             <AppCard muted style={styles.headerCard}>
-              <View style={styles.headerIcon}>
-                <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={28} strokeWidth={2.4} />
+              <View style={styles.headerTopRow}>
+                <View style={styles.headerBadge}>
+                  <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={15} strokeWidth={2.5} />
+                  <Text style={styles.headerBadgeText}>Pro 90 天</Text>
+                </View>
+                <View style={styles.headerStatus}>
+                  <RefreshCw color={isLoading ? colors.primary : colors.textSubtle} size={15} strokeWidth={2.4} />
+                  <Text style={[styles.headerStatusText, isLoading ? styles.headerStatusTextActive : null]}>
+                    {isLoading ? '刷新中' : '低敏摘要'}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.headerCopy}>
-                <Text style={styles.headerTitle}>{advancedReport ? formatReportRange(advancedReport) : '正在准备 90 天数据'}</Text>
-                <Text style={styles.headerBody}>
-                  {isLoading ? '90 天摘要刷新中...' : '数据来自本机低敏日报，云端只保存聚合结果。'}
-                </Text>
-              </View>
-              <RefreshCw color={isLoading ? colors.primary : colors.textSubtle} size={20} strokeWidth={2.4} />
+              <Text style={styles.headerTitle}>{advancedReport ? formatReportRange(advancedReport) : '正在准备 90 天数据'}</Text>
+              <Text style={styles.headerBody}>
+                {isLoading ? '正在同步本机低敏日报，再读取云端回看。' : '数据来自本机低敏日报，云端只保存聚合结果。'}
+              </Text>
             </AppCard>
 
             {!advancedReport && isLoading ? (
@@ -158,9 +164,11 @@ function SummaryTile({
 
   return (
     <View style={[styles.summaryTile, { borderColor: color }]}>
-      <Icon color={color} size={19} strokeWidth={2.4} />
+      <View style={styles.summaryTileHeader}>
+        <Icon color={color} size={16} strokeWidth={2.4} />
+        <Text style={styles.summaryLabel}>{label}</Text>
+      </View>
       <Text style={[styles.summaryValue, { color }]}>{value}</Text>
-      <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
 }
@@ -173,6 +181,7 @@ function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
   const todayDateKey = useMemo(() => getTodayDateKey(), []);
   const defaultMonthIndex = useMemo(() => getDefaultMonthIndex(months, todayDateKey), [months, todayDateKey]);
   const [calendarWidth, setCalendarWidth] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<AdvancedReportDay | null>(null);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(defaultMonthIndex);
   const cellSize = useMemo(() => getCalendarCellSize(calendarWidth), [calendarWidth]);
   const monthsKey = useMemo(() => months.map((month) => month.key).join('|'), [months]);
@@ -208,6 +217,9 @@ function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
       y: 0,
     });
   }, [calendarWidth, months.length, selectedMonthIndex]);
+  const handleCloseDayDetail = useCallback(() => {
+    setSelectedDay(null);
+  }, []);
 
   return (
     <View onLayout={handleCalendarLayout} style={styles.calendarGrid}>
@@ -238,7 +250,13 @@ function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
                   <View key={`${month.key}-${weekIndex}`} style={styles.calendarWeekRow}>
                     {week.map((day, dayIndex) =>
                       day ? (
-                        <ReportCalendarDayCell cellSize={cellSize} day={day} key={day.date} todayDateKey={todayDateKey} />
+                        <ReportCalendarDayCell
+                          cellSize={cellSize}
+                          day={day}
+                          key={day.date}
+                          onPress={setSelectedDay}
+                          todayDateKey={todayDateKey}
+                        />
                       ) : (
                         <View
                           key={`${month.key}-${weekIndex}-${dayIndex}`}
@@ -263,6 +281,7 @@ function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
           ))}
         </View>
       ) : null}
+      <DayDetailModal day={selectedDay} onClose={handleCloseDayDetail} />
     </View>
   );
 }
@@ -270,10 +289,12 @@ function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
 function ReportCalendarDayCell({
   cellSize,
   day,
+  onPress,
   todayDateKey,
 }: {
   cellSize: number;
   day: AdvancedReportDay;
+  onPress: (day: AdvancedReportDay) => void;
   todayDateKey: string;
 }) {
   const { colors } = useAppTheme();
@@ -283,14 +304,18 @@ function ReportCalendarDayCell({
   const dayNumber = Number(day.date.slice(-2));
 
   return (
-    <View
+    <Pressable
       accessibilityLabel={`${formatDateLabel(day.date)} ${formatDayAccessibility(day)}`}
+      accessibilityHint="查看当天低敏详情"
+      accessibilityRole="button"
       accessible
-      style={[
+      onPress={() => onPress(day)}
+      style={({ pressed }) => [
         styles.calendarDayCell,
         { height: cellSize, width: cellSize },
         hasRecord ? styles.calendarDayCellActive : styles.calendarDayCellQuiet,
         isToday ? styles.calendarTodayCell : null,
+        pressed ? styles.calendarDayCellPressed : null,
       ]}
     >
       <Text
@@ -328,6 +353,53 @@ function ReportCalendarDayCell({
           ]}
         />
       </View>
+    </Pressable>
+  );
+}
+
+function DayDetailModal({ day, onClose }: { day: AdvancedReportDay | null; onClose: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  if (!day) {
+    return null;
+  }
+
+  return (
+    <Modal animationType="fade" onRequestClose={onClose} transparent visible>
+      <View style={styles.dayDetailOverlay}>
+        <Pressable accessibilityLabel="关闭日期详情" accessibilityRole="button" onPress={onClose} style={styles.dayDetailBackdrop} />
+        <View accessibilityLabel={`${formatFullDateLabel(day.date)} 低敏记录详情`} style={styles.dayDetailCard}>
+          <View style={styles.dayDetailHeader}>
+            <View>
+              <Text style={styles.dayDetailTitle}>{formatFullDateLabel(day.date)}</Text>
+              <Text style={styles.dayDetailCaption}>当天低敏记录</Text>
+            </View>
+            <Pressable accessibilityLabel="关闭" accessibilityRole="button" onPress={onClose} style={styles.dayDetailCloseButton}>
+              <Text style={styles.dayDetailCloseText}>关闭</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.dayDetailRows}>
+            <DayDetailRow color={colors.primary} label="菊花抬" value={day.trainingDone ? '已完成' : '未完成'} />
+            <DayDetailRow color={colors.info} label="小账本" value={formatHabitStatus(day)} />
+            <DayDetailRow color={colors.warning} label="蹲会儿" value={formatToiletStatus(day)} />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function DayDetailRow({ color, label, value }: { color: string; label: string; value: string }) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <View style={styles.dayDetailRow}>
+      <View style={[styles.dayDetailRowDot, { backgroundColor: color }]} />
+      <Text style={styles.dayDetailRowLabel}>{label}</Text>
+      <Text style={styles.dayDetailRowValue}>{value}</Text>
     </View>
   );
 }
@@ -523,6 +595,12 @@ function formatMonthTitle(monthKey: string) {
   return `${Number(year)} 年 ${Number(month)} 月`;
 }
 
+function formatFullDateLabel(dateKey: string) {
+  const [year = '', month = '', day = ''] = dateKey.split('-');
+
+  return `${Number(year)}. ${Number(month)}. ${Number(day)}`;
+}
+
 function formatReportRange(report: AdvancedReportResponse) {
   return `${formatDateLabel(report.startedAt)} - ${formatDateLabel(report.endedAt)}`;
 }
@@ -530,7 +608,7 @@ function formatReportRange(report: AdvancedReportResponse) {
 function formatDateLabel(dateKey: string) {
   const [, month = '', day = ''] = dateKey.split('-');
 
-  return `${Number(month)}/${Number(day)}`;
+  return `${Number(month)}. ${Number(day)}`;
 }
 
 function formatDayAccessibility(day: AdvancedReportDay) {
@@ -541,6 +619,30 @@ function formatDayAccessibility(day: AdvancedReportDay) {
   ];
 
   return parts.join('，');
+}
+
+function formatHabitStatus(day: AdvancedReportDay) {
+  if (day.habitFull || day.habitCompletion >= 4) {
+    return `满格 ${day.habitCompletion}/4`;
+  }
+
+  if (day.habitCompletion > 0) {
+    return `已记 ${day.habitCompletion}/4`;
+  }
+
+  return '未记录';
+}
+
+function formatToiletStatus(day: AdvancedReportDay) {
+  if (day.toiletLongMeeting) {
+    return '长会';
+  }
+
+  if (day.toiletRecorded) {
+    return '已记录';
+  }
+
+  return '未记录';
 }
 
 function createStyles(colors: ThemeColors) {
@@ -563,6 +665,9 @@ function createStyles(colors: ThemeColors) {
     },
     calendarDayCellActive: {
       backgroundColor: colors.surface,
+    },
+    calendarDayCellPressed: {
+      transform: [{ scale: 0.97 }],
     },
     calendarDayCellQuiet: {
       backgroundColor: colors.surfaceMuted,
@@ -622,6 +727,95 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       gap: 3,
     },
+    dayDetailBackdrop: {
+      bottom: 0,
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+    },
+    dayDetailCaption: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
+      marginTop: 3,
+    },
+    dayDetailCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 20,
+      borderWidth: 1,
+      gap: 16,
+      maxWidth: 360,
+      padding: 18,
+      width: '100%',
+    },
+    dayDetailCloseButton: {
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.border,
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+    },
+    dayDetailCloseText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '800',
+      lineHeight: 17,
+    },
+    dayDetailHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: 12,
+      justifyContent: 'space-between',
+    },
+    dayDetailOverlay: {
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.52)',
+      flex: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    dayDetailRow: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.border,
+      borderRadius: 12,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 9,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+    },
+    dayDetailRowDot: {
+      borderRadius: 5,
+      height: 10,
+      width: 10,
+    },
+    dayDetailRowLabel: {
+      color: colors.text,
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '900',
+      lineHeight: 18,
+    },
+    dayDetailRows: {
+      gap: 8,
+    },
+    dayDetailRowValue: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '800',
+      lineHeight: 18,
+    },
+    dayDetailTitle: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '900',
+      lineHeight: 27,
+    },
     emptyCard: {
       gap: 8,
     },
@@ -642,27 +836,48 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
       lineHeight: 19,
     },
-    headerCard: {
+    headerBadge: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: 12,
-    },
-    headerCopy: {
-      flex: 1,
-    },
-    headerIcon: {
-      alignItems: 'center',
       backgroundColor: colors.primarySoft,
-      borderRadius: 24,
-      height: 48,
-      justifyContent: 'center',
-      width: 48,
+      borderRadius: 999,
+      gap: 5,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+    },
+    headerBadgeText: {
+      color: colors.primaryPressed,
+      fontSize: 12,
+      fontWeight: '900',
+      lineHeight: 15,
+    },
+    headerCard: {
+      gap: 9,
+    },
+    headerStatus: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 5,
+    },
+    headerStatusText: {
+      color: colors.textSubtle,
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 15,
+    },
+    headerStatusTextActive: {
+      color: colors.primary,
     },
     headerTitle: {
       color: colors.text,
-      fontSize: 18,
+      fontSize: 22,
       fontWeight: '900',
-      marginBottom: 4,
+      lineHeight: 27,
+    },
+    headerTopRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
     },
     insightCard: {
       alignItems: 'flex-start',
@@ -734,25 +949,33 @@ function createStyles(colors: ThemeColors) {
     summaryGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 10,
+      gap: 8,
     },
     summaryLabel: {
       color: colors.textMuted,
       fontSize: 12,
-      fontWeight: '700',
+      fontWeight: '800',
+      lineHeight: 15,
     },
     summaryTile: {
       backgroundColor: colors.surface,
-      borderRadius: 18,
+      borderRadius: 12,
       borderWidth: 1,
       flexBasis: '47%',
       flexGrow: 1,
-      gap: 7,
-      padding: 16,
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    summaryTileHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 5,
     },
     summaryValue: {
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: '900',
+      lineHeight: 24,
     },
     weekdayRow: {
       flexDirection: 'row',
