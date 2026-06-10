@@ -97,7 +97,7 @@ export default function AdvancedReportScreen() {
             ) : advancedReport?.summary.hasAnyRecord ? (
               <>
                 <View style={styles.summaryGrid}>
-                  <SummaryTile icon={ChartNoAxesColumnIncreasing} label="小花营业" tone="primary" value={`${advancedReport.summary.trainingDays} 天`} />
+                  <SummaryTile icon={ChartNoAxesColumnIncreasing} label="小花训练达标" tone="primary" value={`${advancedReport.summary.trainingDays} 天`} />
                   <SummaryTile icon={BookOpenCheck} label="小账本满格" tone="primary" value={`${advancedReport.summary.habitFullDays} 天`} />
                   <SummaryTile icon={Hourglass} label="蹲会儿长会" tone="warning" value={`${advancedReport.summary.toiletLongMeetingCount} 次`} />
                   <SummaryTile icon={RefreshCw} label="有记录" tone="info" value={`${advancedReport.summary.recordDays} 天`} />
@@ -450,7 +450,7 @@ function getInsight(report: AdvancedReportResponse) {
 
   if (summary.trainingDays >= 45 && summary.habitFullDays >= 45) {
     return {
-      body: '小花营业和小账本都保持了不少天，节奏已经很清楚。继续轻轻来就好。',
+      body: '小花训练达标和小账本都保持了不少天，节奏已经很清楚。继续轻轻来就好。',
       title: '90 天节奏很稳',
       tone: 'primary' as const,
     };
@@ -458,7 +458,7 @@ function getInsight(report: AdvancedReportResponse) {
 
   if (summary.trainingDays >= 15 && summary.trainingDays >= summary.habitFullDays) {
     return {
-      body: `小花营业 ${summary.trainingDays} 天，身体活动这条线已经先跑起来了。`,
+      body: `小花训练达标 ${summary.trainingDays} 天，身体活动这条线已经先跑起来了。`,
       title: '小花有在营业',
       tone: 'primary' as const,
     };

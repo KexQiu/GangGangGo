@@ -91,7 +91,7 @@ export default function TrendsScreen() {
 
       <Text style={styles.sectionTitle}>近 30 天回看</Text>
       <View style={styles.summaryGrid}>
-        <SummaryTile label="小花营业" tone="primary" value={`${thirtyDaySummary.trainingActiveDays} 天`} />
+        <SummaryTile label="小花训练达标" tone="primary" value={`${thirtyDaySummary.trainingActiveDays} 天`} />
         <SummaryTile label="小账本满格" tone="primary" value={`${thirtyDaySummary.habitFullDays} 天`} />
         <SummaryTile label="蹲会儿长会" tone="warning" value={`${thirtyDaySummary.longToiletCount} 次`} />
         <SummaryTile label="小信号" tone="danger" value={`${thirtyDaySummary.redFlagCount} 次`} />
@@ -112,7 +112,7 @@ export default function TrendsScreen() {
             {advancedReport?.summary.hasAnyRecord ? (
               <View style={styles.summaryGrid}>
                 <SummaryTile
-                  label="小花营业"
+                  label="小花训练达标"
                   tone="primary"
                   value={`${advancedReport.summary.trainingDays} 天`}
                 />
@@ -180,7 +180,7 @@ function WeeklyReportCard({ trend }: { trend: SevenDayTrend }) {
       </View>
 
       <View style={styles.weeklySummaryRow}>
-        <WeeklySummaryPill color={colors.primary} icon={FlowerLiftIcon} label="小花营业" value={`${trend.trainingActiveDays} 天`} />
+        <WeeklySummaryPill color={colors.primary} icon={FlowerLiftIcon} label="小花训练达标" value={`${trend.trainingActiveDays} 天`} />
         <WeeklySummaryPill color={colors.info} icon={BookOpenCheck} label="小账本满格" value={`${trend.habitFullDays} 天`} />
         <WeeklySummaryPill color={toiletTone} icon={Hourglass} label="蹲会儿长会" value={`${trend.longToiletCount} 次`} />
       </View>

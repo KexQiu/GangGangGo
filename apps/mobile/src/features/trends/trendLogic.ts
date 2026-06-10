@@ -97,22 +97,22 @@ export function getTrendPositiveFeedback(summary: SevenDayTrend): TrendPositiveF
 
   if (summary.trainingActiveDays >= 5 && summary.habitFullDays >= 5 && summary.longToiletCount === 0) {
     return {
-      body: '小花有营业，小账本也给力，蹲会儿长会没来凑热闹。',
+      body: '小花训练达标，小账本也给力，蹲会儿长会没来凑热闹。',
       title: '这周节奏很顺',
     };
   }
 
   if (summary.trainingActiveDays > 0 && summary.habitFullDays > 0) {
     return {
-      body: `小花营业 ${summary.trainingActiveDays} 天，小账本满格 ${summary.habitFullDays} 天。`,
+      body: `小花训练达标 ${summary.trainingActiveDays} 天，小账本满格 ${summary.habitFullDays} 天。`,
       title: '节奏感已经出来了',
     };
   }
 
   if (summary.trainingActiveDays > 0) {
     return {
-      body: `这周营业 ${summary.trainingActiveDays} 天，轻轻来就算数。`,
-      title: '小花有露面',
+      body: `这周训练达标 ${summary.trainingActiveDays} 天，轻轻来就算数。`,
+      title: '小花有达标',
     };
   }
 

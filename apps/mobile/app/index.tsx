@@ -197,7 +197,7 @@ export default function HomeScreen() {
 
       <AppCard style={styles.toolCard}>
         <UtilityLink
-          description={`这周小花营业 ${sevenDayTrend.trainingActiveDays} 天，小账本满格 ${sevenDayTrend.habitFullDays} 天。`}
+          description={`这周小花训练达标 ${sevenDayTrend.trainingActiveDays} 天，小账本满格 ${sevenDayTrend.habitFullDays} 天。`}
           icon={ChartNoAxesColumnIncreasing}
           iconColor={colors.primaryPressed}
           iconTone={colors.primarySoft}

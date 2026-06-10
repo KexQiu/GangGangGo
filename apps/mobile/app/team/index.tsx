@@ -117,7 +117,7 @@ export default function TeamScreen() {
                 <Text style={styles.weeklyTitle}>本周小队小报告</Text>
                 {teamWeeklyReport ? (
                   <Text style={styles.memberStatus}>
-                    小队 {teamWeeklyReport.memberCount} 人 · {teamWeeklyReport.summaries.reduce((total, item) => total + item.trainingDays, 0)} 个营业日 · 小账本满格 {teamWeeklyReport.summaries.reduce((total, item) => total + item.habitFullDays, 0)} 天
+                    小队 {teamWeeklyReport.memberCount} 人 · 训练达标 {teamWeeklyReport.summaries.reduce((total, item) => total + item.trainingDays, 0)} 天 · 小账本满格 {teamWeeklyReport.summaries.reduce((total, item) => total + item.habitFullDays, 0)} 天
                   </Text>
                 ) : (
                   <Text style={styles.memberStatus}>等大家同步一点低敏摘要，小报告就会出现。</Text>
