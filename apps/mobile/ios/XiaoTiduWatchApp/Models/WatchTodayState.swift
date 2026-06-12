@@ -89,9 +89,68 @@ enum WatchToiletStage: String {
   }
 }
 
+enum WatchSharedStateStore {
+  static let appGroupIdentifier = "group.com.kex.xiaotidu.watch"
+  static let stateStorageKey = "xiaotidu-watch-today-state"
+  static let staleInterval: TimeInterval = 30 * 60
+  static let widgetKind = "xiaotidu_today_complication"
+
+  static func load() -> WatchTodayState? {
+    guard let data = sharedDefaults.data(forKey: stateStorageKey) else {
+      return nil
+    }
+
+    return try? JSONDecoder().decode(WatchTodayState.self, from: data)
+  }
+
+  static func save(_ state: WatchTodayState) {
+    guard let data = try? JSONEncoder().encode(state) else {
+      return
+    }
+
+    sharedDefaults.set(data, forKey: stateStorageKey)
+  }
+
+  static func isStale(_ state: WatchTodayState, now: Date = Date()) -> Bool {
+    guard let generatedAt = ISO8601DateFormatter().date(from: state.generatedAt) else {
+      return true
+    }
+
+    return now.timeIntervalSince(generatedAt) > staleInterval
+  }
+
+  private static var sharedDefaults: UserDefaults {
+    UserDefaults(suiteName: appGroupIdentifier) ?? .standard
+  }
+}
+
 extension WatchTodayState {
   var isPro: Bool {
     proStatus == "pro_active" || proStatus == "pro_grace_period"
+  }
+
+  var proLockedTitle: String {
+    if !account.isLoggedIn {
+      return "先登录小提督"
+    }
+
+    if proStatus == "pro_expired" {
+      return "小提督 Pro 已暂停"
+    }
+
+    return "Watch 联动在 Pro 里"
+  }
+
+  var proLockedBody: String {
+    if !account.isLoggedIn {
+      return "先在 iPhone 上登录小提督，手表就能同步今日低敏状态。"
+    }
+
+    if proStatus == "pro_expired" {
+      return "请在 iPhone 上恢复 Pro 后，再继续使用手表联动。"
+    }
+
+    return "Apple Watch 联动属于小提督 Pro。手表仍会显示今日低敏状态。"
   }
 
   func currentToiletElapsedSeconds(now: Date = Date()) -> Int {

@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import WatchConnectivity
+import WidgetKit
 
 final class WatchSessionManager: NSObject, ObservableObject {
   @Published private(set) var isReachable = false
@@ -14,7 +15,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
   private let session: WCSession? = WCSession.isSupported() ? WCSession.default : nil
   private let maxPendingEvents = 25
   private let pendingEventLifetime: TimeInterval = 24 * 60 * 60
-  private let stateStorageKey = "xiaotidu-watch-today-state"
+  private let legacyStateStorageKey = "xiaotidu-watch-today-state"
   private let pendingEventsStorageKey = "xiaotidu-watch-pending-events"
   private var pendingEvents: [[String: Any]] = []
   private var stateRefreshTimer: Timer?
@@ -44,6 +45,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) {
+    guard ensureProActionAllowed() else {
+      return
+    }
+
     sendEvent(
       type: "training_completed",
       payload: [
@@ -55,6 +60,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   func sendHabitToggle(habitKey: String, level: String?) {
+    guard ensureProActionAllowed() else {
+      return
+    }
+
     applyHabitToggle(habitKey: habitKey, isDone: level != nil)
     var payload: [String: Any] = [
       "habitKey": habitKey,
@@ -68,9 +77,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   func sendToiletAction(_ action: String, elapsedSeconds: Int) {
-    guard todayState.isPro else {
-      lastAckMessage = nil
-      lastError = "蹲会儿计时同步需要小提督 Pro。"
+    guard ensureProActionAllowed() else {
       return
     }
 
@@ -96,6 +103,30 @@ final class WatchSessionManager: NSObject, ObservableObject {
     ]
 
     sendOrQueue(message)
+  }
+
+  private func ensureProActionAllowed() -> Bool {
+    guard todayState.account.isLoggedIn else {
+      lastAckMessage = nil
+      lastError = "先在 iPhone 上登录小提督。"
+      return false
+    }
+
+    guard todayState.isPro else {
+      lastAckMessage = nil
+      lastError = proLockedMessage
+      return false
+    }
+
+    return true
+  }
+
+  private var proLockedMessage: String {
+    if todayState.proStatus == "pro_expired" {
+      return "小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。"
+    }
+
+    return "Apple Watch 联动属于小提督 Pro。"
   }
 
   private func sendOrQueue(_ message: [String: Any]) {
@@ -149,10 +180,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
       return
     }
 
-    let events = pendingEvents
+    let events = pendingEvents.filter { canReplayPendingEvent($0) }
+    let removedCount = pendingEvents.count - events.count
     pendingEvents.removeAll()
     refreshPendingEventState()
     persistPendingEvents()
+
+    if removedCount > 0 {
+      lastAckMessage = nil
+      lastError = "Pro 状态暂停，未继续同步 \(removedCount) 条手表操作。"
+    }
 
     for event in events {
       sendOrQueue(event)
@@ -191,6 +228,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
       lastError = nil
       lastSyncedAt = Date()
       persistTodayState()
+      prunePendingEventsForCurrentState()
       return true
     }
 
@@ -207,6 +245,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     lastError = nil
     lastSyncedAt = Date()
     persistTodayState()
+    prunePendingEventsForCurrentState()
     return true
   }
 
@@ -286,7 +325,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   private func loadPersistedState() {
-    guard let data = UserDefaults.standard.data(forKey: stateStorageKey),
+    if let state = WatchSharedStateStore.load() {
+      todayState = state
+      return
+    }
+
+    guard let data = UserDefaults.standard.data(forKey: legacyStateStorageKey),
           let state = try? JSONDecoder().decode(WatchTodayState.self, from: data) else {
       return
     }
@@ -299,7 +343,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
       return
     }
 
-    UserDefaults.standard.set(data, forKey: stateStorageKey)
+    UserDefaults.standard.set(data, forKey: legacyStateStorageKey)
+    WatchSharedStateStore.save(todayState)
+    WidgetCenter.shared.reloadTimelines(ofKind: WatchSharedStateStore.widgetKind)
   }
 
   private func applyHabitToggle(habitKey: String, isDone: Bool) {
@@ -383,9 +429,35 @@ final class WatchSessionManager: NSObject, ObservableObject {
     pendingEventSummaries = pendingEvents.compactMap { summary(from: $0) }
   }
 
+  private func prunePendingEventsForCurrentState() {
+    guard !pendingEvents.isEmpty else {
+      return
+    }
+
+    let filteredEvents = pendingEvents.filter { canReplayPendingEvent($0) }
+
+    guard filteredEvents.count != pendingEvents.count else {
+      return
+    }
+
+    let removedCount = pendingEvents.count - filteredEvents.count
+    pendingEvents = filteredEvents
+    refreshPendingEventState()
+    persistPendingEvents()
+    lastAckMessage = nil
+    lastError = "Pro 状态暂停，未继续同步 \(removedCount) 条手表操作。"
+  }
+
+  private func canReplayPendingEvent(_ message: [String: Any]) -> Bool {
+    guard eventType(from: message) != nil else {
+      return true
+    }
+
+    return todayState.account.isLoggedIn && todayState.isPro
+  }
+
   private func summary(from message: [String: Any]) -> String? {
-    guard let event = message["event"] as? [String: Any],
-          let type = event["type"] as? String else {
+    guard let type = eventType(from: message) else {
       return nil
     }
 
@@ -393,13 +465,13 @@ final class WatchSessionManager: NSObject, ObservableObject {
     case "training_completed":
       return "菊花抬完成待同步"
     case "habit_toggled":
-      guard let payload = event["payload"] as? [String: Any],
+      guard let payload = eventPayload(from: message),
             let habitKey = payload["habitKey"] as? String else {
         return "小账本待同步"
       }
       return "\(habitTitle(for: habitKey))待同步"
     case "toilet_timer_action":
-      guard let payload = event["payload"] as? [String: Any],
+      guard let payload = eventPayload(from: message),
             let action = payload["action"] as? String else {
         return "蹲会儿操作待同步"
       }
@@ -443,6 +515,22 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     return event["id"] as? String
+  }
+
+  private func eventType(from message: [String: Any]) -> String? {
+    guard let event = message["event"] as? [String: Any] else {
+      return nil
+    }
+
+    return event["type"] as? String
+  }
+
+  private func eventPayload(from message: [String: Any]) -> [String: Any]? {
+    guard let event = message["event"] as? [String: Any] else {
+      return nil
+    }
+
+    return event["payload"] as? [String: Any]
   }
 
   private func eventCreatedAt(from message: [String: Any]) -> Date? {

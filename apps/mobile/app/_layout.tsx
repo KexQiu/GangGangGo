@@ -13,7 +13,11 @@ import { syncTodayShareSnapshot } from '../src/features/sync/shareSnapshotSync';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useToiletTimerSessionStore } from '../src/features/toilet/toiletTimerSessionStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
-import { startWatchConnectivityEventListener, syncWatchTodayState } from '../src/features/watch/watchSyncService';
+import {
+  refreshEntitlementsAndSyncWatchTodayState,
+  startWatchConnectivityEventListener,
+  syncWatchTodayState,
+} from '../src/features/watch/watchSyncService';
 import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
 
 function RootStack() {
@@ -23,6 +27,7 @@ function RootStack() {
   const hydrateToilet = useToiletStore((state) => state.hydrate);
   const hydrateTraining = useTrainingStore((state) => state.hydrate);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const proStatus = useAuthStore((state) => state.proStatus);
   const habitCheckIns = useHabitStore((state) => state.checkIns);
   const activeToiletTimerSession = useToiletTimerSessionStore((state) => state.session);
   const toiletSessions = useToiletStore((state) => state.sessions);
@@ -34,15 +39,15 @@ function RootStack() {
     void hydrateHabits();
     void hydrateReminders();
     startWatchConnectivityEventListener();
-    void syncWatchTodayState();
+    void refreshEntitlementsAndSyncWatchTodayState(new Date(), 'app_boot');
   }, [hydrateHabits, hydrateReminders, hydrateToilet, hydrateTraining]);
 
   useEffect(() => {
-    if (!accessToken) {
-      return;
-    }
+    void refreshEntitlementsAndSyncWatchTodayState(new Date(), 'auth_state_changed');
 
-    void syncCloudState();
+    if (accessToken) {
+      void syncCloudState();
+    }
   }, [accessToken]);
 
   useEffect(() => {
@@ -54,13 +59,17 @@ function RootStack() {
   }, [accessToken, habitCheckIns, toiletSessions, trainingSessions]);
 
   useEffect(() => {
-    void syncWatchTodayState();
+    void refreshEntitlementsAndSyncWatchTodayState(new Date(), 'local_state_changed');
   }, [activeToiletTimerSession, habitCheckIns, toiletSessions, trainingSessions]);
+
+  useEffect(() => {
+    void syncWatchTodayState(new Date(), 'pro_status_changed');
+  }, [proStatus]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        void syncWatchTodayState();
+        void refreshEntitlementsAndSyncWatchTodayState(new Date(), 'app_foreground');
         if (useAuthStore.getState().accessToken) {
           void syncCloudState();
         }

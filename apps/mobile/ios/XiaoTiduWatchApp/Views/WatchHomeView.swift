@@ -31,9 +31,9 @@ struct WatchHomeView: View {
         } else {
           Section {
             VStack(alignment: .leading, spacing: 5) {
-              Text("Watch 联动在 Pro 里")
+              Text(session.todayState.proLockedTitle)
                 .fontWeight(.semibold)
-              Text("先在 iPhone 上开通或刷新 Pro 状态。手表仍会显示今日低敏状态。")
+              Text(session.todayState.proLockedBody)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             }
@@ -134,16 +134,18 @@ private struct StatusTile: View {
 }
 
 struct WatchProLockedContent: View {
+  @EnvironmentObject private var session: WatchSessionManager
+
   var body: some View {
     VStack(spacing: 10) {
       Image(systemName: "lock.circle.fill")
         .font(.system(size: 34, weight: .bold))
         .foregroundStyle(.yellow)
 
-      Text("Pro 功能")
+      Text(session.todayState.proLockedTitle)
         .font(.headline)
 
-      Text("请先在 iPhone 上开通或刷新小提督 Pro，再继续使用手表联动。")
+      Text(session.todayState.proLockedBody)
         .font(.caption)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)

@@ -12,6 +12,16 @@ import { type WatchEvent, type WatchEventAck } from './watchTypes';
 const handledEventIds = new Set<string>();
 
 export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck> {
+  const rejectionMessage = getProActionRejectionMessage();
+
+  if (rejectionMessage) {
+    return {
+      eventId: event.id,
+      message: rejectionMessage,
+      status: 'rejected',
+    };
+  }
+
   if (handledEventIds.has(event.id)) {
     return {
       eventId: event.id,
@@ -47,6 +57,24 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
   };
 }
 
+function getProActionRejectionMessage(): string | null {
+  const auth = useAuthStore.getState();
+
+  if (!auth.accessToken || !auth.user) {
+    return '先在 iPhone 上登录小提督。';
+  }
+
+  if (isProStatus(auth.proStatus)) {
+    return null;
+  }
+
+  if (auth.proStatus === 'pro_expired') {
+    return '小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。';
+  }
+
+  return 'Apple Watch 联动属于小提督 Pro。';
+}
+
 async function handleTrainingCompleted(event: Extract<WatchEvent, { type: 'training_completed' }>) {
   const endedAt = new Date(event.createdAt);
   const startedAt = new Date(endedAt.getTime() - event.payload.durationSeconds * 1000);
@@ -76,10 +104,6 @@ async function handleHabitToggled(event: Extract<WatchEvent, { type: 'habit_togg
 }
 
 async function handleToiletTimerAction(event: Extract<WatchEvent, { type: 'toilet_timer_action' }>) {
-  if (!isProStatus(useAuthStore.getState().proStatus)) {
-    throw new Error('蹲会儿计时同步需要小提督 Pro。');
-  }
-
   const sessionStore = useToiletTimerSessionStore.getState();
   const activeSession = sessionStore.session;
 

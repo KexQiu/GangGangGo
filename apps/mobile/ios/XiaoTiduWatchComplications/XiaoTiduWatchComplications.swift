@@ -3,21 +3,37 @@ import WidgetKit
 
 private struct XiaoTiduComplicationEntry: TimelineEntry {
   let date: Date
+  let isStale: Bool
+  let state: WatchTodayState?
 }
 
 private struct XiaoTiduComplicationProvider: TimelineProvider {
   func placeholder(in context: Context) -> XiaoTiduComplicationEntry {
-    XiaoTiduComplicationEntry(date: Date())
+    XiaoTiduComplicationEntry(date: Date(), isStale: true, state: nil)
   }
 
   func getSnapshot(in context: Context, completion: @escaping (XiaoTiduComplicationEntry) -> Void) {
-    completion(XiaoTiduComplicationEntry(date: Date()))
+    completion(makeEntry())
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<XiaoTiduComplicationEntry>) -> Void) {
-    let entry = XiaoTiduComplicationEntry(date: Date())
-    let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
+    let entry = makeEntry()
+    let nextRefresh = Calendar.current.date(
+      byAdding: .minute,
+      value: entry.isStale ? 10 : 30,
+      to: Date()
+    ) ?? Date()
     completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+  }
+
+  private func makeEntry() -> XiaoTiduComplicationEntry {
+    let state = WatchSharedStateStore.load()
+
+    return XiaoTiduComplicationEntry(
+      date: Date(),
+      isStale: state.map { WatchSharedStateStore.isStale($0) } ?? true,
+      state: state
+    )
   }
 }
 
@@ -32,7 +48,7 @@ private struct XiaoTiduComplicationView: View {
     case .accessoryRectangular:
       rectangularView
     case .accessoryInline:
-      Text("小提督 今日")
+      Text(inlineText)
     default:
       rectangularView
     }
@@ -42,9 +58,9 @@ private struct XiaoTiduComplicationView: View {
     ZStack {
       AccessoryWidgetBackground()
       VStack(spacing: 1) {
-        Image(systemName: "figure.mind.and.body")
+        Image(systemName: entry.isStale ? "arrow.clockwise" : "checkmark.circle")
           .font(.system(size: 18, weight: .semibold))
-        Text("今日")
+        Text(circularText)
           .font(.system(size: 9, weight: .bold))
       }
     }
@@ -54,10 +70,36 @@ private struct XiaoTiduComplicationView: View {
     VStack(alignment: .leading, spacing: 2) {
       Text("小提督")
         .font(.headline)
-      Text("打开手表同步今日状态")
+      Text(rectangularDetail)
         .font(.caption2)
         .foregroundStyle(.secondary)
     }
+  }
+
+  private var circularText: String {
+    guard !entry.isStale, let state = entry.state else {
+      return "同步"
+    }
+
+    return "\(state.habits.completion)/4"
+  }
+
+  private var inlineText: String {
+    guard !entry.isStale, let state = entry.state else {
+      return "小提督 打开同步"
+    }
+
+    return "小提督 小账本 \(state.habits.completion)/4"
+  }
+
+  private var rectangularDetail: String {
+    guard !entry.isStale, let state = entry.state else {
+      return "打开手表同步今日状态"
+    }
+
+    let trainingText = state.training.done ? "菊花抬已完成" : "菊花抬 \(state.training.completedSets) 组"
+
+    return "小账本 \(state.habits.completion)/4 · \(trainingText)"
   }
 }
 

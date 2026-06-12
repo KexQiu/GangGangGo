@@ -95,6 +95,7 @@ pnpm mobile:start -- --clear
 - [ ] 免费版状态下，Watch 蹲会儿页只显示今日次数和 Pro 提示，不显示暂停、继续、收工按钮。
 - [ ] 免费版状态下，iPhone `/watch` 的待同步 JSON 中 `toilet.sessionCount` 为今日次数，`elapsedSeconds = 0`，`isRunning = false`，`isPaused = false`，`stage = null`。
 - [ ] 免费版或未登录状态下，Watch 操作入口显示 Pro 锁定说明。
+- [ ] 免费版、未登录或 Pro 过期状态下，即使 Watch 发出历史离线事件，iPhone 也返回中文拒绝 ACK，不写入新记录。
 - [ ] iPhone 端手动开通 Pro 并同步后，Watch 操作入口恢复可用。
 
 ## ACK 与重复事件
@@ -115,11 +116,12 @@ pnpm mobile:start -- --clear
 - [ ] Watch 首页待同步数量回到 0。
 - [ ] Watch 首页 `待同步队列` 展示待同步事件摘要。
 
-## Complication 骨架
+## Complication
 
 - [ ] Xcode 能识别 `XiaoTiduWatchComplications` target。
 - [ ] Watch App 构建时包含 Complication 扩展。
-- [ ] 表盘组件显示 `小提督` 或 `今日` 的静态入口。
+- [ ] 表盘组件读取最近同步的低敏状态，显示小账本完成度或菊花抬状态。
+- [ ] 状态过期或未同步过时，表盘组件显示打开同步提示。
 - [ ] 点击表盘入口可以回到小提督 Watch App。
 - [ ] 当前表盘组件不展示敏感数据。
 

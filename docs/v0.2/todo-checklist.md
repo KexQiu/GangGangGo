@@ -211,7 +211,7 @@ v0.2 当前已完成开发骨架：
 - Watch 蹲会儿状态、阶段、haptic、收工确认。
 - Watch 离线队列、ACK、待同步摘要。
 - iPhone `/watch` 调试面板。
-- 静态 Complication 骨架。
+- Complication 共享低敏状态读取骨架。
 
 待办：
 
@@ -545,15 +545,15 @@ v0.2 当前已完成开发骨架：
 
 ### 7.1 Complication 接入真实状态
 
-状态：骨架已完成，真实状态未接入
+状态：代码已接入共享低敏状态，待真机验收
 
 任务：
 
-- [ ] iPhone 将低敏状态写入 Watch 可读缓存。
-- [ ] Complication timeline 读取最近状态。
-- [ ] 展示今日完成度或菊花抬状态。
+- [x] Watch App 将低敏状态写入 App Group 共享缓存。
+- [x] Complication timeline 读取最近状态。
+- [x] 展示今日完成度或菊花抬状态。
 - [ ] 点击 Complication 打开 Watch App。
-- [ ] 状态过期时显示“打开同步”。
+- [x] 状态过期时显示“打开同步”。
 
 验收标准：
 

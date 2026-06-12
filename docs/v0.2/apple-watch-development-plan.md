@@ -100,15 +100,16 @@ Xcode target：
 - 非 Pro 用户的蹲会儿 Watch 同步已收口为只展示今日次数；iPhone 端构建状态时会清空计时字段，Watch 端也会阻止计时事件进入待同步队列。
 - Watch 端体验已补齐第一轮收口：
   - 免费版/未开通 Pro 时展示今日低敏状态和 Pro 锁定态，蹲会儿只展示次数，避免误触云端联动。
+  - iPhone 端接收 Watch 事件前会统一校验登录和 Pro 状态，非 Pro / 过期状态不会写入训练、小账本或蹲会儿记录。
   - 菊花抬支持训练中暂停、继续、结束确认和完成页。
   - 蹲会儿收工增加确认，避免手表误触。
   - 首页显示离线待同步队列摘要。
-  - 新增 WidgetKit Complication 扩展骨架 `XiaoTiduWatchComplications`，提供圆形、矩形和 inline 表盘入口；当前先展示静态低敏入口，后续再接共享状态缓存。
+  - 新增 WidgetKit Complication 扩展 `XiaoTiduWatchComplications`，通过 App Group 读取 Watch 端缓存的低敏今日状态，支持圆形、矩形和 inline 表盘入口；状态过期时显示打开同步提示。
 - `/watch` iPhone 调试页已增加同步面板：连接状态、最近发送、最近 Watch 消息、最近 ACK、当前待同步 JSON 和事件日志。
 
 尚未完成：
 
-- Complication 读取实时今日状态。
+- Complication 真实状态在真机和表盘上验收。
 - 真机 haptic 验收。
 - 完整 iPhone + Watch 模拟器构建验证：当前 Codex 沙箱无法访问 CoreSimulator，需要在本机终端执行一次模拟器构建确认。
 

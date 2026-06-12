@@ -12,7 +12,10 @@ import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
 import { getWatchConnectivityDebugInfo } from '../../src/features/watch/watchConnectivity';
 import { useWatchDebugStore } from '../../src/features/watch/watchDebugStore';
-import { getCurrentWatchTodayState, syncWatchTodayState } from '../../src/features/watch/watchSyncService';
+import {
+  getCurrentWatchTodayState,
+  refreshEntitlementsAndSyncWatchTodayState,
+} from '../../src/features/watch/watchSyncService';
 import {
   type WatchConnectivityDebugInfo,
   type WatchConnectivityStatus,
@@ -44,6 +47,7 @@ export default function WatchScreen() {
   const stateJson = JSON.stringify(lastBuiltState ?? todayState, null, 2);
 
   const refresh = useCallback(async () => {
+    await refreshEntitlementsAndSyncWatchTodayState(new Date(), 'watch_page_focus');
     setTodayState(getCurrentWatchTodayState());
     const nextDebugInfo = await getWatchConnectivityDebugInfo();
     setDebugInfo(nextDebugInfo);
@@ -62,7 +66,7 @@ export default function WatchScreen() {
     setMessage(null);
 
     try {
-      const result = await syncWatchTodayState(new Date(), 'watch_page_manual');
+      const result = await refreshEntitlementsAndSyncWatchTodayState(new Date(), 'watch_page_manual');
       setTodayState(getCurrentWatchTodayState());
       const nextDebugInfo = await getWatchConnectivityDebugInfo();
       setDebugInfo(nextDebugInfo);
@@ -81,7 +85,7 @@ export default function WatchScreen() {
       <AppTopBar fallbackHref={routes.me} title="Apple Watch" />
       <PageHeader
         eyebrow="手腕小助手"
-        subtitle="先把 iPhone 端同步骨架准备好，后续接 watchOS target 后就能真正联动。"
+        subtitle="用于联调 iPhone 与 Apple Watch 的状态同步、消息 ACK 和权限边界。"
         title="Apple Watch 联动"
       />
 
@@ -90,11 +94,11 @@ export default function WatchScreen() {
           <View style={styles.heroIcon}>
             <Watch color={colors.primaryPressed} size={30} strokeWidth={2.4} />
           </View>
-          <Text style={styles.heroTitle}>{status?.isSupported ? '连接骨架已就绪' : '原生手表通道待接入'}</Text>
+          <Text style={styles.heroTitle}>{status?.isSupported ? 'Watch 通道已接入' : '原生手表通道不可用'}</Text>
           <Text style={styles.heroBody}>
             {status?.isSupported
               ? formatWatchStatus(status)
-              : '当前阶段已能生成低敏今日状态；真正发送到 Apple Watch 需要后续新增 watchOS target 和 WatchConnectivity 原生模块。'}
+              : '当前运行环境没有可用的 WatchConnectivity 原生模块，请使用 iOS development build 和 Xcode Watch target 联调。'}
           </Text>
         </AppCard>
 
@@ -109,7 +113,7 @@ export default function WatchScreen() {
         {user && !isPro ? (
           <AppCard style={styles.noticeCard}>
             <Text style={styles.noticeTitle}>手腕小助手在 Pro 里</Text>
-            <Text style={styles.noticeBody}>Apple Watch 联动属于小提督 Pro。当前可先查看同步状态骨架。</Text>
+            <Text style={styles.noticeBody}>Apple Watch 联动属于小提督 Pro。当前仍可查看低敏只读状态和连接诊断。</Text>
             <AppButton onPress={() => router.push(routes.pro)}>了解 Pro</AppButton>
           </AppCard>
         ) : null}
@@ -131,7 +135,7 @@ export default function WatchScreen() {
             <RefreshCw color={colors.info} size={22} strokeWidth={2.4} />
             <View style={styles.copy}>
               <Text style={styles.actionTitle}>同步测试</Text>
-              <Text style={styles.actionBody}>现在会尝试调用 WatchConnectivity adapter；未接原生模块时会安全跳过。</Text>
+              <Text style={styles.actionBody}>会先刷新 Pro 权益，再把低敏今日状态发送给手表。</Text>
             </View>
           </View>
           {message ? <Text style={styles.message}>{message}</Text> : null}

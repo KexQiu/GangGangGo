@@ -21,7 +21,7 @@ struct WatchToiletView: View {
             .font(.system(size: 38, weight: .bold, design: .rounded))
             .monospacedDigit()
 
-          Text("计时同步需要小提督 Pro。")
+          Text(session.todayState.proLockedBody)
             .font(.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)

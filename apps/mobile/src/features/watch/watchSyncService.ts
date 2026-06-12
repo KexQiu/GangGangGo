@@ -1,4 +1,5 @@
 import { buildWatchTodayState } from './watchStateBuilder';
+import { useAuthStore } from '../account/authStore';
 import { addWatchConnectivityEventListener, replyToWatchMessage, sendWatchTodayState } from './watchConnectivity';
 import { useWatchDebugStore } from './watchDebugStore';
 import { handleWatchEvent } from './watchEventHandler';
@@ -13,6 +14,19 @@ export async function syncWatchTodayState(now = new Date(), source = 'auto'): Pr
   useWatchDebugStore.getState().recordSyncResult(result, source);
 
   return result;
+}
+
+export async function refreshEntitlementsAndSyncWatchTodayState(
+  now = new Date(),
+  source = 'auto',
+): Promise<WatchSyncResult> {
+  const auth = useAuthStore.getState();
+
+  if (auth.accessToken) {
+    await auth.refreshEntitlements();
+  }
+
+  return syncWatchTodayState(now, source);
 }
 
 export function getCurrentWatchTodayState(now = new Date()): WatchTodayState {
