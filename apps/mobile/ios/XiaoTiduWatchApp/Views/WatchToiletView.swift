@@ -8,67 +8,71 @@ struct WatchToiletView: View {
   @State private var now = Date()
   @State private var showingFinishConfirmation = false
 
-  private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+  private let tick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
 
   var body: some View {
-    Group {
-      if !session.todayState.isPro {
-        VStack(spacing: 10) {
-          Text("蹲会儿")
-            .font(.headline)
+    ScrollView(.vertical) {
+      Group {
+        if !session.todayState.isPro {
+          VStack(spacing: 10) {
+            Text("蹲会儿")
+              .font(.headline)
 
-          Text("\(session.todayState.toilet.sessionCount) 次")
-            .font(.system(size: 38, weight: .bold, design: .rounded))
-            .monospacedDigit()
+            Text("\(session.todayState.toilet.sessionCount) 次")
+              .font(.system(size: 38, weight: .bold, design: .rounded))
+              .monospacedDigit()
 
-          Text(session.todayState.proLockedBody)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-        }
-      } else {
-        VStack(spacing: 12) {
-          Text("蹲会儿")
-            .font(.headline)
-
-          if let stage = session.todayState.currentToiletStage(now: now) {
-            Text(stage.title)
-              .font(.caption)
-              .fontWeight(.semibold)
-              .foregroundStyle(stageColor(stage))
-          }
-
-          Text(timeText)
-            .font(.system(size: 42, weight: .bold, design: .rounded))
-            .monospacedDigit()
-
-          Text(statusText)
-            .font(.footnote)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(.secondary)
-
-          if session.todayState.toilet.isRunning {
-            Button(session.todayState.toilet.isPaused ? "继续" : "暂停") {
-              WKInterfaceDevice.current().play(.click)
-              session.sendToiletAction(
-                session.todayState.toilet.isPaused ? "resume" : "pause",
-                elapsedSeconds: elapsedSeconds
-              )
-            }
-
-            Button("收工") {
-              showingFinishConfirmation = true
-            }
-            .buttonStyle(.borderedProminent)
-          } else {
-            Text("需要从 iPhone 开始计时。")
+            Text(session.todayState.proLockedBody)
               .font(.caption)
               .foregroundStyle(.secondary)
+              .multilineTextAlignment(.center)
+          }
+        } else {
+          VStack(spacing: 8) {
+
+            if let stage = session.todayState.currentToiletStage(now: now) {
+              Text(stage.title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(stageColor(stage))
+            }
+
+            Text(timeText)
+              .font(.system(size: 38, weight: .bold, design: .rounded))
+              .monospacedDigit()
+
+            Text(statusText)
+              .font(.caption2)
+              .multilineTextAlignment(.center)
+              .foregroundStyle(.secondary)
+
+            if session.todayState.toilet.isRunning {
+              Button(session.todayState.toilet.isPaused ? "继续" : "暂停") {
+                WKInterfaceDevice.current().play(.click)
+                session.sendToiletAction(
+                  session.todayState.toilet.isPaused ? "resume" : "pause",
+                  elapsedSeconds: elapsedSeconds
+                )
+              }
+              .controlSize(.small)
+
+              Button("收工") {
+                showingFinishConfirmation = true
+              }
+              .buttonStyle(.borderedProminent)
+              .controlSize(.small)
+            } else {
+              Text("需要从 iPhone 开始计时。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
           }
         }
       }
+      .frame(maxWidth: .infinity)
+      .padding(.horizontal)
+      .padding(.vertical, 8)
     }
-    .padding()
     .navigationTitle("蹲会儿")
     .confirmationDialog("确认收工？", isPresented: $showingFinishConfirmation, titleVisibility: .visible) {
       Button("收工并同步", role: .destructive) {

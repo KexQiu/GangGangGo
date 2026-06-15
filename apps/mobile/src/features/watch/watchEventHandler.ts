@@ -1,6 +1,16 @@
 import { getLocalDateKey } from '../habits/habitLogic';
 import { useHabitStore } from '../habits/habitStore';
 import { isProStatus, useAuthStore } from '../account/authStore';
+import { useAppSettingsStore } from '../settings/appSettingsStore';
+import {
+  endToiletLiveActivity,
+  pauseToiletLiveActivity,
+  resumeToiletLiveActivity,
+} from '../toilet/toiletLiveActivity';
+import {
+  cancelToiletStageNotifications,
+  syncToiletStageNotifications,
+} from '../toilet/toiletStageNotificationService';
 import { useToiletStore } from '../toilet/toiletStore';
 import {
   getActiveToiletTimerElapsedSeconds,
@@ -113,11 +123,21 @@ async function handleToiletTimerAction(event: Extract<WatchEvent, { type: 'toile
 
   if (event.payload.action === 'pause') {
     sessionStore.pauseSession(event.payload.elapsedSeconds);
+    await Promise.all([
+      pauseToiletLiveActivity(activeSession.liveActivityId, event.payload.elapsedSeconds),
+      cancelToiletStageNotifications(),
+    ]);
     return;
   }
 
   if (event.payload.action === 'resume') {
     sessionStore.resumeSession();
+    await resumeToiletLiveActivity(activeSession.liveActivityId, event.payload.elapsedSeconds);
+
+    if (useAppSettingsStore.getState().toiletStageNotificationEnabled) {
+      await syncToiletStageNotifications(event.payload.elapsedSeconds);
+    }
+
     return;
   }
 
@@ -133,5 +153,9 @@ async function handleToiletTimerAction(event: Extract<WatchEvent, { type: 'toile
     id: `watch-${event.id}`,
     startedAt: activeSession.startedAt,
   });
+  await Promise.all([
+    endToiletLiveActivity(activeSession.liveActivityId, durationSeconds),
+    cancelToiletStageNotifications(),
+  ]);
   sessionStore.clearSession();
 }

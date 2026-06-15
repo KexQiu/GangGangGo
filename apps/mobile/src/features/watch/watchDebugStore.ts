@@ -46,7 +46,7 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
     }));
   },
   recordBuiltState: (builtState) => {
-    const toiletDetail = builtState.toilet.isRunning ? '进行中' : `${builtState.toilet.sessionCount} 次`;
+    const toiletDetail = `${builtState.toilet.sessionCount} 次`;
 
     set((state) => ({
       lastBuiltState: builtState,

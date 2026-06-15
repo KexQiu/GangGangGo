@@ -253,19 +253,13 @@ function formatSyncResultMessage(result: WatchSyncResult): string {
 }
 
 function formatToiletState(state: WatchTodayState): string {
-  if (!isProStatus(state.proStatus)) {
-    return `${state.toilet.sessionCount} 次`;
+  const sessionCountText = `${state.toilet.sessionCount} 次`;
+
+  if (!isProStatus(state.proStatus) || !state.toilet.isRunning) {
+    return sessionCountText;
   }
 
-  if (!state.toilet.isRunning) {
-    return '未进行';
-  }
-
-  const minutes = Math.floor(state.toilet.elapsedSeconds / 60);
-  const seconds = state.toilet.elapsedSeconds % 60;
-  const time = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-  return state.toilet.isPaused ? `${time} · 已暂停` : `${time} · 进行中`;
+  return state.toilet.isPaused ? `${sessionCountText} · 已暂停` : `${sessionCountText} · 进行中`;
 }
 
 function formatProStatus(status: WatchTodayState['proStatus']) {

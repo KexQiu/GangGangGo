@@ -112,7 +112,7 @@ enum WatchSharedStateStore {
   }
 
   static func isStale(_ state: WatchTodayState, now: Date = Date()) -> Bool {
-    guard let generatedAt = ISO8601DateFormatter().date(from: state.generatedAt) else {
+    guard let generatedAt = WatchDateParser.date(from: state.generatedAt) else {
       return true
     }
 
@@ -121,6 +121,24 @@ enum WatchSharedStateStore {
 
   private static var sharedDefaults: UserDefaults {
     UserDefaults(suiteName: appGroupIdentifier) ?? .standard
+  }
+}
+
+private enum WatchDateParser {
+  private static let fractionalFormatter: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+  }()
+
+  private static let standardFormatter: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter
+  }()
+
+  static func date(from value: String) -> Date? {
+    fractionalFormatter.date(from: value) ?? standardFormatter.date(from: value)
   }
 }
 
@@ -158,11 +176,16 @@ extension WatchTodayState {
       return toilet.elapsedSeconds
     }
 
-    guard let generatedAtDate = ISO8601DateFormatter().date(from: generatedAt) else {
+    guard let generatedAtDate = WatchDateParser.date(from: generatedAt) else {
       return toilet.elapsedSeconds
     }
 
-    return max(toilet.elapsedSeconds + Int(now.timeIntervalSince(generatedAtDate)), toilet.elapsedSeconds)
+    let elapsedSinceSnapshot = now.timeIntervalSince(generatedAtDate)
+    guard elapsedSinceSnapshot.isFinite else {
+      return toilet.elapsedSeconds
+    }
+
+    return max(toilet.elapsedSeconds + Int(elapsedSinceSnapshot.rounded(.down)), toilet.elapsedSeconds)
   }
 
   func currentToiletStage(now: Date = Date()) -> WatchToiletStage? {

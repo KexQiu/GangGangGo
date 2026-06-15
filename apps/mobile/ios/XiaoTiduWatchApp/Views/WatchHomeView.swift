@@ -3,32 +3,15 @@ import SwiftUI
 
 struct WatchHomeView: View {
   @EnvironmentObject private var session: WatchSessionManager
-  @State private var now = Date()
-
-  private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
     NavigationStack {
       List {
         Section {
-          StatusTile(title: "菊花抬", value: trainingValue)
-          StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
-          StatusTile(title: "蹲会儿", value: toiletValue)
+          statusRows
         }
 
-        if session.todayState.isPro {
-          Section {
-            NavigationLink("开始菊花抬") {
-              WatchTrainingView()
-            }
-            NavigationLink("小账本快记") {
-              WatchHabitsView()
-            }
-            NavigationLink("蹲会儿状态") {
-              WatchToiletView()
-            }
-          }
-        } else {
+        if !session.todayState.isPro {
           Section {
             VStack(alignment: .leading, spacing: 5) {
               Text(session.todayState.proLockedTitle)
@@ -81,8 +64,32 @@ struct WatchHomeView: View {
       }
       .navigationTitle("小提督")
     }
-    .onReceive(tick) { date in
-      now = date
+  }
+
+  @ViewBuilder
+  private var statusRows: some View {
+    if session.todayState.isPro {
+      NavigationLink {
+        WatchTrainingView()
+      } label: {
+        StatusTile(title: "菊花抬", value: trainingValue)
+      }
+
+      NavigationLink {
+        WatchHabitsView()
+      } label: {
+        StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
+      }
+
+      NavigationLink {
+        WatchToiletView()
+      } label: {
+        StatusTile(title: "蹲会儿", value: toiletValue)
+      }
+    } else {
+      StatusTile(title: "菊花抬", value: trainingValue)
+      StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
+      StatusTile(title: "蹲会儿", value: toiletValue)
     }
   }
 
@@ -95,20 +102,7 @@ struct WatchHomeView: View {
   }
 
   private var toiletValue: String {
-    if !session.todayState.isPro {
-      return "\(session.todayState.toilet.sessionCount) 次"
-    }
-
-    guard session.todayState.toilet.isRunning else {
-      return "未进行"
-    }
-
-    let elapsedSeconds = session.todayState.currentToiletElapsedSeconds(now: now)
-    let minutes = elapsedSeconds / 60
-    let seconds = elapsedSeconds % 60
-    let time = "\(minutes):\(String(format: "%02d", seconds))"
-
-    return session.todayState.toilet.isPaused ? "\(time) 暂停" : "\(time)"
+    "\(session.todayState.toilet.sessionCount) 次"
   }
 
   private var trainingValue: String {
