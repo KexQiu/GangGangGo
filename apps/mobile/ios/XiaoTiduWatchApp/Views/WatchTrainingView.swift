@@ -8,7 +8,7 @@ struct WatchTrainingView: View {
   @State private var completedTraining: WatchTrainingCompletion?
   @State private var showingCancelConfirmation = false
 
-  private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+  private let checkpointTick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
 
   var body: some View {
     Group {
@@ -21,7 +21,6 @@ struct WatchTrainingView: View {
         )
       } else if let trainingSession {
         TrainingSessionContent(
-          mode: selectedMode,
           session: trainingSession,
           onCancel: {
             showingCancelConfirmation = true
@@ -45,8 +44,8 @@ struct WatchTrainingView: View {
     } message: {
       Text("这组还没完成，结束后不会记入今日菊花抬。")
     }
-    .onReceive(tick) { _ in
-      advanceTraining()
+    .onReceive(checkpointTick) { date in
+      checkTrainingCheckpoint(at: date)
     }
   }
 
@@ -70,40 +69,50 @@ struct WatchTrainingView: View {
       return
     }
 
-    currentSession.isPaused.toggle()
+    let now = Date()
+    let snapshot = currentSession.snapshot(at: now)
+    guard !snapshot.isFinished else {
+      finishTraining(currentSession)
+      return
+    }
+
+    currentSession.togglePause(at: now)
     trainingSession = currentSession
     WKInterfaceDevice.current().play(.click)
   }
 
-  private func advanceTraining() {
+  private func checkTrainingCheckpoint(at date: Date) {
     guard var currentSession = trainingSession else {
       return
     }
 
-    guard !currentSession.isPaused else {
+    let snapshot = currentSession.snapshot(at: date)
+    if snapshot.isFinished {
+      finishTraining(currentSession)
       return
     }
 
-    let result = currentSession.advance()
-    trainingSession = result.session
-
-    switch result.haptic {
-    case .none:
-      break
-    case .phase:
-      WKInterfaceDevice.current().play(currentSession.phase == .hold ? .directionUp : .click)
-    case .finished:
-      WKInterfaceDevice.current().play(.success)
-      session.sendTrainingCompleted(
-        mode: selectedMode.id,
-        completedSets: 1,
-        durationSeconds: selectedMode.totalDurationSeconds
-      )
-      completedTraining = WatchTrainingCompletion(
-        mode: selectedMode,
-        durationSeconds: selectedMode.totalDurationSeconds
-      )
+    guard !currentSession.isPaused, snapshot.phaseKey != currentSession.lastNotifiedPhaseKey else {
+      return
     }
+
+    currentSession.lastNotifiedPhaseKey = snapshot.phaseKey
+    trainingSession = currentSession
+    WKInterfaceDevice.current().play(snapshot.phase == .hold ? .directionUp : .click)
+  }
+
+  private func finishTraining(_ currentSession: WatchTrainingSession) {
+    trainingSession = nil
+    WKInterfaceDevice.current().play(.success)
+    session.sendTrainingCompleted(
+      mode: currentSession.mode.id,
+      completedSets: 1,
+      durationSeconds: currentSession.mode.totalDurationSeconds
+    )
+    completedTraining = WatchTrainingCompletion(
+      mode: currentSession.mode,
+      durationSeconds: currentSession.mode.totalDurationSeconds
+    )
   }
 }
 
@@ -112,78 +121,119 @@ private struct TrainingModePicker: View {
   var onStart: () -> Void
 
   var body: some View {
-    List {
-      Section {
+    ScrollView(.vertical) {
+      VStack(alignment: .leading, spacing: 8) {
+        Text("选择节奏")
+          .font(.headline)
+          .padding(.horizontal, 2)
+
         ForEach(WatchTrainingMode.allCases) { mode in
           Button {
-            selectedMode = mode
-          } label: {
-            HStack {
-              VStack(alignment: .leading, spacing: 3) {
-                Text(mode.title)
-                  .fontWeight(.semibold)
-                Text(mode.subtitle)
-                  .font(.caption2)
-                  .foregroundStyle(.secondary)
-              }
-              Spacer()
-              if selectedMode == mode {
-                Image(systemName: "checkmark.circle.fill")
-                  .foregroundStyle(.green)
-              }
+            if selectedMode == mode {
+              onStart()
+            } else {
+              selectedMode = mode
             }
+          } label: {
+            TrainingModeOption(mode: mode, isSelected: selectedMode == mode)
           }
+          .buttonStyle(.plain)
         }
-      } header: {
-        Text("选择节奏")
-      }
 
-      Section {
-        Button("开始一组") {
+        Button {
           onStart()
+        } label: {
+          Label("开始一组", systemImage: "play.fill")
+            .font(.headline)
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
-      } footer: {
+        .controlSize(.large)
+
         Text("手表只记轻量完成，不记录敏感细节。")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: .infinity)
       }
+      .padding(.horizontal)
+      .padding(.vertical, 8)
+    }
+  }
+}
+
+private struct TrainingModeOption: View {
+  var mode: WatchTrainingMode
+  var isSelected: Bool
+
+  var body: some View {
+    HStack(spacing: 8) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text(mode.title)
+          .fontWeight(.semibold)
+        Text(mode.subtitle)
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+      }
+
+      Spacer(minLength: 4)
+
+      VStack(alignment: .trailing, spacing: 2) {
+        Text("\(mode.totalDurationSeconds) 秒")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+          .foregroundStyle(isSelected ? .green : .secondary)
+          .imageScale(.medium)
+      }
+    }
+    .padding(.horizontal, 10)
+    .padding(.vertical, 9)
+    .frame(maxWidth: .infinity)
+    .background {
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .fill(isSelected ? Color.green.opacity(0.18) : Color.secondary.opacity(0.12))
     }
   }
 }
 
 private struct TrainingSessionContent: View {
-  var mode: WatchTrainingMode
   var session: WatchTrainingSession
   var onCancel: () -> Void
   var onTogglePause: () -> Void
 
   var body: some View {
-    VStack(spacing: 10) {
-      Text(session.isPaused ? "已暂停" : session.phase.title)
-        .font(.headline)
+    TimelineView(.periodic(from: session.startedAt, by: 0.25)) { context in
+      let snapshot = session.snapshot(at: context.date)
 
-      Text("\(session.remainingSeconds)")
-        .font(.system(size: 44, weight: .bold, design: .rounded))
-        .monospacedDigit()
-        .contentTransition(.numericText())
+      VStack(spacing: 10) {
+        Text(session.isPaused ? "已暂停" : snapshot.phase.title)
+          .font(.headline)
 
-      ProgressView(value: session.progress)
-        .tint(.green)
+        Text("\(snapshot.remainingSeconds)")
+          .font(.system(size: 44, weight: .bold, design: .rounded))
+          .monospacedDigit()
 
-      Text("第 \(session.roundIndex + 1)/\(mode.rounds) 次 · \(mode.title)")
+        ProgressView(value: snapshot.progress)
+          .tint(.green)
+
+        Text("第 \(snapshot.roundIndex + 1)/\(session.mode.rounds) 次 · \(session.mode.title)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+
+        Button(session.isPaused ? "继续" : "暂停") {
+          onTogglePause()
+        }
+        .font(.caption)
+
+        Button("结束本组", role: .destructive) {
+          onCancel()
+        }
         .font(.caption2)
-        .foregroundStyle(.secondary)
-
-      Button(session.isPaused ? "继续" : "暂停") {
-        onTogglePause()
       }
-      .font(.caption)
-
-      Button("结束本组", role: .destructive) {
-        onCancel()
-      }
-      .font(.caption2)
+      .padding()
     }
-    .padding()
   }
 }
 
@@ -299,63 +349,109 @@ private enum WatchTrainingPhase {
       return "放松"
     }
   }
+
+  var key: String {
+    switch self {
+    case .hold:
+      return "hold"
+    case .rest:
+      return "rest"
+    }
+  }
 }
 
 private struct WatchTrainingSession {
-  var phase: WatchTrainingPhase = .hold
-  var remainingSeconds: Int
-  var roundIndex = 0
-  var elapsedSeconds = 0
-  var isPaused = false
   let mode: WatchTrainingMode
+  let startedAt: Date
+  var pausedAt: Date?
+  var accumulatedPausedDuration: TimeInterval = 0
+  var lastNotifiedPhaseKey: String
 
-  init(mode: WatchTrainingMode) {
+  init(mode: WatchTrainingMode, startedAt: Date = Date()) {
     self.mode = mode
-    remainingSeconds = mode.holdSeconds
+    self.startedAt = startedAt
+    lastNotifiedPhaseKey = Self.phaseKey(roundIndex: 0, phase: .hold)
   }
 
-  var progress: Double {
-    min(Double(elapsedSeconds) / Double(mode.totalDurationSeconds), 1)
+  var isPaused: Bool {
+    pausedAt != nil
   }
 
-  mutating func advance() -> WatchTrainingAdvanceResult {
-    remainingSeconds -= 1
-    elapsedSeconds += 1
+  mutating func togglePause(at date: Date) {
+    if let pausedAt {
+      accumulatedPausedDuration += max(date.timeIntervalSince(pausedAt), 0)
+      self.pausedAt = nil
+    } else {
+      pausedAt = date
+    }
+  }
 
-    if elapsedSeconds >= mode.totalDurationSeconds {
-      return WatchTrainingAdvanceResult(session: nil, haptic: .finished)
+  func snapshot(at date: Date) -> WatchTrainingSnapshot {
+    let totalDurationSeconds = mode.totalDurationSeconds
+    let elapsedSeconds = min(
+      max(Int(activeElapsedDuration(at: date).rounded(.down)), 0),
+      totalDurationSeconds
+    )
+
+    if elapsedSeconds >= totalDurationSeconds {
+      return WatchTrainingSnapshot(
+        elapsedSeconds: totalDurationSeconds,
+        isFinished: true,
+        phase: .rest,
+        phaseKey: "finished",
+        progress: 1,
+        remainingSeconds: 0,
+        roundIndex: max(mode.rounds - 1, 0)
+      )
     }
 
-    guard remainingSeconds <= 0 else {
-      return WatchTrainingAdvanceResult(session: self, haptic: .none)
-    }
+    let cycleSeconds = mode.holdSeconds + mode.restSeconds
+    let roundIndex = min(elapsedSeconds / cycleSeconds, max(mode.rounds - 1, 0))
+    let cycleElapsedSeconds = elapsedSeconds % cycleSeconds
 
-    switch phase {
-    case .hold:
-      phase = .rest
-      remainingSeconds = mode.restSeconds
-    case .rest:
+    let phase: WatchTrainingPhase
+    let remainingSeconds: Int
+    if cycleElapsedSeconds < mode.holdSeconds {
       phase = .hold
-      roundIndex += 1
-      remainingSeconds = mode.holdSeconds
+      remainingSeconds = mode.holdSeconds - cycleElapsedSeconds
+    } else {
+      phase = .rest
+      remainingSeconds = cycleSeconds - cycleElapsedSeconds
     }
 
-    return WatchTrainingAdvanceResult(session: self, haptic: .phase)
+    return WatchTrainingSnapshot(
+      elapsedSeconds: elapsedSeconds,
+      isFinished: false,
+      phase: phase,
+      phaseKey: Self.phaseKey(roundIndex: roundIndex, phase: phase),
+      progress: min(Double(elapsedSeconds) / Double(totalDurationSeconds), 1),
+      remainingSeconds: remainingSeconds,
+      roundIndex: roundIndex
+    )
   }
+
+  private func activeElapsedDuration(at date: Date) -> TimeInterval {
+    let referenceDate = pausedAt ?? date
+    let elapsed = referenceDate.timeIntervalSince(startedAt) - accumulatedPausedDuration
+    return min(max(elapsed, 0), TimeInterval(mode.totalDurationSeconds))
+  }
+
+  private static func phaseKey(roundIndex: Int, phase: WatchTrainingPhase) -> String {
+    "\(roundIndex)-\(phase.key)"
+  }
+}
+
+private struct WatchTrainingSnapshot {
+  var elapsedSeconds: Int
+  var isFinished: Bool
+  var phase: WatchTrainingPhase
+  var phaseKey: String
+  var progress: Double
+  var remainingSeconds: Int
+  var roundIndex: Int
 }
 
 private struct WatchTrainingCompletion {
   var mode: WatchTrainingMode
   var durationSeconds: Int
-}
-
-private struct WatchTrainingAdvanceResult {
-  enum Haptic {
-    case none
-    case phase
-    case finished
-  }
-
-  var session: WatchTrainingSession?
-  var haptic: Haptic
 }

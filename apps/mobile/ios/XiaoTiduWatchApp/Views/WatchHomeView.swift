@@ -1,11 +1,49 @@
 import Foundation
 import SwiftUI
 
+private enum WatchRoute: Hashable {
+  case training
+  case habits
+  case toilet
+}
+
+private enum WatchDeepLink {
+  static let scheme = "xiaotidu-watch"
+
+  static func route(from url: URL) -> WatchRoute? {
+    guard url.scheme == scheme else {
+      return nil
+    }
+
+    let routeName = url.host ?? url.pathComponents.dropFirst().first ?? ""
+
+    switch routeName {
+    case "training":
+      return .training
+    case "habits":
+      return .habits
+    case "toilet":
+      return .toilet
+    default:
+      return nil
+    }
+  }
+
+  static func isHome(_ url: URL) -> Bool {
+    guard url.scheme == scheme else {
+      return false
+    }
+
+    return url.host == "home" || url.pathComponents.dropFirst().first == "home"
+  }
+}
+
 struct WatchHomeView: View {
   @EnvironmentObject private var session: WatchSessionManager
+  @State private var path: [WatchRoute] = []
 
   var body: some View {
-    NavigationStack {
+    NavigationStack(path: $path) {
       List {
         Section {
           statusRows
@@ -63,27 +101,27 @@ struct WatchHomeView: View {
         }
       }
       .navigationTitle("小提督")
+      .navigationDestination(for: WatchRoute.self) { route in
+        destination(for: route)
+      }
+      .onOpenURL { url in
+        handleDeepLink(url)
+      }
     }
   }
 
   @ViewBuilder
   private var statusRows: some View {
     if session.todayState.isPro {
-      NavigationLink {
-        WatchTrainingView()
-      } label: {
+      NavigationLink(value: WatchRoute.training) {
         StatusTile(title: "菊花抬", value: trainingValue)
       }
 
-      NavigationLink {
-        WatchHabitsView()
-      } label: {
+      NavigationLink(value: WatchRoute.habits) {
         StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
       }
 
-      NavigationLink {
-        WatchToiletView()
-      } label: {
+      NavigationLink(value: WatchRoute.toilet) {
         StatusTile(title: "蹲会儿", value: toiletValue)
       }
     } else {
@@ -91,6 +129,43 @@ struct WatchHomeView: View {
       StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
       StatusTile(title: "蹲会儿", value: toiletValue)
     }
+  }
+
+  @ViewBuilder
+  private func destination(for route: WatchRoute) -> some View {
+    switch route {
+    case .training:
+      WatchTrainingView()
+    case .habits:
+      WatchHabitsView()
+    case .toilet:
+      WatchToiletView()
+    }
+  }
+
+  private func handleDeepLink(_ url: URL) {
+    if WatchDeepLink.isHome(url) {
+      path.removeAll()
+      return
+    }
+
+    guard let route = WatchDeepLink.route(from: url), canOpen(route) else {
+      return
+    }
+
+    path = [route]
+  }
+
+  private func canOpen(_ route: WatchRoute) -> Bool {
+    guard session.todayState.isPro else {
+      return false
+    }
+
+    if route == .toilet {
+      return session.todayState.toilet.isRunning
+    }
+
+    return true
   }
 
   private var connectivityText: String {
