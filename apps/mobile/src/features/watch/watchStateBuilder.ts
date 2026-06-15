@@ -4,6 +4,7 @@ import { isProStatus, useAuthStore } from '../account/authStore';
 import { getTodayToiletSessionCount, useToiletStore } from '../toilet/toiletStore';
 import { getActiveToiletTimerElapsedSeconds, useToiletTimerSessionStore } from '../toilet/toiletTimerSessionStore';
 import { getToiletTimerStage } from '../toilet/toiletLogic';
+import { trainingPresets } from '../training/presets';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../training/trainingStore';
 import { type WatchTodayState } from './watchTypes';
 
@@ -50,6 +51,12 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
       completedSets,
       done: completedSets >= trainingTarget,
     },
+    trainingModes: trainingPresets.map((preset) => ({
+      holdSeconds: preset.contractSeconds,
+      id: preset.id,
+      restSeconds: preset.relaxSeconds,
+      rounds: preset.repetitions,
+    })),
   };
 }
 

@@ -4,6 +4,13 @@ import type { HabitKey, HabitLevel } from '../habits/habitTypes';
 import type { ToiletTimerStage } from '../toilet/toiletTypes';
 import type { TrainingPresetId } from '../training/trainingTypes';
 
+export type WatchTrainingModeConfig = {
+  holdSeconds: number;
+  id: TrainingPresetId;
+  restSeconds: number;
+  rounds: number;
+};
+
 export type WatchTodayState = {
   account: {
     isLoggedIn: boolean;
@@ -31,6 +38,7 @@ export type WatchTodayState = {
     completedSets: number;
     done: boolean;
   };
+  trainingModes: WatchTrainingModeConfig[];
 };
 
 export type WatchEvent =

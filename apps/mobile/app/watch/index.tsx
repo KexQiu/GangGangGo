@@ -10,7 +10,7 @@ import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
-import { getWatchConnectivityDebugInfo } from '../../src/features/watch/watchConnectivity';
+import { getWatchConnectivityDebugInfo, getWatchConnectivityStatus } from '../../src/features/watch/watchConnectivity';
 import { useWatchDebugStore } from '../../src/features/watch/watchDebugStore';
 import {
   getCurrentWatchTodayState,
@@ -29,6 +29,7 @@ export default function WatchScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
+  const isDevelopment = __DEV__;
   const user = useAuthStore((state) => state.user);
   const proStatus = useAuthStore((state) => state.proStatus);
   const isPro = isProStatus(proStatus);
@@ -44,16 +45,32 @@ export default function WatchScreen() {
   const lastSyncResult = useWatchDebugStore((state) => state.lastSyncResult);
   const logs = useWatchDebugStore((state) => state.logs);
   const recordConnectivityStatus = useWatchDebugStore((state) => state.recordConnectivityStatus);
-  const stateJson = JSON.stringify(lastBuiltState ?? todayState, null, 2);
+  const stateJson = isDevelopment ? JSON.stringify(lastBuiltState ?? todayState, null, 2) : '';
+  const heroTitle =
+    status === null ? '正在检查 Watch 通道' : status.isSupported ? 'Watch 通道已接入' : '手表通道暂不可用';
+  const heroBody =
+    status === null
+      ? '正在读取 iPhone 与 Apple Watch 的连接状态。'
+      : status.isSupported
+        ? formatWatchStatus(status)
+        : formatUnsupportedWatchMessage(isDevelopment);
 
   const refresh = useCallback(async () => {
     await refreshEntitlementsAndSyncWatchTodayState(new Date(), 'watch_page_focus');
     setTodayState(getCurrentWatchTodayState());
-    const nextDebugInfo = await getWatchConnectivityDebugInfo();
-    setDebugInfo(nextDebugInfo);
-    setStatus(nextDebugInfo);
-    recordConnectivityStatus(nextDebugInfo);
-  }, [recordConnectivityStatus]);
+    if (isDevelopment) {
+      const nextDebugInfo = await getWatchConnectivityDebugInfo();
+      setDebugInfo(nextDebugInfo);
+      setStatus(nextDebugInfo);
+      recordConnectivityStatus(nextDebugInfo);
+      return;
+    }
+
+    const nextStatus = await getWatchConnectivityStatus();
+    setDebugInfo(null);
+    setStatus(nextStatus);
+    recordConnectivityStatus(nextStatus);
+  }, [isDevelopment, recordConnectivityStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -68,11 +85,18 @@ export default function WatchScreen() {
     try {
       const result = await refreshEntitlementsAndSyncWatchTodayState(new Date(), 'watch_page_manual');
       setTodayState(getCurrentWatchTodayState());
-      const nextDebugInfo = await getWatchConnectivityDebugInfo();
-      setDebugInfo(nextDebugInfo);
-      setStatus(nextDebugInfo);
-      recordConnectivityStatus(nextDebugInfo);
-      setMessage(formatSyncResultMessage(result));
+      if (isDevelopment) {
+        const nextDebugInfo = await getWatchConnectivityDebugInfo();
+        setDebugInfo(nextDebugInfo);
+        setStatus(nextDebugInfo);
+        recordConnectivityStatus(nextDebugInfo);
+      } else {
+        const nextStatus = await getWatchConnectivityStatus();
+        setDebugInfo(null);
+        setStatus(nextStatus);
+        recordConnectivityStatus(nextStatus);
+      }
+      setMessage(formatSyncResultMessage(result, isDevelopment));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '同步到手表失败。');
     } finally {
@@ -85,7 +109,7 @@ export default function WatchScreen() {
       <AppTopBar fallbackHref={routes.me} title="Apple Watch" />
       <PageHeader
         eyebrow="手腕小助手"
-        subtitle="用于联调 iPhone 与 Apple Watch 的状态同步、消息 ACK 和权限边界。"
+        subtitle="把今日低敏状态同步到手表，Pro 用户可在 Watch 上完成轻量操作。"
         title="Apple Watch 联动"
       />
 
@@ -94,12 +118,8 @@ export default function WatchScreen() {
           <View style={styles.heroIcon}>
             <Watch color={colors.primaryPressed} size={30} strokeWidth={2.4} />
           </View>
-          <Text style={styles.heroTitle}>{status?.isSupported ? 'Watch 通道已接入' : '原生手表通道不可用'}</Text>
-          <Text style={styles.heroBody}>
-            {status?.isSupported
-              ? formatWatchStatus(status)
-              : '当前运行环境没有可用的 WatchConnectivity 原生模块，请使用 iOS development build 和 Xcode Watch target 联调。'}
-          </Text>
+          <Text style={styles.heroTitle}>{heroTitle}</Text>
+          <Text style={styles.heroBody}>{heroBody}</Text>
         </AppCard>
 
         {!user ? (
@@ -113,7 +133,7 @@ export default function WatchScreen() {
         {user && !isPro ? (
           <AppCard style={styles.noticeCard}>
             <Text style={styles.noticeTitle}>手腕小助手在 Pro 里</Text>
-            <Text style={styles.noticeBody}>Apple Watch 联动属于小提督 Pro。当前仍可查看低敏只读状态和连接诊断。</Text>
+            <Text style={styles.noticeBody}>Apple Watch 联动属于小提督 Pro。当前仍可查看低敏只读状态。</Text>
             <AppButton onPress={() => router.push(routes.pro)}>了解 Pro</AppButton>
           </AppCard>
         ) : null}
@@ -134,7 +154,7 @@ export default function WatchScreen() {
           <View style={styles.actionHeader}>
             <RefreshCw color={colors.info} size={22} strokeWidth={2.4} />
             <View style={styles.copy}>
-              <Text style={styles.actionTitle}>同步测试</Text>
+              <Text style={styles.actionTitle}>同步到手表</Text>
               <Text style={styles.actionBody}>会先刷新 Pro 权益，再把低敏今日状态发送给手表。</Text>
             </View>
           </View>
@@ -144,66 +164,68 @@ export default function WatchScreen() {
           </AppButton>
         </AppCard>
 
-        <PageSection subtitle="用于定位 App 到 Watch、Watch 到 App 的同步链路。" title="联动调试">
-          <AppCard style={styles.debugCard}>
-            <View style={styles.actionHeader}>
-              <Bug color={colors.privacy} size={22} strokeWidth={2.4} />
-              <View style={styles.copy}>
-                <Text style={styles.actionTitle}>连接状态</Text>
-                <Text style={styles.actionBody}>这些值来自 iPhone 原生 WatchConnectivity。</Text>
-              </View>
-            </View>
-            <View style={styles.debugRows}>
-              <StatusRow label="支持" value={formatBoolean((lastConnectivityStatus ?? status)?.isSupported)} />
-              <StatusRow label="已配对" value={formatBoolean((lastConnectivityStatus ?? status)?.isPaired)} />
-              <StatusRow label="Watch App" value={formatBoolean((lastConnectivityStatus ?? status)?.isWatchAppInstalled)} />
-              <StatusRow label="可达" value={formatBoolean((lastConnectivityStatus ?? status)?.isReachable)} />
-              <StatusRow label="激活" value={debugInfo?.activationState ?? '未知'} />
-            </View>
-          </AppCard>
-
-          <AppCard style={styles.debugCard}>
-            <Text style={styles.debugTitle}>最近记录</Text>
-            <DebugRow label="最近构建" value={lastBuiltState ? formatDebugTime(lastBuiltState.generatedAt) : '暂无'} />
-            <DebugRow
-              label="最近发送"
-              value={
-                lastSyncResult
-                  ? `${lastSyncResult.sent ? '已发出' : '未发出'} · ${lastSyncResult.source}${lastSyncResult.reason ? ` · ${lastSyncResult.reason}` : ''}`
-                  : '暂无'
-              }
-            />
-            <DebugRow label="最近 Watch 消息" value={lastIncomingPayload ?? '暂无'} />
-            <DebugRow label="最近 ACK" value={lastAck ? `${lastAck.status} · ${lastAck.eventId}` : '暂无'} />
-            <DebugRow label="iPhone Bundle" value={debugInfo?.iPhoneBundleIdentifier ?? '未知'} />
-            <DebugRow label="嵌入 Watch" value={formatBundleList(debugInfo?.embeddedWatchBundleIdentifiers)} />
-            <DebugRow label="激活错误" value={debugInfo?.activationError ?? '无'} />
-          </AppCard>
-
-          <AppCard style={styles.debugCard}>
-            <Text style={styles.debugTitle}>当前待同步 JSON</Text>
-            <Text selectable style={styles.jsonText}>
-              {stateJson}
-            </Text>
-          </AppCard>
-
-          <AppCard style={styles.debugCard}>
-            <Text style={styles.debugTitle}>事件日志</Text>
-            {logs.length > 0 ? (
-              logs.slice(0, 8).map((log) => (
-                <View key={log.id} style={styles.logItem}>
-                  <View style={styles.logHeader}>
-                    <Text style={styles.logTitle}>{log.title}</Text>
-                    <Text style={styles.logTime}>{formatDebugTime(log.at)}</Text>
-                  </View>
-                  {log.detail ? <Text style={styles.logDetail}>{log.detail}</Text> : null}
+        {isDevelopment ? (
+          <PageSection subtitle="用于定位 App 到 Watch、Watch 到 App 的同步链路。" title="联动调试">
+            <AppCard style={styles.debugCard}>
+              <View style={styles.actionHeader}>
+                <Bug color={colors.privacy} size={22} strokeWidth={2.4} />
+                <View style={styles.copy}>
+                  <Text style={styles.actionTitle}>连接状态</Text>
+                  <Text style={styles.actionBody}>这些值来自 iPhone 原生 WatchConnectivity。</Text>
                 </View>
-              ))
-            ) : (
-              <Text style={styles.actionBody}>还没有同步日志。点一次同步或在 Watch 上操作后会出现记录。</Text>
-            )}
-          </AppCard>
-        </PageSection>
+              </View>
+              <View style={styles.debugRows}>
+                <StatusRow label="支持" value={formatBoolean((lastConnectivityStatus ?? status)?.isSupported)} />
+                <StatusRow label="已配对" value={formatBoolean((lastConnectivityStatus ?? status)?.isPaired)} />
+                <StatusRow label="Watch App" value={formatBoolean((lastConnectivityStatus ?? status)?.isWatchAppInstalled)} />
+                <StatusRow label="可达" value={formatBoolean((lastConnectivityStatus ?? status)?.isReachable)} />
+                <StatusRow label="激活" value={debugInfo?.activationState ?? '未知'} />
+              </View>
+            </AppCard>
+
+            <AppCard style={styles.debugCard}>
+              <Text style={styles.debugTitle}>最近记录</Text>
+              <DebugRow label="最近构建" value={lastBuiltState ? formatDebugTime(lastBuiltState.generatedAt) : '暂无'} />
+              <DebugRow
+                label="最近发送"
+                value={
+                  lastSyncResult
+                    ? `${lastSyncResult.sent ? '已发出' : '未发出'} · ${lastSyncResult.source}${lastSyncResult.reason ? ` · ${lastSyncResult.reason}` : ''}`
+                    : '暂无'
+                }
+              />
+              <DebugRow label="最近 Watch 消息" value={lastIncomingPayload ?? '暂无'} />
+              <DebugRow label="最近 ACK" value={lastAck ? `${lastAck.status} · ${lastAck.eventId}` : '暂无'} />
+              <DebugRow label="iPhone Bundle" value={debugInfo?.iPhoneBundleIdentifier ?? '未知'} />
+              <DebugRow label="嵌入 Watch" value={formatBundleList(debugInfo?.embeddedWatchBundleIdentifiers)} />
+              <DebugRow label="激活错误" value={debugInfo?.activationError ?? '无'} />
+            </AppCard>
+
+            <AppCard style={styles.debugCard}>
+              <Text style={styles.debugTitle}>当前待同步 JSON</Text>
+              <Text selectable style={styles.jsonText}>
+                {stateJson}
+              </Text>
+            </AppCard>
+
+            <AppCard style={styles.debugCard}>
+              <Text style={styles.debugTitle}>事件日志</Text>
+              {logs.length > 0 ? (
+                logs.slice(0, 8).map((log) => (
+                  <View key={log.id} style={styles.logItem}>
+                    <View style={styles.logHeader}>
+                      <Text style={styles.logTitle}>{log.title}</Text>
+                      <Text style={styles.logTime}>{formatDebugTime(log.at)}</Text>
+                    </View>
+                    {log.detail ? <Text style={styles.logDetail}>{log.detail}</Text> : null}
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.actionBody}>还没有同步日志。点一次同步或在 Watch 上操作后会出现记录。</Text>
+              )}
+            </AppCard>
+          </PageSection>
+        ) : null}
       </PageStack>
     </Screen>
   );
@@ -233,22 +255,32 @@ function formatWatchStatus(status: WatchConnectivityStatus): string {
   return status.isReachable ? 'Apple Watch 当前可达。' : 'Apple Watch 暂时不可达，后续会走待同步队列。';
 }
 
-function formatSyncResultMessage(result: WatchSyncResult): string {
+function formatUnsupportedWatchMessage(isDevelopment: boolean): string {
+  return isDevelopment
+    ? '当前运行环境没有可用的 WatchConnectivity 原生模块，请使用 iOS development build 和 Xcode Watch target 联调。'
+    : '当前设备暂时无法连接 Apple Watch，请确认已配对并安装手表 App。';
+}
+
+function formatSyncResultMessage(result: WatchSyncResult, isDevelopment: boolean): string {
   if (result.sent) {
     return '今日状态已发送给手表。';
   }
 
   switch (result.reason) {
     case 'watch_app_not_installed':
-      return '系统还没识别到小提督 Watch App，请重新运行 Watch target 后再试。';
+      return isDevelopment ? '系统还没识别到小提督 Watch App，请重新运行 Watch target 后再试。' : '请先在 Apple Watch 上安装小提督。';
     case 'watch_connectivity_unavailable':
-      return 'WatchConnectivity 原生通道未接入，请重新安装当前 iOS 构建。';
+      return isDevelopment ? 'WatchConnectivity 原生通道未接入，请重新安装当前 iOS 构建。' : '当前设备暂时无法连接 Apple Watch。';
     case 'watch_not_paired':
       return '还没有检测到已配对的 Apple Watch。';
     case 'watch_session_unavailable':
-      return '当前设备暂时不支持 WatchConnectivity。';
+      return isDevelopment ? '当前设备暂时不支持 WatchConnectivity。' : '当前设备暂时无法连接 Apple Watch。';
     default:
-      return result.reason ? `同步到手表失败：${result.reason}` : '同步到手表失败。';
+      if (isDevelopment && result.reason) {
+        return `同步到手表失败：${result.reason}`;
+      }
+
+      return '同步到手表失败，请稍后再试。';
   }
 }
 

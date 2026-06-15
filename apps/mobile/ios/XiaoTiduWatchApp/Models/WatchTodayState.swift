@@ -45,6 +45,35 @@ struct WatchTodayState: Codable, Equatable {
     var done: Bool
   }
 
+  struct TrainingModeConfig: Codable, Equatable {
+    var holdSeconds: Int
+    var id: String
+    var restSeconds: Int
+    var rounds: Int
+
+    init(id: String, holdSeconds: Int, restSeconds: Int, rounds: Int) {
+      self.id = id
+      self.holdSeconds = holdSeconds
+      self.restSeconds = restSeconds
+      self.rounds = rounds
+    }
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+
+      id = try container.decodeIfPresent(String.self, forKey: .id) ?? "standard"
+      holdSeconds = max(try container.decodeIfPresent(Int.self, forKey: .holdSeconds) ?? 5, 1)
+      restSeconds = max(try container.decodeIfPresent(Int.self, forKey: .restSeconds) ?? 5, 1)
+      rounds = max(try container.decodeIfPresent(Int.self, forKey: .rounds) ?? 12, 1)
+    }
+
+    static let fallbackModes = [
+      TrainingModeConfig(id: "beginner", holdSeconds: 3, restSeconds: 3, rounds: 10),
+      TrainingModeConfig(id: "standard", holdSeconds: 5, restSeconds: 5, rounds: 12),
+      TrainingModeConfig(id: "quick", holdSeconds: 1, restSeconds: 1, rounds: 16),
+    ]
+  }
+
   var account: Account
   var date: String
   var generatedAt: String
@@ -53,6 +82,48 @@ struct WatchTodayState: Codable, Equatable {
   var proStatus: String
   var toilet: Toilet
   var training: Training
+  var trainingModes: [TrainingModeConfig]
+
+  init(
+    account: Account,
+    date: String,
+    generatedAt: String,
+    habits: Habits,
+    pendingEventCount: Int,
+    proStatus: String,
+    toilet: Toilet,
+    training: Training,
+    trainingModes: [TrainingModeConfig] = TrainingModeConfig.fallbackModes
+  ) {
+    self.account = account
+    self.date = date
+    self.generatedAt = generatedAt
+    self.habits = habits
+    self.pendingEventCount = pendingEventCount
+    self.proStatus = proStatus
+    self.toilet = toilet
+    self.training = training
+    self.trainingModes = trainingModes.isEmpty ? TrainingModeConfig.fallbackModes : trainingModes
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+
+    account = try container.decode(Account.self, forKey: .account)
+    date = try container.decode(String.self, forKey: .date)
+    generatedAt = try container.decode(String.self, forKey: .generatedAt)
+    habits = try container.decode(Habits.self, forKey: .habits)
+    pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
+    proStatus = try container.decode(String.self, forKey: .proStatus)
+    toilet = try container.decode(Toilet.self, forKey: .toilet)
+    training = try container.decode(Training.self, forKey: .training)
+
+    if let decodedModes = try container.decodeIfPresent([TrainingModeConfig].self, forKey: .trainingModes), !decodedModes.isEmpty {
+      trainingModes = decodedModes
+    } else {
+      trainingModes = TrainingModeConfig.fallbackModes
+    }
+  }
 
   static let placeholder = WatchTodayState(
     account: Account(isLoggedIn: false, nickname: nil),
@@ -62,7 +133,8 @@ struct WatchTodayState: Codable, Equatable {
     pendingEventCount: 0,
     proStatus: "free",
     toilet: Toilet(elapsedSeconds: 0, isPaused: false, isRunning: false, sessionCount: 0, stage: nil),
-    training: Training(completedSets: 0, done: false)
+    training: Training(completedSets: 0, done: false),
+    trainingModes: TrainingModeConfig.fallbackModes
   )
 }
 

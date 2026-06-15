@@ -3,7 +3,7 @@ import WatchKit
 
 struct WatchTrainingView: View {
   @EnvironmentObject private var session: WatchSessionManager
-  @State private var selectedMode: WatchTrainingMode = .standard
+  @State private var selectedModeId = WatchTrainingMode.standardId
   @State private var trainingSession: WatchTrainingSession?
   @State private var completedTraining: WatchTrainingCompletion?
   @State private var showingCancelConfirmation = false
@@ -29,7 +29,8 @@ struct WatchTrainingView: View {
         )
       } else {
         TrainingModePicker(
-          selectedMode: $selectedMode,
+          modes: trainingModes,
+          selectedModeId: $selectedModeId,
           onStart: startTraining
         )
       }
@@ -50,7 +51,9 @@ struct WatchTrainingView: View {
   }
 
   private func startTraining() {
-    trainingSession = WatchTrainingSession(mode: selectedMode)
+    let mode = currentSelectedMode
+    selectedModeId = mode.id
+    trainingSession = WatchTrainingSession(mode: mode)
     WKInterfaceDevice.current().play(.start)
   }
 
@@ -114,10 +117,19 @@ struct WatchTrainingView: View {
       durationSeconds: currentSession.mode.totalDurationSeconds
     )
   }
+
+  private var trainingModes: [WatchTrainingMode] {
+    WatchTrainingMode.modes(from: session.todayState.trainingModes)
+  }
+
+  private var currentSelectedMode: WatchTrainingMode {
+    trainingModes.first { $0.id == selectedModeId } ?? trainingModes.first ?? .standard
+  }
 }
 
 private struct TrainingModePicker: View {
-  @Binding var selectedMode: WatchTrainingMode
+  var modes: [WatchTrainingMode]
+  @Binding var selectedModeId: String
   var onStart: () -> Void
 
   var body: some View {
@@ -127,15 +139,15 @@ private struct TrainingModePicker: View {
           .font(.headline)
           .padding(.horizontal, 2)
 
-        ForEach(WatchTrainingMode.allCases) { mode in
+        ForEach(modes) { mode in
           Button {
-            if selectedMode == mode {
+            if selectedModeId == mode.id {
               onStart()
             } else {
-              selectedMode = mode
+              selectedModeId = mode.id
             }
           } label: {
-            TrainingModeOption(mode: mode, isSelected: selectedMode == mode)
+            TrainingModeOption(mode: mode, isSelected: selectedModeId == mode.id)
           }
           .buttonStyle(.plain)
         }
@@ -268,72 +280,55 @@ private struct TrainingCompletionContent: View {
   }
 }
 
-private enum WatchTrainingMode: String, CaseIterable, Identifiable {
-  case beginner
-  case standard
-  case quick
+private struct WatchTrainingMode: Identifiable {
+  static let standardId = "standard"
+  static let standard = WatchTrainingMode(config: .init(id: standardId, holdSeconds: 5, restSeconds: 5, rounds: 12))
 
-  var id: String {
-    rawValue
+  var id: String
+  var holdSeconds: Int
+  var restSeconds: Int
+  var rounds: Int
+
+  init(config: WatchTodayState.TrainingModeConfig) {
+    id = config.id
+    holdSeconds = max(config.holdSeconds, 1)
+    restSeconds = max(config.restSeconds, 1)
+    rounds = max(config.rounds, 1)
   }
 
   var title: String {
-    switch self {
-    case .beginner:
+    switch id {
+    case "beginner":
       return "新手"
-    case .standard:
+    case "standard":
       return "标准"
-    case .quick:
+    case "quick":
       return "快速"
+    default:
+      return "自定义"
     }
   }
 
   var subtitle: String {
-    switch self {
-    case .beginner:
+    switch id {
+    case "beginner":
       return "轻轻来，慢一点"
-    case .standard:
+    case "standard":
       return "日常节奏"
-    case .quick:
+    case "quick":
       return "短促收放"
-    }
-  }
-
-  var holdSeconds: Int {
-    switch self {
-    case .beginner:
-      return 3
-    case .standard:
-      return 5
-    case .quick:
-      return 2
-    }
-  }
-
-  var restSeconds: Int {
-    switch self {
-    case .beginner:
-      return 4
-    case .standard:
-      return 5
-    case .quick:
-      return 2
-    }
-  }
-
-  var rounds: Int {
-    switch self {
-    case .beginner:
-      return 6
-    case .standard:
-      return 8
-    case .quick:
-      return 10
+    default:
+      return "\(holdSeconds) 秒抬 · \(restSeconds) 秒放"
     }
   }
 
   var totalDurationSeconds: Int {
     (holdSeconds + restSeconds) * rounds
+  }
+
+  static func modes(from configs: [WatchTodayState.TrainingModeConfig]) -> [WatchTrainingMode] {
+    let modes = configs.map(WatchTrainingMode.init(config:))
+    return modes.isEmpty ? [.standard] : modes
   }
 }
 
