@@ -27,7 +27,6 @@ export default function AdvancedReportScreen() {
   const proStatus = useAuthStore((state) => state.proStatus);
   const user = useAuthStore((state) => state.user);
   const advancedReport = useReportStore((state) => state.advancedReport);
-  const error = useReportStore((state) => state.error);
   const isLoading = useReportStore((state) => state.isLoading);
   const loadAdvancedReport = useReportStore((state) => state.loadAdvancedReport);
   const isPro = isProStatus(proStatus);
@@ -125,7 +124,6 @@ export default function AdvancedReportScreen() {
               </AppCard>
             )}
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </>
         ) : null}
       </PageStack>
@@ -823,12 +821,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       fontSize: 18,
       fontWeight: '900',
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
     },
     headerBody: {
       color: colors.textMuted,

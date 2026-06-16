@@ -16,7 +16,6 @@ export default function TeamSettingsScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const user = useAuthStore((state) => state.user);
-  const error = useTeamStore((state) => state.error);
   const isMutating = useTeamStore((state) => state.isMutating);
   const leaveTeam = useTeamStore((state) => state.leaveTeam);
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
@@ -102,7 +101,6 @@ export default function TeamSettingsScreen() {
           </AppButton>
         </AppCard>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </PageStack>
     </Screen>
   );
@@ -155,12 +153,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.textMuted,
       fontSize: 13,
       fontWeight: '600',
-      lineHeight: 19,
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
       lineHeight: 19,
     },
     input: {

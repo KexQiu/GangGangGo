@@ -36,7 +36,6 @@ export default function TrendsScreen() {
   const user = useAuthStore((state) => state.user);
   const advancedReport = useReportStore((state) => state.advancedReport);
   const loadAdvancedReport = useReportStore((state) => state.loadAdvancedReport);
-  const reportError = useReportStore((state) => state.error);
   const toiletSessions = useToiletStore((state) => state.sessions);
   const trainingSessions = useTrainingStore((state) => state.sessions);
   const trendInput = {
@@ -144,7 +143,6 @@ export default function TrendsScreen() {
             </AppButton>
           </>
         )}
-        {reportError ? <Text style={styles.errorText}>{reportError}</Text> : null}
       </AppCard>
     </Screen>
   );
@@ -447,12 +445,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       fontSize: 16,
       fontWeight: '900',
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
     },
     weekDayColumn: {
       alignItems: 'center',

@@ -112,7 +112,6 @@ export default function TeamInviteScreen() {
               </View>
             </>
           ) : null}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
           {invite ? (
             <View style={styles.actionRow}>
@@ -151,13 +150,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '600',
       lineHeight: 21,
-      textAlign: 'center',
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
       textAlign: 'center',
     },
     feedbackText: {

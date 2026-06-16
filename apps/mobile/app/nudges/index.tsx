@@ -21,7 +21,6 @@ export default function NudgesScreen() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
   const ackNudge = useNudgeStore((state) => state.ackNudge);
-  const error = useNudgeStore((state) => state.error);
   const inbox = useNudgeStore((state) => state.inbox);
   const isLoading = useNudgeStore((state) => state.isLoading);
   const loadInbox = useNudgeStore((state) => state.loadInbox);
@@ -104,7 +103,6 @@ export default function NudgesScreen() {
           </>
         ) : null}
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </PageStack>
     </Screen>
   );
@@ -144,12 +142,6 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       lineHeight: 21,
       textAlign: 'center',
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
     },
     flexButton: {
       flex: 1,

@@ -9,7 +9,7 @@ import type {
 } from '@xiaotidu/contracts';
 
 import { apiClient } from '../../api/client';
-import { toUserMessage, useAuthStore } from '../account/authStore';
+import { notifyUserError, useAuthStore } from '../account/authStore';
 
 type NudgeState = {
   error: null | string;
@@ -42,16 +42,15 @@ export const ackCopies: Record<BuddyNudgeAckStatus, string> = {
 
 export const useNudgeStore = create<NudgeState>((set, get) => ({
   ackNudge: async (id, status) => {
-    const token = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const token = requireAccessToken();
       await apiClient.ackNudge(id, { status }, token);
       set({ error: null, isMutating: false });
       await get().loadInbox();
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   error: null,
@@ -72,7 +71,7 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
       const response = await apiClient.getNudgeInbox(token);
       set({ error: null, inbox: response.nudges, isLoading: false });
     } catch (error) {
-      set({ error: toUserMessage(error), isLoading: false });
+      set({ error: notifyUserError(error), isLoading: false });
     }
   },
   loadSent: async () => {
@@ -89,7 +88,7 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
       const response = await apiClient.getNudgeSent(token);
       set({ error: null, isLoading: false, sent: response.nudges });
     } catch (error) {
-      set({ error: toUserMessage(error), isLoading: false });
+      set({ error: notifyUserError(error), isLoading: false });
     }
   },
   loadSettings: async () => {
@@ -104,34 +103,32 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
       const response = await apiClient.getBuddyNudgeSettings(token);
       set({ error: null, settings: response.settings });
     } catch (error) {
-      set({ error: toUserMessage(error) });
+      set({ error: notifyUserError(error) });
     }
   },
   sendNudge: async (toUserId, type) => {
-    const token = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const token = requireAccessToken();
       await apiClient.sendNudge({ toUserId, type }, token);
       set({ error: null, isMutating: false });
       await get().loadSent();
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   sent: [],
   settings: [],
   updateSettings: async (buddyUserId, settings) => {
-    const token = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const token = requireAccessToken();
       const response = await apiClient.updateBuddyNudgeSettings(buddyUserId, settings, token);
       set({ error: null, isMutating: false, settings: response.settings });
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
 }));

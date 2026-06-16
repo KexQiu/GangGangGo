@@ -24,7 +24,6 @@ export default function JoinTeamScreen() {
   const authIsLoading = useAuthStore((state) => state.isLoading);
   const user = useAuthStore((state) => state.user);
   const acceptInvite = useTeamStore((state) => state.acceptInvite);
-  const error = useTeamStore((state) => state.error);
   const invitePreview = useTeamStore((state) => state.invitePreview);
   const isLoading = useTeamStore((state) => state.isLoading);
   const isMutating = useTeamStore((state) => state.isMutating);
@@ -69,7 +68,6 @@ export default function JoinTeamScreen() {
               <Text style={styles.privacyText}>具体时长、身体不适、备注和本地隐私记录。</Text>
             </View>
           ) : null}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           {!user && hasPreview ? (
             <AppButton disabled={authIsLoading} onPress={() => void loginWithMockApple()}>
               {authIsLoading ? '登录中...' : '先登录小提督'}
@@ -82,9 +80,11 @@ export default function JoinTeamScreen() {
                   return;
                 }
 
-                void acceptInvite(token)
-                  .then(() => router.replace(routes.team))
-                  .catch(() => undefined);
+                void acceptInvite(token).then((didAccept) => {
+                  if (didAccept) {
+                    router.replace(routes.team);
+                  }
+                });
               }}
             >
               {isMutating ? '加入中...' : hasPreview ? '加入小队' : '邀请暂不可用'}
@@ -114,13 +114,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '600',
       lineHeight: 21,
-      textAlign: 'center',
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
       textAlign: 'center',
     },
     privacyBox: {

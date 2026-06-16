@@ -27,7 +27,6 @@ export default function TeamScreen() {
   const proStatus = useAuthStore((state) => state.proStatus);
   const user = useAuthStore((state) => state.user);
   const createTeam = useTeamStore((state) => state.createTeam);
-  const error = useTeamStore((state) => state.error);
   const isLoading = useTeamStore((state) => state.isLoading);
   const isMutating = useTeamStore((state) => state.isMutating);
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
@@ -35,7 +34,6 @@ export default function TeamScreen() {
   const snapshots = useTeamStore((state) => state.snapshots);
   const team = useTeamStore((state) => state.team);
   const sendNudge = useNudgeStore((state) => state.sendNudge);
-  const nudgeError = useNudgeStore((state) => state.error);
   const loadTeamWeeklyReport = useReportStore((state) => state.loadTeamWeeklyReport);
   const teamWeeklyReport = useReportStore((state) => state.teamWeeklyReport);
   const isPro = isProStatus(proStatus);
@@ -166,7 +164,6 @@ export default function TeamScreen() {
           </>
         ) : null}
 
-        {error || nudgeError ? <Text style={styles.errorText}>{error ?? nudgeError}</Text> : null}
         {isLoading ? <Text style={styles.loadingText}>小队状态加载中...</Text> : null}
       </PageStack>
     </Screen>
@@ -192,12 +189,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       fontSize: 18,
       fontWeight: '900',
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
     },
     flexButton: {
       flex: 1,

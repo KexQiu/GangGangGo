@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import type { AdvancedReportResponse, TeamWeeklyReportResponse } from '@xiaotidu/contracts';
 
 import { apiClient } from '../../api/client';
-import { isProStatus, toUserMessage, useAuthStore } from '../account/authStore';
+import { isProStatus, notifyUserError, useAuthStore } from '../account/authStore';
 import { syncRecentReportSnapshots } from '../sync/reportSnapshotSync';
 
 type ReportState = {
@@ -34,7 +34,7 @@ export const useReportStore = create<ReportState>((set) => ({
       const advancedReport = await apiClient.getAdvancedReport(accessToken);
       set({ advancedReport, error: null, isLoading: false });
     } catch (error) {
-      set({ error: toUserMessage(error), isLoading: false });
+      set({ error: notifyUserError(error), isLoading: false });
     }
   },
   loadTeamWeeklyReport: async () => {
@@ -51,7 +51,7 @@ export const useReportStore = create<ReportState>((set) => ({
       const teamWeeklyReport = await apiClient.getTeamWeeklyReport(accessToken);
       set({ error: null, isLoading: false, teamWeeklyReport });
     } catch (error) {
-      set({ error: toUserMessage(error), isLoading: false });
+      set({ error: notifyUserError(error), isLoading: false });
     }
   },
   teamWeeklyReport: null,

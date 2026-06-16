@@ -11,7 +11,7 @@ import type {
 } from '@xiaotidu/contracts';
 
 import { ApiClientError, apiClient } from '../../api/client';
-import { useAuthStore, toUserMessage } from '../account/authStore';
+import { notifyUserError, useAuthStore } from '../account/authStore';
 
 type TeamState = {
   error: null | string;
@@ -21,14 +21,14 @@ type TeamState = {
   isMutating: boolean;
   snapshots: TeamSnapshotsResponse | null;
   team: Team | null;
-  acceptInvite: (token: string, request?: AcceptTeamInviteRequest) => Promise<void>;
+  acceptInvite: (token: string, request?: AcceptTeamInviteRequest) => Promise<boolean>;
   createInvite: () => Promise<void>;
   createTeam: (name?: string) => Promise<void>;
   leaveTeam: () => Promise<void>;
   loadCurrentTeam: () => Promise<void>;
   loadInvitePreview: (token: string) => Promise<void>;
   loadSnapshots: () => Promise<void>;
-  removeMember: (memberId: string) => Promise<void>;
+  removeMember: (memberId: string) => Promise<boolean>;
   renameTeam: (name: string) => Promise<void>;
   updateMyMemberStatus: (status: UpdateTeamMemberStatusRequest['status']) => Promise<void>;
   updateShareSettings: (settings: ShareSettings) => Promise<void>;
@@ -44,10 +44,10 @@ const defaultShareSettings: ShareSettings = {
 
 export const useTeamStore = create<TeamState>((set, get) => ({
   acceptInvite: async (token, request = {}) => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const response = await apiClient.acceptTeamInvite(
         token,
         {
@@ -58,34 +58,33 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       );
       set({ error: null, isMutating: false, team: response.team });
       await get().loadSnapshots();
+      return true;
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
+      return false;
     }
   },
   createInvite: async () => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const invite = await apiClient.createTeamInvite(accessToken);
       set({ error: null, invite, isMutating: false });
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   createTeam: async (name = '我的小队') => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const response = await apiClient.createTeam({ name }, accessToken);
       set({ error: null, isMutating: false, team: response.team });
       await get().loadSnapshots();
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   error: null,
@@ -94,15 +93,14 @@ export const useTeamStore = create<TeamState>((set, get) => ({
   isLoading: false,
   isMutating: false,
   leaveTeam: async () => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const response = await apiClient.leaveTeam(accessToken);
       set({ error: null, isMutating: false, snapshots: null, team: response.team });
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   loadCurrentTeam: async () => {
@@ -129,7 +127,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
         await useAuthStore.getState().logout();
       }
 
-      set({ error: toUserMessage(error), isLoading: false });
+      set({ error: notifyUserError(error), isLoading: false });
     }
   },
   loadInvitePreview: async (token) => {
@@ -139,7 +137,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       const invitePreview = await apiClient.getTeamInvitePreview(token);
       set({ error: null, invitePreview, isLoading: false });
     } catch (error) {
-      set({ error: toUserMessage(error), isLoading: false });
+      set({ error: notifyUserError(error), isLoading: false });
     }
   },
   loadSnapshots: async () => {
@@ -154,60 +152,58 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       const snapshots = await apiClient.getTeamSnapshots(accessToken);
       set({ error: null, snapshots });
     } catch (error) {
-      set({ error: toUserMessage(error) });
+      set({ error: notifyUserError(error) });
     }
   },
   removeMember: async (memberId) => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const response = await apiClient.removeMember(memberId, accessToken);
       set({ error: null, isMutating: false, team: response.team });
       await get().loadSnapshots();
+      return true;
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
+      return false;
     }
   },
   renameTeam: async (name) => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const response = await apiClient.updateTeam({ name }, accessToken);
       set({ error: null, isMutating: false, team: response.team });
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   snapshots: null,
   team: null,
   updateMyMemberStatus: async (status) => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       const response = await apiClient.updateMyMemberStatus({ status }, accessToken);
       set({ error: null, isMutating: false, team: response.team });
       await get().loadSnapshots();
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
   updateShareSettings: async (settings) => {
-    const accessToken = requireAccessToken();
     set({ error: null, isMutating: true });
 
     try {
+      const accessToken = requireAccessToken();
       await apiClient.updateShareSettings(settings, accessToken);
       set({ error: null, isMutating: false });
       await get().loadSnapshots();
     } catch (error) {
-      set({ error: toUserMessage(error), isMutating: false });
-      throw error;
+      set({ error: notifyUserError(error), isMutating: false });
     }
   },
 }));

@@ -39,7 +39,6 @@ export default function TeamMemberScreen() {
   const currentUser = useAuthStore((state) => state.user);
   const proStatus = useAuthStore((state) => state.proStatus);
   const isPro = isProStatus(proStatus);
-  const error = useNudgeStore((state) => state.error);
   const isMutating = useNudgeStore((state) => state.isMutating);
   const loadSettings = useNudgeStore((state) => state.loadSettings);
   const sendNudge = useNudgeStore((state) => state.sendNudge);
@@ -148,7 +147,11 @@ export default function TeamMemberScreen() {
             <Text style={styles.description}>移除后，对方不能继续看到小队新状态。</Text>
             <AppButton
               onPress={() => {
-                void removeMember(member.id).then(() => router.replace(routes.team));
+                void removeMember(member.id).then((didRemove) => {
+                  if (didRemove) {
+                    router.replace(routes.team);
+                  }
+                });
               }}
               variant="warning"
             >
@@ -157,7 +160,6 @@ export default function TeamMemberScreen() {
           </AppCard>
         ) : null}
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </PageStack>
     </Screen>
   );

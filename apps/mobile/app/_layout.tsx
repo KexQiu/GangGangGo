@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppToastHost } from '../src/components/toast/AppToast';
 import { useAuthStore } from '../src/features/account/authStore';
 import { useHabitStore } from '../src/features/habits/habitStore';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
@@ -90,6 +91,7 @@ function RootStack() {
           },
         }}
       />
+      <AppToastHost />
     </>
   );
 }

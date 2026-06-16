@@ -20,7 +20,6 @@ export default function MeScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const accessToken = useAuthStore((state) => state.accessToken);
-  const error = useAuthStore((state) => state.error);
   const isLoading = useAuthStore((state) => state.isLoading);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const logout = useAuthStore((state) => state.logout);
@@ -69,8 +68,6 @@ export default function MeScreen() {
               <Text style={styles.statusValue}>监督搭子、Apple Watch 和高级小报告会放在这里。</Text>
             </View>
           )}
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           {accessToken ? (
             <>
@@ -241,12 +238,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.border,
       height: 1,
       marginLeft: 48,
-    },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
     },
     flexButton: {
       flex: 1,

@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { ProStatus, UpdateUserProfileRequest, UserProfile } from '@xiaotidu/contracts';
 
 import { ApiClientError, apiClient, setApiUnauthorizedHandler } from '../../api/client';
+import { showToast } from '../../components/toast/AppToast';
 import { pickAndUploadAvatar } from './avatarUpload';
 
 type AuthState = {
@@ -53,8 +54,10 @@ export const useAuthStore = create<AuthState>()(
           });
           await get().refreshEntitlements();
         } catch (error) {
+          const message = notifyUserError(error);
+
           set({
-            error: toUserMessage(error),
+            error: message,
             isLoading: false,
           });
         }
@@ -130,7 +133,9 @@ export const useAuthStore = create<AuthState>()(
         const token = get().accessToken;
 
         if (!token) {
-          set({ error: '请先登录。' });
+          const message = '请先登录。';
+          showToast(message, { type: 'error' });
+          set({ error: message });
           return;
         }
 
@@ -160,7 +165,9 @@ export const useAuthStore = create<AuthState>()(
         const token = get().accessToken;
 
         if (!token) {
-          set({ error: '请先登录。' });
+          const message = '请先登录。';
+          showToast(message, { type: 'error' });
+          set({ error: message });
           return;
         }
 
@@ -210,16 +217,25 @@ export function isProStatus(proStatus: ProStatus): boolean {
 
 function handleAuthError(error: unknown, set: (state: Partial<AuthState>) => void) {
   if (error instanceof ApiClientError && error.status === 401) {
+    const message = '登录状态过期，请重新登录。';
+
     set({
       accessToken: null,
-      error: '登录状态过期，请重新登录。',
+      error: message,
       proStatus: defaultProStatus,
       user: null,
     });
+    showToast(message, { type: 'error' });
     return;
   }
 
-  set({ error: toUserMessage(error) });
+  set({ error: notifyUserError(error) });
+}
+
+export function notifyUserError(error: unknown): string {
+  const message = toUserMessage(error);
+  showToast(message, { type: 'error' });
+  return message;
 }
 
 export function toUserMessage(error: unknown): string {
