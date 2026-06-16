@@ -109,9 +109,13 @@ Xcode target：
 - `xcodebuild -workspace apps/mobile/ios/app.xcworkspace -scheme XiaoTiduWatchApp -configuration Debug -sdk watchsimulator -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build`
 - `git diff --check`
 
+已完成的真机验证：
+
+- 2026-06-16：Apple Watch 真机初步测试通过，基础安装、启动和联动链路可继续进入完整回归。
+
 尚未完成：
 
-- iPhone + Watch 配对模拟器的完整交互走查。
+- Apple Watch 手动测试清单逐项回归和结果留痕。
 - 真机 Complication 添加到表盘、点击深链和系统刷新节奏验收。
 - 真机 haptic 手感验收。
 - StoreKit 购买、恢复订阅和真实 Apple Developer capability 闭环。

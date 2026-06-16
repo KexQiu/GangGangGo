@@ -686,7 +686,7 @@ Watch 端可展示：
 
 真机阶段：
 
-- iPhone + Apple Watch 真机配对测试。
+- iPhone + Apple Watch 真机配对测试。2026-06-16 已完成初步通过，后续仍需逐项留痕。
 - Pro 权益状态测试。
 - Watch 菊花抬震动测试。
 - 蹲会儿阶段震动测试。

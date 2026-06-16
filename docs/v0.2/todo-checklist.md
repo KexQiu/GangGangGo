@@ -39,7 +39,8 @@ v0.2 当前已完成开发骨架：
 当前仍是 **开发联调版**，不适合生产上线。核心阻塞是：
 
 - 真实订阅购买与 App Store Server 校验未完成。
-- 真实 Sign in with Apple、Push、Live Activity、Watch 真机能力受 Apple Developer Program 和签名能力限制，当前部分关闭或未验收。
+- 真实 Sign in with Apple、Push 和部分 Live Activity 能力受 Apple Developer Program 和签名能力限制，当前部分关闭或未验收。
+- Apple Watch 已完成真机初步测试，仍需完整手动清单留痕和表盘 / haptic 专项验收。
 - 正式对象存储、生产部署、集成测试和并发一致性加固未完成。
 
 ## 2. 优先级定义
@@ -199,7 +200,7 @@ v0.2 当前已完成开发骨架：
 
 ### 3.6 Apple Watch 联动联调
 
-状态：代码闭环基本完成，待配对模拟器和真机完整联调
+状态：真机初步测试通过，待完整手动回归留痕
 目标：确认 iPhone 和 Watch 双向同步可靠。
 
 已完成：
@@ -216,11 +217,12 @@ v0.2 当前已完成开发骨架：
 - Watch 收工后 iPhone 同步结束 Live Activity 和阶段通知。
 - iPhone `/watch` 页面生产环境隐藏调试面板，开发环境保留连接诊断、ACK、JSON 和日志。
 - Complication 共享低敏状态、过期态、Pro 锁定态、蹲会儿深链和三种 family 样式。
+- 2026-06-16 Apple Watch 真机初步测试通过。
 
 待办：
 
-- [ ] 在本机 Xcode 运行 `app` scheme。
-- [ ] 在本机 Xcode 运行 `XiaoTiduWatchApp` scheme。
+- [x] 在本机 Xcode 运行 `app` scheme。
+- [x] 在本机 Xcode 运行 `XiaoTiduWatchApp` scheme。
 - [ ] App -> Watch：小账本打卡后 Watch 更新。
 - [ ] App -> Watch：小账本取消后 Watch 更新。
 - [ ] App -> Watch：开始蹲会儿后 Watch 显示计时。

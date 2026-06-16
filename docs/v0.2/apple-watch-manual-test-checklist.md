@@ -4,6 +4,10 @@
 
 本文用于验证小提督 Apple Watch 联动。当前阶段重点验证 iPhone 与 Watch 的数据同步协议、页面反馈、离线兜底和表盘 Complication 真实状态展示，不包含真机 haptic 手感验收。
 
+最新记录：
+
+- 2026-06-16：Apple Watch 真机初步测试通过，基础安装、启动和联动链路可继续进入完整回归。本清单仍用于后续逐项留痕。
+
 ## 测试前准备
 
 - [ ] 在 Xcode 打开 `apps/mobile/ios/app.xcworkspace`。
@@ -14,9 +18,9 @@
 pnpm mobile:start -- --clear
 ```
 
-- [ ] Run `app`，确认 iPhone 模拟器进入小提督。
+- [x] Run `app`，确认 iPhone 模拟器或真机进入小提督。
 - [ ] 切换 Scheme 到 `XiaoTiduWatchApp`，Destination 选择配对的 Apple Watch 模拟器。
-- [ ] Run `XiaoTiduWatchApp`，确认 Watch 上能打开小提督。
+- [x] Run `XiaoTiduWatchApp`，确认 Watch 上能打开小提督。
 - [ ] iPhone 进入 `我的 -> Apple Watch`。
 - [ ] 如果是开发构建，确认页面底部显示联动调试面板；如果是生产构建，确认不展示连接诊断、JSON 和事件日志。
 
