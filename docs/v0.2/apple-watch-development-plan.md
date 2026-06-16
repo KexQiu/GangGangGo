@@ -1,8 +1,8 @@
 # 小提督 v0.2 Apple Watch 开发计划
 
 版本：v0.2
-日期：2026-05-26
-阶段：开发计划
+日期：2026-06-16
+阶段：开发联调中
 关联文档：[Apple Watch 需求文档](./apple-watch-prd.md)、[v0.2 开发方案](./development-plan.md)
 
 ## 1. 开发目标
@@ -81,37 +81,40 @@ Xcode target：
 
 ### 2.3 当前执行状态
 
-已完成第一阶段 iPhone 端骨架：
+代码已从功能骨架推进到 Pro 用户闭环可验收阶段：
 
-- `WatchTodayState`、`WatchEvent`、`WatchEventAck` TypeScript 类型。
-- 从现有本地 store 计算低敏今日状态。
-- iPhone 原生 `WatchConnectivityModule` 初版：可激活 `WCSession`、读取配对/可达状态、通过 `updateApplicationContext` 发送今日状态。
-- WatchConnectivity JS adapter：未接原生模块时安全返回 unsupported，接入原生模块后转为真实通道。
-- Watch 同步服务：App 启动、前台恢复、本地记录变化时可尝试同步今日状态。
-- Watch 事件接收骨架：原生模块收到 Watch 消息后发给 JS，JS 处理 `training_completed`、`habit_toggled`、`toilet_timer_action` 后回同步今日状态。
-- `/watch` 页面：展示配对/支持状态、今日低敏状态和手动同步入口。
-- Watch 端 SwiftUI 源码骨架：`XiaoTiduWatchApp`、`WatchSessionManager`、首页、菊花抬、小账本、蹲会儿页面已创建，等待加入 watchOS target 后编译验证。
-- `XiaoTiduWatchApp` 已注册为 Xcode watchOS target，并由 iPhone `app` target 的 `Embed Watch Content` 阶段嵌入。
-- Watch 菊花抬页面已从占位按钮升级为三种模式选择、收紧/放松倒计时和阶段震动节奏，完成后发送 `training_completed`。
-- Watch 小账本页面已支持按当前状态显示达标项，并通过再次点击发送撤销事件。
-- Watch -> iPhone 事件 ACK 已收口：iPhone 原生层暂存 reply handler，JS 处理完事件后返回 `accepted / duplicate / rejected`，Watch 首页展示同步结果或错误。
-- Watch 离线事件队列已增加去重、24 小时过期清理和最多 25 条的容量限制。
-- Watch 蹲会儿页面已支持基于 iPhone 快照本地滚动计时，并按 5/10/15/20 分钟阶段触发不同 haptic；暂停、继续、收工会使用 Watch 当前计算出的用时回传 iPhone。
-- 非 Pro 用户的蹲会儿 Watch 同步已收口为只展示今日次数；iPhone 端构建状态时会清空计时字段，Watch 端也会阻止计时事件进入待同步队列。
-- Watch 端体验已补齐第一轮收口：
-  - 免费版/未开通 Pro 时展示今日低敏状态和 Pro 锁定态，蹲会儿只展示次数，避免误触云端联动。
-  - iPhone 端接收 Watch 事件前会统一校验登录和 Pro 状态，非 Pro / 过期状态不会写入训练、小账本或蹲会儿记录。
-  - 菊花抬支持训练中暂停、继续、结束确认和完成页。
-  - 蹲会儿收工增加确认，避免手表误触。
-  - 首页显示离线待同步队列摘要。
-  - 新增 WidgetKit Complication 扩展 `XiaoTiduWatchComplications`，通过 App Group 读取 Watch 端缓存的低敏今日状态，支持圆形、矩形和 inline 表盘入口；状态过期时显示打开同步提示。
-- `/watch` iPhone 调试页已增加同步面板：连接状态、最近发送、最近 Watch 消息、最近 ACK、当前待同步 JSON 和事件日志。
+- `XiaoTiduWatchApp`、`XiaoTiduWatchComplications` target 已接入 Xcode 工程，Watch App 随 iPhone `app` target 嵌入。
+- iPhone 端 `WatchConnectivityModule` 支持激活 `WCSession`、读取配对/可达状态、发送 `WatchTodayState`、接收 Watch 消息并回 ACK。
+- `WatchTodayState` 已由 iPhone TypeScript 侧统一构建，包含账号、Pro 状态、今日训练、小账本、蹲会儿、待同步数量和训练模式配置。
+- 同步触发顺序已收口为：刷新权益 -> 构建 `WatchTodayState` -> 同步 Watch。触发点包含 App 启动、前台恢复、登录/退出、权益刷新、进入 `/watch` 页面、本地健康记录变化和 Watch 事件 ACK。
+- Pro 可用状态只认 `pro_active` 与 `pro_grace_period`。iPhone 接收 Watch 事件前统一校验登录与 Pro 状态；Watch 发送训练、小账本、蹲会儿事件前也会校验本地最新状态。
+- 非 Pro / 未登录 / Pro 过期用户在 Watch 上只读展示低敏状态；蹲会儿只展示今日次数，不展示计时、暂停或阶段，也不会把旧离线事件反复回放。
+- Watch 首页已收敛为数据展示即入口：Pro 用户点击菊花抬、小账本、蹲会儿状态行进入对应页面；非 Pro 用户状态行不可点击，只显示 Pro 锁定说明。
+- Watch 菊花抬已支持选择新手、标准、快速模式；再次点击当前选中模式会直接开始。训练模式时长来自 iPhone 下发的 `trainingModes`，Watch 端只保留兼容 fallback。
+- Watch 菊花抬计时已改为真实时间推导：`TimelineView` 负责刷新显示，`WatchTrainingSession.snapshot(at:)` 根据 `Date()` 推导阶段、剩余秒数、轮次和进度，checkpoint tick 只处理阶段 haptic 与完成事件。
+- Watch 小账本支持四项达标和撤销，ACK 后立即刷新最新 `WatchTodayState`。
+- Watch 蹲会儿页面可滚动，计时用 iPhone 快照加本地时间推导，0.25 秒刷新 UI；暂停、继续、收工回传 Watch 当前计算出的用时。
+- Watch 蹲会儿收工会触发 iPhone 端结束计时、保存记录、结束 Live Activity，并取消阶段通知，避免灵动岛继续计时。
+- Watch 蹲会儿按 5/10/15/20 分钟阶段触发不同 haptic，收工前有确认弹层，减少误触。
+- Watch 离线队列保留 24 小时过期、最多 25 条、按 event id 去重；回放前用最新 `todayState.isPro` 做本地过滤，iPhone 端仍做最终校验。
+- Watch -> iPhone ACK 携带最新 `WatchTodayState` 或 `stateJson`；Watch 收到后立即刷新 UI，失败时展示中文短文案并保留可重试状态。
+- Complication 已接入 App Group `group.com.kex.xiaotidu.watch` 共享低敏状态，支持 circular、rectangular、inline 三种 family；状态过期时展示打开同步。
+- Complication 样式已升级：圆形使用 gauge 和状态图标，矩形展示图标、标题、详情和 footnote；蹲会儿进行中显示计时状态，普通状态展示小账本完成度和菊花抬状态。
+- Complication 深链已接入 `xiaotidu-watch://home` 与 `xiaotidu-watch://toilet`。Pro 用户蹲会儿进行中点击表盘进入 Watch 蹲会儿页；非 Pro 用户不提供 widget URL，相当于禁用表盘入口操作。
+- iPhone `/watch` 页面已产品化：生产环境只展示连接状态、低敏今日状态和手动同步；连接诊断、最近消息、ACK、JSON、事件日志只在 `__DEV__` 展示。
+
+已完成的本地验证：
+
+- `pnpm --filter @xiaotidu/mobile typecheck`
+- `xcodebuild -workspace apps/mobile/ios/app.xcworkspace -scheme XiaoTiduWatchApp -configuration Debug -sdk watchsimulator -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build`
+- `git diff --check`
 
 尚未完成：
 
-- Complication 真实状态在真机和表盘上验收。
-- 真机 haptic 验收。
-- 完整 iPhone + Watch 模拟器构建验证：当前 Codex 沙箱无法访问 CoreSimulator，需要在本机终端执行一次模拟器构建确认。
+- iPhone + Watch 配对模拟器的完整交互走查。
+- 真机 Complication 添加到表盘、点击深链和系统刷新节奏验收。
+- 真机 haptic 手感验收。
+- StoreKit 购买、恢复订阅和真实 Apple Developer capability 闭环。
 
 ## 3. 技术选型
 
@@ -171,6 +174,12 @@ type WatchTodayState = {
     completedSets: number;
     done: boolean;
   };
+  trainingModes: Array<{
+    holdSeconds: number;
+    id: 'beginner' | 'standard' | 'quick';
+    restSeconds: number;
+    rounds: number;
+  }>;
   habits: {
     bowelDone: boolean;
     completion: 0 | 1 | 2 | 3 | 4;
@@ -233,6 +242,8 @@ type WatchEvent =
 type WatchEventAck = {
   eventId: string;
   message?: string;
+  state?: WatchTodayState;
+  stateJson?: string;
   status: 'accepted' | 'rejected' | 'duplicate';
 };
 ```
@@ -243,6 +254,7 @@ type WatchEventAck = {
 - 成功处理后返回 `accepted`。
 - 已处理过返回 `duplicate`。
 - 当前状态不允许处理时返回 `rejected`，并附简短 message。
+- ACK 尽量携带最新 `WatchTodayState` 或 `stateJson`，Watch 收到后立即刷新页面。
 
 ## 5. iPhone 端开发任务
 
@@ -259,6 +271,7 @@ apps/mobile/src/features/watch/watchStateBuilder.ts
 
 - 从本地训练、小账本、蹲会儿、auth store 计算 `WatchTodayState`。
 - 保持低敏字段。
+- 从 iPhone 端训练 preset 生成 `trainingModes`，Watch 不再自行定义模式时长。
 - 非 Pro 用户只同步蹲会儿今日次数，不同步进行中计时、暂停状态或阶段。
 - 不访问后端。
 
@@ -308,13 +321,15 @@ apps/mobile/src/features/watch/watchSyncService.ts
 
 - App 启动。
 - App 回到前台。
+- 登录、退出和权益刷新。
+- 进入 `/watch` 页面。
 - 菊花抬完成。
 - 小账本变化。
 - 蹲会儿开始、暂停、继续、收工。
-- auth/pro 状态变化。
 
 职责：
 
+- 先刷新 `/me/entitlements`。
 - 调用 `buildWatchTodayState()`。
 - 调用 native module 发送。
 - 捕获错误，不影响 iPhone 本地功能。
@@ -352,6 +367,8 @@ apps/mobile/src/features/watch/watchEventHandler.ts
   - 显示是否安装 Watch App。
   - 手动同步状态。
   - 说明 Watch 功能范围。
+  - 生产环境只展示用户可理解的连接状态和同步入口。
+  - `__DEV__` 下展示连接诊断、最近消息、ACK、待同步 JSON 和事件日志。
 
 ## 6. Watch 端开发任务
 
@@ -403,9 +420,9 @@ Views/WatchHomeView.swift
 
 操作：
 
-- 进入菊花抬。
-- 进入小账本。
-- 进入蹲会儿。
+- Pro 用户点击状态行进入菊花抬、小账本、蹲会儿。
+- 非 Pro 用户状态行只读，不进入操作页。
+- 蹲会儿深链只有在 Pro 且蹲会儿进行中时才可进入。
 
 ### W4. 菊花抬训练
 
@@ -418,11 +435,13 @@ Views/WatchTrainingSessionView.swift
 
 能力：
 
-- 选择新手、标准、快速模式。
-- 训练倒计时。
+- 选择新手、标准、快速模式，模式配置由 iPhone 下发。
+- 已选中的模式再次点击会直接开始。
+- 训练倒计时由真实时间推导，不把 Timer tick 作为时间源。
 - 收紧/放松阶段展示。
 - haptic 节奏。
 - 完成后发送 `training_completed`。
+- 暂停期间冻结显示，继续后暂停时长不计入训练总时长。
 
 ### W5. 小账本快速打卡
 
@@ -453,6 +472,9 @@ Views/WatchToiletView.swift
 - 暂停/继续。
 - 收工。
 - 5/10/15/20 分钟 haptic 提醒。
+- 页面可纵向滚动，适配小屏 Watch。
+- 计时由 iPhone 快照和本地 `Date()` 推导，避免从 0:00 重新开始。
+- Watch 收工后 iPhone 同步结束 Live Activity 和阶段通知。
 
 限制：
 
@@ -464,16 +486,15 @@ Views/WatchToiletView.swift
 文件：
 
 ```text
-Complications/XiaoTiduComplicationBundle.swift
-Complications/TodayStatusWidget.swift
+apps/mobile/ios/XiaoTiduWatchComplications/XiaoTiduWatchComplications.swift
 ```
 
 展示优先级：
 
-1. 蹲会儿进行中。
-2. 菊花抬未完成。
-3. 小账本未满格。
-4. 今日稳定。
+1. 状态过期或未同步：显示打开同步。
+2. 非 Pro：显示 Pro 锁定态且禁用 widget URL。
+3. 蹲会儿进行中：显示计时状态，点击进入蹲会儿页。
+4. 普通状态：显示小账本完成度和菊花抬状态，点击进入首页。
 
 ## 7. 里程碑
 
@@ -539,13 +560,15 @@ Complications/TodayStatusWidget.swift
 
 目标：
 
-- 基础 complication 可用。
+- Complication 读取低敏共享状态。
+- Complication 点击能回到 Watch App 或蹲会儿页。
 - 真机震动体验通过。
 
 验收：
 
 - 表盘显示今日状态。
-- 点击 complication 进入 Watch App。
+- 蹲会儿进行中点击 complication 进入 Watch 蹲会儿页。
+- 非 Pro 用户 complication 不提供可操作入口。
 - 真机 haptic 不过度打扰。
 
 ## 8. 测试计划
@@ -555,7 +578,7 @@ Complications/TodayStatusWidget.swift
 每个阶段至少运行：
 
 ```bash
-pnpm run typecheck
+pnpm --filter @xiaotidu/mobile typecheck
 pnpm --filter @xiaotidu/mobile exec expo install --check
 pnpm peers check
 git diff --check
@@ -571,13 +594,19 @@ plutil -lint apps/mobile/ios/app/Info.plist apps/mobile/ios/XiaoTiduLiveActiviti
 
 ### 8.2 构建检查
 
-模拟器：
+移动端：
 
 ```bash
 pnpm --filter @xiaotidu/mobile exec expo run:ios --device "iPhone 17 Pro"
 ```
 
-如果增加 Watch target，需要通过 Xcode scheme 选择 iPhone + Watch simulator 进行验证。
+Watch 编译检查：
+
+```bash
+xcodebuild -workspace apps/mobile/ios/app.xcworkspace -scheme XiaoTiduWatchApp -configuration Debug -sdk watchsimulator -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build
+```
+
+完整交互还需要通过 Xcode scheme 选择 iPhone + Watch simulator 组合或真机配对后验证。
 
 ### 8.3 手动验收
 
@@ -588,9 +617,12 @@ pnpm --filter @xiaotidu/mobile exec expo run:ios --device "iPhone 17 Pro"
 - Watch 小账本打卡后 iPhone 更新。
 - iPhone 开始蹲会儿后 Watch 显示计时。
 - Watch 收工后 iPhone 收到事件。
+- Watch 收工后 iPhone Live Activity 不再残留计时。
 - 免费用户不能从 Watch 发送蹲会儿暂停、继续或收工事件。
+- 免费用户点击 Watch 首页状态行不进入操作页。
 - iPhone 不可达时 Watch 事件进入待同步。
 - 重连后待同步事件清空。
+- Complication 过期态、非 Pro 禁用态、蹲会儿深链都符合预期。
 
 ### 8.4 真机验收
 

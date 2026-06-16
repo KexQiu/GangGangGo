@@ -1,7 +1,7 @@
 # 小提督 v0.2 总待办清单
 
 版本：v0.2
-日期：2026-05-28
+日期：2026-06-16
 阶段：开发联调版
 关联文档：
 
@@ -33,8 +33,8 @@ v0.2 当前已完成开发骨架：
 - 小队、邀请、共享快照、搭子提醒、回执。
 - 头像上传对象存储骨架，当前使用 mock storage。
 - 移动端 API client、会话 store、我的页、Pro 页、小队页、提醒页。
-- WatchConnectivity iPhone 桥接、Watch App target、Watch 页面、离线队列、ACK、调试面板。
-- Watch Complication 静态骨架。
+- WatchConnectivity iPhone 桥接、Watch App target、Watch 页面、离线队列、ACK、开发调试面板。
+- Watch Complication 已接入共享低敏状态、过期态、Pro 锁定态、蹲会儿深链和三种表盘样式。
 
 当前仍是 **开发联调版**，不适合生产上线。核心阻塞是：
 
@@ -199,7 +199,7 @@ v0.2 当前已完成开发骨架：
 
 ### 3.6 Apple Watch 联动联调
 
-状态：开发基本完成，待完整联调
+状态：代码闭环基本完成，待配对模拟器和真机完整联调
 目标：确认 iPhone 和 Watch 双向同步可靠。
 
 已完成：
@@ -210,8 +210,12 @@ v0.2 当前已完成开发骨架：
 - Watch 小账本快速打卡和撤销。
 - Watch 蹲会儿状态、阶段、haptic、收工确认。
 - Watch 离线队列、ACK、待同步摘要。
-- iPhone `/watch` 调试面板。
-- Complication 共享低敏状态读取骨架。
+- Watch 首页已收敛为状态行入口，非 Pro 状态只读不可进入操作页。
+- Watch 菊花抬使用 iPhone 下发训练模式配置，并用真实时间推导倒计时。
+- Watch 蹲会儿页面可滚动，计时由 iPhone 快照和本地时间推导。
+- Watch 收工后 iPhone 同步结束 Live Activity 和阶段通知。
+- iPhone `/watch` 页面生产环境隐藏调试面板，开发环境保留连接诊断、ACK、JSON 和日志。
+- Complication 共享低敏状态、过期态、Pro 锁定态、蹲会儿深链和三种 family 样式。
 
 待办：
 
@@ -223,8 +227,10 @@ v0.2 当前已完成开发骨架：
 - [ ] Watch -> App：小账本打卡/撤销后 App 更新。
 - [ ] Watch -> App：菊花抬完成后 App 更新。
 - [ ] Watch -> App：蹲会儿暂停、继续、收工后 App 更新。
+- [ ] Watch -> App：蹲会儿收工后 Live Activity 不残留计时。
 - [ ] 离线状态下 Watch 操作进入队列，重连后补同步。
-- [ ] `/watch` 调试面板能定位最近发送、最近 Watch 消息、最近 ACK。
+- [ ] 开发构建下 `/watch` 调试面板能定位最近发送、最近 Watch 消息、最近 ACK。
+- [ ] 生产构建下 `/watch` 不展示调试 JSON、bundle、activation 和事件日志。
 
 验收标准：
 
@@ -545,15 +551,19 @@ v0.2 当前已完成开发骨架：
 
 ### 7.1 Complication 接入真实状态
 
-状态：代码已接入共享低敏状态，待真机验收
+状态：代码已接入共享低敏状态、深链和样式，待真机表盘验收
 
 任务：
 
 - [x] Watch App 将低敏状态写入 App Group 共享缓存。
 - [x] Complication timeline 读取最近状态。
 - [x] 展示今日完成度或菊花抬状态。
-- [ ] 点击 Complication 打开 Watch App。
+- [x] 点击 Complication 打开 Watch App 首页。
+- [x] 蹲会儿进行中点击 Complication 打开 Watch 蹲会儿页。
+- [x] 非 Pro 用户禁用 Complication 跳转。
 - [x] 状态过期时显示“打开同步”。
+- [x] 优化 circular、rectangular、inline 三种样式。
+- [ ] 真机表盘添加、刷新节奏和点击深链验收。
 
 验收标准：
 
@@ -577,15 +587,22 @@ v0.2 当前已完成开发骨架：
 
 ### 7.3 Watch UI 细化
 
-状态：部分完成
+状态：主要交互已收敛，待真机视觉复测
 
 任务：
 
-- [ ] 优化 Watch 首页密度和可读性。
-- [ ] 优化训练完成页文案。
-- [ ] 优化离线队列状态表达。
-- [ ] 优化 Pro 锁定态文案。
+- [x] 优化 Watch 首页密度和可读性。
+- [x] 首页入口与上方数据展示合并。
+- [x] 非 Pro 用户点击首页状态行无效。
+- [x] 菊花抬已选模式再次点击直接开始。
+- [x] 移除菊花抬 `开始一组` 下方多余背景卡片。
+- [x] 菊花抬倒计时改为真实时间推导，避免累计漂移。
+- [x] 蹲会儿页面改为可滚动。
+- [x] 蹲会儿计时改为基于快照和本地时间推导。
+- [x] Pro 锁定态文案按未登录、免费、过期区分。
+- [x] 离线队列状态表达。
 - [ ] 增加 Watch 错误态复测。
+- [ ] 小屏 Watch 真机视觉复测。
 
 验收标准：
 

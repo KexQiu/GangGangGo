@@ -381,13 +381,17 @@ Watch 能力：
 - 菊花抬训练。
 - 小账本快速达标。
 - 蹲会儿状态查看。
-- 基础 complication。
+- 低敏状态 complication。
 
 同步：
 
 - 使用 WatchConnectivity。
 - iPhone 仍是本地数据主源。
 - Watch 离线操作重连后补同步。
+- Watch 首页状态行即入口，非 Pro 用户只读不可操作。
+- Watch 菊花抬倒计时按真实时间推导。
+- Watch 收工后 iPhone Live Activity 不残留计时。
+- Complication 支持首页和蹲会儿深链，非 Pro 状态禁用跳转。
 
 验收：
 

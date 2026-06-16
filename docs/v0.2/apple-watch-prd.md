@@ -41,7 +41,7 @@ Pro 用户：
 
 - 可以使用 Watch 首页、菊花抬、快速小账本、蹲会儿状态查看。
 - 可以同步 Watch 操作到 iPhone。
-- 可以使用基础 complication。
+- 可以使用低敏状态 complication。
 
 取消订阅后：
 
@@ -63,7 +63,7 @@ v0.2 Apple Watch MVP 只做高频闭环。
 - 蹲会儿状态查看和收工。
 - WatchConnectivity 与 iPhone 同步。
 - Watch 离线操作的待同步队列。
-- 基础 complication。
+- 低敏状态 complication。
 
 暂不实现：
 
@@ -139,17 +139,17 @@ Watch 首页展示今日低敏状态：
 
 ### 6.2 操作入口
 
-首页提供 3 个主要入口：
+首页不再额外放置底部入口按钮，今日状态行本身就是入口：
 
-- `开始菊花抬`
-- `小账本`
-- `蹲会儿`
+- Pro 用户点击 `菊花抬` 状态行进入训练页。
+- Pro 用户点击 `小账本` 状态行进入快速打卡页。
+- Pro 用户点击 `蹲会儿` 状态行进入蹲会儿页。
+- 非 Pro、未登录或 Pro 过期用户只能查看低敏状态，点击状态行不进入操作页。
 
 如果有正在进行中的蹲会儿：
 
-- 首页应突出显示 `蹲会儿进行中`
-- 显示已用时间
-- 提供 `收工` 快捷按钮
+- 首页仍展示今日蹲会儿次数，具体计时和收工操作放在蹲会儿页。
+- Complication 可在 Pro 且蹲会儿进行中时直接跳转到 Watch 蹲会儿页。
 
 ### 6.3 空状态
 
@@ -176,6 +176,7 @@ Watch 端支持三种模式：
 - 快速模式
 
 模式定义沿用 iPhone 端，不在 Watch 端重新定义规则。
+Watch 端接收 iPhone 下发的 `trainingModes` 配置；当缓存状态缺失该字段时，Swift 端仅使用兼容 fallback。
 
 ### 7.2 训练流程
 
@@ -183,7 +184,7 @@ Watch 端支持三种模式：
 
 1. 用户进入 `菊花抬`。
 2. 选择模式。
-3. 点击 `开始`。
+3. 点击 `开始一组`，或再次点击当前已选中的模式直接开始。
 4. Watch 显示当前轮次和阶段。
 5. 通过震动提示收紧和放松。
 6. 用户可暂停、继续、提前结束。
@@ -199,6 +200,13 @@ Watch 端支持三种模式：
 - 剩余时间。
 - 暂停按钮。
 - 结束按钮。
+
+计时规则：
+
+- 页面显示不以每秒递减的状态作为时间源。
+- Watch 根据 `startedAt`、`pausedAt`、累计暂停时长和当前 `Date()` 推导阶段、剩余秒数、轮次和进度。
+- Timer 只做轻量 checkpoint，用于阶段 haptic 和完成事件。
+- 暂停期间倒计时冻结；继续后暂停时长不计入训练总时长。
 
 推荐文案：
 
@@ -317,6 +325,7 @@ Watch 端只做状态查看和快速收工，不鼓励用户在 Watch 上长时�
 - 查看当前阶段。
 - 暂停 / 继续。
 - 收工。
+- 收工前确认，避免手表误触。
 
 不支持：
 
@@ -340,6 +349,8 @@ Watch 端只做状态查看和快速收工，不鼓励用户在 Watch 上长时�
 - 已用时间。
 - 阶段标题。
 - 简短提示。
+- 页面可纵向滚动，避免小屏 Watch 超出一屏后无法操作。
+- 计时由 iPhone 快照和 Watch 本地时间推导，暂停、继续后不会从 0:00 重新开始。
 
 推荐提示：
 
@@ -369,6 +380,7 @@ Watch 点击 `收工` 后：
 2. 同步给 iPhone。
 3. iPhone 端生成一条基础蹲会儿记录。
 4. 如果需要补充“不舒服/便血”等风险信息，用户回 iPhone 填写。
+5. iPhone 同步结束 Live Activity，并取消蹲会儿阶段通知，避免灵动岛继续计时。
 
 Watch 收工记录默认字段：
 
@@ -385,7 +397,7 @@ iPhone 可在首页或蹲会儿记录页提示：
 
 ## 10. Complication
 
-v0.2 MVP 做一个基础 complication。
+v0.2 MVP 做一个低敏状态 complication。
 
 展示优先级：
 
@@ -396,7 +408,15 @@ v0.2 MVP 做一个基础 complication。
 
 点击行为：
 
-- 进入 Watch App 首页。
+- 状态过期或普通今日状态：进入 Watch App 首页。
+- Pro 用户蹲会儿进行中：进入 Watch App 蹲会儿页。
+- 非 Pro 用户：禁用表盘入口操作，不跳转到操作页。
+
+样式：
+
+- circular：使用进度 gauge、状态图标和短数字。
+- rectangular：展示图标、标题、详情和 footnote。
+- inline：展示极短状态文案。
 
 不展示：
 
@@ -474,11 +494,22 @@ iPhone -> Watch 状态建议：
 ```ts
 type WatchTodayState = {
   date: string;
+  generatedAt: string;
   proStatus: 'free' | 'pro_active' | 'pro_grace_period' | 'pro_expired';
+  account: {
+    isLoggedIn: boolean;
+    nickname: string | null;
+  };
   training: {
     done: boolean;
     completedSets: number;
   };
+  trainingModes: Array<{
+    holdSeconds: number;
+    id: 'beginner' | 'standard' | 'quick';
+    restSeconds: number;
+    rounds: number;
+  }>;
   habits: {
     completion: 0 | 1 | 2 | 3 | 4;
     waterDone: boolean;
@@ -493,6 +524,7 @@ type WatchTodayState = {
     sessionCount: number;
     stage: 'normal' | 'gentle_warning' | 'strong_warning' | 'overtime' | 'severe_warning' | null;
   };
+  pendingEventCount: number;
 };
 ```
 
@@ -507,6 +539,7 @@ type WatchTodayState = {
 ### 11.4 冲突处理
 
 - 每条 Watch 事件必须有唯一 `id`，iPhone 去重。
+- iPhone 处理后返回 `accepted / duplicate / rejected` ACK；ACK 携带最新 `WatchTodayState` 或 `stateJson`，Watch 立即刷新 UI。
 - 同一小账本项多端修改，以 `updatedAt` 最新为准。
 - 菊花抬训练完成事件可追加记录，但同一事件 ID 不重复入账。
 - 蹲会儿计时以 iPhone 当前 session 为准；Watch 操作如果 session 不存在，应返回失败状态并刷新 Watch。
@@ -561,6 +594,12 @@ Watch 端可展示：
 
 文案：`Apple Watch 联动是小提督 Pro 功能。`
 
+行为：
+
+- Watch 首页仍展示低敏状态。
+- 首页状态行不可点击进入操作页。
+- Complication 显示 Pro 锁定态，不提供跳转 URL。
+
 ### 13.4 同步失败
 
 标题：`稍后再交接`
@@ -595,11 +634,17 @@ Watch 端可展示：
 - Watch 能显示今日菊花抬、小账本和蹲会儿状态。
 - iPhone 更新状态后，Watch 能刷新。
 - 非 Pro 和未登录状态显示正确空态。
+- Pro 用户点击状态行能进入对应页面。
+- 非 Pro 用户点击状态行无效。
 
 ### 15.2 菊花抬
 
 - Watch 能选择三种模式。
+- 模式时长与 iPhone 下发配置一致。
+- 再次点击已选中模式可直接开始。
 - 训练过程中有清晰的收紧/放松节奏。
+- 倒计时以真实时间推导，短暂卡顿后能追上真实时间，不累计漂移。
+- 暂停期间倒计时冻结，继续后暂停时长不计入训练。
 - 震动节奏可感知但不过度打扰。
 - 完成后 iPhone 首页显示今日已完成。
 - 离线完成后，重连 iPhone 能补同步。
@@ -614,16 +659,21 @@ Watch 端可展示：
 ### 15.4 蹲会儿
 
 - Watch 能看到进行中的蹲会儿计时。
+- Watch 蹲会儿页面可滚动，小屏设备上按钮不被截断。
+- Watch 计时从 iPhone 当前快照继续，不从 0:00 重新开始。
 - Watch 能暂停、继续、收工。
 - 5/10/15/20 分钟阶段震动有区分。
 - Watch 收工后 iPhone 能生成记录或提示补充详情。
+- Watch 收工后 iPhone Live Activity 不再残留计时。
 - Watch 不播放音效。
 
 ### 15.5 Complication
 
 - 表盘能显示今日关键状态。
 - 蹲会儿进行中时优先显示计时。
-- 点击 complication 能进入 Watch App。
+- 普通状态点击 complication 能进入 Watch App 首页。
+- 蹲会儿进行中点击 complication 能进入 Watch 蹲会儿页。
+- 非 Pro 状态 complication 禁用跳转。
 - complication 不展示敏感信息。
 
 ## 16. 测试要求
@@ -661,12 +711,12 @@ Watch 端可展示：
 
 - 显示今日状态。
 - 处理未登录、非 Pro、iPhone 不可达。
-- 支持手动刷新。
+- 状态行即入口，非 Pro 状态行不可点击。
 
 ### W3：菊花抬
 
-- 模式选择。
-- 训练中页面。
+- 模式选择，配置来自 iPhone 下发。
+- 训练中页面用真实时间推导倒计时。
 - haptic 节奏。
 - 完成同步。
 
@@ -678,13 +728,16 @@ Watch 端可展示：
 
 ### W5：蹲会儿
 
-- 显示当前计时。
+- 显示当前计时，页面可滚动。
 - 暂停、继续、收工。
+- Watch 收工后同步结束 iPhone Live Activity。
 - 阶段震动。
 
 ### W6：Complication 与真机验收
 
-- 基础 complication。
+- 共享低敏状态 complication。
+- 首页和蹲会儿深链。
+- 非 Pro 禁用跳转。
 - 真机配对测试。
 - 离线补同步测试。
 - Pro 权限回归。

@@ -228,10 +228,12 @@ Watch 端展示：
 
 ### 4.6 Complication
 
-v0.2 可做一个基础 complication：
+v0.2 可做一个低敏状态 complication：
 
 - 显示今日菊花抬进度或小账本完成度。
-- 点击进入 Watch App 首页。
+- 蹲会儿进行中可显示计时状态。
+- 普通状态点击进入 Watch App 首页，蹲会儿进行中点击进入 Watch 蹲会儿页。
+- 非 Pro 状态禁用表盘跳转。
 
 ## 5. 高级小报告
 
@@ -322,9 +324,12 @@ Apple Watch：
 
 - Watch 可以查看今日状态。
 - Watch 可以开始并完成菊花抬。
+- Watch 菊花抬节奏配置来自 iPhone，倒计时按真实时间推导。
 - Watch 训练记录能同步回 iPhone。
 - Watch 可以快速打卡小账本。
 - Watch 可以查看蹲会儿状态并收工。
+- Watch 收工后 iPhone Live Activity 不残留计时。
+- 非 Pro 用户 Watch 端仅只读展示低敏状态，不能新增操作。
 
 隐私：
 

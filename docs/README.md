@@ -41,3 +41,5 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 v0.2 规划为小提督 Pro 的第一版商业化验证，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。
 
 当前代码已包含 90 天高级小报告 v1：Pro 用户可批量同步最近 90 天低敏日报快照，`GET /reports/advanced?range=90d` 返回日期范围、90 天每日序列、汇总指标和兼容旧 UI 的最新 `snapshot`，移动端提供独立 `/trends/advanced` 月历分页、单日详情弹窗和紧凑汇总卡。最近小报告的近 7 天展示已重做为周节奏矩阵，报告文案统一使用“小花训练达标”。
+
+Apple Watch 联动代码已进入 Pro 用户闭环验收阶段：Watch App、WatchConnectivity、离线队列、Pro 权限、菊花抬、小账本、蹲会儿、Complication 共享低敏状态和 `/watch` 开发调试页均已接入；仍需配对模拟器和真机完成表盘、haptic、系统刷新节奏验收。

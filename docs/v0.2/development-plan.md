@@ -179,13 +179,17 @@ v0.2 新增：
 - 菊花抬训练页。
 - 小账本快速打卡页。
 - 蹲会儿状态页。
-- 基础 complication。
+- 低敏状态 complication。
 
 数据同步：
 
 - Watch 通过 WatchConnectivity 与 iPhone 同步。
 - iPhone 仍是本地数据主源。
 - Watch 离线完成的动作需要在重新连接后补同步。
+- Watch 首页状态行即入口，非 Pro 用户只读不可操作。
+- Watch 菊花抬模式配置由 iPhone 下发，倒计时按真实时间推导。
+- Watch 蹲会儿收工后同步结束 iPhone Live Activity。
+- Complication 支持普通首页深链、蹲会儿进行中深链和非 Pro 禁用态。
 
 Watch 端限制：
 
