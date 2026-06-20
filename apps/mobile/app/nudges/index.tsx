@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
@@ -27,14 +27,16 @@ export default function NudgesScreen() {
   const loadSent = useNudgeStore((state) => state.loadSent);
   const sent = useNudgeStore((state) => state.sent);
 
-  useEffect(() => {
-    if (!accessToken) {
-      return;
-    }
+  useFocusEffect(
+    useCallback(() => {
+      if (!accessToken) {
+        return;
+      }
 
-    void loadInbox();
-    void loadSent();
-  }, [accessToken, loadInbox, loadSent]);
+      void loadInbox();
+      void loadSent();
+    }, [accessToken, loadInbox, loadSent]),
+  );
 
   return (
     <Screen>

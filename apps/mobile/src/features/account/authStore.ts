@@ -63,7 +63,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       loginWithMockApple: async () => {
-        await get().loginWithApple('mobile-mock-user', '小提督用户');
+        await get().loginWithApple('mobile-simulator-user', '模拟器搭子');
       },
       logout: async () => {
         const token = get().accessToken;
@@ -240,10 +240,6 @@ export function notifyUserError(error: unknown): string {
 
 export function toUserMessage(error: unknown): string {
   if (error instanceof ApiClientError) {
-    if (error.status === 403) {
-      return '这个功能需要小提督 Pro。';
-    }
-
     return error.message;
   }
 
