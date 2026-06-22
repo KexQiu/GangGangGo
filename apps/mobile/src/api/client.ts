@@ -10,10 +10,9 @@ import type {
   BuddyNudge,
   BuddyNudgeAckResponse,
   BuddyNudgeSettingsResponse,
+  BuddyNudgeThreadResponse,
   BuddyNudgesResponse,
   CreateBuddyNudgeRequest,
-  CreateAvatarUploadRequest,
-  CreateAvatarUploadResponse,
   CreateTeamInviteResponse,
   CreateTeamRequest,
   DailyReportSnapshotResponse,
@@ -61,6 +60,11 @@ type RequestOptions = {
   body?: unknown;
   method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
   token?: null | string;
+};
+
+type NudgeThreadOptions = {
+  before?: null | string;
+  limit?: number;
 };
 
 type ApiSuccessResponse<T> = {
@@ -116,8 +120,6 @@ export const apiClient = {
   checkHealth: () => request<ApiHealthResponse>('/health'),
   createTeam: (body: CreateTeamRequest, token: string) =>
     request<TeamResponse>('/teams', { body, method: 'POST', token }),
-  createAvatarUpload: (body: CreateAvatarUploadRequest, token: string) =>
-    request<CreateAvatarUploadResponse>('/me/avatar-upload', { body, method: 'POST', token }),
   createTeamInvite: (token: string) =>
     request<CreateTeamInviteResponse>('/teams/current/invites', { method: 'POST', token }),
   getAdvancedReport: (token: string) => request<AdvancedReportResponse>('/reports/advanced?range=90d', { token }),
@@ -127,6 +129,24 @@ export const apiClient = {
   getEntitlements: (token: string) => request<EntitlementsResponse>('/me/entitlements', { token }),
   getNudgeInbox: (token: string) => request<BuddyNudgesResponse>('/nudges/inbox', { token }),
   getNudgeSent: (token: string) => request<BuddyNudgesResponse>('/nudges/sent', { token }),
+  getNudgeThread: (buddyUserId: string, options: NudgeThreadOptions, token: string) => {
+    const params = new URLSearchParams();
+
+    if (options.before) {
+      params.set('before', options.before);
+    }
+
+    if (options.limit) {
+      params.set('limit', String(options.limit));
+    }
+
+    const query = params.toString();
+
+    return request<BuddyNudgeThreadResponse>(
+      `/nudges/threads/${encodeURIComponent(buddyUserId)}${query ? `?${query}` : ''}`,
+      { token },
+    );
+  },
   getTeamInvitePreview: (token: string) =>
     request<TeamInvitePreviewResponse>(`/team-invites/${encodeURIComponent(token)}`),
   getTeamSnapshots: (token: string) => request<TeamSnapshotsResponse>('/teams/current/snapshots', { token }),

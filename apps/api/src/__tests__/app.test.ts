@@ -242,7 +242,10 @@ describe('api app', () => {
     });
     const updateResponse = await app.request('/me', {
       body: JSON.stringify({
-        avatarUrl: 'preset:mint',
+        avatarUrl: {
+          background: 'leaf',
+          emoji: 'smile',
+        },
         nickname: '搭子队长',
       }),
       headers: {
@@ -255,7 +258,34 @@ describe('api app', () => {
 
     expect(updateResponse.status).toBe(200);
     expect(updateBody.data).toMatchObject({
-      avatarUrl: 'preset:mint',
+      avatarUrl: {
+        background: 'leaf',
+        emoji: 'smile',
+      },
+      nickname: '搭子队长',
+    });
+
+    const initialAvatarResponse = await app.request('/me', {
+      body: JSON.stringify({
+        avatarUrl: {
+          background: 'rose',
+          emoji: null,
+        },
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PATCH',
+    });
+    const initialAvatarBody = await initialAvatarResponse.json();
+
+    expect(initialAvatarResponse.status).toBe(200);
+    expect(initialAvatarBody.data).toMatchObject({
+      avatarUrl: {
+        background: 'rose',
+        emoji: null,
+      },
       nickname: '搭子队长',
     });
 
@@ -267,56 +297,23 @@ describe('api app', () => {
     const meBody = await meResponse.json();
 
     expect(meBody.data).toMatchObject({
-      avatarUrl: 'preset:mint',
+      avatarUrl: {
+        background: 'rose',
+        emoji: null,
+      },
       nickname: '搭子队长',
     });
   });
 
-  it('creates a mock avatar upload and stores the avatar URL', async () => {
+  it('rejects invalid avatar values', async () => {
     const app = createTestApp();
     const token = await login(app, {
-      identityToken: 'avatar-token',
+      identityToken: 'invalid-avatar-token',
       nickname: '头像用户',
     });
-    const uploadResponse = await app.request('/me/avatar-upload', {
+    const urlResponse = await app.request('/me', {
       body: JSON.stringify({
-        contentLength: 3,
-        contentType: 'image/jpeg',
-      }),
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      method: 'POST',
-    });
-    const uploadBody = await uploadResponse.json();
-
-    expect(uploadResponse.status).toBe(200);
-    expect(uploadBody.data).toMatchObject({
-      objectKey: expect.stringContaining('avatars/'),
-      uploadMethod: 'mock_put',
-    });
-
-    const uploadUrl = new URL(uploadBody.data.uploadUrl);
-    const putResponse = await app.request(`${uploadUrl.pathname}${uploadUrl.search}`, {
-      body: new Uint8Array([1, 2, 3]).buffer,
-      headers: {
-        'content-type': 'image/jpeg',
-      },
-      method: 'PUT',
-    });
-
-    expect(putResponse.status).toBe(204);
-
-    const imageUrl = new URL(uploadBody.data.publicUrl);
-    const imageResponse = await app.request(imageUrl.pathname);
-
-    expect(imageResponse.status).toBe(200);
-    expect(imageResponse.headers.get('content-type')).toBe('image/jpeg');
-
-    const updateResponse = await app.request('/me', {
-      body: JSON.stringify({
-        avatarUrl: uploadBody.data.publicUrl,
+        avatarUrl: 'https://example.com/avatar.jpg',
       }),
       headers: {
         authorization: `Bearer ${token}`,
@@ -324,10 +321,42 @@ describe('api app', () => {
       },
       method: 'PATCH',
     });
-    const updateBody = await updateResponse.json();
+    const urlBody = await urlResponse.json();
+    const unknownEmojiResponse = await app.request('/me', {
+      body: JSON.stringify({
+        avatarUrl: {
+          background: 'leaf',
+          emoji: 'salute',
+        },
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PATCH',
+    });
+    const unknownEmojiBody = await unknownEmojiResponse.json();
+    const unknownBackgroundResponse = await app.request('/me', {
+      body: JSON.stringify({
+        avatarUrl: {
+          background: 'glitter',
+          emoji: 'smile',
+        },
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'PATCH',
+    });
+    const unknownBackgroundBody = await unknownBackgroundResponse.json();
 
-    expect(updateResponse.status).toBe(200);
-    expect(updateBody.data.avatarUrl).toBe(uploadBody.data.publicUrl);
+    expect(urlResponse.status).toBe(400);
+    expect(urlBody.error.code).toBe('validation_error');
+    expect(unknownEmojiResponse.status).toBe(400);
+    expect(unknownEmojiBody.error.code).toBe('validation_error');
+    expect(unknownBackgroundResponse.status).toBe(400);
+    expect(unknownBackgroundBody.error.code).toBe('validation_error');
   });
 
   it('requires auth for entitlements and returns mock entitlements with a token', async () => {
@@ -1363,14 +1392,14 @@ describe('api app', () => {
       fromUser: {
         nickname: '队长',
       },
-      messageTemplate: '起来活动一下，换个姿势。',
+      messageTemplate: '起来走两步，给身体换个档。',
       toUser: {
         nickname: '搭子',
       },
       type: 'move',
     });
     expect(sentNotifications[0]).toEqual({
-      body: '起来活动一下，换个姿势。',
+      body: '起来走两步，给身体换个档。',
       data: {
         kind: 'buddy-nudge',
         nudgeId: nudgeBody.data.id,

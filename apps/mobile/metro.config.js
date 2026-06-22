@@ -15,8 +15,6 @@ config.resolver.nodeModulesPaths = [
 ];
 config.resolver.extraNodeModules = {
   expo: path.resolve(workspaceRoot, 'node_modules/expo'),
-  'expo-image-manipulator': path.resolve(workspaceRoot, 'node_modules/expo-image-manipulator'),
-  'expo-image-picker': path.resolve(workspaceRoot, 'node_modules/expo-image-picker'),
 };
 
 module.exports = config;

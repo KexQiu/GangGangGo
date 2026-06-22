@@ -5,6 +5,7 @@ import type {
   BuddyNudge,
   BuddyNudgeAckResponse,
   BuddyNudgeSettingsResponse,
+  BuddyNudgeThreadResponse,
   BuddyNudgesResponse,
   CreateBuddyNudgeRequest,
   UpdateBuddyNudgeSettingsRequest,
@@ -49,6 +50,13 @@ const updateBuddyNudgeSettingsRequestSchema = z.object({
     )
     .max(4),
 });
+const listNudgeThreadQuerySchema = z.object({
+  before: z
+    .string()
+    .refine((value) => !Number.isNaN(Date.parse(value)), 'before must be a valid datetime.')
+    .optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(30),
+});
 
 type CreateNudgesRouteOptions = {
   nudgeService: NudgeService;
@@ -78,6 +86,24 @@ export function createNudgesRoute(options: CreateNudgesRouteOptions) {
 
   route.get('/sent', async (context) => {
     const body: BuddyNudgesResponse = await options.nudgeService.listSent(context.get('currentUser'));
+
+    return context.json(toSuccessResponse(body));
+  });
+
+  route.get('/threads/:buddyUserId', async (context) => {
+    const buddyUserId = userIdSchema.parse(context.req.param('buddyUserId'));
+    const query = listNudgeThreadQuerySchema.parse({
+      before: context.req.query('before'),
+      limit: context.req.query('limit'),
+    });
+    const body: BuddyNudgeThreadResponse = await options.nudgeService.listThread(
+      context.get('currentUser'),
+      buddyUserId,
+      {
+        ...(query.before ? { before: new Date(query.before) } : {}),
+        limit: query.limit,
+      },
+    );
 
     return context.json(toSuccessResponse(body));
   });

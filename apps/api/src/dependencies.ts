@@ -32,17 +32,12 @@ import {
   type TeamService,
 } from './modules/teams/teamService.js';
 import {
-  createMockAvatarStorageService,
-  type AvatarStorageService,
-} from './modules/storage/avatarStorageService.js';
-import {
   createDrizzleUserRepository,
   createMockUserRepository,
   type UserRepository,
 } from './modules/users/userRepository.js';
 
 export type ApiDependencies = {
-  avatarStorageService: AvatarStorageService;
   close: () => Promise<void>;
   databaseClient?: DatabaseClient;
   entitlementsService: EntitlementsService;
@@ -60,7 +55,6 @@ export function createApiDependencies(): ApiDependencies {
 
     return {
       close: async () => {},
-      avatarStorageService: createMockAvatarStorageService(),
       entitlementsService: createMockEntitlementsService(),
       nudgeService: createMockNudgeService({
         pushNotificationService: createNoopPushNotificationService(),
@@ -80,7 +74,6 @@ export function createApiDependencies(): ApiDependencies {
   });
 
   return {
-    avatarStorageService: createMockAvatarStorageService(),
     close: async () => {
       await databaseClient.close();
     },

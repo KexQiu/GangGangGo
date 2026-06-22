@@ -79,7 +79,7 @@ export function createExpoPushNotificationService(
       const messages: ExpoPushMessage[] = tokens.map((token) => ({
         body: payload.body,
         data: payload.data,
-        sound: null,
+        sound: 'default',
         title: payload.title,
         to: token.token,
       }));

@@ -21,6 +21,7 @@ import {
 } from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
 import type { TeamService } from '../teams/teamService.js';
+import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
 
 export type ReportService = {
@@ -452,7 +453,7 @@ export function createDrizzleReportService(db: Database): ReportService {
               displayName: member.displayName,
               id: member.id,
               user: {
-                avatarUrl: member.avatarUrl,
+                avatarUrl: deserializeAvatarConfig(member.avatarUrl),
                 id: member.userId,
                 nickname: member.nickname,
               },

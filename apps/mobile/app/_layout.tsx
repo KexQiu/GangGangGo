@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppToastHost } from '../src/components/toast/AppToast';
 import { useAuthStore } from '../src/features/account/authStore';
 import { useHabitStore } from '../src/features/habits/habitStore';
+import { configureNotificationHandler } from '../src/features/reminders/notificationService';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import { registerPushTokenIfAllowed } from '../src/features/sync/pushTokenSync';
 import { syncRecentReportSnapshots } from '../src/features/sync/reportSnapshotSync';
@@ -35,6 +36,7 @@ function RootStack() {
   const trainingSessions = useTrainingStore((state) => state.sessions);
 
   useEffect(() => {
+    configureNotificationHandler();
     void hydrateTraining();
     void hydrateToilet();
     void hydrateHabits();

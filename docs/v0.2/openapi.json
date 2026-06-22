@@ -1270,49 +1270,6 @@
           }
         }
       }
-    },
-    "/me/avatar-upload": {
-      "post": {
-        "tags": [
-          "Me"
-        ],
-        "summary": "创建头像上传地址",
-        "description": "创建头像上传地址。当前开发环境返回 mock 上传地址，后续可替换为正式对象存储预签名 URL。",
-        "operationId": "createAvatarUpload",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAvatarUploadRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "头像上传地址",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateAvatarUploadSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Error"
-          },
-          "401": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
     }
   },
   "components": {
@@ -1527,8 +1484,12 @@
         ],
         "properties": {
           "avatarUrl": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/AvatarConfig",
+            "nullable": true,
+            "example": {
+              "background": "leaf",
+              "emoji": "smile"
+            }
           },
           "id": {
             "type": "string",
@@ -1549,10 +1510,12 @@
         "additionalProperties": false,
         "properties": {
           "avatarUrl": {
-            "type": "string",
+            "$ref": "#/components/schemas/AvatarConfig",
             "nullable": true,
-            "maxLength": 500,
-            "example": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg"
+            "example": {
+              "background": "leaf",
+              "emoji": "smile"
+            }
           },
           "nickname": {
             "type": "string",
@@ -1577,7 +1540,7 @@
         ],
         "properties": {
           "avatarUrl": {
-            "type": "string",
+            "$ref": "#/components/schemas/AvatarConfig",
             "nullable": true
           },
           "id": {
@@ -2809,80 +2772,94 @@
           }
         }
       },
-      "CreateAvatarUploadRequest": {
+      "AvatarConfig": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "contentLength",
-          "contentType"
+          "background",
+          "emoji"
         ],
         "properties": {
-          "contentLength": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 307200,
-            "example": 48231
+          "background": {
+            "$ref": "#/components/schemas/AvatarBackgroundPresetKey"
           },
-          "contentType": {
-            "type": "string",
-            "enum": [
-              "image/jpeg",
-              "image/png",
-              "image/webp"
-            ],
-            "example": "image/jpeg"
+          "emoji": {
+            "$ref": "#/components/schemas/AvatarEmojiPresetKey",
+            "nullable": true
           }
+        },
+        "example": {
+          "background": "leaf",
+          "emoji": "smile"
         }
       },
-      "CreateAvatarUploadResponse": {
-        "type": "object",
-        "required": [
-          "expiresAt",
-          "objectKey",
-          "publicUrl",
-          "uploadMethod",
-          "uploadUrl"
+      "AvatarBackgroundPresetKey": {
+        "type": "string",
+        "enum": [
+          "leaf",
+          "mint",
+          "sky",
+          "sun",
+          "peach",
+          "rose",
+          "lilac",
+          "stone"
         ],
-        "properties": {
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-05-26T10:05:00.000Z"
-          },
-          "objectKey": {
-            "type": "string",
-            "example": "avatars/user-id/avatar-id.jpg"
-          },
-          "publicUrl": {
-            "type": "string",
-            "format": "uri",
-            "example": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg"
-          },
-          "uploadMethod": {
-            "type": "string",
-            "enum": [
-              "mock_put",
-              "presigned_put"
-            ],
-            "example": "mock_put"
-          },
-          "uploadUrl": {
-            "type": "string",
-            "format": "uri",
-            "example": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg?token=upload-token"
-          }
-        }
+        "example": "leaf"
       },
-      "CreateAvatarUploadSuccess": {
-        "type": "object",
-        "required": [
-          "data"
+      "AvatarEmojiPresetKey": {
+        "type": "string",
+        "enum": [
+          "smile",
+          "calm",
+          "cool",
+          "thinking",
+          "sleepy",
+          "party",
+          "angel",
+          "determined",
+          "grin",
+          "wink",
+          "starry",
+          "hug",
+          "joy",
+          "melting",
+          "blush",
+          "yum",
+          "slight",
+          "laugh",
+          "relieved",
+          "upside_down",
+          "grimace",
+          "playful",
+          "heart_eyes",
+          "touched",
+          "nerd",
+          "smirk",
+          "dizzy",
+          "cowboy",
+          "cat",
+          "dog",
+          "fox",
+          "panda",
+          "rabbit",
+          "bear",
+          "tiger",
+          "frog",
+          "monkey",
+          "penguin",
+          "koala",
+          "lion",
+          "pig",
+          "mouse",
+          "hamster",
+          "chick",
+          "owl",
+          "unicorn",
+          "cow",
+          "octopus"
         ],
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/CreateAvatarUploadResponse"
-          }
-        }
+        "example": "smile"
       }
     }
   }

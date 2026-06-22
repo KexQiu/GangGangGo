@@ -25,30 +25,109 @@ export type ApiErrorResponse = {
   };
 };
 
+export const avatarEmojiPresetKeys = [
+  'smile',
+  'calm',
+  'cool',
+  'thinking',
+  'sleepy',
+  'party',
+  'angel',
+  'determined',
+  'grin',
+  'wink',
+  'starry',
+  'hug',
+  'joy',
+  'melting',
+  'blush',
+  'yum',
+  'slight',
+  'laugh',
+  'relieved',
+  'upside_down',
+  'grimace',
+  'playful',
+  'heart_eyes',
+  'touched',
+  'nerd',
+  'smirk',
+  'dizzy',
+  'cowboy',
+  'cat',
+  'dog',
+  'fox',
+  'panda',
+  'rabbit',
+  'bear',
+  'tiger',
+  'frog',
+  'monkey',
+  'penguin',
+  'koala',
+  'lion',
+  'pig',
+  'mouse',
+  'hamster',
+  'chick',
+  'owl',
+  'unicorn',
+  'cow',
+  'octopus',
+] as const;
+
+export const avatarBackgroundPresetKeys = [
+  'leaf',
+  'mint',
+  'sky',
+  'sun',
+  'peach',
+  'rose',
+  'lilac',
+  'stone',
+] as const;
+
+export type AvatarEmojiPresetKey = (typeof avatarEmojiPresetKeys)[number];
+
+export type AvatarBackgroundPresetKey = (typeof avatarBackgroundPresetKeys)[number];
+
+export type AvatarConfig = {
+  background: AvatarBackgroundPresetKey;
+  emoji: AvatarEmojiPresetKey | null;
+};
+
+export function isAvatarEmojiPresetKey(value: unknown): value is AvatarEmojiPresetKey {
+  return typeof value === 'string' && (avatarEmojiPresetKeys as readonly string[]).includes(value);
+}
+
+export function isAvatarBackgroundPresetKey(value: unknown): value is AvatarBackgroundPresetKey {
+  return typeof value === 'string' && (avatarBackgroundPresetKeys as readonly string[]).includes(value);
+}
+
+export function isAvatarConfig(value: unknown): value is AvatarConfig {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const input = value as Record<string, unknown>;
+
+  return (
+    (input.emoji === null || isAvatarEmojiPresetKey(input.emoji)) &&
+    isAvatarBackgroundPresetKey(input.background)
+  );
+}
+
 export type UserProfile = {
-  avatarUrl: null | string;
+  avatarUrl: AvatarConfig | null;
   id: string;
   nickname: null | string;
   timezone: string;
 };
 
 export type UpdateUserProfileRequest = {
-  avatarUrl?: null | string;
+  avatarUrl?: AvatarConfig | null;
   nickname?: null | string;
   timezone?: string;
-};
-
-export type CreateAvatarUploadRequest = {
-  contentLength: number;
-  contentType: 'image/jpeg' | 'image/png' | 'image/webp';
-};
-
-export type CreateAvatarUploadResponse = {
-  expiresAt: string;
-  objectKey: string;
-  publicUrl: string;
-  uploadMethod: 'mock_put' | 'presigned_put';
-  uploadUrl: string;
 };
 
 export type AppleLoginRequest = {
@@ -280,6 +359,12 @@ export type BuddyNudgeAckResponse = {
 };
 
 export type BuddyNudgesResponse = {
+  nudges: BuddyNudge[];
+};
+
+export type BuddyNudgeThreadResponse = {
+  hasMore: boolean;
+  nextCursor: null | string;
   nudges: BuddyNudge[];
 };
 

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lt, or } from 'drizzle-orm';
 
 import type {
   BuddyNudge,
@@ -8,6 +8,7 @@ import type {
   BuddyNudgeDailyLimit,
   BuddyNudgeSettings,
   BuddyNudgeSettingsResponse,
+  BuddyNudgeThreadResponse,
   BuddyNudgeType,
   BuddyNudgesResponse,
   CreateBuddyNudgeRequest,
@@ -31,6 +32,7 @@ import {
   type PushNotificationService,
 } from '../push/pushNotificationService.js';
 import type { TeamService } from '../teams/teamService.js';
+import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
 
 export type NudgeService = {
@@ -43,11 +45,21 @@ export type NudgeService = {
   getSettings: (currentUser: CurrentUser) => Promise<BuddyNudgeSettingsResponse>;
   listInbox: (currentUser: CurrentUser) => Promise<BuddyNudgesResponse>;
   listSent: (currentUser: CurrentUser) => Promise<BuddyNudgesResponse>;
+  listThread: (
+    currentUser: CurrentUser,
+    buddyUserId: string,
+    options: ListNudgeThreadOptions,
+  ) => Promise<BuddyNudgeThreadResponse>;
   updateSettings: (
     currentUser: CurrentUser,
     buddyUserId: string,
     input: UpdateBuddyNudgeSettingsRequest,
   ) => Promise<BuddyNudgeSettingsResponse>;
+};
+
+export type ListNudgeThreadOptions = {
+  before?: Date;
+  limit: number;
 };
 
 type NudgeRecord = {
@@ -75,10 +87,10 @@ const ackRevisionWindowMs = 30 * 60 * 1000;
 
 const nudgeMessages: Record<BuddyNudgeType, string> = {
   gentle: '轻轻戳一下，今天别空白。',
-  habit_left: '小账本还差一点，顺手补一笔。',
-  move: '起来活动一下，换个姿势。',
-  not_blank: '今天别空白，做一点也算数。',
-  posture: '该换个姿势了，别坐成雕像。',
+  habit_left: '小账本还差一笔，顺手把今天补完整。',
+  move: '起来走两步，给身体换个档。',
+  not_blank: '今天留一点小进展，哪怕很小也算数。',
+  posture: '肩颈松一下，别把自己拧住。',
 };
 
 const ackNotificationMessages: Record<BuddyNudgeAckStatus, string> = {
@@ -463,6 +475,32 @@ export function createMockNudgeService(options: {
           .map(toNudge),
       };
     },
+    async listThread(currentUser, buddyUserId, options) {
+      const team = await getTeam(currentUser);
+      requireBuddyMember(team, currentUser, buddyUserId);
+      const threadNudges = [...nudges.values()]
+        .filter((nudge) => {
+          const isThreadNudge =
+            nudge.teamId === team.id &&
+            ((nudge.fromUser.id === currentUser.id && nudge.toUser.id === buddyUserId) ||
+              (nudge.fromUser.id === buddyUserId && nudge.toUser.id === currentUser.id));
+
+          if (!isThreadNudge) {
+            return false;
+          }
+
+          return options.before ? nudge.createdAt < options.before : true;
+        })
+        .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+      const page = threadNudges.slice(0, options.limit);
+      const hasMore = threadNudges.length > options.limit;
+
+      return {
+        hasMore,
+        nextCursor: hasMore ? page.at(-1)?.createdAt.toISOString() ?? null : null,
+        nudges: page.map(toNudge),
+      };
+    },
     async updateSettings(currentUser, buddyUserId, input) {
       const team = await getTeam(currentUser);
       const buddy = requireBuddyMember(team, currentUser, buddyUserId);
@@ -530,7 +568,7 @@ export function createDrizzleNudgeService(
       role: row.role,
       status: row.status,
       user: {
-        avatarUrl: row.avatarUrl,
+        avatarUrl: deserializeAvatarConfig(row.avatarUrl),
         id: row.userId,
         nickname: row.nickname,
       },
@@ -571,7 +609,11 @@ export function createDrizzleNudgeService(
       throw new ApiError(404, 'not_found', '没有找到这个用户。');
     }
 
-    return user;
+    return {
+      avatarUrl: deserializeAvatarConfig(user.avatarUrl),
+      id: user.id,
+      nickname: user.nickname,
+    };
   }
 
   async function findUserTimezone(userId: string) {
@@ -618,6 +660,37 @@ export function createDrizzleNudgeService(
 
     return {
       nudges: await Promise.all(rows.map((row) => getNudgeRecord(row.id))),
+    };
+  }
+
+  async function listThreadNudges(
+    currentUser: CurrentUser,
+    buddyUserId: string,
+    options: ListNudgeThreadOptions,
+  ): Promise<BuddyNudgeThreadResponse> {
+    const team = await getTeamForNudge(currentUser);
+    requireBuddyMember(team, currentUser, buddyUserId);
+    const participantFilter = or(
+      and(eq(buddyNudges.fromUserId, currentUser.id), eq(buddyNudges.toUserId, buddyUserId)),
+      and(eq(buddyNudges.fromUserId, buddyUserId), eq(buddyNudges.toUserId, currentUser.id)),
+    );
+    const rows = await db
+      .select()
+      .from(buddyNudges)
+      .where(
+        options.before
+          ? and(eq(buddyNudges.teamId, team.id), participantFilter, lt(buddyNudges.createdAt, options.before))
+          : and(eq(buddyNudges.teamId, team.id), participantFilter),
+      )
+      .orderBy(desc(buddyNudges.createdAt))
+      .limit(options.limit + 1);
+    const page = rows.slice(0, options.limit);
+    const hasMore = rows.length > options.limit;
+
+    return {
+      hasMore,
+      nextCursor: hasMore ? page.at(-1)?.createdAt.toISOString() ?? null : null,
+      nudges: await Promise.all(page.map((row) => getNudgeRecord(row.id))),
     };
   }
 
@@ -806,6 +879,9 @@ export function createDrizzleNudgeService(
     },
     async listSent(currentUser) {
       return listNudgesBy('from', currentUser.id);
+    },
+    async listThread(currentUser, buddyUserId, options) {
+      return listThreadNudges(currentUser, buddyUserId, options);
     },
     async updateSettings(currentUser, buddyUserId, input) {
       const team = await getTeamForNudge(currentUser);

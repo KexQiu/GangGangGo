@@ -172,7 +172,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | id | uuid | 主键 |
 | apple_user_id | text | Apple sub，唯一 |
 | nickname | text | 昵称 |
-| avatar_url | text | 头像公开访问 URL，v0.2 可为空 |
+| avatar_url | text | 结构化 emoji 头像配置序列化文本，v0.2 可为空 |
 | created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 | deleted_at | timestamptz | 注销时间 |
@@ -551,8 +551,7 @@ type ApiHealthResponse = {
 | POST | `/auth/apple` | Apple 登录 |
 | POST | `/auth/logout` | 退出登录 |
 | GET | `/me` | 当前用户 |
-| PATCH | `/me` | 更新昵称、头像 URL、时区 |
-| POST | `/me/avatar-upload` | 创建头像上传地址 |
+| PATCH | `/me` | 更新昵称、emoji 头像配置、时区 |
 
 `POST /auth/apple` 请求：
 
@@ -585,9 +584,7 @@ MVP 策略：
 - B4 使用服务端 HS256 access token；`JWT_SECRET` 生产环境必填，不能使用开发默认值。
 - API 启动时如果配置了 `DATABASE_URL`，用户仓储使用 Drizzle 写入 `users` 表；未配置时自动使用 mock 用户仓储，方便无数据库测试。
 - token 到期后让用户重新登录，v0.2 初期不做复杂 refresh token。
-- 头像采用对象存储模式：数据库只保存 `avatar_url`，不保存 base64 或图片二进制。
-- 当前开发环境的 `POST /me/avatar-upload` 使用 mock storage provider，返回 `/mock-storage/...` 上传地址；后续接正式 OSS/S3/R2 时保持接口结构不变。
-- 头像上传限制为 `image/jpeg`、`image/png`、`image/webp`，单文件最大 `300KB`，上传地址短期有效。
+- 头像采用固定 emoji + 背景色预设模式：数据库保存结构化配置序列化文本或 `null`，不保存 base64、图片二进制或对象存储 URL。
 
 ### 6.4 会员权益
 

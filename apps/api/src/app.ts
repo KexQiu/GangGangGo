@@ -21,14 +21,11 @@ import type { ReportService } from './modules/reports/reportService.js';
 import { createMockReportService } from './modules/reports/reportService.js';
 import type { TeamService } from './modules/teams/teamService.js';
 import { createMockTeamService } from './modules/teams/teamService.js';
-import type { AvatarStorageService } from './modules/storage/avatarStorageService.js';
-import { createMockAvatarStorageService } from './modules/storage/avatarStorageService.js';
 import type { UserRepository } from './modules/users/userRepository.js';
 import { createMockUserRepository } from './modules/users/userRepository.js';
 import { createAuthRoute } from './routes/auth.js';
 import { createHealthRoute } from './routes/health.js';
 import { createMeRoute } from './routes/me.js';
-import { createMockStorageRoute } from './routes/mockStorage.js';
 import { createBuddyNudgeSettingsRoute, createNudgesRoute } from './routes/nudges.js';
 import { createPushTokensRoute } from './routes/pushTokens.js';
 import { createReportsRoute } from './routes/reports.js';
@@ -39,7 +36,6 @@ import { createTeamsRoute } from './routes/teams.js';
 
 type CreateApiAppOptions = {
   appleAuthService?: AppleAuthService;
-  avatarStorageService?: AvatarStorageService;
   databaseHealthChecker?: DatabaseHealthChecker;
   entitlementsService?: EntitlementsService;
   logger?: Logger;
@@ -57,7 +53,6 @@ function isJsonParseError(error: unknown) {
 export function createApiApp(options: CreateApiAppOptions = {}) {
   const log = options.logger ?? defaultLogger;
   const appleAuthService = options.appleAuthService ?? createMockAppleAuthService();
-  const avatarStorageService = options.avatarStorageService ?? createMockAvatarStorageService();
   const entitlementsService = options.entitlementsService ?? createMockEntitlementsService();
   const teamService = options.teamService ?? createMockTeamService();
   const nudgeService = options.nudgeService ?? createMockNudgeService({ teamService });
@@ -90,8 +85,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   app.route('/auth', createAuthRoute({ appleAuthService, authMiddleware, userRepository }));
   app.use('/me/*', authMiddleware);
   app.use('/me', authMiddleware);
-  app.route('/me', createMeRoute({ avatarStorageService, entitlementsService, userRepository }));
-  app.route('/mock-storage', createMockStorageRoute({ avatarStorageService }));
+  app.route('/me', createMeRoute({ entitlementsService, userRepository }));
   app.route('/team-invites', createTeamInvitesRoute({ authMiddleware, teamService }));
   app.use('/teams/*', authMiddleware);
   app.use('/teams', authMiddleware);

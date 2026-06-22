@@ -31,6 +31,7 @@ import {
   users,
 } from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
+import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
 
 export type TeamService = {
@@ -74,11 +75,7 @@ type MemberRecord = {
   joinedAt: Date | string;
   role: 'buddy' | 'owner';
   status: 'active' | 'paused' | 'removed';
-  user: {
-    avatarUrl: null | string;
-    id: string;
-    nickname: null | string;
-  };
+  user: TeamMember['user'];
 };
 
 const defaultShareSettings: ShareSettings = {
@@ -526,7 +523,7 @@ export function createDrizzleTeamService(db: Database): TeamService {
       role: row.role,
       status: row.status,
       user: {
-        avatarUrl: row.avatarUrl,
+        avatarUrl: deserializeAvatarConfig(row.avatarUrl),
         id: row.userId,
         nickname: row.nickname,
       },

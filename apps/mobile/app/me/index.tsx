@@ -1,13 +1,14 @@
+import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
-import { Bell, ChartNoAxesColumnIncreasing, Crown, UsersRound, Watch } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { ChartNoAxesColumnIncreasing, ChevronRight, Crown, UsersRound, Watch } from 'lucide-react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import type { ProStatus } from '@xiaotidu/contracts';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
 import { PressableScale } from '../../src/components/feedback/PressableScale';
-import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
@@ -15,327 +16,140 @@ import { useAuthStore } from '../../src/features/account/authStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
+const cloudLinks = [
+  {
+    description: '权益状态和订阅入口',
+    href: routes.pro,
+    icon: Crown,
+    title: '小提督 Pro',
+  },
+  {
+    description: '和搭子互相提醒',
+    href: routes.team,
+    icon: UsersRound,
+    title: '监督搭子',
+  },
+  {
+    description: '查看更完整的趋势摘要',
+    href: routes.advancedReport,
+    icon: ChartNoAxesColumnIncreasing,
+    title: '高级小报告',
+  },
+  {
+    description: '查看手表同步状态',
+    href: routes.watch,
+    icon: Watch,
+    title: 'Apple Watch',
+  },
+] satisfies readonly {
+  description: string;
+  href: Href;
+  icon: typeof Crown;
+  title: string;
+}[];
+
 export default function MeScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const accessToken = useAuthStore((state) => state.accessToken);
   const isLoading = useAuthStore((state) => state.isLoading);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const logout = useAuthStore((state) => state.logout);
   const proStatus = useAuthStore((state) => state.proStatus);
   const refreshEntitlements = useAuthStore((state) => state.refreshEntitlements);
   const refreshMe = useAuthStore((state) => state.refreshMe);
-  const updateProfile = useAuthStore((state) => state.updateProfile);
-  const uploadAvatar = useAuthStore((state) => state.uploadAvatar);
   const user = useAuthStore((state) => state.user);
-  const [nicknameDraft, setNicknameDraft] = useState(user?.nickname ?? '');
-  const normalizedNickname = nicknameDraft.trim();
-  const hasProfileChanges = Boolean(
-    user &&
-      normalizedNickname !== (user.nickname ?? ''),
-  );
 
-  useEffect(() => {
-    setNicknameDraft(user?.nickname ?? '');
-  }, [user?.nickname]);
+  function handleRefresh() {
+    void refreshMe();
+    void refreshEntitlements();
+  }
 
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.home} title="我的" />
-      <PageHeader eyebrow="我的小提督" subtitle="账号、Pro 和搭子关系都放这里，本地记录仍然留在手机里。" title="我的" />
 
       <PageStack gap="loose">
         <AppCard style={styles.profileCard}>
-          <View style={styles.headerLine}>
-            <ProfileAvatar avatarUrl={user?.avatarUrl} nickname={user?.nickname} size="md" />
-            <View style={styles.copy}>
-              <Text style={styles.title}>{user ? user.nickname ?? '小提督用户' : '还没登录小提督'}</Text>
-              <Text style={styles.description}>
-                {user ? `当前权益：${formatProStatus(proStatus)}` : '登录后可以使用监督搭子、云端小队和高级小报告。'}
+          <View style={styles.profileTop}>
+            <ProfileAvatar avatarUrl={user?.avatarUrl} nickname={user?.nickname} size="lg" />
+            <View style={styles.profileCopy}>
+              <Text numberOfLines={1} style={styles.profileName}>
+                {user?.nickname ?? '还没登录小提督'}
               </Text>
+              <Text style={styles.profileStatus}>{user ? formatProStatus(proStatus) : '登录后同步云端能力'}</Text>
             </View>
           </View>
 
           {user ? (
-            <View style={styles.statusBox}>
-              <Text style={styles.statusLabel}>用户 ID</Text>
-              <Text style={styles.statusValue}>{user.id}</Text>
-            </View>
-          ) : (
-            <View style={styles.statusBox}>
-              <Text style={styles.statusLabel}>Pro 能力</Text>
-              <Text style={styles.statusValue}>监督搭子、Apple Watch 和高级小报告会放在这里。</Text>
-            </View>
-          )}
-
-          {accessToken ? (
             <>
-              <View style={styles.profileEditor}>
-                <Text style={styles.fieldLabel}>昵称</Text>
-                <TextInput
-                  maxLength={20}
-                  onChangeText={setNicknameDraft}
-                  placeholder="给自己取个轻松点的名字"
-                  placeholderTextColor={colors.textSubtle}
-                  style={styles.input}
-                  value={nicknameDraft}
-                />
-                <Text style={styles.fieldLabel}>头像</Text>
-                <View style={styles.avatarUploadRow}>
-                  <ProfileAvatar avatarUrl={user?.avatarUrl} nickname={normalizedNickname || user?.nickname} size="sm" />
-                  <View style={styles.copy}>
-                    <Text style={styles.statusValue}>自定义头像</Text>
-                    <Text style={styles.description}>会先压缩成小图，再通过对象存储上传骨架保存。</Text>
-                  </View>
-                </View>
-                <AppButton disabled={isLoading} onPress={() => void uploadAvatar()} variant="secondary">
-                  从相册选择头像
-                </AppButton>
-                <AppButton
-                  disabled={!hasProfileChanges || isLoading || !normalizedNickname}
-                  onPress={() =>
-                    void updateProfile({
-                      nickname: normalizedNickname,
-                    })
-                  }
-                  variant="secondary"
-                >
-                  保存资料
-                </AppButton>
+              <View style={styles.userIdBox}>
+                <Text style={styles.userIdLabel}>用户 ID</Text>
+                <Text numberOfLines={1} selectable style={styles.userIdValue}>
+                  {user.id}
+                </Text>
               </View>
-              <View style={styles.buttonGrid}>
-                <AppButton
-                  onPress={() => {
-                    void refreshMe();
-                    void refreshEntitlements();
-                  }}
-                  style={styles.flexButton}
-                  variant="secondary"
-                >
-                  刷新
-                </AppButton>
-                <AppButton onPress={() => void logout()} style={styles.flexButton} variant="secondary">
-                  退出登录
-                </AppButton>
-              </View>
+              <AppButton onPress={() => router.push(routes.meProfile)}>编辑资料</AppButton>
             </>
           ) : (
-            <View style={styles.loginActions}>
-              <Text style={styles.description}>当前先用开发登录联调。真实 Apple 登录、Push 和灵动岛真机能力等 Apple Developer Program 准备好后再打开。</Text>
-              <AppButton disabled={isLoading} onPress={() => void loginWithMockApple()} style={styles.primaryButton}>
-                {isLoading ? '正在登录...' : '开发 Mock 登录'}
+            <>
+              <Text style={styles.loginHint}>开发期可以先用 Mock 账号验证云端同步、搭子和 Pro 入口。</Text>
+              <AppButton disabled={isLoading} onPress={() => void loginWithMockApple()}>
+                开发 Mock 登录
               </AppButton>
-            </View>
+            </>
           )}
         </AppCard>
 
-        <PageSection subtitle="登录后再启用云端能力，本地记录不受影响。" title="云端能力">
-          <AppCard style={styles.linksCard}>
-            <MeLink
-              body="查看会员权益，后续购买和恢复订阅也会放这里。"
-              icon={Crown}
-              onPress={() => router.push(routes.pro)}
-              title="小提督 Pro"
-              tone="primary"
-            />
-            <View style={styles.divider} />
-            <MeLink
-              body="拉个搭子，互相轻轻盯一下，只共享低敏状态。"
-              icon={UsersRound}
-              onPress={() => router.push(routes.team)}
-              title="监督搭子"
-              tone="privacy"
-            />
-            <View style={styles.divider} />
-            <MeLink
-              body="收到提醒就回个小暗号，不需要写小作文。"
-              icon={Bell}
-              onPress={() => router.push(routes.nudges)}
-              title="搭子提醒"
-              tone="privacy"
-            />
-            <View style={styles.divider} />
-            <MeLink
-              body="先看本地最近小报告，Pro 会补上更长周期回看。"
-              icon={ChartNoAxesColumnIncreasing}
-              onPress={() => router.push(routes.trends)}
-              title="高级小报告"
-              tone="info"
-            />
-            <View style={styles.divider} />
-            <MeLink
-              body="手表联动会从这里检查配对状态，后续接入训练和打卡。"
-              icon={Watch}
-              onPress={() => router.push(routes.watch)}
-              title="Apple Watch"
-              tone="info"
-            />
+        <PageSection title="云端能力">
+          <AppCard style={styles.linkList}>
+            {cloudLinks.map((item, index) => {
+              const Icon = item.icon;
+
+              return (
+                <PressableScale
+                  accessibilityLabel={item.title}
+                  key={item.title}
+                  onPress={() => router.push(item.href)}
+                  style={[styles.linkRow, index < cloudLinks.length - 1 ? styles.linkDivider : null]}
+                >
+                  <View style={styles.linkIcon}>
+                    <Icon color={colors.primaryPressed} size={20} strokeWidth={2.4} />
+                  </View>
+                  <View style={styles.linkCopy}>
+                    <Text style={styles.linkTitle}>{item.title}</Text>
+                    <Text numberOfLines={1} style={styles.linkDescription}>
+                      {item.description}
+                    </Text>
+                  </View>
+                  <ChevronRight color={colors.textSubtle} size={19} strokeWidth={2.4} />
+                </PressableScale>
+              );
+            })}
           </AppCard>
         </PageSection>
+
+        {user ? (
+          <PageSection title="账号操作">
+            <View style={styles.accountActions}>
+              <AppButton disabled={isLoading} onPress={handleRefresh} style={styles.actionButton} variant="secondary">
+                刷新
+              </AppButton>
+              <AppButton disabled={isLoading} onPress={() => void logout()} style={styles.actionButton} variant="secondary">
+                退出登录
+              </AppButton>
+            </View>
+          </PageSection>
+        ) : null}
       </PageStack>
     </Screen>
   );
-
 }
 
-type IconComponent = typeof Crown;
-
-type MeLinkProps = {
-  body: string;
-  icon: IconComponent;
-  onPress: () => void;
-  title: string;
-  tone: 'info' | 'primary' | 'privacy';
-};
-
-function MeLink({ body, icon: Icon, onPress, title, tone }: MeLinkProps) {
-  const { colors } = useAppTheme();
-  const styles = createStyles(colors);
-  const iconColor = tone === 'info' ? colors.info : tone === 'privacy' ? colors.privacy : colors.primaryPressed;
-  const iconTone = tone === 'info' ? colors.infoSoft : tone === 'privacy' ? colors.surfaceMuted : colors.primarySoft;
-
-  return (
-    <PressableScale accessibilityLabel={`${title}，${body}`} onPress={onPress} style={styles.linkRow}>
-      <View style={[styles.linkIcon, { backgroundColor: iconTone }]}>
-        <Icon color={iconColor} size={20} strokeWidth={2.4} />
-      </View>
-      <View style={styles.copy}>
-        <Text style={styles.linkTitle}>{title}</Text>
-        <Text style={styles.linkBody}>{body}</Text>
-      </View>
-    </PressableScale>
-  );
-}
-
-type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    avatarUploadRow: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: 18,
-      flexDirection: 'row',
-      gap: 12,
-      padding: 12,
-    },
-    buttonGrid: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 2,
-    },
-    copy: {
-      flex: 1,
-    },
-    description: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '600',
-      lineHeight: 19,
-    },
-    divider: {
-      backgroundColor: colors.border,
-      height: 1,
-      marginLeft: 48,
-    },
-    flexButton: {
-      flex: 1,
-    },
-    fieldLabel: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '900',
-    },
-    headerLine: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: 12,
-    },
-    linkBody: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '600',
-      lineHeight: 19,
-    },
-    linkIcon: {
-      alignItems: 'center',
-      borderRadius: 18,
-      height: 36,
-      justifyContent: 'center',
-      width: 36,
-    },
-    linkRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: 12,
-      minHeight: 68,
-      paddingHorizontal: 4,
-      paddingVertical: 10,
-    },
-    linkTitle: {
-      color: colors.text,
-      fontSize: 15,
-      fontWeight: '900',
-      marginBottom: 4,
-    },
-    linksCard: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    loginActions: {
-      gap: 10,
-    },
-    input: {
-      backgroundColor: colors.surfaceMuted,
-      borderColor: colors.border,
-      borderRadius: 16,
-      borderWidth: 1,
-      color: colors.text,
-      fontSize: 15,
-      fontWeight: '800',
-      minHeight: 46,
-      paddingHorizontal: 14,
-    },
-    primaryButton: {
-      marginTop: 2,
-    },
-    profileEditor: {
-      gap: 10,
-    },
-    profileCard: {
-      gap: 16,
-    },
-    statusBox: {
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: 16,
-      padding: 14,
-    },
-    statusLabel: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '800',
-      marginBottom: 5,
-    },
-    statusValue: {
-      color: colors.text,
-      fontSize: 14,
-      fontWeight: '800',
-      lineHeight: 20,
-    },
-    title: {
-      color: colors.text,
-      fontSize: 20,
-      fontWeight: '900',
-      marginBottom: 4,
-    },
-  });
-}
-
-function formatProStatus(status: ReturnType<typeof useAuthStore.getState>['proStatus']) {
-  switch (status) {
+function formatProStatus(proStatus: ProStatus) {
+  switch (proStatus) {
     case 'pro_active':
-      return 'Pro 已开启';
+      return '小提督 Pro';
     case 'pro_grace_period':
       return 'Pro 宽限期';
     case 'pro_expired':
@@ -344,4 +158,106 @@ function formatProStatus(status: ReturnType<typeof useAuthStore.getState>['proSt
     default:
       return '免费版';
   }
+}
+
+type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    accountActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    linkCopy: {
+      flex: 1,
+      gap: 3,
+    },
+    linkDescription: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    linkDivider: {
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+    },
+    linkIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.primarySoft,
+      borderRadius: 18,
+      height: 36,
+      justifyContent: 'center',
+      width: 36,
+    },
+    linkList: {
+      padding: 0,
+    },
+    linkRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 12,
+      minHeight: 72,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+    },
+    linkTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '900',
+      lineHeight: 21,
+    },
+    loginHint: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '600',
+      lineHeight: 21,
+    },
+    profileCard: {
+      gap: 18,
+    },
+    profileCopy: {
+      flex: 1,
+      gap: 5,
+    },
+    profileName: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '900',
+      lineHeight: 29,
+    },
+    profileStatus: {
+      color: colors.primaryPressed,
+      fontSize: 14,
+      fontWeight: '800',
+      lineHeight: 20,
+    },
+    profileTop: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 14,
+    },
+    userIdBox: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: 16,
+      gap: 5,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    userIdLabel: {
+      color: colors.textSubtle,
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 16,
+    },
+    userIdValue: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+  });
 }

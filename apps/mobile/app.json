@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-audio"
+      "expo-audio",
+      "expo-notifications"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -19,6 +20,9 @@
     },
     "ios": {
       "bundleIdentifier": "com.kex.xiaotidu",
+      "entitlements": {
+        "aps-environment": "development"
+      },
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

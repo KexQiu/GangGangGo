@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, type ComponentType } from 'react';
+import { useCallback, useMemo, type ComponentType } from 'react';
 import {
   Bell,
   ChevronRight,
@@ -29,6 +29,7 @@ import { getHabitCheckInForDate, useHabitStore } from '../src/features/habits/ha
 import { HabitQuickCheckInCard } from '../src/features/habits/HabitQuickCheckInCard';
 import { getReminderHomeSummary, hasAnyReminderEnabled } from '../src/features/reminders/reminderLogic';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
+import { getNudgeHomeSummary, useNudgeStore, type NudgeHomeSummary } from '../src/features/nudges/nudgeStore';
 import {
   getHabitStatusLabel,
   getTodayPositiveFeedback,
@@ -58,6 +59,9 @@ export default function HomeScreen() {
   const teamIsLoading = useTeamStore((state) => state.isLoading);
   const teamSnapshots = useTeamStore((state) => state.snapshots);
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
+  const nudgeInbox = useNudgeStore((state) => state.inbox);
+  const nudgeSent = useNudgeStore((state) => state.sent);
+  const loadNudgeThreads = useNudgeStore((state) => state.loadThreads);
   const todayTrainingCount = getTodayCompletedTrainingCount(trainingSessions);
   const todayToiletCount = getTodayToiletSessionCount(toiletSessions);
   const today = getLocalDateKey();
@@ -79,6 +83,15 @@ export default function HomeScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const userId = user?.id;
+  const nudgeSummary = useMemo(
+    () =>
+      getNudgeHomeSummary({
+        currentUserId: userId,
+        inbox: nudgeInbox,
+        sent: nudgeSent,
+      }),
+    [nudgeInbox, nudgeSent, userId],
+  );
 
   const refreshTeamHomeCard = useCallback(() => {
     if (!accessToken) {
@@ -91,7 +104,8 @@ export default function HomeScreen() {
     }
 
     void loadCurrentTeam();
-  }, [accessToken, loadCurrentTeam, userId]);
+    void loadNudgeThreads();
+  }, [accessToken, loadCurrentTeam, loadNudgeThreads, userId]);
 
   useFocusEffect(refreshTeamHomeCard);
 
@@ -150,6 +164,7 @@ export default function HomeScreen() {
           error={teamError}
           isLoading={teamIsLoading}
           onPress={() => router.push(routes.team)}
+          nudgeSummary={nudgeSummary}
           snapshots={teamSnapshots}
           team={team}
         />
@@ -234,21 +249,23 @@ export default function HomeScreen() {
 type TeamHomeCardProps = {
   error: null | string;
   isLoading: boolean;
+  nudgeSummary: NudgeHomeSummary;
   onPress: () => void;
   snapshots: TeamSnapshotsResponse | null;
   team: Team | null;
 };
 
-function TeamHomeCard({ error, isLoading, onPress, snapshots, team }: TeamHomeCardProps) {
+function TeamHomeCard({ error, isLoading, nudgeSummary, onPress, snapshots, team }: TeamHomeCardProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const activeMembers = team?.members.filter((member) => member.status !== 'removed') ?? [];
   const title = team?.name ?? '还没有监督搭子';
-  const memberLabel = team ? `成员 ${activeMembers.length}/4` : '小队';
+  const memberLabel = nudgeSummary.pendingCount > 0 ? `${nudgeSummary.pendingCount} 待回` : team ? `成员 ${activeMembers.length}/4` : '小队';
   const description = getTeamHomeDescription({
     activeMemberCount: activeMembers.length,
     error,
     isLoading,
+    nudgeSummary,
     snapshots,
     team,
   });
@@ -280,21 +297,30 @@ type TeamHomeDescriptionInput = {
   activeMemberCount: number;
   error: null | string;
   isLoading: boolean;
+  nudgeSummary: NudgeHomeSummary;
   snapshots: TeamSnapshotsResponse | null;
   team: Team | null;
 };
 
-function getTeamHomeDescription({ activeMemberCount, error, isLoading, snapshots, team }: TeamHomeDescriptionInput) {
-  if (isLoading && !snapshots) {
-    return '小队状态同步中...';
-  }
-
+function getTeamHomeDescription({ activeMemberCount, error, isLoading, nudgeSummary, snapshots, team }: TeamHomeDescriptionInput) {
   if (error) {
     return '暂时无法同步小队状态，点进去再试试。';
   }
 
   if (!team) {
     return '进去创建小队或处理邀请，先把搭子关系建起来。';
+  }
+
+  if (nudgeSummary.pendingCount > 0) {
+    return `${nudgeSummary.pendingCount} 条搭子提醒待回应`;
+  }
+
+  if (nudgeSummary.latestPreview) {
+    return nudgeSummary.latestPreview;
+  }
+
+  if (isLoading && !snapshots) {
+    return '小队状态同步中...';
   }
 
   if (!snapshots) {

@@ -1,23 +1,26 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
+import type { UpdateUserProfileRequest } from '@xiaotidu/contracts';
+
 import type { Database } from '../../db/client.js';
 import { users } from '../../db/schema.js';
+import {
+  deserializeAvatarConfig,
+  serializeAvatarConfig,
+} from './avatarConfig.js';
 import type { CurrentUser } from './userTypes.js';
 import { mockCurrentUser } from './userTypes.js';
 
 export type UserRepository = {
   findById: (userId: string) => Promise<CurrentUser | null>;
-  updateProfile: (
-    userId: string,
-    input: { avatarUrl?: null | string; nickname?: null | string; timezone?: string },
-  ) => Promise<CurrentUser>;
+  updateProfile: (userId: string, input: UpdateUserProfileRequest) => Promise<CurrentUser>;
   upsertFromApple: (input: { appleUserId: string; nickname?: string }) => Promise<CurrentUser>;
 };
 
 function toCurrentUser(user: typeof users.$inferSelect): CurrentUser {
   return {
     appleUserId: user.appleUserId,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: deserializeAvatarConfig(user.avatarUrl),
     id: user.id,
     nickname: user.nickname,
     timezone: user.timezone,
@@ -109,7 +112,7 @@ export function createDrizzleUserRepository(db: Database): UserRepository {
       const [updatedUser] = await db
         .update(users)
         .set({
-          ...(input.avatarUrl === undefined ? {} : { avatarUrl: input.avatarUrl }),
+          ...(input.avatarUrl === undefined ? {} : { avatarUrl: serializeAvatarConfig(input.avatarUrl) }),
           ...(input.nickname === undefined ? {} : { nickname: input.nickname }),
           ...(input.timezone === undefined ? {} : { timezone: input.timezone }),
           updatedAt: new Date(),

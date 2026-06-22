@@ -13,9 +13,10 @@ export async function registerPushTokenIfAllowed(): Promise<boolean> {
   }
 
   try {
-    const permission = await Notifications.getPermissionsAsync();
+    const permission = await ensurePushPermission();
 
-    if (!permission.granted) {
+    if (!isNotificationAllowed(permission)) {
+      logPushTokenDebug('notification permission is not granted');
       return false;
     }
 
@@ -32,7 +33,41 @@ export async function registerPushTokenIfAllowed(): Promise<boolean> {
     );
 
     return true;
-  } catch {
+  } catch (error) {
+    logPushTokenDebug('failed to register push token', error);
     return false;
   }
+}
+
+async function ensurePushPermission() {
+  const permission = await Notifications.getPermissionsAsync();
+
+  if (isNotificationAllowed(permission) || permission.status === 'denied') {
+    return permission;
+  }
+
+  return Notifications.requestPermissionsAsync({
+    ios: {
+      allowAlert: true,
+      allowBadge: false,
+      allowSound: true,
+    },
+  });
+}
+
+function isNotificationAllowed(permission: Notifications.NotificationPermissionsStatus): boolean {
+  return permission.granted || permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+}
+
+function logPushTokenDebug(message: string, error?: unknown) {
+  if (!__DEV__) {
+    return;
+  }
+
+  if (error) {
+    console.warn(`[push-token] ${message}`, error);
+    return;
+  }
+
+  console.warn(`[push-token] ${message}`);
 }

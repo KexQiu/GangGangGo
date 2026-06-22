@@ -125,11 +125,28 @@ POST /auth/apple
 
 ```ts
 type UserProfile = {
-  avatarUrl: null | string;
+  avatarUrl: AvatarConfig | null;
   id: string;
   nickname: null | string;
   timezone: string;
 };
+
+type AvatarConfig = {
+  background: AvatarBackgroundPresetKey;
+  emoji: AvatarEmojiPresetKey | null;
+};
+
+type AvatarBackgroundPresetKey =
+  | 'leaf'
+  | 'mint'
+  | 'sky'
+  | 'sun'
+  | 'peach'
+  | 'rose'
+  | 'lilac'
+  | 'stone';
+
+type AvatarEmojiPresetKey = 'smile' | 'calm' | 'cool' | 'thinking' | 'sleepy' | 'party' | 'cat' | 'dog'; // 省略：以 contracts 为准
 ```
 
 ### 3.2 ProStatus
@@ -375,7 +392,10 @@ type AdvancedReportResponse = {
 
 ```json
 {
-  "avatarUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar.jpg",
+  "avatarUrl": {
+    "background": "leaf",
+    "emoji": "smile"
+  },
   "nickname": "搭子队长",
   "timezone": "Asia/Shanghai"
 }
@@ -384,7 +404,7 @@ type AdvancedReportResponse = {
 字段说明：
 
 - `nickname`：1-20 个字符，可传 `null` 清空。
-- `avatarUrl`：头像公开访问 URL。当前开发环境由头像上传骨架返回 `/mock-storage/...`，后续接正式对象存储后保存 CDN/对象存储 URL。
+- `avatarUrl`：固定 emoji 与背景色配置，可传 `null` 使用默认昵称首字头像。
 - `timezone`：可选，默认 `Asia/Shanghai`。
 
 响应：
@@ -392,55 +412,16 @@ type AdvancedReportResponse = {
 ```json
 {
   "data": {
-    "avatarUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar.jpg",
+    "avatarUrl": {
+      "background": "leaf",
+      "emoji": "smile"
+    },
     "id": "user-id",
     "nickname": "搭子队长",
     "timezone": "Asia/Shanghai"
   }
 }
 ```
-
-### POST /me/avatar-upload
-
-鉴权：需要
-
-用途：创建头像上传地址。当前是对象存储骨架，开发环境返回 mock 上传地址；后续接入正式 OSS/S3/R2 后，接口结构保持不变。
-
-请求：
-
-```json
-{
-  "contentLength": 48231,
-  "contentType": "image/jpeg"
-}
-```
-
-限制：
-
-- `contentType`：只允许 `image/jpeg`、`image/png`、`image/webp`。
-- `contentLength`：必须大于 0，最大 `300KB`。
-- 上传地址有效期：当前 mock 为 5 分钟。
-
-响应：
-
-```json
-{
-  "data": {
-    "expiresAt": "2026-05-26T10:05:00.000Z",
-    "objectKey": "avatars/user-id/avatar-id.jpg",
-    "publicUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg",
-    "uploadMethod": "mock_put",
-    "uploadUrl": "http://localhost:8787/mock-storage/avatars%2Fuser-id%2Favatar-id.jpg?token=upload-token"
-  }
-}
-```
-
-开发环境上传流程：
-
-1. 调用 `POST /me/avatar-upload` 获取 `uploadUrl` 和 `publicUrl`。
-2. 客户端用 `PUT uploadUrl` 上传压缩后的图片二进制。
-3. 上传成功后调用 `PATCH /me`，把 `avatarUrl` 更新为 `publicUrl`。
-4. 正式对象存储接入后，`uploadUrl` 会替换为预签名上传地址，数据库仍只保存 `publicUrl`。
 
 ### GET /me/entitlements
 

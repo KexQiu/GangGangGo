@@ -6,7 +6,6 @@ import type { ProStatus, UpdateUserProfileRequest, UserProfile } from '@xiaotidu
 
 import { ApiClientError, apiClient, setApiUnauthorizedHandler } from '../../api/client';
 import { showToast } from '../../components/toast/AppToast';
-import { pickAndUploadAvatar } from './avatarUpload';
 
 type AuthState = {
   accessToken: null | string;
@@ -20,8 +19,7 @@ type AuthState = {
   proStatus: ProStatus;
   refreshEntitlements: () => Promise<void>;
   refreshMe: () => Promise<void>;
-  uploadAvatar: () => Promise<void>;
-  updateProfile: (input: UpdateUserProfileRequest) => Promise<void>;
+  updateProfile: (input: UpdateUserProfileRequest) => Promise<boolean>;
   user: null | UserProfile;
 };
 
@@ -129,38 +127,6 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      uploadAvatar: async () => {
-        const token = get().accessToken;
-
-        if (!token) {
-          const message = '请先登录。';
-          showToast(message, { type: 'error' });
-          set({ error: message });
-          return;
-        }
-
-        set({ error: null, isLoading: true });
-
-        try {
-          const avatarUrl = await pickAndUploadAvatar(token);
-
-          if (!avatarUrl) {
-            set({ isLoading: false });
-            return;
-          }
-
-          const user = await apiClient.updateUserProfile({ avatarUrl }, token);
-          set({
-            error: null,
-            isLoading: false,
-            lastUpdatedAt: new Date().toISOString(),
-            user,
-          });
-        } catch (error) {
-          handleAuthError(error, set);
-          set({ isLoading: false });
-        }
-      },
       updateProfile: async (input) => {
         const token = get().accessToken;
 
@@ -168,7 +134,7 @@ export const useAuthStore = create<AuthState>()(
           const message = '请先登录。';
           showToast(message, { type: 'error' });
           set({ error: message });
-          return;
+          return false;
         }
 
         set({ error: null, isLoading: true });
@@ -181,9 +147,11 @@ export const useAuthStore = create<AuthState>()(
             lastUpdatedAt: new Date().toISOString(),
             user,
           });
+          return true;
         } catch (error) {
           handleAuthError(error, set);
           set({ isLoading: false });
+          return false;
         }
       },
       user: null,

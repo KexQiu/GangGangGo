@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { BuddyNudgeDailyLimit, BuddyNudgeType, QuietRange } from '@xiaotidu/contracts';
+import type { BuddyNudgeDailyLimit, QuietRange } from '@xiaotidu/contracts';
 
 import { AppButton } from '../../../../src/components/AppButton';
 import { AppCard } from '../../../../src/components/AppCard';
@@ -9,13 +9,12 @@ import { AppTopBar } from '../../../../src/components/AppTopBar';
 import { PageHeader } from '../../../../src/components/PageHeader';
 import { PageStack } from '../../../../src/components/PageStack';
 import { Screen } from '../../../../src/components/Screen';
-import { isProStatus, useAuthStore } from '../../../../src/features/account/authStore';
-import { nudgeCopies, useNudgeStore } from '../../../../src/features/nudges/nudgeStore';
+import { useAuthStore } from '../../../../src/features/account/authStore';
+import { useNudgeStore } from '../../../../src/features/nudges/nudgeStore';
 import { useTeamStore } from '../../../../src/features/team/teamStore';
 import { routes } from '../../../../src/navigation/routes';
 import { useAppTheme } from '../../../../src/theme/themeProvider';
 
-const nudgeTypes: BuddyNudgeType[] = ['move', 'not_blank', 'habit_left', 'posture'];
 const limits: BuddyNudgeDailyLimit[] = [0, 3, 5, 8];
 const quietPresets: Array<{ label: string; ranges: QuietRange[] }> = [
   { label: '关闭勿扰', ranges: [] },
@@ -37,11 +36,7 @@ export default function TeamMemberScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const currentUser = useAuthStore((state) => state.user);
-  const proStatus = useAuthStore((state) => state.proStatus);
-  const isPro = isProStatus(proStatus);
-  const isMutating = useNudgeStore((state) => state.isMutating);
   const loadSettings = useNudgeStore((state) => state.loadSettings);
-  const sendNudge = useNudgeStore((state) => state.sendNudge);
   const settings = useNudgeStore((state) => state.settings);
   const updateSettings = useNudgeStore((state) => state.updateSettings);
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
@@ -67,32 +62,6 @@ export default function TeamMemberScreen() {
       <PageHeader eyebrow="监督搭子" subtitle="提醒只用固定暗号，不开放自由文本。" title={member?.displayName ?? member?.user.nickname ?? '小提督搭子'} />
 
       <PageStack gap="regular">
-        <AppCard style={styles.card}>
-          <Text style={styles.cardTitle}>轻轻戳一下</Text>
-          <Text style={styles.description}>每天提醒次数由对方设置，命中勿扰时间时不会打扰。</Text>
-          {isMe ? <Text style={styles.description}>这是你自己。自己的提醒设置在小队设置里处理。</Text> : null}
-          <View style={styles.buttonGrid}>
-            {nudgeTypes.map((type) => (
-              <AppButton
-                disabled={isMe || !isPro || isMutating}
-                key={type}
-                onPress={() => {
-                  if (!userId) {
-                    return;
-                  }
-
-                  void sendNudge(userId, type);
-                }}
-                style={styles.gridButton}
-                variant="secondary"
-              >
-                {nudgeCopies[type]}
-              </AppButton>
-            ))}
-          </View>
-          {!isPro && !isMe ? <Text style={styles.errorText}>主动提醒搭子需要小提督 Pro。</Text> : null}
-        </AppCard>
-
         {!isMe && userId ? (
           <AppCard style={styles.card}>
             <Text style={styles.cardTitle}>允许 TA 提醒我</Text>
@@ -129,7 +98,7 @@ export default function TeamMemberScreen() {
                     })
                   }
                   style={styles.chipButton}
-                  variant="secondary"
+                  variant={isSameQuietRanges(nudgeSetting?.quietRanges ?? [], preset.ranges) ? 'primary' : 'secondary'}
                 >
                   {preset.label}
                 </AppButton>
@@ -169,9 +138,6 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    buttonGrid: {
-      gap: 10,
-    },
     card: {
       gap: 12,
     },
@@ -195,14 +161,16 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
       lineHeight: 19,
     },
-    errorText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
-    },
-    gridButton: {
-      minHeight: 44,
-    },
+  });
+}
+
+function isSameQuietRanges(left: QuietRange[], right: QuietRange[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((range, index) => {
+    const comparedRange = right[index];
+    return comparedRange?.start === range.start && comparedRange.end === range.end;
   });
 }

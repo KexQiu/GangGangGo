@@ -31,7 +31,7 @@ v0.2 当前已完成开发骨架：
 - 后端 API、Postgres + Drizzle schema、OpenAPI 文档。
 - 账号与权益基础链路。
 - 小队、邀请、共享快照、搭子提醒、回执。
-- 头像上传对象存储骨架，当前使用 mock storage。
+- 预设 emoji 和背景色头像。
 - 移动端 API client、会话 store、我的页、Pro 页、小队页、提醒页。
 - WatchConnectivity iPhone 桥接、Watch App target、Watch 页面、离线队列、ACK、开发调试面板。
 - Watch Complication 已接入共享低敏状态、过期态、Pro 锁定态、蹲会儿深链和三种表盘样式。
@@ -41,7 +41,7 @@ v0.2 当前已完成开发骨架：
 - 真实订阅购买与 App Store Server 校验未完成。
 - 真实 Sign in with Apple、Push 和部分 Live Activity 能力受 Apple Developer Program 和签名能力限制，当前部分关闭或未验收。
 - Apple Watch 已完成真机初步测试，仍需完整手动清单留痕和表盘 / haptic 专项验收。
-- 正式对象存储、生产部署、集成测试和并发一致性加固未完成。
+- 生产部署、集成测试和并发一致性加固未完成。
 
 ## 2. 优先级定义
 
@@ -173,30 +173,27 @@ v0.2 当前已完成开发骨架：
 - 云端失败不影响本地记录保存和基础小报告。
 - 小队成员无法看到 `daily_report_snapshots` 内容。
 
-### 3.5 头像上传骨架联调
+### 3.5 预设 Emoji 头像联调
 
-状态：部分完成，待手动验收
-目标：确认自定义头像在开发环境能完成选择、压缩、上传和展示。
+状态：已调整为预设方案，待手动验收
+目标：确认用户能选择固定 emoji 和背景色头像，并在小队和搭子互动中同步展示。
 
 已完成：
 
-- `POST /me/avatar-upload`。
-- mock storage 上传地址。
-- 移动端选择图片、压缩到 `256x256 JPEG`、上传、`PATCH /me` 保存头像。
-- 小队成员头像组件。
+- `PATCH /me` 保存固定 emoji 和背景色头像配置。
+- 移动端我的页背景色和 emoji 头像选择网格。
+- 小队成员和聊天头像组件。
 
 待办：
 
-- [ ] 本机成功执行 `pod install`，确保 `expo-image-picker` 和 `expo-image-manipulator` 原生模块可用。
-- [ ] App 端选择图片并上传到 `/mock-storage`。
+- [ ] App 端选择背景色和 emoji 头像并保存。
 - [ ] `/me` 显示新头像。
 - [ ] 小队成员卡显示新头像。
-- [ ] API 重启后确认 mock storage 头像丢失是预期行为。
 
 验收标准：
 
-- 头像上传失败不影响登录和小队功能。
-- 图片超出 300KB 或类型不合法时被后端拒绝。
+- 非法头像配置被后端拒绝。
+- 未选择头像时继续显示昵称首字。
 
 ### 3.6 Apple Watch 联动联调
 
@@ -259,30 +256,20 @@ v0.2 当前已完成开发骨架：
 
 ## 4. P1：生产级后端能力
 
-### 4.1 正式对象存储 provider
+### 4.1 头像预设扩展
 
 状态：未完成
-当前：mock storage，只存在 API 进程内存中。
+当前：头像使用固定 emoji 和背景色预设，不接对象存储。
 
 任务：
 
-- [ ] 选择对象存储服务商：
-  - 阿里云 OSS。
-  - 腾讯云 COS。
-  - 七牛云。
-  - Cloudflare R2。
-  - S3 兼容服务。
-- [ ] 实现正式 `AvatarStorageService`。
-- [ ] `POST /me/avatar-upload` 返回真实预签名 PUT URL。
-- [ ] 限制上传内容类型和大小。
-- [ ] 配置公开访问 URL 或 CDN URL。
-- [ ] 增加旧头像清理策略。
+- [ ] 后续按需要扩展更多固定 emoji 或背景色头像。
 
 验收标准：
 
-- 数据库只保存 `avatar_url`。
-- API 重启后头像仍可访问。
-- 非当前用户目录的对象 key 不可写入。
+- 数据库只保存结构化头像配置序列化文本或 `null`。
+- 非法头像配置会被后端拒绝。
+- 新增预设在我的页、小队页、聊天页展示一致。
 
 ### 4.2 真实 Postgres 集成测试
 
@@ -334,7 +321,6 @@ v0.2 当前已完成开发骨架：
 - [ ] 登录接口限流。
 - [ ] 创建邀请限流。
 - [ ] 发送搭子提醒限流。
-- [ ] 头像上传地址限流。
 - [ ] 请求体大小限制。
 - [ ] 统一安全响应，避免泄露内部错误。
 
@@ -501,10 +487,20 @@ v0.2 当前已完成开发骨架：
 状态：暂缓
 原因：Personal Team 不支持 Push capability。
 
+当前记录：
+
+- 2026-06-20 真机联调确认：搭子提醒后端入库、收件箱和发件箱拉取已可用，系统级远程通知未完成验收。
+- Xcode 使用 Personal Development Team 为 `com.kex.xiaotidu` 开启 Push Notifications 时失败：Personal development teams 不支持 Push Notifications capability。
+- 真机调用 `getExpoPushTokenAsync` 会报 `未找到应用程序的“aps-environment”的授权字符串`，原因是当前签名包无法包含 APNs entitlement。
+- 系统级搭子提醒通知测试先搁置；待 Apple Developer Program 或付费 Team provisioning profile 准备好后恢复。
+
 任务：
 
-- [ ] 恢复 `aps-environment`。
-- [ ] 恢复 `expo-notifications` config plugin。
+- [ ] 使用支持 Push Notifications 的付费 Apple Developer Team。
+- [ ] 在 Apple Developer 后台为 `com.kex.xiaotidu` 开启 Push Notifications。
+- [ ] 重新生成包含 `aps-environment` 的 development provisioning profile。
+- [ ] 用新 profile 重新签名并安装真机 development build。
+- [ ] 确认 `aps-environment` entitlement 随 App 包下发。
 - [ ] 真机获取 push token。
 - [ ] 调用 `POST /push-tokens` 注册。
 - [ ] 搭子提醒发出后对方收到通知。
@@ -806,10 +802,9 @@ v0.2 当前已完成开发骨架：
 2. 小队双用户联调。
 3. 共享快照联调；报告快照进入手动验收和生产联调。
 4. Apple Watch 双向同步完整验收。
-5. 正式对象存储 provider。
-6. 真实 Postgres 集成测试。
-7. 后端并发一致性加固。
-8. Pro Paywall 产品化。
+5. 真实 Postgres 集成测试。
+6. 后端并发一致性加固。
+7. Pro Paywall 产品化。
 9. StoreKit 和 App Store Server API。
 10. Apple Developer Program 准备好后恢复真实 Apple 登录、Push、Live Activity、Watch 真机能力。
 11. Complication 接入真实状态。
