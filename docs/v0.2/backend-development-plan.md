@@ -67,29 +67,40 @@ apps/api/
 ├── package.json
 ├── tsconfig.json
 ├── drizzle.config.ts
+├── drizzle/                  # Drizzle 生成的 SQL migration
 ├── src/
-│   ├── server.ts              # Node 入口，负责 listen
-│   ├── app.ts                 # Hono app 组合
+│   ├── server.ts              # Node 入口，负责 listen 和关闭依赖
+│   ├── app.ts                 # createApiApp 兼容出口
+│   ├── app/                   # Hono app 装配层
+│   │   ├── createApiApp.ts
+│   │   ├── errorHandler.ts
+│   │   ├── registerRoutes.ts
+│   │   ├── requestLogger.ts
+│   │   └── types.ts
 │   ├── config/
 │   │   └── env.ts             # 环境变量校验
 │   ├── db/
 │   │   ├── client.ts          # Postgres client
-│   │   ├── schema.ts          # Drizzle schema
-│   │   └── migrations/        # SQL migrations
+│   │   ├── health.ts          # 数据库健康检查
+│   │   ├── schema.ts          # Drizzle schema 兼容出口
+│   │   └── schema/            # 按领域拆分的表定义
+│   ├── dependencies/
+│   │   └── createDependencies.ts
 │   ├── http/
-│   │   ├── errors.ts          # 统一错误类型
-│   │   ├── response.ts        # 成功/失败响应
-│   │   └── middleware.ts      # auth、request id、日志
+│   │   ├── apiError.ts        # 统一错误类型
+│   │   ├── responses.ts       # 成功/失败响应
+│   │   └── middleware/        # auth、pro 等通用 middleware
 │   ├── modules/
 │   │   ├── auth/
 │   │   ├── entitlements/
-│   │   ├── teams/
-│   │   ├── sharing/
+│   │   ├── health/
 │   │   ├── nudges/
 │   │   ├── push/
 │   │   ├── reports/
-│   │   └── subscriptions/
-│   └── tests/
+│   │   ├── subscriptions/
+│   │   ├── teams/
+│   │   └── users/
+│   └── __tests__/
 └── .env.example
 ```
 
@@ -99,12 +110,13 @@ apps/api/
 | --- | --- |
 | `auth` | Apple 登录、用户身份、session/JWT |
 | `entitlements` | 统一会员权益判断 |
+| `health` | 服务和数据库健康检查 |
 | `subscriptions` | App Store 订阅校验和通知 |
-| `teams` | 小队、成员、邀请、退出、移除 |
-| `sharing` | 共享设置、每日低敏快照 |
+| `teams` | 小队、成员、邀请、退出、移除、共享设置、每日低敏快照 |
 | `nudges` | 搭子提醒、每日上限、回执 |
 | `push` | Push token、发送通知 |
 | `reports` | 90 天报告、小队周报摘要 |
+| `users` | 当前用户资料读取和更新 |
 
 ## 4. 数据边界
 

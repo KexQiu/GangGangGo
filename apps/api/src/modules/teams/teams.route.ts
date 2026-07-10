@@ -1,5 +1,4 @@
 import { Hono, type MiddlewareHandler } from 'hono';
-import { z } from 'zod';
 
 import type {
   CreateTeamInviteResponse,
@@ -10,24 +9,16 @@ import type {
   UpdateTeamRequest,
 } from '@xiaotidu/contracts';
 
-import type { AuthVariables } from '../http/middleware/auth.js';
-import { toSuccessResponse } from '../http/responses.js';
-import type { TeamService } from '../modules/teams/teamService.js';
-
-const createTeamRequestSchema = z.object({
-  name: z.string().min(1).max(40).optional(),
-});
-
-const updateTeamRequestSchema = z.object({
-  name: z.string().min(1).max(40),
-});
-
-const updateTeamMemberStatusRequestSchema = z.object({
-  status: z.union([z.literal('active'), z.literal('paused')]),
-});
-
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const memberIdSchema = z.uuid();
+import type { AuthVariables } from '../../http/middleware/auth.js';
+import { toSuccessResponse } from '../../http/responses.js';
+import type { TeamService } from './teamService.js';
+import {
+  createTeamRequestSchema,
+  teamDateSchema,
+  teamMemberIdSchema,
+  updateTeamMemberStatusRequestSchema,
+  updateTeamRequestSchema,
+} from './teams.schemas.js';
 
 type CreateTeamsRouteOptions = {
   proMiddleware?: MiddlewareHandler<{ Variables: AuthVariables }>;
@@ -79,7 +70,7 @@ export function createTeamsRoute(options: CreateTeamsRouteOptions) {
   });
 
   route.delete('/current/members/:memberId', async (context) => {
-    const memberId = memberIdSchema.parse(context.req.param('memberId'));
+    const memberId = teamMemberIdSchema.parse(context.req.param('memberId'));
     const body: TeamResponse = await options.teamService.removeMember(context.get('currentUser'), memberId);
 
     return context.json(toSuccessResponse(body));
@@ -98,7 +89,7 @@ export function createTeamsRoute(options: CreateTeamsRouteOptions) {
   });
 
   route.get('/current/snapshots', async (context) => {
-    const date = dateSchema.optional().parse(context.req.query('date')) ?? getTodayDate();
+    const date = teamDateSchema.optional().parse(context.req.query('date')) ?? getTodayDate();
     const body: TeamSnapshotsResponse = await options.teamService.getCurrentTeamSnapshots(
       context.get('currentUser'),
       date,

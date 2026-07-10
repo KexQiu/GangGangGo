@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 import type {
   RestoreSubscriptionRequest,
@@ -7,23 +6,13 @@ import type {
   VerifySubscriptionRequest,
 } from '@xiaotidu/contracts';
 
-import type { AuthVariables } from '../http/middleware/auth.js';
-import { toSuccessResponse } from '../http/responses.js';
-import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
-
-const productIdSchema = z.union([
-  z.literal('xiaotidu.pro.monthly'),
-  z.literal('xiaotidu.pro.yearly'),
-]);
-
-const verifySubscriptionRequestSchema = z.object({
-  productId: productIdSchema,
-  transactionId: z.string().min(1).max(200),
-});
-
-const restoreSubscriptionRequestSchema = z.object({
-  transactionIds: z.array(z.string().min(1).max(200)).min(1).max(20),
-});
+import type { AuthVariables } from '../../http/middleware/auth.js';
+import { toSuccessResponse } from '../../http/responses.js';
+import type { EntitlementsService } from '../entitlements/entitlementsService.js';
+import {
+  restoreSubscriptionRequestSchema,
+  verifySubscriptionRequestSchema,
+} from './subscriptions.schemas.js';
 
 type CreateSubscriptionsRouteOptions = {
   entitlementsService: EntitlementsService;

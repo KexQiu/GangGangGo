@@ -170,14 +170,25 @@ apps/mobile/assets/
 
 ## 4. 后端结构
 
-后端位于 `apps/api`，当前是 v0.2 的轻量骨架。
+后端位于 `apps/api`，当前是 Hono + Drizzle 的模块化单体 API 服务。
 
 ```text
 apps/api/
 ├── package.json
 ├── tsconfig.json
+├── drizzle.config.ts
+├── drizzle/               # Drizzle 生成的 SQL migration
 └── src/
-    └── server.ts
+    ├── server.ts          # Node 入口，负责 listen 和关闭依赖
+    ├── app.ts             # 兼容导出 createApiApp
+    ├── app/               # Hono app 装配层
+    ├── config/            # 环境变量和版本
+    ├── db/                # Drizzle client、schema、health check
+    ├── dependencies/      # API 依赖装配
+    ├── http/              # 通用响应、错误和 middleware
+    ├── lib/               # 基础设施工具
+    ├── modules/           # 按业务域组织的后端模块
+    └── __tests__/         # API handler 集成测试
 ```
 
 当前已实现接口：
@@ -185,15 +196,76 @@ apps/api/
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | `GET` | `/health` | 服务健康检查 |
-| `GET` | `/me/entitlements` | 会员权益占位，当前返回 `free` |
+| `GET` | `/health/db` | 数据库连通性检查 |
+| `POST` | `/auth/apple` | Apple 登录 |
+| `POST` | `/auth/logout` | 登出占位 |
+| `GET/PATCH` | `/me` | 当前用户信息读取和更新 |
+| `GET` | `/me/entitlements` | 会员权益 |
+| `POST/GET/PATCH` | `/teams/*` | 小队、成员和邀请操作 |
+| `GET/POST` | `/team-invites/*` | 邀请预览和接受邀请 |
+| `PUT` | `/share-settings` | 共享设置 |
+| `PUT` | `/share-snapshots/today` | 每日低敏共享快照 |
+| `GET/POST` | `/nudges/*` | 搭子提醒和回执 |
+| `POST` | `/push-tokens` | Push token 同步 |
+| `POST` | `/subscriptions/*` | 订阅校验和恢复入口 |
+| `GET/PUT` | `/reports/*`、`/report-snapshots/*` | 高级报告和报告快照 |
 
-当前后端运行时暂用 Node.js `http`，后续可以替换为 Hono 或其他轻量框架。替换框架时应保持 `packages/contracts` 中定义的接口类型稳定。
+结构原则：
+
+- `server.ts` 只负责启动 Hono 服务和关闭依赖。
+- `src/app/` 负责 request id、请求日志、错误处理和路由注册。
+- `src/dependencies/` 负责选择 mock 或 Drizzle 实现，避免散落在入口文件。
+- `src/modules/` 采用 feature-first 结构，把 route、schema、service、repository、mapper、mock 放在同一业务域内。
+- 所有 Hono route 已归入对应模块，`app/registerRoutes.ts` 只负责挂载路径，不承载业务逻辑。
+- `src/db/schema.ts` 是 Drizzle schema 兼容出口，实际表定义拆在 `src/db/schema/` 下。
+- 结构迁移必须保持 API path、响应格式、Drizzle 表名 / 字段名 / enum 名和 `packages/contracts` 类型稳定。
+
+当前后端源码分层：
+
+```text
+apps/api/src/
+├── app/
+│   ├── createApiApp.ts
+│   ├── errorHandler.ts
+│   ├── registerRoutes.ts
+│   ├── requestLogger.ts
+│   └── types.ts
+├── db/
+│   ├── client.ts
+│   ├── health.ts
+│   ├── schema.ts
+│   └── schema/
+│       ├── audit.ts
+│       ├── common.ts
+│       ├── enums.ts
+│       ├── nudges.ts
+│       ├── push.ts
+│       ├── reports.ts
+│       ├── sharing.ts
+│       ├── subscriptions.ts
+│       ├── teams.ts
+│       └── users.ts
+├── dependencies/
+│   └── createDependencies.ts
+└── modules/
+    ├── auth/
+    ├── entitlements/
+    ├── health/
+    ├── nudges/
+    ├── push/
+    ├── reports/
+    ├── subscriptions/
+    ├── teams/
+    └── users/
+```
 
 运行：
 
 ```bash
 pnpm api:dev
 pnpm api:start
+pnpm --filter @xiaotidu/api typecheck
+pnpm --filter @xiaotidu/api test
 ```
 
 ## 5. 共享契约结构

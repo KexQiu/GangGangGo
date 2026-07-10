@@ -1,5 +1,4 @@
 import { and, eq, gt, inArray, isNull, ne } from 'drizzle-orm';
-import { createHash, randomBytes } from 'node:crypto';
 
 import type {
   AcceptTeamInviteRequest,
@@ -8,12 +7,8 @@ import type {
   CreateTeamInviteResponse,
   DailyShareSnapshot,
   DailyShareSnapshotResponse,
-  ShareSettings,
   ShareSettingsResponse,
-  Team,
-  TeamDailyShareSnapshot,
   TeamInvitePreviewResponse,
-  TeamMember,
   TeamMemberStatus,
   TeamResponse,
   TeamSnapshotsResponse,
@@ -33,6 +28,26 @@ import {
 import { ApiError } from '../../http/apiError.js';
 import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
+import {
+  applyShareSettings,
+  defaultShareSettings,
+  normalizeShareSettings,
+  toDailyShareSnapshot,
+  toShareSettings,
+  toTeam,
+  toTeamMember,
+} from './team.mapper.js';
+import {
+  createInviteExpiration,
+  createInviteToken,
+  createInviteUrl,
+  ensureCanInvite,
+  ensureInviteIsUsable,
+  ensureOwner,
+  hashInviteToken,
+  normalizeTeamName,
+} from './team.policy.js';
+import type { MemberRecord } from './team.types.js';
 
 export type TeamService = {
   acceptInvite: (
@@ -62,420 +77,7 @@ export type TeamService = {
   ) => Promise<DailyShareSnapshotResponse>;
 };
 
-type TeamRecord = {
-  archivedAt: Date | null;
-  id: string;
-  name: string;
-  ownerUserId: string;
-};
-
-type MemberRecord = {
-  displayName: null | string;
-  id: string;
-  joinedAt: Date | string;
-  role: 'buddy' | 'owner';
-  status: 'active' | 'paused' | 'removed';
-  user: TeamMember['user'];
-};
-
-const defaultShareSettings: ShareSettings = {
-  paused: false,
-  shareHabitCompletion: true,
-  shareStreak: true,
-  shareToiletRecorded: true,
-  shareTraining: true,
-};
-
-function toIsoString(value: Date | string) {
-  return value instanceof Date ? value.toISOString() : value;
-}
-
-function toTeam(team: TeamRecord, members: MemberRecord[]): Team {
-  return {
-    id: team.id,
-    members: members.map(toTeamMember),
-    name: team.name,
-    ownerUserId: team.ownerUserId,
-  };
-}
-
-function toTeamMember(member: MemberRecord): TeamMember {
-  return {
-    displayName: member.displayName,
-    id: member.id,
-    joinedAt: toIsoString(member.joinedAt),
-    role: member.role,
-    status: member.status,
-    user: member.user,
-  };
-}
-
-function normalizeTeamName(name: string | undefined) {
-  const trimmed = name?.trim();
-  return trimmed ? trimmed.slice(0, 40) : '我的小队';
-}
-
-function requireTeam(team: Team | null): Team {
-  if (!team) {
-    throw new ApiError(404, 'not_found', '还没有小队。');
-  }
-
-  return team;
-}
-
-function createInviteToken() {
-  return randomBytes(24).toString('base64url');
-}
-
-function hashInviteToken(token: string) {
-  return createHash('sha256').update(token).digest('hex');
-}
-
-function createInviteUrl(token: string) {
-  return `xiaotidu://team/join/${token}`;
-}
-
-function createInviteExpiration(now = new Date()) {
-  return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-}
-
-function ensureInviteIsUsable(invite: {
-  acceptedAt: Date | null;
-  expiresAt: Date;
-  revokedAt: Date | null;
-}) {
-  if (invite.revokedAt) {
-    throw new ApiError(404, 'not_found', '这个邀请已经失效。');
-  }
-
-  if (invite.acceptedAt) {
-    throw new ApiError(409, 'conflict', '这个邀请已经被使用过了。');
-  }
-
-  if (invite.expiresAt.getTime() <= Date.now()) {
-    throw new ApiError(404, 'not_found', '这个邀请已经过期。');
-  }
-}
-
-function ensureCanInvite(currentUser: CurrentUser, team: TeamRecord, memberCount: number) {
-  if (team.ownerUserId !== currentUser.id) {
-    throw new ApiError(403, 'forbidden', '只有小队创建者可以邀请搭子。');
-  }
-
-  if (memberCount >= 4) {
-    throw new ApiError(409, 'conflict', '小队已经满员了。');
-  }
-}
-
-function ensureOwner(currentUser: CurrentUser, team: TeamRecord) {
-  if (team.ownerUserId !== currentUser.id) {
-    throw new ApiError(403, 'forbidden', '只有小队创建者可以操作。');
-  }
-}
-
-function normalizeShareSettings(input?: Partial<ShareSettings>): ShareSettings {
-  return {
-    ...defaultShareSettings,
-    ...input,
-  };
-}
-
-function applyShareSettings(
-  snapshot: DailyShareSnapshot | null,
-  settings: ShareSettings,
-): TeamDailyShareSnapshot | null {
-  if (!snapshot || settings.paused) {
-    return null;
-  }
-
-  return {
-    date: snapshot.date,
-    ...(settings.shareTraining ? { trainingDone: snapshot.trainingDone } : {}),
-    ...(settings.shareHabitCompletion ? { habitCompletion: snapshot.habitCompletion } : {}),
-    ...(settings.shareToiletRecorded ? { toiletRecorded: snapshot.toiletRecorded } : {}),
-    ...(settings.shareStreak ? { streakDays: snapshot.streakDays } : {}),
-  };
-}
-
-function toShareSettings(record: typeof shareSettings.$inferSelect): ShareSettings {
-  return {
-    paused: record.paused,
-    shareHabitCompletion: record.shareHabitCompletion,
-    shareStreak: record.shareStreak,
-    shareToiletRecorded: record.shareToiletRecorded,
-    shareTraining: record.shareTraining,
-  };
-}
-
-function toDailyShareSnapshot(record: typeof dailyShareSnapshots.$inferSelect): DailyShareSnapshot {
-  return {
-    date: record.date,
-    habitCompletion: record.habitCompletion as DailyShareSnapshot['habitCompletion'],
-    streakDays: record.streakDays,
-    toiletRecorded: record.toiletRecorded,
-    trainingDone: record.trainingDone,
-  };
-}
-
-export function createMockTeamService(): TeamService {
-  let team: TeamRecord | null = null;
-  let members: MemberRecord[] = [];
-  const invitesByToken = new Map<
-    string,
-    {
-      acceptedAt: Date | null;
-      expiresAt: Date;
-      id: string;
-      inviterUserId: string;
-      revokedAt: Date | null;
-      teamId: string;
-    }
-  >();
-  const settingsByUserId = new Map<string, ShareSettings>();
-  const snapshotsByUserAndDate = new Map<string, DailyShareSnapshot>();
-
-  function currentTeamResponse(currentUser?: CurrentUser): TeamResponse {
-    if (
-      currentUser &&
-      !members.some((member) => member.user.id === currentUser.id && member.status !== 'removed')
-    ) {
-      return { team: null };
-    }
-
-    return {
-      team: team ? toTeam(team, members.filter((member) => member.status !== 'removed')) : null,
-    };
-  }
-
-  function ensureCurrentTeam(currentUser?: CurrentUser) {
-    return requireTeam(currentTeamResponse(currentUser).team);
-  }
-
-  function findCurrentMember(currentUser: CurrentUser) {
-    const member = members.find((item) => item.user.id === currentUser.id && item.status !== 'removed');
-
-    if (!member) {
-      throw new ApiError(404, 'not_found', '还没有小队。');
-    }
-
-    return member;
-  }
-
-  return {
-    async acceptInvite(currentUser, token, input) {
-      const invite = invitesByToken.get(token);
-
-      if (!invite || !team || invite.teamId !== team.id) {
-        throw new ApiError(404, 'not_found', '没有找到这个邀请。');
-      }
-
-      ensureInviteIsUsable(invite);
-
-      if (members.some((member) => member.user.id === currentUser.id && member.status !== 'removed')) {
-        throw new ApiError(409, 'conflict', '你已经在这个小队里了。');
-      }
-
-      if (members.filter((member) => member.status !== 'removed').length >= 4) {
-        throw new ApiError(409, 'conflict', '小队已经满员了。');
-      }
-
-      invite.acceptedAt = new Date();
-      members.push({
-        displayName: input.displayName ?? currentUser.nickname,
-        id: `00000000-0000-4000-8000-${String(200 + members.length + 1).padStart(12, '0')}`,
-        joinedAt: new Date('2026-05-22T00:00:00.000Z'),
-        role: 'buddy',
-        status: 'active',
-        user: {
-          avatarUrl: currentUser.avatarUrl,
-          id: currentUser.id,
-          nickname: currentUser.nickname,
-        },
-      });
-      settingsByUserId.set(currentUser.id, normalizeShareSettings(input.shareSettings));
-
-      return currentTeamResponse(currentUser);
-    },
-    async createInvite(currentUser) {
-      const currentTeam = ensureCurrentTeam(currentUser);
-
-      if (!team) {
-        throw new ApiError(404, 'not_found', '还没有小队。');
-      }
-
-      ensureCanInvite(currentUser, team, currentTeam.members.length);
-
-      const token = createInviteToken();
-      const invite = {
-        acceptedAt: null,
-        expiresAt: createInviteExpiration(),
-        id: `00000000-0000-4000-8000-${String(invitesByToken.size + 301).padStart(12, '0')}`,
-        inviterUserId: currentUser.id,
-        revokedAt: null,
-        teamId: currentTeam.id,
-      };
-
-      invitesByToken.set(token, invite);
-
-      return {
-        expiresAt: invite.expiresAt.toISOString(),
-        inviteId: invite.id,
-        inviteUrl: createInviteUrl(token),
-        token,
-      };
-    },
-    async createTeam(currentUser, input) {
-      if (team && team.archivedAt === null) {
-        throw new ApiError(409, 'conflict', '你已经有一个小队了。');
-      }
-
-      team = {
-        archivedAt: null,
-        id: '00000000-0000-4000-8000-000000000101',
-        name: normalizeTeamName(input.name),
-        ownerUserId: currentUser.id,
-      };
-      members = [
-        {
-          displayName: currentUser.nickname,
-          id: '00000000-0000-4000-8000-000000000201',
-          joinedAt: new Date('2026-05-22T00:00:00.000Z'),
-          role: 'owner',
-          status: 'active',
-          user: {
-            avatarUrl: currentUser.avatarUrl,
-            id: currentUser.id,
-            nickname: currentUser.nickname,
-          },
-        },
-      ];
-      settingsByUserId.set(currentUser.id, defaultShareSettings);
-
-      return currentTeamResponse(currentUser);
-    },
-    async getCurrentTeam(currentUser) {
-      return currentTeamResponse(currentUser);
-    },
-    async getCurrentTeamSnapshots(_currentUser, date) {
-      const currentTeam = ensureCurrentTeam(_currentUser);
-
-      return {
-        date,
-        snapshots: currentTeam.members.map((member) => {
-          const settings = settingsByUserId.get(member.user.id) ?? defaultShareSettings;
-          const snapshot = snapshotsByUserAndDate.get(`${member.user.id}:${date}`) ?? null;
-
-          return {
-            member,
-            shareSettings: settings,
-            snapshot: member.status === 'paused' ? null : applyShareSettings(snapshot, settings),
-          };
-        }),
-      };
-    },
-    async leaveTeam(currentUser) {
-      if (!team) {
-        throw new ApiError(404, 'not_found', '还没有小队。');
-      }
-
-      const currentMember = findCurrentMember(currentUser);
-
-      if (currentMember.role === 'owner') {
-        team.archivedAt = new Date();
-        members = members.map((member) => ({
-          ...member,
-          status: 'removed',
-        }));
-      } else {
-        currentMember.status = 'removed';
-      }
-
-      settingsByUserId.set(currentUser.id, {
-        ...(settingsByUserId.get(currentUser.id) ?? defaultShareSettings),
-        paused: true,
-      });
-
-      return currentTeamResponse(currentUser);
-    },
-    async previewInvite(token) {
-      const invite = invitesByToken.get(token);
-
-      if (!invite || !team || invite.teamId !== team.id) {
-        throw new ApiError(404, 'not_found', '没有找到这个邀请。');
-      }
-
-      ensureInviteIsUsable(invite);
-
-      const inviter = members.find((member) => member.user.id === invite.inviterUserId);
-
-      return {
-        expiresAt: invite.expiresAt.toISOString(),
-        inviterNickname: inviter?.user.nickname ?? null,
-        teamName: team.name,
-      };
-    },
-    async removeMember(currentUser, memberId) {
-      if (!team) {
-        throw new ApiError(404, 'not_found', '还没有小队。');
-      }
-
-      ensureOwner(currentUser, team);
-
-      const member = members.find((item) => item.id === memberId && item.status !== 'removed');
-
-      if (!member) {
-        throw new ApiError(404, 'not_found', '没有找到这个成员。');
-      }
-
-      if (member.role === 'owner' || member.user.id === currentUser.id) {
-        throw new ApiError(400, 'bad_request', '不能移除小队创建者。');
-      }
-
-      member.status = 'removed';
-      settingsByUserId.set(member.user.id, {
-        ...(settingsByUserId.get(member.user.id) ?? defaultShareSettings),
-        paused: true,
-      });
-
-      return currentTeamResponse(currentUser);
-    },
-    async setCurrentMemberStatus(currentUser, status) {
-      const member = findCurrentMember(currentUser);
-
-      member.status = status;
-      settingsByUserId.set(currentUser.id, {
-        ...(settingsByUserId.get(currentUser.id) ?? defaultShareSettings),
-        paused: status === 'paused',
-      });
-
-      return currentTeamResponse(currentUser);
-    },
-    async updateShareSettings(currentUser, input) {
-      ensureCurrentTeam(currentUser);
-      settingsByUserId.set(currentUser.id, input);
-
-      return {
-        settings: input,
-      };
-    },
-    async updateTeam(currentUser, input) {
-      if (!team) {
-        throw new ApiError(404, 'not_found', '还没有小队。');
-      }
-
-      ensureOwner(currentUser, team);
-      team.name = normalizeTeamName(input.name);
-
-      return currentTeamResponse(currentUser);
-    },
-    async upsertDailyShareSnapshot(currentUser, snapshot) {
-      ensureCurrentTeam(currentUser);
-      snapshotsByUserAndDate.set(`${currentUser.id}:${snapshot.date}`, snapshot);
-
-      return { snapshot };
-    },
-  };
-}
+export { createMockTeamService } from './team.mock.js';
 
 export function createDrizzleTeamService(db: Database): TeamService {
   async function findCurrentTeamRecord(currentUser: CurrentUser) {

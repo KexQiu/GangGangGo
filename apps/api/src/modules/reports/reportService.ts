@@ -1,12 +1,10 @@
 import { and, asc, eq, gte, inArray, isNull, lte, ne } from 'drizzle-orm';
 
 import type {
-  AdvancedReportDay,
   AdvancedReportResponse,
   DailyReportSnapshot,
   DailyReportSnapshotResponse,
   DailyReportSnapshotsBulkResponse,
-  TeamMember,
   TeamWeeklyReportResponse,
 } from '@xiaotidu/contracts';
 
@@ -20,9 +18,16 @@ import {
   users,
 } from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
-import type { TeamService } from '../teams/teamService.js';
 import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
+import {
+  buildAdvancedReport,
+  dedupeSnapshotsByDate,
+  defaultReportShareSettings,
+  getAdvancedReportRange,
+  getWeeklyRange,
+  toDailyReportSnapshot,
+} from './report.mapper.js';
 
 export type ReportService = {
   getAdvancedReport: (currentUser: CurrentUser, range: '90d') => Promise<AdvancedReportResponse>;
@@ -37,254 +42,7 @@ export type ReportService = {
   ) => Promise<DailyReportSnapshotsBulkResponse>;
 };
 
-const advancedReportDayCount = 90;
-const defaultTimezone = 'Asia/Shanghai';
-
-function toDateString(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setUTCDate(nextDate.getUTCDate() + days);
-  return nextDate;
-}
-
-function addDaysToDateKey(dateKey: string, days: number) {
-  return toDateString(addDays(new Date(`${dateKey}T00:00:00.000Z`), days));
-}
-
-function getTimezoneDateKey(timezone: string | null | undefined, now = new Date()) {
-  try {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      day: '2-digit',
-      month: '2-digit',
-      timeZone: timezone || defaultTimezone,
-      year: 'numeric',
-    }).formatToParts(now);
-    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-
-    return `${values.year}-${values.month}-${values.day}`;
-  } catch {
-    return getTimezoneDateKey(defaultTimezone, now);
-  }
-}
-
-function getAdvancedReportRange(currentUser: CurrentUser, now = new Date()) {
-  const endedAt = getTimezoneDateKey(currentUser.timezone, now);
-  const startedAt = addDaysToDateKey(endedAt, -(advancedReportDayCount - 1));
-
-  return { endedAt, startedAt };
-}
-
-function getWeeklyRange(now = new Date()) {
-  const endedAt = toDateString(now);
-  const startedAt = toDateString(addDays(now, -6));
-
-  return { endedAt, startedAt };
-}
-
-function eachDateInRange(startedAt: string, endedAt: string) {
-  const dates: string[] = [];
-  const cursor = new Date(`${startedAt}T00:00:00.000Z`);
-  const end = new Date(`${endedAt}T00:00:00.000Z`);
-
-  while (cursor <= end) {
-    dates.push(toDateString(cursor));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-
-  return dates;
-}
-
-function toAdvancedReportDay(date: string, snapshot?: DailyReportSnapshot): AdvancedReportDay {
-  return {
-    date,
-    habitCompletion: snapshot?.habitCompletion ?? 0,
-    habitFull: snapshot?.habitFull ?? false,
-    toiletLongMeeting: snapshot?.toiletLongMeeting ?? false,
-    toiletRecorded: snapshot?.toiletRecorded ?? false,
-    trainingDone: snapshot?.trainingDone ?? false,
-  };
-}
-
-function hasAnyAdvancedReportRecord(day: AdvancedReportDay) {
-  return day.trainingDone || day.habitCompletion > 0 || day.toiletRecorded || day.toiletLongMeeting;
-}
-
-function buildAdvancedReport(input: {
-  endedAt: string;
-  range: '90d';
-  snapshots: DailyReportSnapshot[];
-  startedAt: string;
-}): AdvancedReportResponse {
-  const snapshotsByDate = new Map(input.snapshots.map((snapshot) => [snapshot.date, snapshot]));
-  const days = eachDateInRange(input.startedAt, input.endedAt).map((date) =>
-    toAdvancedReportDay(date, snapshotsByDate.get(date)),
-  );
-  const latestSnapshot = input.snapshots.at(-1) ?? null;
-
-  return {
-    days,
-    endedAt: input.endedAt,
-    range: input.range,
-    snapshot: latestSnapshot,
-    startedAt: input.startedAt,
-    summary: {
-      currentStreakDays: latestSnapshot?.streakDays ?? 0,
-      habitFullDays: days.filter((day) => day.habitFull).length,
-      hasAnyRecord: days.some(hasAnyAdvancedReportRecord),
-      recordDays: days.filter(hasAnyAdvancedReportRecord).length,
-      toiletLongMeetingCount: latestSnapshot?.ninetyDayToiletLongMeetingCount ?? 0,
-      toiletRecordDays: days.filter((day) => day.toiletRecorded).length,
-      trainingDays: days.filter((day) => day.trainingDone).length,
-    },
-  };
-}
-
-function dedupeSnapshotsByDate(snapshots: DailyReportSnapshot[]) {
-  const snapshotsByDate = new Map<string, DailyReportSnapshot>();
-
-  for (const snapshot of snapshots) {
-    snapshotsByDate.set(snapshot.date, snapshot);
-  }
-
-  return [...snapshotsByDate.values()].sort((left, right) => left.date.localeCompare(right.date));
-}
-
-function toDailyReportSnapshot(record: typeof dailyReportSnapshots.$inferSelect): DailyReportSnapshot {
-  return {
-    date: record.date,
-    habitCompletion: record.habitCompletion as DailyReportSnapshot['habitCompletion'],
-    habitFull: record.habitFull,
-    ninetyDayHabitFullDays: record.ninetyDayHabitFullDays,
-    ninetyDayToiletLongMeetingCount: record.ninetyDayToiletLongMeetingCount,
-    ninetyDayTrainingDays: record.ninetyDayTrainingDays,
-    streakDays: record.streakDays,
-    thirtyDayHabitFullDays: record.thirtyDayHabitFullDays,
-    thirtyDayToiletLongMeetingCount: record.thirtyDayToiletLongMeetingCount,
-    thirtyDayTrainingDays: record.thirtyDayTrainingDays,
-    toiletLongMeeting: record.toiletLongMeeting,
-    toiletRecorded: record.toiletRecorded,
-    trainingDone: record.trainingDone,
-    weeklyHabitFullDays: record.weeklyHabitFullDays as DailyReportSnapshot['weeklyHabitFullDays'],
-    weeklyToiletLongMeetingCount: record.weeklyToiletLongMeetingCount,
-    weeklyTrainingDays: record.weeklyTrainingDays as DailyReportSnapshot['weeklyTrainingDays'],
-  };
-}
-
-function toWeeklyMember(member: Pick<TeamMember, 'displayName' | 'id' | 'user'>) {
-  return {
-    displayName: member.displayName,
-    id: member.id,
-    user: member.user,
-  };
-}
-
-type ReportShareSettings = {
-  paused: boolean;
-  shareHabitCompletion: boolean;
-  shareToiletRecorded: boolean;
-  shareTraining: boolean;
-};
-
-const defaultReportShareSettings: ReportShareSettings = {
-  paused: false,
-  shareHabitCompletion: true,
-  shareToiletRecorded: true,
-  shareTraining: true,
-};
-
-export function createMockReportService(options: { teamService: TeamService }): ReportService {
-  const snapshotsByUserAndDate = new Map<string, DailyReportSnapshot>();
-
-  function snapshotKey(userId: string, date: string) {
-    return `${userId}:${date}`;
-  }
-
-  return {
-    async getAdvancedReport(currentUser, range) {
-      const { endedAt, startedAt } = getAdvancedReportRange(currentUser);
-      const snapshots = [...snapshotsByUserAndDate.entries()]
-        .filter(([key]) => key.startsWith(`${currentUser.id}:`))
-        .map(([, snapshot]) => snapshot)
-        .filter((snapshot) => snapshot.date >= startedAt && snapshot.date <= endedAt)
-        .sort((left, right) => left.date.localeCompare(right.date));
-
-      return buildAdvancedReport({ endedAt, range, snapshots, startedAt });
-    },
-    async getTeamWeeklyReport(currentUser) {
-      const { endedAt, startedAt } = getWeeklyRange();
-      const dates = eachDateInRange(startedAt, endedAt);
-      const teamResponse = await options.teamService.getCurrentTeam(currentUser);
-      const team = teamResponse.team;
-
-      if (!team) {
-        throw new ApiError(404, 'not_found', '还没有小队。');
-      }
-
-      const snapshotsByMemberId = new Map<
-        string,
-        {
-          habitFullDays: number;
-          member: Pick<TeamMember, 'displayName' | 'id' | 'user'>;
-          toiletRecordedDays: number;
-          trainingDays: number;
-        }
-      >();
-
-      for (const member of team.members) {
-        snapshotsByMemberId.set(member.id, {
-          habitFullDays: 0,
-          member: toWeeklyMember(member),
-          toiletRecordedDays: 0,
-          trainingDays: 0,
-        });
-      }
-
-      for (const date of dates) {
-        const teamSnapshots = await options.teamService.getCurrentTeamSnapshots(currentUser, date);
-
-        for (const item of teamSnapshots.snapshots) {
-          const summary = snapshotsByMemberId.get(item.member.id);
-
-          if (!summary || !item.snapshot) {
-            continue;
-          }
-
-          summary.trainingDays += item.snapshot.trainingDone ? 1 : 0;
-          summary.habitFullDays += item.snapshot.habitCompletion === 4 ? 1 : 0;
-          summary.toiletRecordedDays += item.snapshot.toiletRecorded ? 1 : 0;
-        }
-      }
-
-      return {
-        endedAt,
-        memberCount: team.members.length,
-        startedAt,
-        summaries: [...snapshotsByMemberId.values()],
-      };
-    },
-    async upsertDailyReportSnapshot(currentUser, snapshot) {
-      snapshotsByUserAndDate.set(snapshotKey(currentUser.id, snapshot.date), snapshot);
-
-      return {
-        snapshot,
-      };
-    },
-    async upsertDailyReportSnapshots(currentUser, snapshots) {
-      const dedupedSnapshots = dedupeSnapshotsByDate(snapshots);
-
-      for (const snapshot of dedupedSnapshots) {
-        snapshotsByUserAndDate.set(snapshotKey(currentUser.id, snapshot.date), snapshot);
-      }
-
-      return {
-        snapshots: dedupedSnapshots,
-      };
-    },
-  };
-}
+export { createMockReportService } from './report.mock.js';
 
 export function createDrizzleReportService(db: Database): ReportService {
   async function getCurrentTeam(currentUser: CurrentUser) {

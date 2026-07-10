@@ -1,19 +1,13 @@
 import { Hono, type MiddlewareHandler } from 'hono';
-import { z } from 'zod';
 
 import type { AuthResponse } from '@xiaotidu/contracts';
 
-import { toSuccessResponse } from '../http/responses.js';
-import type { AuthVariables } from '../http/middleware/auth.js';
-import type { AppleAuthService } from '../modules/auth/appleAuthService.js';
-import { issueAccessToken } from '../modules/auth/token.js';
-import type { UserRepository } from '../modules/users/userRepository.js';
-
-const appleLoginRequestSchema = z.object({
-  authorizationCode: z.string().optional(),
-  identityToken: z.string().min(1),
-  nickname: z.string().min(1).max(40).optional(),
-});
+import type { AuthVariables } from '../../http/middleware/auth.js';
+import { toSuccessResponse } from '../../http/responses.js';
+import type { UserRepository } from '../users/userRepository.js';
+import { appleLoginRequestSchema } from './auth.schemas.js';
+import type { AppleAuthService } from './appleAuthService.js';
+import { issueAccessToken } from './token.js';
 
 type CreateAuthRouteOptions = {
   appleAuthService: AppleAuthService;

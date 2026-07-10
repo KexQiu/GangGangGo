@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 
 import type { ApiHealthResponse } from '@xiaotidu/contracts';
 
-import { apiVersion } from '../config/version.js';
-import { checkDatabaseHealth, type DatabaseHealthChecker } from '../db/health.js';
-import { toSuccessResponse } from '../http/responses.js';
+import { apiVersion } from '../../config/version.js';
+import { checkDatabaseHealth, type DatabaseHealthChecker } from '../../db/health.js';
+import { toSuccessResponse } from '../../http/responses.js';
 
 type CreateHealthRouteOptions = {
   databaseHealthChecker?: DatabaseHealthChecker;

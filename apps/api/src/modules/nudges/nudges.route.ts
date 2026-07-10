@@ -1,5 +1,4 @@
 import { Hono, type MiddlewareHandler } from 'hono';
-import { z } from 'zod';
 
 import type {
   BuddyNudge,
@@ -11,52 +10,17 @@ import type {
   UpdateBuddyNudgeSettingsRequest,
 } from '@xiaotidu/contracts';
 
-import type { AuthVariables } from '../http/middleware/auth.js';
-import { toSuccessResponse } from '../http/responses.js';
-import type { NudgeService } from '../modules/nudges/nudgeService.js';
-
-const nudgeTypeSchema = z.union([
-  z.literal('gentle'),
-  z.literal('move'),
-  z.literal('not_blank'),
-  z.literal('habit_left'),
-  z.literal('posture'),
-]);
-
-const nudgeAckStatusSchema = z.union([z.literal('received'), z.literal('later'), z.literal('done')]);
-const nudgeDailyLimitSchema = z.union([z.literal(0), z.literal(3), z.literal(5), z.literal(8)]);
-const userIdSchema = z.uuid();
-const nudgeIdSchema = z.string().min(1).max(80);
-const quietTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-
-const createBuddyNudgeRequestSchema = z.object({
-  toUserId: userIdSchema,
-  type: nudgeTypeSchema,
-});
-
-const ackBuddyNudgeRequestSchema = z.object({
-  status: nudgeAckStatusSchema,
-});
-
-const updateBuddyNudgeSettingsRequestSchema = z.object({
-  dailyLimit: nudgeDailyLimitSchema,
-  enabled: z.boolean(),
-  quietRanges: z
-    .array(
-      z.object({
-        end: quietTimeSchema,
-        start: quietTimeSchema,
-      }),
-    )
-    .max(4),
-});
-const listNudgeThreadQuerySchema = z.object({
-  before: z
-    .string()
-    .refine((value) => !Number.isNaN(Date.parse(value)), 'before must be a valid datetime.')
-    .optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(30),
-});
+import type { AuthVariables } from '../../http/middleware/auth.js';
+import { toSuccessResponse } from '../../http/responses.js';
+import type { NudgeService } from './nudgeService.js';
+import {
+  ackBuddyNudgeRequestSchema,
+  createBuddyNudgeRequestSchema,
+  listNudgeThreadQuerySchema,
+  nudgeIdSchema,
+  nudgeUserIdSchema,
+  updateBuddyNudgeSettingsRequestSchema,
+} from './nudges.schemas.js';
 
 type CreateNudgesRouteOptions = {
   nudgeService: NudgeService;
@@ -91,7 +55,7 @@ export function createNudgesRoute(options: CreateNudgesRouteOptions) {
   });
 
   route.get('/threads/:buddyUserId', async (context) => {
-    const buddyUserId = userIdSchema.parse(context.req.param('buddyUserId'));
+    const buddyUserId = nudgeUserIdSchema.parse(context.req.param('buddyUserId'));
     const query = listNudgeThreadQuerySchema.parse({
       before: context.req.query('before'),
       limit: context.req.query('limit'),
@@ -133,7 +97,7 @@ export function createBuddyNudgeSettingsRoute(options: CreateNudgesRouteOptions)
   });
 
   route.put('/:buddyUserId', async (context) => {
-    const buddyUserId = userIdSchema.parse(context.req.param('buddyUserId'));
+    const buddyUserId = nudgeUserIdSchema.parse(context.req.param('buddyUserId'));
     const request = updateBuddyNudgeSettingsRequestSchema.parse(
       await context.req.json(),
     ) satisfies UpdateBuddyNudgeSettingsRequest;
