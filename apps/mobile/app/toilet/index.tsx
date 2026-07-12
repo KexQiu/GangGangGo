@@ -11,11 +11,7 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import { useAppSettingsStore } from '../../src/features/settings/appSettingsStore';
-import {
-  formatToiletDuration,
-  getToiletStageCopy,
-  getToiletTimerStage,
-} from '../../src/features/toilet/toiletLogic';
+import { formatToiletDuration, getToiletStageCopy, getToiletTimerStage } from '../../src/features/toilet/toiletLogic';
 import {
   endToiletLiveActivity,
   pauseToiletLiveActivity,
@@ -75,17 +71,15 @@ export default function ToiletScreen() {
     keepAudioSessionActive: true,
     updateInterval: 80,
   });
-  const toiletStageSoundPlayers = useMemo<ToiletStageSoundPlayers>(() => ({
-    gentle_warning: gentleWarningSoundPlayer,
-    overtime: overtimeSoundPlayer,
-    severe_warning: severeWarningSoundPlayer,
-    strong_warning: strongWarningSoundPlayer,
-  }), [
-    gentleWarningSoundPlayer,
-    overtimeSoundPlayer,
-    severeWarningSoundPlayer,
-    strongWarningSoundPlayer,
-  ]);
+  const toiletStageSoundPlayers = useMemo<ToiletStageSoundPlayers>(
+    () => ({
+      gentle_warning: gentleWarningSoundPlayer,
+      overtime: overtimeSoundPlayer,
+      severe_warning: severeWarningSoundPlayer,
+      strong_warning: strongWarningSoundPlayer,
+    }),
+    [gentleWarningSoundPlayer, overtimeSoundPlayer, severeWarningSoundPlayer, strongWarningSoundPlayer],
+  );
   const lastStageRef = useRef(getToiletTimerStage(0));
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const activeSessionRef = useRef<string | null>(null);
@@ -141,11 +135,7 @@ export default function ToiletScreen() {
 
       if (wasActive && currentSession) {
         const currentElapsedSeconds = getActiveToiletTimerElapsedSeconds(currentSession);
-        void syncToiletLiveActivity(
-          currentSession.liveActivityId,
-          currentElapsedSeconds,
-          currentSession.isPaused,
-        );
+        void syncToiletLiveActivity(currentSession.liveActivityId, currentElapsedSeconds, currentSession.isPaused);
 
         if (!currentSession.isPaused && toiletStageNotificationEnabledRef.current) {
           void syncToiletStageNotifications(currentElapsedSeconds);
@@ -176,16 +166,19 @@ export default function ToiletScreen() {
     }
 
     lastStageRef.current = stage;
-    void syncToiletLiveActivity(session?.liveActivityId ?? null, elapsedSeconds, isPaused);
+    const currentSession = sessionRef.current;
+    void syncToiletLiveActivity(
+      currentSession?.liveActivityId ?? null,
+      getActiveToiletTimerElapsedSeconds(currentSession),
+      currentSession?.isPaused ?? false,
+    );
 
     if (appStateRef.current !== 'active') {
       return;
     }
 
     void Haptics.notificationAsync(
-      stage === 'severe_warning'
-        ? Haptics.NotificationFeedbackType.Error
-        : Haptics.NotificationFeedbackType.Warning,
+      stage === 'severe_warning' ? Haptics.NotificationFeedbackType.Error : Haptics.NotificationFeedbackType.Warning,
     );
 
     if (toiletStageSoundEnabled) {
@@ -306,11 +299,7 @@ export default function ToiletScreen() {
       <Screen>
         <AppTopBar fallbackHref={routes.home} title="蹲会儿" />
 
-        <PageHeader
-          eyebrow="蹲会儿"
-          subtitle="开始后小花只负责计时和轻提醒。"
-          title="蹲会儿"
-        />
+        <PageHeader eyebrow="蹲会儿" subtitle="开始后小花只负责计时和轻提醒。" title="蹲会儿" />
 
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
@@ -327,12 +316,7 @@ export default function ToiletScreen() {
 
   return (
     <Screen bottomSafeArea scroll={false} contentStyle={styles.screenContent}>
-      <AppTopBar
-        fallbackHref={routes.home}
-        onBackPress={confirmDiscardTimer}
-        title="办正事中"
-        variant="close"
-      />
+      <AppTopBar fallbackHref={routes.home} onBackPress={confirmDiscardTimer} title="办正事中" variant="close" />
 
       <View>
         <PageHeader eyebrow="蹲会儿" subtitle="小花值班中，办完就收工。" title="办正事中" />
@@ -355,11 +339,7 @@ export default function ToiletScreen() {
         <AppButton onPress={endTimer} style={styles.actionButton}>
           收工
         </AppButton>
-        <AppButton
-          onPress={togglePause}
-          style={styles.actionButton}
-          variant="secondary"
-        >
+        <AppButton onPress={togglePause} style={styles.actionButton} variant="secondary">
           {isPaused ? '继续' : '暂停'}
         </AppButton>
       </View>
@@ -390,20 +370,22 @@ function getStageHintText(stage: ToiletTimerStage): string {
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 function createStyles(colors: ThemeColors, stage: ToiletTimerStage) {
-  const accentColor = stage === 'normal'
-    ? colors.primary
-    : stage === 'gentle_warning'
-      ? colors.info
-      : stage === 'severe_warning'
-        ? colors.danger
-        : colors.warning;
-  const accentSoft = stage === 'normal'
-    ? colors.primarySoft
-    : stage === 'gentle_warning'
-      ? colors.infoSoft
-      : stage === 'severe_warning'
-        ? colors.dangerSoft
-        : colors.warningSoft;
+  const accentColor =
+    stage === 'normal'
+      ? colors.primary
+      : stage === 'gentle_warning'
+        ? colors.info
+        : stage === 'severe_warning'
+          ? colors.danger
+          : colors.warning;
+  const accentSoft =
+    stage === 'normal'
+      ? colors.primarySoft
+      : stage === 'gentle_warning'
+        ? colors.infoSoft
+        : stage === 'severe_warning'
+          ? colors.dangerSoft
+          : colors.warningSoft;
 
   return StyleSheet.create({
     startCard: {

@@ -1,11 +1,4 @@
-import {
-  Ban,
-  CheckCircle2,
-  CircleHelp,
-  HeartPulse,
-  ShieldCheck,
-  Stethoscope,
-} from 'lucide-react-native';
+import { Ban, CheckCircle2, CircleHelp, HeartPulse, ShieldCheck, Stethoscope } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '../../src/components/AppCard';

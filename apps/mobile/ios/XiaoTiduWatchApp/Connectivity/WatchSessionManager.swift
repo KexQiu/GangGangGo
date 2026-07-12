@@ -19,13 +19,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
   private let pendingEventsStorageKey = "xiaotidu-watch-pending-events"
   private var pendingEvents: [[String: Any]] = []
   private var stateRefreshTimer: Timer?
+  private var refreshBackoff: TimeInterval = 5
+  private var isApplicationActive = true
 
   override init() {
     super.init()
     loadPersistedState()
     loadPendingEvents()
     activate()
-    startStateRefreshTimer()
   }
 
   deinit {
@@ -42,6 +43,17 @@ final class WatchSessionManager: NSObject, ObservableObject {
     session.activate()
     isReachable = session.isReachable
     requestLatestStateIfPossible()
+  }
+
+  func setApplicationActive(_ isActive: Bool) {
+    isApplicationActive = isActive
+    stateRefreshTimer?.invalidate()
+    stateRefreshTimer = nil
+    if isActive {
+      refreshBackoff = 5
+      requestLatestStateIfPossible()
+      flushPendingEventsIfPossible()
+    }
   }
 
   func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) {
@@ -95,10 +107,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
       "createdAt": ISO8601DateFormatter().string(from: Date()),
       "id": UUID().uuidString,
       "payload": payload,
+      "schemaVersion": 2,
       "type": type,
     ]
     let message: [String: Any] = [
       "event": event,
+      "schemaVersion": 2,
       "type": "watch_event",
     ]
 
@@ -225,6 +239,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
        let data = stateJson.data(using: .utf8),
        let decoded = try? JSONDecoder().decode(WatchTodayState.self, from: data) {
       todayState = decoded
+      refreshBackoff = 5
+      stateRefreshTimer?.invalidate()
       lastError = nil
       lastSyncedAt = Date()
       persistTodayState()
@@ -242,6 +258,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     todayState = decoded
+    refreshBackoff = 5
+    stateRefreshTimer?.invalidate()
     lastError = nil
     lastSyncedAt = Date()
     persistTodayState()
@@ -278,6 +296,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
   private func requestLatestStateIfPossible() {
     guard let session, session.activationState == .activated, session.isReachable else {
+      scheduleStateRefreshRetry()
       return
     }
 
@@ -291,19 +310,27 @@ final class WatchSessionManager: NSObject, ObservableObject {
           if self?.updateStateIfPresent(in: reply) != true {
             self?.lastError = nil
           }
+          self?.refreshBackoff = 5
         }
       },
       errorHandler: { [weak self] error in
         DispatchQueue.main.async {
           self?.lastError = self?.friendlyConnectivityMessage(for: error)
+          self?.scheduleStateRefreshRetry()
         }
       }
     )
   }
 
-  private func startStateRefreshTimer() {
+  private func scheduleStateRefreshRetry() {
+    guard isApplicationActive else {
+      return
+    }
+
     stateRefreshTimer?.invalidate()
-    stateRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+    let delay = refreshBackoff
+    refreshBackoff = min(refreshBackoff * 2, 30)
+    stateRefreshTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
       DispatchQueue.main.async {
         self?.requestLatestStateIfPossible()
       }

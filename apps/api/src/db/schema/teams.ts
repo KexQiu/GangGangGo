@@ -1,12 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, updatedAt } from './common.js';
 import { teamMemberRoleEnum, teamMemberStatusEnum } from './enums.js';
@@ -25,7 +18,9 @@ export const teams = pgTable(
     archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex('teams_owner_active_unique').on(table.ownerUserId).where(sql`${table.archivedAt} is null`),
+    uniqueIndex('teams_owner_active_unique')
+      .on(table.ownerUserId)
+      .where(sql`${table.archivedAt} is null`),
   ],
 );
 
@@ -49,7 +44,12 @@ export const teamMembers = pgTable(
   (table) => [
     index('team_members_team_status_idx').on(table.teamId, table.status),
     index('team_members_user_status_idx').on(table.userId, table.status),
-    uniqueIndex('team_members_active_unique').on(table.teamId, table.userId).where(sql`${table.removedAt} is null`),
+    uniqueIndex('team_members_active_unique')
+      .on(table.teamId, table.userId)
+      .where(sql`${table.removedAt} is null`),
+    uniqueIndex('team_members_user_current_unique')
+      .on(table.userId)
+      .where(sql`${table.removedAt} is null`),
   ],
 );
 

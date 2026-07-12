@@ -58,10 +58,8 @@ class ToiletTimerLiveActivityModule: NSObject {
           pushType: nil
         )
 
-        print("[ToiletLiveActivity] started \(activity.id)")
         resolve(activity.id)
       } catch {
-        print("[ToiletLiveActivity] start failed: \(error.localizedDescription)")
         reject("toilet_live_activity_start_failed", error.localizedDescription, error)
       }
     }

@@ -23,55 +23,59 @@ export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
   persist(
     (set) => ({
       clearSession: () => set({ session: null }),
-      pauseSession: (elapsedSeconds) => set((state) => {
-        if (!state.session) {
-          return state;
-        }
+      pauseSession: (elapsedSeconds) =>
+        set((state) => {
+          if (!state.session) {
+            return state;
+          }
 
-        return {
-          session: {
-            ...state.session,
-            baseElapsedSeconds: Math.max(0, Math.floor(elapsedSeconds)),
-            isPaused: true,
-            lastResumedAt: null,
-          },
-        };
-      }),
-      resumeSession: () => set((state) => {
-        if (!state.session) {
-          return state;
-        }
+          return {
+            session: {
+              ...state.session,
+              baseElapsedSeconds: Math.max(0, Math.floor(elapsedSeconds)),
+              isPaused: true,
+              lastResumedAt: null,
+            },
+          };
+        }),
+      resumeSession: () =>
+        set((state) => {
+          if (!state.session) {
+            return state;
+          }
 
-        return {
-          session: {
-            ...state.session,
-            isPaused: false,
-            lastResumedAt: new Date().toISOString(),
-          },
-        };
-      }),
+          return {
+            session: {
+              ...state.session,
+              isPaused: false,
+              lastResumedAt: new Date().toISOString(),
+            },
+          };
+        }),
       session: null,
-      setLiveActivityId: (activityId) => set((state) => {
-        if (!state.session) {
-          return state;
-        }
+      setLiveActivityId: (activityId) =>
+        set((state) => {
+          if (!state.session) {
+            return state;
+          }
 
-        return {
+          return {
+            session: {
+              ...state.session,
+              liveActivityId: activityId,
+            },
+          };
+        }),
+      startSession: (startedAt) =>
+        set({
           session: {
-            ...state.session,
-            liveActivityId: activityId,
+            baseElapsedSeconds: 0,
+            isPaused: false,
+            lastResumedAt: startedAt,
+            liveActivityId: null,
+            startedAt,
           },
-        };
-      }),
-      startSession: (startedAt) => set({
-        session: {
-          baseElapsedSeconds: 0,
-          isPaused: false,
-          lastResumedAt: startedAt,
-          liveActivityId: null,
-          startedAt,
-        },
-      }),
+        }),
     }),
     {
       name: 'xiaotidu-active-toilet-timer',
@@ -83,10 +87,7 @@ export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
   ),
 );
 
-export function getActiveToiletTimerElapsedSeconds(
-  session: ActiveToiletTimerSession | null,
-  now = new Date(),
-): number {
+export function getActiveToiletTimerElapsedSeconds(session: ActiveToiletTimerSession | null, now = new Date()): number {
   if (!session) {
     return 0;
   }

@@ -2,7 +2,9 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  date,
   index,
+  integer,
   jsonb,
   pgTable,
   smallint,
@@ -37,7 +39,30 @@ export const buddyNudges = pgTable(
   },
   (table) => [
     index('buddy_nudges_to_created_idx').on(table.toUserId, table.createdAt),
+    index('buddy_nudges_from_created_idx').on(table.fromUserId, table.createdAt),
     index('buddy_nudges_from_to_created_idx').on(table.fromUserId, table.toUserId, table.createdAt),
+    index('buddy_nudges_team_from_to_created_idx').on(table.teamId, table.fromUserId, table.toUserId, table.createdAt),
+  ],
+);
+
+export const buddyNudgeDailyCounters = pgTable(
+  'buddy_nudge_daily_counters',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    fromUserId: uuid('from_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    toUserId: uuid('to_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    localDate: date('local_date', { mode: 'string' }).notNull(),
+    count: integer('count').notNull().default(0),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex('buddy_nudge_daily_counter_unique').on(table.fromUserId, table.toUserId, table.localDate),
+    check('buddy_nudge_daily_counter_count_check', sql`${table.count} >= 0`),
   ],
 );
 
@@ -77,7 +102,10 @@ export const buddyNudgeSettings = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     dailyLimit: smallint('daily_limit').notNull().default(5),
     enabled: boolean('enabled').notNull().default(true),
-    quietRanges: jsonb('quiet_ranges').$type<QuietRange[]>().notNull().default(sql`'[]'::jsonb`),
+    quietRanges: jsonb('quiet_ranges')
+      .$type<QuietRange[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     createdAt,
     updatedAt,
   },

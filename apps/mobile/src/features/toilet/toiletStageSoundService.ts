@@ -1,8 +1,4 @@
-import {
-  setAudioModeAsync,
-  setIsAudioActiveAsync,
-  type AudioPlayer,
-} from 'expo-audio';
+import { setAudioModeAsync, setIsAudioActiveAsync, type AudioPlayer } from 'expo-audio';
 
 import { type ToiletTimerStage } from './toiletTypes';
 
@@ -38,10 +34,7 @@ export async function configureToiletStageAudio(): Promise<void> {
   await setIsAudioActiveAsync(true);
 }
 
-export async function playToiletStageSound(
-  stage: ToiletTimerStage,
-  players: ToiletStageSoundPlayers,
-): Promise<void> {
+export async function playToiletStageSound(stage: ToiletTimerStage, players: ToiletStageSoundPlayers): Promise<void> {
   const player = players[stage];
 
   if (!player) {
@@ -64,9 +57,12 @@ export async function playToiletStageSound(
       }
     }, 180);
 
-    cleanupTimer = setTimeout(() => {
-      stopToiletStageSound(players);
-    }, (soundDurations[stage] ?? 900) + 300);
+    cleanupTimer = setTimeout(
+      () => {
+        stopToiletStageSound(players);
+      },
+      (soundDurations[stage] ?? 900) + 300,
+    );
   } catch {
     stopToiletStageSound(players);
   }

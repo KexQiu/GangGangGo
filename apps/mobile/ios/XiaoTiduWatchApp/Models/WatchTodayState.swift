@@ -80,6 +80,7 @@ struct WatchTodayState: Codable, Equatable {
   var habits: Habits
   var pendingEventCount: Int
   var proStatus: String
+  var schemaVersion: Int
   var toilet: Toilet
   var training: Training
   var trainingModes: [TrainingModeConfig]
@@ -91,6 +92,7 @@ struct WatchTodayState: Codable, Equatable {
     habits: Habits,
     pendingEventCount: Int,
     proStatus: String,
+    schemaVersion: Int = 2,
     toilet: Toilet,
     training: Training,
     trainingModes: [TrainingModeConfig] = TrainingModeConfig.fallbackModes
@@ -101,6 +103,7 @@ struct WatchTodayState: Codable, Equatable {
     self.habits = habits
     self.pendingEventCount = pendingEventCount
     self.proStatus = proStatus
+    self.schemaVersion = schemaVersion
     self.toilet = toilet
     self.training = training
     self.trainingModes = trainingModes.isEmpty ? TrainingModeConfig.fallbackModes : trainingModes
@@ -115,6 +118,7 @@ struct WatchTodayState: Codable, Equatable {
     habits = try container.decode(Habits.self, forKey: .habits)
     pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
     proStatus = try container.decode(String.self, forKey: .proStatus)
+    schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
     toilet = try container.decode(Toilet.self, forKey: .toilet)
     training = try container.decode(Training.self, forKey: .training)
 

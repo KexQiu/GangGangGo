@@ -1,6 +1,6 @@
 {
   "name": "xiaotidu-monorepo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "api:dev": "pnpm --filter @xiaotidu/api dev",
@@ -12,10 +12,21 @@
     "mobile:dev-client": "pnpm --filter @xiaotidu/mobile start:dev-client",
     "api:typecheck": "pnpm --filter @xiaotidu/api typecheck",
     "contracts:typecheck": "pnpm --filter @xiaotidu/contracts typecheck",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint apps packages",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "test": "pnpm -r --if-present test",
+    "docs:check": "pnpm --filter @xiaotidu/api docs:check",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
-    "typescript": "~5.9.2"
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~10.0.0",
+    "prettier": "^3.9.5",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.63.0"
   }
 }

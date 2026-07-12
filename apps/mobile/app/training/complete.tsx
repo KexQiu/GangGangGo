@@ -105,7 +105,6 @@ export default function TrainingCompleteScreen() {
       <AppButton onPress={() => router.push(routes.safety)} variant="secondary">
         查看安全指导
       </AppButton>
-
     </Screen>
   );
 }

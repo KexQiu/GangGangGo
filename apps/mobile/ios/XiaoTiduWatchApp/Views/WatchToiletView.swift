@@ -8,7 +8,7 @@ struct WatchToiletView: View {
   @State private var now = Date()
   @State private var showingFinishConfirmation = false
 
-  private let tick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+  private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
     ScrollView(.vertical) {

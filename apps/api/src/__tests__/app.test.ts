@@ -36,10 +36,7 @@ function createProTestApp(options: Parameters<typeof createApiApp>[0] = {}) {
   });
 }
 
-async function login(
-  app: ReturnType<typeof createApiApp>,
-  input: { identityToken?: string; nickname?: string } = {},
-) {
+async function login(app: ReturnType<typeof createApiApp>, input: { identityToken?: string; nickname?: string } = {}) {
   const loginResponse = await app.request('/auth/apple', {
     body: JSON.stringify({
       identityToken: input.identityToken ?? 'apple-test-token',
@@ -52,7 +49,7 @@ async function login(
   });
   const loginBody = await loginResponse.json();
 
-  return loginBody.data.token as string;
+  return loginBody.data.session.accessToken as string;
 }
 
 function getTestDateKey(now = new Date()) {
@@ -78,20 +75,10 @@ function createDailyReportSnapshot(input: Partial<DailyReportSnapshot> = {}): Da
   return {
     date: getTestDateKey(),
     habitCompletion: 4,
-    habitFull: true,
-    ninetyDayHabitFullDays: 24,
-    ninetyDayToiletLongMeetingCount: 2,
-    ninetyDayTrainingDays: 36,
     streakDays: 9,
-    thirtyDayHabitFullDays: 10,
-    thirtyDayToiletLongMeetingCount: 1,
-    thirtyDayTrainingDays: 13,
     toiletLongMeeting: false,
     toiletRecorded: true,
     trainingDone: true,
-    weeklyHabitFullDays: 4,
-    weeklyToiletLongMeetingCount: 0,
-    weeklyTrainingDays: 5,
     ...input,
   };
 }
@@ -127,10 +114,14 @@ describe('api app', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.data.token).toEqual(expect.any(String));
+    expect(body.data.session.accessToken).toEqual(expect.any(String));
     expect(body).toEqual({
       data: {
-        token: body.data.token,
+        session: {
+          accessToken: body.data.session.accessToken,
+          accessTokenExpiresAt: expect.any(String),
+          refreshToken: expect.any(String),
+        },
         user: {
           avatarUrl: null,
           id: '00000000-0000-4000-8000-000000000001',
@@ -139,6 +130,46 @@ describe('api app', () => {
         },
       },
     });
+  });
+
+  it('rotates refresh sessions and revokes the active session on logout', async () => {
+    const app = createTestApp();
+    const loginResponse = await app.request('/auth/apple', {
+      body: JSON.stringify({ identityToken: 'session-rotation-user' }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+    const loginBody = await loginResponse.json();
+    const firstSession = loginBody.data.session;
+    const refreshResponse = await app.request('/auth/refresh', {
+      body: JSON.stringify({ refreshToken: firstSession.refreshToken }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+    const refreshBody = await refreshResponse.json();
+    const secondSession = refreshBody.data.session;
+
+    expect(refreshResponse.status).toBe(200);
+    expect(secondSession.refreshToken).not.toBe(firstSession.refreshToken);
+    expect(
+      (await app.request('/me', { headers: { authorization: `Bearer ${firstSession.accessToken}` } })).status,
+    ).toBe(401);
+    expect(
+      (await app.request('/me', { headers: { authorization: `Bearer ${secondSession.accessToken}` } })).status,
+    ).toBe(200);
+
+    const logoutResponse = await app.request('/auth/logout', {
+      body: JSON.stringify({ refreshToken: secondSession.refreshToken }),
+      headers: {
+        authorization: `Bearer ${secondSession.accessToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+    expect(logoutResponse.status).toBe(200);
+    expect(
+      (await app.request('/me', { headers: { authorization: `Bearer ${secondSession.accessToken}` } })).status,
+    ).toBe(401);
   });
 
   it('returns validation errors for invalid JSON request bodies', async () => {
@@ -218,7 +249,7 @@ describe('api app', () => {
     const loginBody = await loginResponse.json();
     const response = await app.request('/me', {
       headers: {
-        authorization: `Bearer ${loginBody.data.token}`,
+        authorization: `Bearer ${loginBody.data.session.accessToken}`,
       },
     });
     const body = await response.json();
@@ -379,7 +410,7 @@ describe('api app', () => {
     const loginBody = await loginResponse.json();
     const authorizedResponse = await app.request('/me/entitlements', {
       headers: {
-        authorization: `Bearer ${loginBody.data.token}`,
+        authorization: `Bearer ${loginBody.data.session.accessToken}`,
       },
     });
     const body = await authorizedResponse.json();
@@ -471,15 +502,7 @@ describe('api app', () => {
       async getAdvancedReport(_currentUser, range) {
         const snapshot = createDailyReportSnapshot({
           date: '2026-05-22',
-          ninetyDayHabitFullDays: 20,
-          ninetyDayToiletLongMeetingCount: 2,
-          ninetyDayTrainingDays: 31,
           streakDays: 8,
-          thirtyDayHabitFullDays: 9,
-          thirtyDayToiletLongMeetingCount: 1,
-          thirtyDayTrainingDays: 12,
-          weeklyHabitFullDays: 3,
-          weeklyTrainingDays: 4,
         });
 
         return {
@@ -487,7 +510,7 @@ describe('api app', () => {
             {
               date: snapshot.date,
               habitCompletion: snapshot.habitCompletion,
-              habitFull: snapshot.habitFull,
+              habitFull: snapshot.habitCompletion === 4,
               toiletLongMeeting: snapshot.toiletLongMeeting,
               toiletRecorded: snapshot.toiletRecorded,
               trainingDone: snapshot.trainingDone,
@@ -565,8 +588,7 @@ describe('api app', () => {
       range: '90d',
       snapshot: {
         date: '2026-05-22',
-        habitFull: true,
-        weeklyTrainingDays: 4,
+        habitCompletion: 4,
       },
     });
   });
@@ -803,7 +825,7 @@ describe('api app', () => {
       habitFullDays: 1,
       hasAnyRecord: true,
       recordDays: 1,
-      toiletLongMeetingCount: 2,
+      toiletLongMeetingCount: 0,
       toiletRecordDays: 1,
       trainingDays: 1,
     });
@@ -839,25 +861,17 @@ describe('api app', () => {
     const staleSnapshot = createDailyReportSnapshot({
       date: previousDate,
       habitCompletion: 1,
-      habitFull: false,
-      ninetyDayHabitFullDays: 1,
-      ninetyDayTrainingDays: 1,
       toiletRecorded: false,
       trainingDone: false,
-      weeklyHabitFullDays: 1,
-      weeklyTrainingDays: 1,
     });
     const latestPreviousSnapshot = createDailyReportSnapshot({
       date: previousDate,
-      ninetyDayHabitFullDays: 2,
-      ninetyDayTrainingDays: 2,
+      habitCompletion: 4,
     });
     const latestSnapshot = createDailyReportSnapshot({
       date: snapshotDate,
-      ninetyDayHabitFullDays: 3,
-      ninetyDayToiletLongMeetingCount: 4,
-      ninetyDayTrainingDays: 3,
       streakDays: 2,
+      toiletLongMeeting: true,
     });
     const bulkResponse = await app.request('/report-snapshots/bulk', {
       body: JSON.stringify({
@@ -875,7 +889,7 @@ describe('api app', () => {
     expect(bulkBody.data.snapshots).toHaveLength(2);
     expect(bulkBody.data.snapshots[0]).toMatchObject({
       date: previousDate,
-      ninetyDayHabitFullDays: 2,
+      habitCompletion: 4,
     });
 
     const reportResponse = await app.request('/reports/advanced?range=90d', {
@@ -896,7 +910,7 @@ describe('api app', () => {
       currentStreakDays: 2,
       habitFullDays: 2,
       recordDays: 2,
-      toiletLongMeetingCount: 4,
+      toiletLongMeetingCount: 1,
       trainingDays: 2,
     });
 
@@ -1419,6 +1433,24 @@ describe('api app', () => {
 
     expect(inboxResponse.status).toBe(200);
     expect(inboxBody.data.nudges).toHaveLength(1);
+
+    const threadsResponse = await appWithNudges.request('/nudges/threads', {
+      headers: {
+        authorization: `Bearer ${buddyToken}`,
+      },
+    });
+    const threadsBody = await threadsResponse.json();
+
+    expect(threadsResponse.status).toBe(200);
+    expect(threadsBody.data.threads).toEqual([
+      expect.objectContaining({
+        buddy: expect.objectContaining({ nickname: '队长' }),
+        latestPreview: '队长：起来走两步，给身体换个档。',
+        messageCount: 1,
+        pendingCount: 1,
+        status: 'active',
+      }),
+    ]);
 
     const ackResponse = await appWithNudges.request(`/nudges/${nudgeBody.data.id}/ack`, {
       body: JSON.stringify({

@@ -11,6 +11,8 @@ import type {
 } from '@xiaotidu/contracts';
 
 import { ApiClientError, apiClient } from '../../api/client';
+import { queryClient } from '../../api/queryClient';
+import { queryKeys } from '../../api/queryKeys';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 
 type TeamState = {
@@ -114,7 +116,11 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     set({ error: null, isLoading: true });
 
     try {
-      const response = await apiClient.getCurrentTeam(accessToken);
+      const userId = useAuthStore.getState().user?.id ?? 'anonymous';
+      const response = await queryClient.fetchQuery({
+        queryFn: () => apiClient.getCurrentTeam(accessToken),
+        queryKey: queryKeys.team(userId),
+      });
       set({ error: null, isLoading: false, team: response.team });
 
       if (response.team) {
@@ -134,7 +140,10 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     set({ error: null, invitePreview: null, isLoading: true });
 
     try {
-      const invitePreview = await apiClient.getTeamInvitePreview(token);
+      const invitePreview = await queryClient.fetchQuery({
+        queryFn: () => apiClient.getTeamInvitePreview(token),
+        queryKey: queryKeys.invitePreview(token),
+      });
       set({ error: null, invitePreview, isLoading: false });
     } catch (error) {
       set({ error: notifyUserError(error), isLoading: false });
@@ -149,7 +158,11 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     }
 
     try {
-      const snapshots = await apiClient.getTeamSnapshots(accessToken);
+      const userId = useAuthStore.getState().user?.id ?? 'anonymous';
+      const snapshots = await queryClient.fetchQuery({
+        queryFn: () => apiClient.getTeamSnapshots(accessToken),
+        queryKey: queryKeys.teamSnapshots(userId),
+      });
       set({ error: null, snapshots });
     } catch (error) {
       set({ error: notifyUserError(error) });

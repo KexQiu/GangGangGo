@@ -48,10 +48,9 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
   );
 }
 
-export async function listToiletSessions(): Promise<ToiletSession[]> {
+export async function listToiletSessions(sinceDateTime?: string): Promise<ToiletSession[]> {
   const db = await initializeDatabase();
-  const rows = await db.getAllAsync<ToiletSessionRow>(
-    `
+  const query = `
       SELECT
         id,
         started_at,
@@ -61,9 +60,12 @@ export async function listToiletSessions(): Promise<ToiletSession[]> {
         discomfort,
         bleeding
       FROM toilet_sessions
+      ${sinceDateTime ? 'WHERE ended_at >= $sinceDateTime' : ''}
       ORDER BY ended_at DESC;
-    `,
-  );
+    `;
+  const rows = sinceDateTime
+    ? await db.getAllAsync<ToiletSessionRow>(query, { $sinceDateTime: sinceDateTime })
+    : await db.getAllAsync<ToiletSessionRow>(query);
 
   return rows.map(rowToToiletSession).filter((session): session is ToiletSession => Boolean(session));
 }

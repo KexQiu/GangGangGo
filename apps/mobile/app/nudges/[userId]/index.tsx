@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   AppState,
+  FlatList,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,6 +14,10 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import type { BuddyNudge } from '@xiaotidu/contracts';
+
+import { queryClient } from '../../../src/api/queryClient';
+import { queryKeys } from '../../../src/api/queryKeys';
 import { AppButton } from '../../../src/components/AppButton';
 import { AppCard } from '../../../src/components/AppCard';
 import { AppTopBar } from '../../../src/components/AppTopBar';
@@ -36,12 +40,13 @@ import { routes } from '../../../src/navigation/routes';
 import { useAppTheme } from '../../../src/theme/themeProvider';
 
 const nudgeChatPollIntervalMs = 15_000;
+const emptyThreadItems: BuddyNudge[] = [];
 
 export default function NudgeChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ userId?: string }>();
   const buddyUserId = Array.isArray(params.userId) ? params.userId[0] : params.userId;
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<FlatList<NudgeChatMessage>>(null);
   const didInitialScrollRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
   const lastContentHeightRef = useRef(0);
@@ -67,7 +72,7 @@ export default function NudgeChatScreen() {
   const teamIsLoading = useTeamStore((state) => state.isLoading);
   const member = team?.members.find((item) => item.user.id === buddyUserId);
   const threadState = buddyUserId ? threadByBuddyUserId[buddyUserId] : undefined;
-  const threadItems = threadState?.items ?? [];
+  const threadItems = threadState?.items ?? emptyThreadItems;
   const messages = useMemo(
     () =>
       getNudgeChatMessages({
@@ -108,8 +113,12 @@ export default function NudgeChatScreen() {
       refreshChat();
       return () => {
         setIsChatFocused(false);
+        if (currentUser?.id && buddyUserId) {
+          void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(currentUser.id, buddyUserId) });
+          void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUser.id) });
+        }
       };
-    }, [refreshChat]),
+    }, [buddyUserId, currentUser?.id, refreshChat]),
   );
 
   const refreshChatSilently = useCallback(async () => {
@@ -132,10 +141,7 @@ export default function NudgeChatScreen() {
     isPollingRefreshRef.current = true;
 
     try {
-      await Promise.all([
-        loadThread(buddyUserId, 'refresh'),
-        loadThreads({ silent: true }),
-      ]);
+      await Promise.all([loadThread(buddyUserId, 'refresh'), loadThreads({ silent: true })]);
     } finally {
       isPollingRefreshRef.current = false;
     }
@@ -181,25 +187,22 @@ export default function NudgeChatScreen() {
     return () => subscription.remove();
   }, [accessToken, buddyUserId, isChatFocused, refreshChatSilently]);
 
-  const handleContentSizeChange = useCallback(
-    (_width: number, height: number) => {
-      if (pendingOlderLoadRef.current) {
-        const offsetDelta = Math.max(height - lastContentHeightRef.current, 0);
-        scrollRef.current?.scrollTo({ animated: false, y: offsetDelta });
-        pendingOlderLoadRef.current = false;
-        lastContentHeightRef.current = height;
-        return;
-      }
-
+  const handleContentSizeChange = useCallback((_width: number, height: number) => {
+    if (pendingOlderLoadRef.current) {
+      const offsetDelta = Math.max(height - lastContentHeightRef.current, 0);
+      scrollRef.current?.scrollToOffset({ animated: false, offset: offsetDelta });
+      pendingOlderLoadRef.current = false;
       lastContentHeightRef.current = height;
+      return;
+    }
 
-      if (!didInitialScrollRef.current || shouldStickToBottomRef.current) {
-        scrollRef.current?.scrollToEnd({ animated: didInitialScrollRef.current });
-        didInitialScrollRef.current = true;
-      }
-    },
-    [],
-  );
+    lastContentHeightRef.current = height;
+
+    if (!didInitialScrollRef.current || shouldStickToBottomRef.current) {
+      scrollRef.current?.scrollToEnd({ animated: didInitialScrollRef.current });
+      didInitialScrollRef.current = true;
+    }
+  }, []);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -231,6 +234,18 @@ export default function NudgeChatScreen() {
       void sendNudge(buddyUserId, type);
     },
     [buddyUserId, sendNudge],
+  );
+
+  const renderMessage = useCallback(
+    ({ item: message }: { item: NudgeChatMessage }) => (
+      <MessageBubble
+        buddyUserId={buddyUserId}
+        isMutating={isMutating}
+        message={message}
+        onAck={(status) => void ackNudge(message.nudge.id, status, buddyUserId)}
+      />
+    ),
+    [ackNudge, buddyUserId, isMutating],
   );
 
   return (
@@ -280,35 +295,29 @@ export default function NudgeChatScreen() {
 
         {currentUser && buddy ? (
           <View style={styles.chatContent}>
-            <ScrollView
+            <FlatList
               contentContainerStyle={styles.messageContent}
+              data={messages}
               keyboardShouldPersistTaps="handled"
-              onContentSizeChange={handleContentSizeChange}
-              onScroll={handleScroll}
-              ref={scrollRef}
-              scrollEventThrottle={16}
-              showsVerticalScrollIndicator={false}
-              style={styles.messageScroll}
-            >
-              {threadState?.isLoadingMore ? <Text style={styles.loadingText}>正在加载更早互动...</Text> : null}
-              {messages.length === 0 ? (
+              keyExtractor={(message) => message.id}
+              ListEmptyComponent={
                 <View style={styles.emptyMessageState}>
                   <MessageCircle color={colors.privacy} size={28} strokeWidth={2.4} />
                   <Text style={styles.emptyTitle}>还没有互动</Text>
                   <Text style={styles.emptyText}>选一个小暗号，轻轻开个头。</Text>
                 </View>
-              ) : (
-                messages.map((message) => (
-                  <MessageBubble
-                    buddyUserId={buddyUserId}
-                    isMutating={isMutating}
-                    key={message.id}
-                    message={message}
-                    onAck={(status) => void ackNudge(message.nudge.id, status, buddyUserId)}
-                  />
-                ))
-              )}
-            </ScrollView>
+              }
+              ListHeaderComponent={
+                threadState?.isLoadingMore ? <Text style={styles.loadingText}>正在加载更早互动...</Text> : null
+              }
+              onContentSizeChange={handleContentSizeChange}
+              onScroll={handleScroll}
+              ref={scrollRef}
+              renderItem={renderMessage}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
+              style={styles.messageScroll}
+            />
 
             <View style={styles.composer}>
               {isSyncing ? <Text style={styles.loadingText}>搭子互动同步中...</Text> : null}
@@ -402,9 +411,7 @@ function MessageBubble({ buddyUserId, isMutating, message, onAck }: MessageBubbl
   const styles = createStyles(colors);
   const isOutgoing = message.direction === 'outgoing';
   const shouldShowAckActions = message.direction === 'incoming' && !message.nudge.ack;
-  const ackTag = message.nudge.ack
-    ? `${isOutgoing ? '对方' : '我'}${ackCopies[message.nudge.ack.status]}`
-    : null;
+  const ackTag = message.nudge.ack ? `${isOutgoing ? '对方' : '我'}${ackCopies[message.nudge.ack.status]}` : null;
 
   return (
     <View style={[styles.messageRow, isOutgoing ? styles.messageRowOutgoing : styles.messageRowIncoming]}>

@@ -21,12 +21,7 @@ import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
-import {
-  getDisplayName,
-  getNudgeThreads,
-  useNudgeStore,
-  type NudgeThread,
-} from '../../src/features/nudges/nudgeStore';
+import { getDisplayName, useNudgeStore, type NudgeThread } from '../../src/features/nudges/nudgeStore';
 import { useReportStore } from '../../src/features/reports/reportStore';
 import { useTeamStore } from '../../src/features/team/teamStore';
 import { routes } from '../../src/navigation/routes';
@@ -46,31 +41,17 @@ export default function TeamScreen() {
   const snapshots = useTeamStore((state) => state.snapshots);
   const team = useTeamStore((state) => state.team);
   const teamError = useTeamStore((state) => state.error);
-  const inbox = useNudgeStore((state) => state.inbox);
   const nudgeError = useNudgeStore((state) => state.error);
   const nudgeIsLoading = useNudgeStore((state) => state.isLoading);
   const loadThreads = useNudgeStore((state) => state.loadThreads);
-  const sent = useNudgeStore((state) => state.sent);
+  const threads = useNudgeStore((state) => state.threads);
   const loadTeamWeeklyReport = useReportStore((state) => state.loadTeamWeeklyReport);
   const teamWeeklyReport = useReportStore((state) => state.teamWeeklyReport);
   const isPro = isProStatus(proStatus);
   const currentUserId = user?.id;
   const activeMembers = team?.members.filter((member) => member.status !== 'removed') ?? [];
   const buddyMembers = activeMembers.filter((member) => member.user.id !== currentUserId);
-  const threads = useMemo(
-    () =>
-      getNudgeThreads({
-        currentUserId,
-        inbox,
-        members: team?.members,
-        sent,
-      }),
-    [currentUserId, inbox, sent, team?.members],
-  );
-  const threadByUserId = useMemo(
-    () => new Map(threads.map((thread) => [thread.buddy.id, thread])),
-    [threads],
-  );
+  const threadByUserId = useMemo(() => new Map(threads.map((thread) => [thread.buddy.id, thread])), [threads]);
   const pendingCount = threads.reduce((total, thread) => total + thread.pendingCount, 0);
   const isSyncing = isLoading || nudgeIsLoading;
 
@@ -157,11 +138,7 @@ export default function TeamScreen() {
                 </View>
 
                 <View style={styles.iconActions}>
-                  <PressableScale
-                    accessibilityLabel="同步监督搭子"
-                    onPress={handleRefresh}
-                    style={styles.iconButton}
-                  >
+                  <PressableScale accessibilityLabel="同步监督搭子" onPress={handleRefresh} style={styles.iconButton}>
                     <RefreshCw color={colors.text} size={19} strokeWidth={2.4} />
                   </PressableScale>
                   <PressableScale
@@ -171,7 +148,11 @@ export default function TeamScreen() {
                   >
                     <UserPlus color={colors.text} size={19} strokeWidth={2.4} />
                   </PressableScale>
-                  <PressableScale accessibilityLabel="小队设置" onPress={() => router.push(routes.teamSettings)} style={styles.iconButton}>
+                  <PressableScale
+                    accessibilityLabel="小队设置"
+                    onPress={() => router.push(routes.teamSettings)}
+                    style={styles.iconButton}
+                  >
                     <Settings color={colors.text} size={19} strokeWidth={2.4} />
                   </PressableScale>
                 </View>
@@ -190,9 +171,7 @@ export default function TeamScreen() {
                   <Text style={[styles.statValue, pendingCount > 0 ? styles.pendingStatValue : null]}>
                     {pendingCount}
                   </Text>
-                  <Text style={[styles.statLabel, pendingCount > 0 ? styles.pendingStatLabel : null]}>
-                    待回应
-                  </Text>
+                  <Text style={[styles.statLabel, pendingCount > 0 ? styles.pendingStatLabel : null]}>待回应</Text>
                 </View>
               </View>
             </AppCard>

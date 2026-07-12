@@ -1,60 +1,70 @@
+import ExpoModulesCore
 import Foundation
-import React
 import WatchConnectivity
 
-@objc(WatchConnectivityModule)
-class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
-  private let eventName = "WatchConnectivityEvent"
-  private var hasListeners = false
+public final class GangGangGoWatchConnectivityModule: Module {
+  private let client = WatchConnectivityClient()
+
+  public func definition() -> ModuleDefinition {
+    Name("GangGangGoWatchConnectivity")
+    Events("onWatchConnectivityEvent")
+
+    OnStartObserving {
+      self.client.setObserving(true)
+      self.client.onEvent = { [weak self] payload in
+        self?.sendEvent("onWatchConnectivityEvent", payload)
+      }
+    }
+    OnStopObserving {
+      self.client.setObserving(false)
+      self.client.onEvent = nil
+    }
+
+    AsyncFunction("activate") { (promise: Promise) in
+      self.client.activate(promise)
+    }
+    AsyncFunction("getLastReachability") { (promise: Promise) in
+      self.client.getLastReachability(promise)
+    }
+    AsyncFunction("getDebugInfo") { (promise: Promise) in
+      self.client.getDebugInfo(promise)
+    }
+    AsyncFunction("sendTodayState") { (state: [String: Any], promise: Promise) in
+      self.client.sendTodayState(state, promise: promise)
+    }
+    AsyncFunction("replyToWatchMessage") { (replyId: String, ack: [String: Any], promise: Promise) in
+      self.client.replyToWatchMessage(replyId, ack: ack, promise: promise)
+    }
+  }
+}
+
+private final class WatchConnectivityClient: NSObject, WCSessionDelegate {
   private var activationCompletions: [(Bool, Error?) -> Void] = []
+  private var hasListeners = false
   private var isActivating = false
   private var lastTodayStatePayload: [String: Any]?
   private var pendingReplies: [String: ([String: Any]) -> Void] = [:]
   private var pendingReplyTimeouts: [String: DispatchWorkItem] = [:]
   private let session: WCSession? = WCSession.isSupported() ? WCSession.default : nil
+  var onEvent: (([String: Any]) -> Void)?
 
-  @objc
-  override static func requiresMainQueueSetup() -> Bool {
-    false
+  func setObserving(_ observing: Bool) {
+    hasListeners = observing
   }
 
-  override func supportedEvents() -> [String]! {
-    [eventName]
-  }
-
-  override func startObserving() {
-    hasListeners = true
-  }
-
-  override func stopObserving() {
-    hasListeners = false
-  }
-
-  @objc(activate:rejecter:)
-  func activate(
-    _ resolve: @escaping RCTPromiseResolveBlock,
-    rejecter reject: @escaping RCTPromiseRejectBlock
-  ) {
+  func activate(_ promise: Promise) {
     activateSession { isActivated, _ in
-      resolve(isActivated)
+      promise.resolve(isActivated)
     }
   }
 
-  @objc(getLastReachability:rejecter:)
-  func getLastReachability(
-    _ resolve: @escaping RCTPromiseResolveBlock,
-    rejecter reject: @escaping RCTPromiseRejectBlock
-  ) {
+  func getLastReachability(_ promise: Promise) {
     activateSession { _, _ in
-      resolve(self.reachabilityPayload())
+      promise.resolve(self.reachabilityPayload())
     }
   }
 
-  @objc(getDebugInfo:rejecter:)
-  func getDebugInfo(
-    _ resolve: @escaping RCTPromiseResolveBlock,
-    rejecter reject: @escaping RCTPromiseRejectBlock
-  ) {
+  func getDebugInfo(_ promise: Promise) {
     activateSession { _, error in
       var payload = self.reachabilityPayload()
       payload["activationError"] = error?.localizedDescription
@@ -62,43 +72,28 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
       payload["embeddedWatchBundleIdentifiers"] = self.embeddedWatchBundleIdentifiers()
       payload["iPhoneBundleIdentifier"] = Bundle.main.bundleIdentifier
       payload["isSessionSupported"] = WCSession.isSupported()
-      resolve(payload)
+      promise.resolve(payload)
     }
   }
 
-  @objc(sendTodayState:resolver:rejecter:)
-  func sendTodayState(
-    _ state: NSDictionary,
-    resolver resolve: @escaping RCTPromiseResolveBlock,
-    rejecter reject: @escaping RCTPromiseRejectBlock
-  ) {
+  func sendTodayState(_ state: [String: Any], promise: Promise) {
     activateSession { isActivated, error in
       guard isActivated, let session = self.session else {
-        resolve([
-          "reason": error?.localizedDescription ?? "watch_session_unavailable",
-          "sent": false,
-        ])
+        promise.resolve(["reason": error?.localizedDescription ?? "watch_session_unavailable", "sent": false])
         return
       }
-
       guard session.isPaired else {
-        resolve([
-          "reason": "watch_not_paired",
-          "sent": false,
-        ])
+        promise.resolve(["reason": "watch_not_paired", "sent": false])
         return
       }
-
       guard session.isWatchAppInstalled else {
-        resolve([
-          "reason": "watch_app_not_installed",
-          "sent": false,
-        ])
+        promise.resolve(["reason": "watch_app_not_installed", "sent": false])
         return
       }
 
       let statePayload = self.sanitizedDictionary(state)
       var payload: [String: Any] = [
+        "schemaVersion": 2,
         "sentAt": ISO8601DateFormatter().string(from: Date()),
         "state": statePayload,
         "type": "today_state",
@@ -114,28 +109,17 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
         if session.isReachable {
           session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
         }
-        resolve([
-          "sent": true,
-        ])
+        promise.resolve(["sent": true])
       } catch {
-        resolve([
-          "reason": error.localizedDescription,
-          "sent": false,
-        ])
+        promise.resolve(["reason": error.localizedDescription, "sent": false])
       }
     }
   }
 
-  @objc(replyToWatchMessage:ack:resolver:rejecter:)
-  func replyToWatchMessage(
-    _ replyId: NSString,
-    ack: NSDictionary,
-    resolver resolve: @escaping RCTPromiseResolveBlock,
-    rejecter reject: @escaping RCTPromiseRejectBlock
-  ) {
+  func replyToWatchMessage(_ replyId: String, ack: [String: Any], promise: Promise) {
     DispatchQueue.main.async {
-      self.completePendingReply(replyId as String, response: self.sanitizedDictionary(ack))
-      resolve(nil)
+      self.completePendingReply(replyId, response: self.sanitizedDictionary(ack))
+      promise.resolve(nil)
     }
   }
 
@@ -148,15 +132,11 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
       let completions = self.activationCompletions
       self.activationCompletions.removeAll()
       self.isActivating = false
-      completions.forEach { completion in
-        completion(activationState == .activated, error)
-      }
+      completions.forEach { $0(activationState == .activated, error) }
     }
   }
 
-  func sessionDidBecomeInactive(_ session: WCSession) {
-    // Required by WCSessionDelegate on iOS.
-  }
+  func sessionDidBecomeInactive(_ session: WCSession) {}
 
   func sessionDidDeactivate(_ session: WCSession) {
     session.activate()
@@ -172,8 +152,8 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     replyHandler: @escaping ([String: Any]) -> Void
   ) {
     DispatchQueue.main.async {
-      if (message["type"] as? String) == "request_today_state", let statePayload = self.lastTodayStatePayload {
-        var reply = statePayload
+      if message["type"] as? String == "request_today_state", let state = self.lastTodayStatePayload {
+        var reply = state
         reply["eventId"] = "request_today_state"
         reply["repliedAt"] = ISO8601DateFormatter().string(from: Date())
         reply["status"] = "accepted"
@@ -194,7 +174,6 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
       var emittedMessage = message
       emittedMessage["replyId"] = replyId
       self.pendingReplies[replyId] = replyHandler
-
       let timeout = DispatchWorkItem { [weak self] in
         self?.completePendingReply(replyId, response: [
           "message": "iPhone 处理超时，稍后会重新同步。",
@@ -207,14 +186,11 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     }
   }
 
-  @discardableResult
   private func configureSession() -> Bool {
     guard let session else {
       return false
     }
-
     session.delegate = self
-
     return true
   }
 
@@ -224,18 +200,14 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
         completion(false, nil)
         return
       }
-
       if session.activationState == .activated {
         completion(true, nil)
         return
       }
-
       self.activationCompletions.append(completion)
-
       guard !self.isActivating else {
         return
       }
-
       self.isActivating = true
       session.activate()
     }
@@ -245,17 +217,14 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     guard hasListeners else {
       return
     }
-
-    sendEvent(withName: eventName, body: message)
+    onEvent?(message)
   }
 
   private func completePendingReply(_ replyId: String, response: [String: Any]) {
     guard let replyHandler = pendingReplies.removeValue(forKey: replyId) else {
       return
     }
-
     pendingReplyTimeouts.removeValue(forKey: replyId)?.cancel()
-
     var reply = response
     reply["repliedAt"] = ISO8601DateFormatter().string(from: Date())
     replyHandler(reply)
@@ -263,13 +232,8 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
 
   private func reachabilityPayload() -> [String: Any] {
     guard let session else {
-      return [
-        "isPaired": false,
-        "isReachable": false,
-        "isWatchAppInstalled": false,
-      ]
+      return ["isPaired": false, "isReachable": false, "isWatchAppInstalled": false]
     }
-
     return [
       "isPaired": session.isPaired,
       "isReachable": session.isReachable,
@@ -281,7 +245,6 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     guard let session else {
       return "unsupported"
     }
-
     switch session.activationState {
     case .activated:
       return "activated"
@@ -302,39 +265,27 @@ class WatchConnectivityModule: RCTEventEmitter, WCSessionDelegate {
     ) else {
       return []
     }
-
-    return watchAppURLs.compactMap { url in
-      Bundle(url: url)?.bundleIdentifier
-    }
+    return watchAppURLs.compactMap { Bundle(url: $0)?.bundleIdentifier }
   }
 
-  private func sanitizedDictionary(_ dictionary: NSDictionary) -> [String: Any] {
-    var result: [String: Any] = [:]
-
-    for (key, value) in dictionary {
-      guard let key = key as? String, let sanitizedValue = sanitizedValue(value) else {
-        continue
+  private func sanitizedDictionary(_ dictionary: [String: Any]) -> [String: Any] {
+    dictionary.reduce(into: [:]) { result, entry in
+      if let value = sanitizedValue(entry.value) {
+        result[entry.key] = value
       }
-
-      result[key] = sanitizedValue
     }
-
-    return result
   }
 
   private func sanitizedValue(_ value: Any) -> Any? {
     if value is NSNull {
       return nil
     }
-
-    if let dictionary = value as? NSDictionary {
+    if let dictionary = value as? [String: Any] {
       return sanitizedDictionary(dictionary)
     }
-
-    if let array = value as? NSArray {
-      return array.compactMap { sanitizedValue($0) }
+    if let array = value as? [Any] {
+      return array.compactMap(sanitizedValue)
     }
-
     return value
   }
 }

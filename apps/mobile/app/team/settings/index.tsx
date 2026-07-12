@@ -52,7 +52,11 @@ export default function TeamSettingsScreen() {
             style={styles.input}
             value={teamName}
           />
-          <AppButton disabled={!teamName.trim() || isMutating} onPress={() => void renameTeam(teamName.trim())} variant="secondary">
+          <AppButton
+            disabled={!teamName.trim() || isMutating}
+            onPress={() => void renameTeam(teamName.trim())}
+            variant="secondary"
+          >
             保存名称
           </AppButton>
         </AppCard>
@@ -100,7 +104,6 @@ export default function TeamSettingsScreen() {
             退出小队
           </AppButton>
         </AppCard>
-
       </PageStack>
     </Screen>
   );

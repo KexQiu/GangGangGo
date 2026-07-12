@@ -1,9 +1,4 @@
-import {
-  index,
-  pgTable,
-  text,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { index, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt } from './common.js';
 import { users } from './users.js';

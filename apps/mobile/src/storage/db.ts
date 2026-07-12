@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
+import storageProtectionModule from '../../modules/storage-protection';
 import { runMigrations } from './migrations';
 
 const DATABASE_NAME = 'xiaotidu.db';
@@ -16,5 +17,8 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
   const db = await getDatabase();
   migrationPromise ??= runMigrations(db);
   await migrationPromise;
+  if (storageProtectionModule && SQLite.defaultDatabaseDirectory) {
+    await storageProtectionModule.protectSQLiteFiles(SQLite.defaultDatabaseDirectory, DATABASE_NAME);
+  }
   return db;
 }

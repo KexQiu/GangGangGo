@@ -116,12 +116,7 @@ export default function TrainingSessionScreen() {
 
   return (
     <Screen bottomSafeArea scroll={false} contentStyle={styles.screenContent}>
-      <AppTopBar
-        fallbackHref={routes.training}
-        onBackPress={confirmDiscardTraining}
-        title="菊花抬中"
-        variant="close"
-      />
+      <AppTopBar fallbackHref={routes.training} onBackPress={confirmDiscardTraining} title="菊花抬中" variant="close" />
 
       <View style={styles.topBar}>
         <View>
@@ -159,18 +154,13 @@ export default function TrainingSessionScreen() {
       </AppCard>
 
       <View style={styles.actions}>
-        <AppButton
-          onPress={() => setIsPaused((current) => !current)}
-          style={styles.actionButton}
-          variant="secondary"
-        >
+        <AppButton onPress={() => setIsPaused((current) => !current)} style={styles.actionButton} variant="secondary">
           {isPaused ? '继续' : '暂停'}
         </AppButton>
         <AppButton onPress={() => finishSession(false)} style={styles.actionButton} variant="warning">
           结束
         </AppButton>
       </View>
-
     </Screen>
   );
 }

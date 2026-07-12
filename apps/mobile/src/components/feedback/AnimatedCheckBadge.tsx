@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 
 import { useAppTheme } from '../../theme/themeProvider';
 

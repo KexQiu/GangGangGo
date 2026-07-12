@@ -20,16 +20,16 @@ import { PressableScale } from '../src/components/feedback/PressableScale';
 import { PageHeader } from '../src/components/PageHeader';
 import { Screen } from '../src/components/Screen';
 import { useAuthStore } from '../src/features/account/authStore';
-import {
-  calculateHabitCompletion,
-  createEmptyHabitCheckIn,
-  getLocalDateKey,
-} from '../src/features/habits/habitLogic';
+import { calculateHabitCompletion, createEmptyHabitCheckIn, getLocalDateKey } from '../src/features/habits/habitLogic';
 import { getHabitCheckInForDate, useHabitStore } from '../src/features/habits/habitStore';
 import { HabitQuickCheckInCard } from '../src/features/habits/HabitQuickCheckInCard';
 import { getReminderHomeSummary, hasAnyReminderEnabled } from '../src/features/reminders/reminderLogic';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
-import { getNudgeHomeSummary, useNudgeStore, type NudgeHomeSummary } from '../src/features/nudges/nudgeStore';
+import {
+  getNudgeHomeSummaryFromThreads,
+  useNudgeStore,
+  type NudgeHomeSummary,
+} from '../src/features/nudges/nudgeStore';
 import {
   getHabitStatusLabel,
   getTodayPositiveFeedback,
@@ -59,8 +59,7 @@ export default function HomeScreen() {
   const teamIsLoading = useTeamStore((state) => state.isLoading);
   const teamSnapshots = useTeamStore((state) => state.snapshots);
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
-  const nudgeInbox = useNudgeStore((state) => state.inbox);
-  const nudgeSent = useNudgeStore((state) => state.sent);
+  const nudgeThreads = useNudgeStore((state) => state.threads);
   const loadNudgeThreads = useNudgeStore((state) => state.loadThreads);
   const todayTrainingCount = getTodayCompletedTrainingCount(trainingSessions);
   const todayToiletCount = getTodayToiletSessionCount(toiletSessions);
@@ -83,15 +82,7 @@ export default function HomeScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const userId = user?.id;
-  const nudgeSummary = useMemo(
-    () =>
-      getNudgeHomeSummary({
-        currentUserId: userId,
-        inbox: nudgeInbox,
-        sent: nudgeSent,
-      }),
-    [nudgeInbox, nudgeSent, userId],
-  );
+  const nudgeSummary = useMemo(() => getNudgeHomeSummaryFromThreads(nudgeThreads), [nudgeThreads]);
 
   const refreshTeamHomeCard = useCallback(() => {
     if (!accessToken) {
@@ -175,7 +166,9 @@ export default function HomeScreen() {
       <AppCard muted style={styles.heroCard}>
         <View style={styles.heroTop}>
           <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{todayTrainingCount >= trainingTarget ? '今日小花已下班' : '今日菊花抬'}</Text>
+            <Text style={styles.heroTitle}>
+              {todayTrainingCount >= trainingTarget ? '今日小花已下班' : '今日菊花抬'}
+            </Text>
             <Text style={styles.mutedText}>
               {todayTrainingCount >= trainingTarget
                 ? '建议量已完成，休息和放松也是正经训练。'
@@ -260,7 +253,12 @@ function TeamHomeCard({ error, isLoading, nudgeSummary, onPress, snapshots, team
   const styles = createStyles(colors);
   const activeMembers = team?.members.filter((member) => member.status !== 'removed') ?? [];
   const title = team?.name ?? '还没有监督搭子';
-  const memberLabel = nudgeSummary.pendingCount > 0 ? `${nudgeSummary.pendingCount} 待回` : team ? `成员 ${activeMembers.length}/4` : '小队';
+  const memberLabel =
+    nudgeSummary.pendingCount > 0
+      ? `${nudgeSummary.pendingCount} 待回`
+      : team
+        ? `成员 ${activeMembers.length}/4`
+        : '小队';
   const description = getTeamHomeDescription({
     activeMemberCount: activeMembers.length,
     error,
@@ -271,11 +269,7 @@ function TeamHomeCard({ error, isLoading, nudgeSummary, onPress, snapshots, team
   });
 
   return (
-    <PressableScale
-      accessibilityLabel={`监督搭子，${description}`}
-      onPress={onPress}
-      style={styles.teamHomeCard}
-    >
+    <PressableScale accessibilityLabel={`监督搭子，${description}`} onPress={onPress} style={styles.teamHomeCard}>
       <View style={styles.teamHomeIcon}>
         <UsersRound color={colors.privacy} size={21} strokeWidth={2.4} />
       </View>
@@ -302,7 +296,14 @@ type TeamHomeDescriptionInput = {
   team: Team | null;
 };
 
-function getTeamHomeDescription({ activeMemberCount, error, isLoading, nudgeSummary, snapshots, team }: TeamHomeDescriptionInput) {
+function getTeamHomeDescription({
+  activeMemberCount,
+  error,
+  isLoading,
+  nudgeSummary,
+  snapshots,
+  team,
+}: TeamHomeDescriptionInput) {
   if (error) {
     return '暂时无法同步小队状态，点进去再试试。';
   }
@@ -349,11 +350,7 @@ function ReminderSetupPrompt({ onPress }: ReminderSetupPromptProps) {
   const styles = createStyles(colors);
 
   return (
-    <PressableScale
-      accessibilityLabel="小暗号还没安排，去设置隐私提醒"
-      onPress={onPress}
-      style={styles.reminderPrompt}
-    >
+    <PressableScale accessibilityLabel="小暗号还没安排，去设置隐私提醒" onPress={onPress} style={styles.reminderPrompt}>
       <View style={styles.reminderPromptIcon}>
         <Bell color={colors.privacy} size={21} strokeWidth={2.4} />
       </View>
@@ -386,11 +383,7 @@ function CompactActionRow({ description, icon: Icon, onPress, title }: RowAction
   const styles = createStyles(colors);
 
   return (
-    <PressableScale
-      accessibilityLabel={`${title}，${description}`}
-      onPress={onPress}
-      style={styles.actionRow}
-    >
+    <PressableScale accessibilityLabel={`${title}，${description}`} onPress={onPress} style={styles.actionRow}>
       <View style={[styles.rowIcon, styles.infoBadge]}>
         <Icon color={colors.info} size={22} strokeWidth={2.4} />
       </View>
@@ -432,11 +425,7 @@ function UtilityLink({ description, icon: Icon, iconColor, iconTone, onPress, ti
   const styles = createStyles(colors);
 
   return (
-    <PressableScale
-      accessibilityLabel={`${title}，${description}`}
-      onPress={onPress}
-      style={styles.utilityRow}
-    >
+    <PressableScale accessibilityLabel={`${title}，${description}`} onPress={onPress} style={styles.utilityRow}>
       <View style={[styles.utilityIcon, { backgroundColor: iconTone }]}>
         <Icon color={iconColor} size={19} strokeWidth={2.4} />
       </View>

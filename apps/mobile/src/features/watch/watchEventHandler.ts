@@ -2,20 +2,10 @@ import { getLocalDateKey } from '../habits/habitLogic';
 import { useHabitStore } from '../habits/habitStore';
 import { isProStatus, useAuthStore } from '../account/authStore';
 import { useAppSettingsStore } from '../settings/appSettingsStore';
-import {
-  endToiletLiveActivity,
-  pauseToiletLiveActivity,
-  resumeToiletLiveActivity,
-} from '../toilet/toiletLiveActivity';
-import {
-  cancelToiletStageNotifications,
-  syncToiletStageNotifications,
-} from '../toilet/toiletStageNotificationService';
+import { endToiletLiveActivity, pauseToiletLiveActivity, resumeToiletLiveActivity } from '../toilet/toiletLiveActivity';
+import { cancelToiletStageNotifications, syncToiletStageNotifications } from '../toilet/toiletStageNotificationService';
 import { useToiletStore } from '../toilet/toiletStore';
-import {
-  getActiveToiletTimerElapsedSeconds,
-  useToiletTimerSessionStore,
-} from '../toilet/toiletTimerSessionStore';
+import { getActiveToiletTimerElapsedSeconds, useToiletTimerSessionStore } from '../toilet/toiletTimerSessionStore';
 import { useTrainingStore } from '../training/trainingStore';
 import { type WatchEvent, type WatchEventAck } from './watchTypes';
 

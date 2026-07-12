@@ -1,7 +1,4 @@
-import {
-  defaultReminderSettings,
-  normalizeReminderSettings,
-} from '../../features/reminders/reminderLogic';
+import { defaultReminderSettings, normalizeReminderSettings } from '../../features/reminders/reminderLogic';
 import { type QuietHoursRange, type ReminderSettings } from '../../features/reminders/reminderTypes';
 import { initializeDatabase } from '../db';
 

@@ -51,10 +51,9 @@ export async function insertTrainingSession(session: TrainingSession): Promise<v
   );
 }
 
-export async function listTrainingSessions(): Promise<TrainingSession[]> {
+export async function listTrainingSessions(sinceDateTime?: string): Promise<TrainingSession[]> {
   const db = await initializeDatabase();
-  const rows = await db.getAllAsync<TrainingSessionRow>(
-    `
+  const query = `
       SELECT
         id,
         preset_id,
@@ -65,9 +64,12 @@ export async function listTrainingSessions(): Promise<TrainingSession[]> {
         is_completed,
         discomfort_reported
       FROM training_sessions
+      ${sinceDateTime ? 'WHERE ended_at >= $sinceDateTime' : ''}
       ORDER BY ended_at DESC;
-    `,
-  );
+    `;
+  const rows = sinceDateTime
+    ? await db.getAllAsync<TrainingSessionRow>(query, { $sinceDateTime: sinceDateTime })
+    : await db.getAllAsync<TrainingSessionRow>(query);
 
   return rows.map(rowToTrainingSession).filter((session): session is TrainingSession => Boolean(session));
 }

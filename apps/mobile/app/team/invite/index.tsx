@@ -75,7 +75,11 @@ export default function TeamInviteScreen() {
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="邀请搭子" />
-      <PageHeader eyebrow="监督搭子" subtitle="发给一个信得过的人。对方加入后，只会看到你允许共享的低敏状态。" title="拉个搭子进小队" />
+      <PageHeader
+        eyebrow="监督搭子"
+        subtitle="发给一个信得过的人。对方加入后，只会看到你允许共享的低敏状态。"
+        title="拉个搭子进小队"
+      />
 
       <PageStack>
         <AppCard style={styles.card}>
@@ -118,7 +122,12 @@ export default function TeamInviteScreen() {
               <AppButton disabled={isMutating} onPress={() => void shareInvite()} style={styles.flexButton}>
                 分享邀请
               </AppButton>
-              <AppButton disabled={isMutating} onPress={() => void copyInviteLink()} style={styles.flexButton} variant="secondary">
+              <AppButton
+                disabled={isMutating}
+                onPress={() => void copyInviteLink()}
+                style={styles.flexButton}
+                variant="secondary"
+              >
                 复制链接
               </AppButton>
             </View>

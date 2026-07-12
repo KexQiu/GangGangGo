@@ -140,7 +140,14 @@ export default function WatchScreen() {
 
         <PageSection subtitle="这些字段会同步给手表，不包含敏感健康细节。" title="今日低敏状态">
           <AppCard style={styles.statusCard}>
-            <StatusRow label="菊花抬" value={todayState.training.done ? `已完成 · ${todayState.training.completedSets} 组` : `${todayState.training.completedSets} 组`} />
+            <StatusRow
+              label="菊花抬"
+              value={
+                todayState.training.done
+                  ? `已完成 · ${todayState.training.completedSets} 组`
+                  : `${todayState.training.completedSets} 组`
+              }
+            />
             <View style={styles.divider} />
             <StatusRow label="小账本" value={`${todayState.habits.completion}/4`} />
             <View style={styles.divider} />
@@ -177,7 +184,10 @@ export default function WatchScreen() {
               <View style={styles.debugRows}>
                 <StatusRow label="支持" value={formatBoolean((lastConnectivityStatus ?? status)?.isSupported)} />
                 <StatusRow label="已配对" value={formatBoolean((lastConnectivityStatus ?? status)?.isPaired)} />
-                <StatusRow label="Watch App" value={formatBoolean((lastConnectivityStatus ?? status)?.isWatchAppInstalled)} />
+                <StatusRow
+                  label="Watch App"
+                  value={formatBoolean((lastConnectivityStatus ?? status)?.isWatchAppInstalled)}
+                />
                 <StatusRow label="可达" value={formatBoolean((lastConnectivityStatus ?? status)?.isReachable)} />
                 <StatusRow label="激活" value={debugInfo?.activationState ?? '未知'} />
               </View>
@@ -185,7 +195,10 @@ export default function WatchScreen() {
 
             <AppCard style={styles.debugCard}>
               <Text style={styles.debugTitle}>最近记录</Text>
-              <DebugRow label="最近构建" value={lastBuiltState ? formatDebugTime(lastBuiltState.generatedAt) : '暂无'} />
+              <DebugRow
+                label="最近构建"
+                value={lastBuiltState ? formatDebugTime(lastBuiltState.generatedAt) : '暂无'}
+              />
               <DebugRow
                 label="最近发送"
                 value={
@@ -268,9 +281,13 @@ function formatSyncResultMessage(result: WatchSyncResult, isDevelopment: boolean
 
   switch (result.reason) {
     case 'watch_app_not_installed':
-      return isDevelopment ? '系统还没识别到小提督 Watch App，请重新运行 Watch target 后再试。' : '请先在 Apple Watch 上安装小提督。';
+      return isDevelopment
+        ? '系统还没识别到小提督 Watch App，请重新运行 Watch target 后再试。'
+        : '请先在 Apple Watch 上安装小提督。';
     case 'watch_connectivity_unavailable':
-      return isDevelopment ? 'WatchConnectivity 原生通道未接入，请重新安装当前 iOS 构建。' : '当前设备暂时无法连接 Apple Watch。';
+      return isDevelopment
+        ? 'WatchConnectivity 原生通道未接入，请重新安装当前 iOS 构建。'
+        : '当前设备暂时无法连接 Apple Watch。';
     case 'watch_not_paired':
       return '还没有检测到已配对的 Apple Watch。';
     case 'watch_session_unavailable':

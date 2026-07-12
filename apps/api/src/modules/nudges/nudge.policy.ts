@@ -68,14 +68,7 @@ function getSafeTimezoneParts(timezone: string | null | undefined, now: Date) {
 
 function getTimezoneOffsetMs(timezone: string | null | undefined, date: Date) {
   const parts = getSafeTimezoneParts(timezone, date);
-  const zonedAsUtc = Date.UTC(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    parts.hour,
-    parts.minute,
-    parts.second,
-  );
+  const zonedAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
 
   return zonedAsUtc - date.getTime();
 }
@@ -110,6 +103,11 @@ export function todayStartInTimezone(timezone: string | null | undefined, now = 
   const timezoneOffsetMs = getTimezoneOffsetMs(timezone, new Date(localMidnightAsUtc));
 
   return new Date(localMidnightAsUtc - timezoneOffsetMs);
+}
+
+export function todayDateKeyInTimezone(timezone: string | null | undefined, now = new Date()) {
+  const parts = getSafeTimezoneParts(timezone, now);
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
 }
 
 export function assertCanNudge(input: {

@@ -1,10 +1,6 @@
 import { Hono, type MiddlewareHandler } from 'hono';
 
-import type {
-  AcceptTeamInviteRequest,
-  AcceptTeamInviteResponse,
-  TeamInvitePreviewResponse,
-} from '@xiaotidu/contracts';
+import type { AcceptTeamInviteRequest, AcceptTeamInviteResponse, TeamInvitePreviewResponse } from '@xiaotidu/contracts';
 
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';

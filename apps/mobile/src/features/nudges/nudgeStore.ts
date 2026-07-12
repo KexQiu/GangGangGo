@@ -1,15 +1,19 @@
 import { create } from 'zustand';
+import { isCancelledError } from '@tanstack/react-query';
 
 import type {
   BuddyNudge,
   BuddyNudgeAckStatus,
   BuddyNudgeSettings,
   BuddyNudgeType,
+  NudgeThreadSummary,
   TeamMember,
   UpdateBuddyNudgeSettingsRequest,
 } from '@xiaotidu/contracts';
 
 import { apiClient } from '../../api/client';
+import { queryClient } from '../../api/queryClient';
+import { queryKeys } from '../../api/queryKeys';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 
 type NudgeState = {
@@ -19,6 +23,7 @@ type NudgeState = {
   isMutating: boolean;
   sent: BuddyNudge[];
   settings: BuddyNudgeSettings[];
+  threads: NudgeThreadSummary[];
   threadByBuddyUserId: Record<string, NudgeThreadState>;
   ackNudge: (id: string, status: BuddyNudgeAckStatus, buddyUserId?: string) => Promise<void>;
   loadInbox: () => Promise<void>;
@@ -128,14 +133,14 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
     set({ error: null, isLoading: true });
 
     try {
-      const response = await apiClient.getNudgeInbox(token);
-      console.info('[nudges] loadInbox', {
-        count: response.nudges.length,
-        userId: useAuthStore.getState().user?.id ?? null,
+      const userId = useAuthStore.getState().user?.id ?? 'anonymous';
+      const response = await queryClient.fetchQuery({
+        queryFn: () => apiClient.getNudgeInbox(token),
+        queryKey: queryKeys.nudgeInbox(userId),
+        staleTime: 0,
       });
       set({ error: null, inbox: response.nudges, isLoading: false });
     } catch (error) {
-      console.info('[nudges] loadInbox failed', error);
       set({ error: notifyUserError(error), isLoading: false });
     }
   },
@@ -150,14 +155,14 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
     set({ error: null, isLoading: true });
 
     try {
-      const response = await apiClient.getNudgeSent(token);
-      console.info('[nudges] loadSent', {
-        count: response.nudges.length,
-        userId: useAuthStore.getState().user?.id ?? null,
+      const userId = useAuthStore.getState().user?.id ?? 'anonymous';
+      const response = await queryClient.fetchQuery({
+        queryFn: () => apiClient.getNudgeSent(token),
+        queryKey: queryKeys.nudgeSent(userId),
+        staleTime: 0,
       });
       set({ error: null, isLoading: false, sent: response.nudges });
     } catch (error) {
-      console.info('[nudges] loadSent failed', error);
       set({ error: notifyUserError(error), isLoading: false });
     }
   },
@@ -196,14 +201,18 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
     }
 
     try {
-      const response = await apiClient.getNudgeThread(
-        buddyUserId,
-        {
-          before: mode === 'older' ? currentThread.nextCursor : null,
-          limit: nudgeThreadPageSize,
-        },
-        token,
-      );
+      const userId = useAuthStore.getState().user?.id ?? 'anonymous';
+      const response = await queryClient.fetchQuery({
+        queryFn: ({ signal }) =>
+          apiClient.getNudgeThread(
+            buddyUserId,
+            { before: mode === 'older' ? currentThread.nextCursor : null, limit: nudgeThreadPageSize },
+            token,
+            signal,
+          ),
+        queryKey: [...queryKeys.nudgeThread(userId, buddyUserId), mode, currentThread.nextCursor],
+        staleTime: 0,
+      });
 
       set((state) => {
         const previousThread = state.threadByBuddyUserId[buddyUserId] ?? emptyThreadState;
@@ -229,8 +238,20 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
         };
       });
     } catch (error) {
+      if (isCancelledError(error)) {
+        set((state) => ({
+          threadByBuddyUserId: {
+            ...state.threadByBuddyUserId,
+            [buddyUserId]: {
+              ...(state.threadByBuddyUserId[buddyUserId] ?? emptyThreadState),
+              isLoading: false,
+              isLoadingMore: false,
+            },
+          },
+        }));
+        return;
+      }
       if (isSilentRefresh) {
-        console.info('[nudges] refreshThread failed', error);
         return;
       }
 
@@ -252,7 +273,7 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
     const isSilent = options.silent === true;
 
     if (!token) {
-      set({ inbox: [], sent: [] });
+      set({ inbox: [], sent: [], threads: [] });
       return;
     }
 
@@ -261,23 +282,22 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
     }
 
     try {
-      const [inboxResponse, sentResponse] = await Promise.all([
-        apiClient.getNudgeInbox(token),
-        apiClient.getNudgeSent(token),
-      ]);
-      console.info('[nudges] loadThreads', {
-        inboxCount: inboxResponse.nudges.length,
-        sentCount: sentResponse.nudges.length,
-        userId: useAuthStore.getState().user?.id ?? null,
+      const userId = useAuthStore.getState().user?.id ?? 'anonymous';
+      const response = await queryClient.fetchQuery({
+        queryFn: ({ signal }) => apiClient.getNudgeThreads(token, signal),
+        queryKey: queryKeys.nudgeThreads(userId),
+        staleTime: 0,
       });
       set({
         error: null,
-        inbox: inboxResponse.nudges,
         ...(isSilent ? {} : { isLoading: false }),
-        sent: sentResponse.nudges,
+        threads: response.threads,
       });
     } catch (error) {
-      console.info('[nudges] loadThreads failed', error);
+      if (isCancelledError(error)) {
+        if (!isSilent) set({ isLoading: false });
+        return;
+      }
       if (!isSilent) {
         set({ error: notifyUserError(error), isLoading: false });
       }
@@ -304,28 +324,17 @@ export const useNudgeStore = create<NudgeState>((set, get) => ({
     try {
       const token = requireAccessToken();
       const nudge = await apiClient.sendNudge({ toUserId, type }, token);
-      console.info('[nudges] sendNudge succeeded', {
-        fromUserId: useAuthStore.getState().user?.id ?? null,
-        nudgeId: nudge.id,
-        toUserId,
-        type,
-      });
       set((state) => ({ error: null, isMutating: false, sent: mergeNudges([nudge, ...state.sent]) }));
       await get().loadThread(toUserId, 'initial');
       await get().loadThreads();
     } catch (error) {
-      console.info('[nudges] sendNudge failed', {
-        error,
-        fromUserId: useAuthStore.getState().user?.id ?? null,
-        toUserId,
-        type,
-      });
       set({ error: notifyUserError(error), isMutating: false });
     }
   },
   sent: [],
   settings: [],
   threadByBuddyUserId: {},
+  threads: [],
   updateSettings: async (buddyUserId, settings) => {
     set({ error: null, isMutating: true });
 
@@ -443,6 +452,17 @@ export function getNudgeHomeSummary(input: {
   };
 }
 
+export function getNudgeHomeSummaryFromThreads(threads: NudgeThreadSummary[]): NudgeHomeSummary {
+  const pendingCount = threads.reduce((total, thread) => total + thread.pendingCount, 0);
+  const latestThread = threads.find((thread) => thread.latestAt);
+
+  return {
+    latestAt: latestThread?.latestAt ?? null,
+    latestPreview: latestThread?.latestPreview ?? null,
+    pendingCount,
+  };
+}
+
 export function getDisplayName(user: NudgeBuddy): string {
   return user.nickname ?? '小提督搭子';
 }
@@ -516,7 +536,7 @@ function getLatestActivityForNudge(nudge: BuddyNudge, currentUserId: string) {
   if (nudge.ack && isAfter(nudge.ack.updatedAt, nudge.createdAt)) {
     return {
       createdAt: nudge.ack.updatedAt,
-      direction: nudge.toUser.id === currentUserId ? 'outgoing' as const : 'incoming' as const,
+      direction: nudge.toUser.id === currentUserId ? ('outgoing' as const) : ('incoming' as const),
       sender: nudge.toUser,
       text: `回了：${ackCopies[nudge.ack.status]}`,
     };

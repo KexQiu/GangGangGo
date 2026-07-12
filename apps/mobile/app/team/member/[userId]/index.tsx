@@ -44,10 +44,7 @@ export default function TeamMemberScreen() {
   const team = useTeamStore((state) => state.team);
   const member = team?.members.find((item) => item.user.id === userId);
   const me = team?.members.find((item) => item.user.id === currentUser?.id);
-  const nudgeSetting = useMemo(
-    () => settings.find((item) => item.buddyUserId === userId),
-    [settings, userId],
-  );
+  const nudgeSetting = useMemo(() => settings.find((item) => item.buddyUserId === userId), [settings, userId]);
   const isMe = userId === currentUser?.id;
   const canManageMember = me?.role === 'owner' && !isMe && member?.role !== 'owner';
 
@@ -59,7 +56,11 @@ export default function TeamMemberScreen() {
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="搭子详情" />
-      <PageHeader eyebrow="监督搭子" subtitle="提醒只用固定暗号，不开放自由文本。" title={member?.displayName ?? member?.user.nickname ?? '小提督搭子'} />
+      <PageHeader
+        eyebrow="监督搭子"
+        subtitle="提醒只用固定暗号，不开放自由文本。"
+        title={member?.displayName ?? member?.user.nickname ?? '小提督搭子'}
+      />
 
       <PageStack gap="regular">
         {!isMe && userId ? (
@@ -105,7 +106,10 @@ export default function TeamMemberScreen() {
               ))}
             </View>
             <Text style={styles.description}>
-              当前：{nudgeSetting?.quietRanges.length ? nudgeSetting.quietRanges.map((range) => `${range.start}-${range.end}`).join('、') : '没有额外勿扰'}
+              当前：
+              {nudgeSetting?.quietRanges.length
+                ? nudgeSetting.quietRanges.map((range) => `${range.start}-${range.end}`).join('、')
+                : '没有额外勿扰'}
             </Text>
           </AppCard>
         ) : null}
@@ -128,7 +132,6 @@ export default function TeamMemberScreen() {
             </AppButton>
           </AppCard>
         ) : null}
-
       </PageStack>
     </Screen>
   );

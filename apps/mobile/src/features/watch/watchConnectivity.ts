@@ -1,4 +1,6 @@
-import { NativeEventEmitter, NativeModules, Platform, type EmitterSubscription } from 'react-native';
+import { Platform } from 'react-native';
+
+import watchConnectivityModule, { type WatchConnectivityEventSubscription } from '../../../modules/watch-connectivity';
 
 import {
   type WatchConnectivityStatus,
@@ -8,17 +10,7 @@ import {
   type WatchTodayState,
 } from './watchTypes';
 
-type NativeWatchConnectivityModule = {
-  activate?: () => Promise<boolean>;
-  getDebugInfo?: () => Promise<Omit<WatchConnectivityDebugInfo, 'isSupported'>>;
-  getLastReachability?: () => Promise<Omit<WatchConnectivityStatus, 'isSupported'>>;
-  addListener: (eventName: string) => void;
-  removeListeners: (count: number) => void;
-  replyToWatchMessage?: (replyId: string, ack: WatchEventAck) => Promise<void>;
-  sendTodayState?: (state: WatchTodayState & { stateJson: string }) => Promise<WatchSyncResult | void>;
-};
-
-const nativeModule = NativeModules.WatchConnectivityModule as NativeWatchConnectivityModule | undefined;
+const nativeModule = watchConnectivityModule;
 
 export function isWatchConnectivitySupported(): boolean {
   return Platform.OS === 'ios' && Boolean(nativeModule?.sendTodayState);
@@ -102,12 +94,14 @@ export async function sendWatchTodayState(state: WatchTodayState): Promise<Watch
   };
 }
 
-export function addWatchConnectivityEventListener(listener: (payload: unknown) => void): EmitterSubscription | null {
+export function addWatchConnectivityEventListener(
+  listener: (payload: unknown) => void,
+): WatchConnectivityEventSubscription | null {
   if (!isWatchConnectivitySupported() || !nativeModule) {
     return null;
   }
 
-  return new NativeEventEmitter(nativeModule).addListener('WatchConnectivityEvent', listener);
+  return nativeModule.addListener('onWatchConnectivityEvent', listener);
 }
 
 export async function replyToWatchMessage(replyId: string | undefined, ack: WatchEventAck) {

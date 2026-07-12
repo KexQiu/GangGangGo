@@ -25,6 +25,7 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
   const isRunning = isPro && Boolean(toiletSession);
 
   return {
+    schemaVersion: 2,
     account: {
       isLoggedIn: Boolean(auth.accessToken && auth.user),
       nickname: auth.user?.nickname ?? null,
@@ -42,7 +43,7 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
     proStatus: auth.proStatus,
     toilet: {
       elapsedSeconds: isPro ? elapsedSeconds : 0,
-      isPaused: isPro ? toiletSession?.isPaused ?? false : false,
+      isPaused: isPro ? (toiletSession?.isPaused ?? false) : false,
       isRunning,
       sessionCount: toiletSessionCount,
       stage: isRunning ? getToiletTimerStage(elapsedSeconds) : null,

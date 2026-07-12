@@ -35,11 +35,7 @@ export function createInviteExpiration(now = new Date()) {
   return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 }
 
-export function ensureInviteIsUsable(invite: {
-  acceptedAt: Date | null;
-  expiresAt: Date;
-  revokedAt: Date | null;
-}) {
+export function ensureInviteIsUsable(invite: { acceptedAt: Date | null; expiresAt: Date; revokedAt: Date | null }) {
   if (invite.revokedAt) {
     throw new ApiError(404, 'not_found', '这个邀请已经失效。');
   }

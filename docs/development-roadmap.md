@@ -498,12 +498,10 @@ pnpm exec eas build --profile development --platform ios
 
 ## 9. 当前下一步
 
-建议下一步进入 **M1 后端基础设施**：
+M1-M8 的开发骨架已经完成，当前进入 **v0.2 联调与生产准备**：
 
-1. 在 `apps/api` 引入 Hono。
-2. 拆分 `server.ts` 为 `app.ts`、`config/env.ts`、`http/*`。
-3. 在 `packages/contracts` 补充统一 API 响应和错误类型。
-4. 保持 `/health` 和 `/me/entitlements` 可用。
-5. 增加后端最小测试或 smoke script。
-
-这一步完成后，再进入数据库和账号体系会更稳。
+1. 使用 `mock-user-a/b/c` 完成小队、邀请、共享和提醒双用户回归。
+2. 在真实 Postgres 执行集成测试和并发约束验证。
+3. 完成三个 Xcode scheme、Watch Complication 和 haptic 真机验收。
+4. Apple Developer Program 准备完成后接入真实 Apple 登录、Push 和 StoreKit。
+5. 发布前执行 `pnpm check`、移动端手动清单和 Watch 手动清单。

@@ -33,9 +33,7 @@ export const defaultReminderSettings: ReminderSettings = {
 };
 
 export function normalizeReminderSettings(settings: ReminderSettings): ReminderSettings {
-  const kegelTimes = settings.kegelTimes
-    .filter(isReminderTime)
-    .slice(0, DEFAULT_KEGEL_TIMES.length);
+  const kegelTimes = settings.kegelTimes.filter(isReminderTime).slice(0, DEFAULT_KEGEL_TIMES.length);
   const quietHoursRanges = normalizeQuietHoursRanges(settings);
   const primaryQuietRange = quietHoursRanges[0];
 
@@ -86,10 +84,12 @@ export function getNextKegelReminderTime(settings: ReminderSettings, now = new D
   }
 
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  return availableTimes.find((time) => {
-    const reminderMinutes = parseTimeToMinutes(time);
-    return reminderMinutes !== null && reminderMinutes > currentMinutes;
-  }) ?? availableTimes[0];
+  return (
+    availableTimes.find((time) => {
+      const reminderMinutes = parseTimeToMinutes(time);
+      return reminderMinutes !== null && reminderMinutes > currentMinutes;
+    }) ?? availableTimes[0]
+  );
 }
 
 export function getReminderHomeSummary(settings: ReminderSettings, now = new Date()) {
@@ -103,9 +103,7 @@ export function getReminderHomeSummary(settings: ReminderSettings, now = new Dat
   const nextKegelTime = getNextKegelReminderTime(settings, now);
   if (settings.kegelEnabled && nextKegelTime) {
     return {
-      subtitle: settings.privacyMode
-        ? `下一次小花锻炼 ${nextKegelTime}`
-        : `下一次菊花抬 ${nextKegelTime}`,
+      subtitle: settings.privacyMode ? `下一次小花锻炼 ${nextKegelTime}` : `下一次菊花抬 ${nextKegelTime}`,
       title: settings.privacyMode ? '小暗号已开启' : '菊花抬已安排',
     };
   }
@@ -230,10 +228,9 @@ function getActiveMinuteWindows(settings: ReminderSettings): Array<[number, numb
     return [[DEFAULT_ACTIVE_START_MINUTES, DEFAULT_ACTIVE_END_MINUTES]];
   }
 
-  return quietRanges.reduce(
-    (activeWindows, quietWindow) => subtractMinuteWindow(activeWindows, quietWindow),
-    [[DEFAULT_ACTIVE_START_MINUTES, DEFAULT_ACTIVE_END_MINUTES]] as Array<[number, number]>,
-  );
+  return quietRanges.reduce((activeWindows, quietWindow) => subtractMinuteWindow(activeWindows, quietWindow), [
+    [DEFAULT_ACTIVE_START_MINUTES, DEFAULT_ACTIVE_END_MINUTES],
+  ] as Array<[number, number]>);
 }
 
 function normalizeQuietHoursRanges(settings: ReminderSettings): QuietHoursRange[] {
@@ -265,9 +262,7 @@ function normalizeQuietHoursRanges(settings: ReminderSettings): QuietHoursRange[
 }
 
 function sortQuietHoursRanges(ranges: QuietHoursRange[]): QuietHoursRange[] {
-  return ranges
-    .slice()
-    .sort((a, b) => (parseTimeToMinutes(a.start) ?? 0) - (parseTimeToMinutes(b.start) ?? 0));
+  return ranges.slice().sort((a, b) => (parseTimeToMinutes(a.start) ?? 0) - (parseTimeToMinutes(b.start) ?? 0));
 }
 
 function formatQuietHoursRange(range: QuietHoursRange): string {

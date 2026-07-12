@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, isNull, lt, or } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import type {
   BuddyNudge,
@@ -8,6 +9,7 @@ import type {
   BuddyNudgeThreadResponse,
   BuddyNudgesResponse,
   CreateBuddyNudgeRequest,
+  NudgeThreadsResponse,
   Team,
   UpdateBuddyNudgeSettingsRequest,
 } from '@xiaotidu/contracts';
@@ -15,6 +17,7 @@ import type {
 import type { Database } from '../../db/client.js';
 import {
   buddyNudgeAcks,
+  buddyNudgeDailyCounters,
   buddyNudges,
   buddyNudgeSettings,
   teamMembers,
@@ -22,18 +25,10 @@ import {
   users,
 } from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
-import {
-  createNoopPushNotificationService,
-  type PushNotificationService,
-} from '../push/pushNotificationService.js';
-import type { TeamService } from '../teams/teamService.js';
+import { createNoopPushNotificationService, type PushNotificationService } from '../push/pushNotificationService.js';
 import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
-import {
-  toAck,
-  toNudge,
-  toSettings,
-} from './nudge.mapper.js';
+import { toAck, toNudge, toNudgeThreadSummaries, toSettings } from './nudge.mapper.js';
 import {
   ackNotificationMessages,
   ackRevisionWindowMs,
@@ -43,20 +38,38 @@ import {
   nudgeMessages,
   nudgeTtlMs,
   requireBuddyMember,
-  todayStartInTimezone,
+  todayDateKeyInTimezone,
 } from './nudge.policy.js';
 import type { TeamMemberSummary } from './nudge.types.js';
 
+const fromUsers = alias(users, 'nudge_from_users');
+const toUsers = alias(users, 'nudge_to_users');
+const nudgeSelection = {
+  ackCreatedAt: buddyNudgeAcks.createdAt,
+  ackRevisionCount: buddyNudgeAcks.revisionCount,
+  ackStatus: buddyNudgeAcks.status,
+  ackUpdatedAt: buddyNudgeAcks.updatedAt,
+  createdAt: buddyNudges.createdAt,
+  expiresAt: buddyNudges.expiresAt,
+  fromAvatarUrl: fromUsers.avatarUrl,
+  fromNickname: fromUsers.nickname,
+  fromUserId: fromUsers.id,
+  id: buddyNudges.id,
+  messageTemplate: buddyNudges.messageTemplate,
+  teamId: buddyNudges.teamId,
+  toAvatarUrl: toUsers.avatarUrl,
+  toNickname: toUsers.nickname,
+  toUserId: toUsers.id,
+  type: buddyNudges.type,
+};
+
 export type NudgeService = {
-  ackNudge: (
-    currentUser: CurrentUser,
-    nudgeId: string,
-    status: BuddyNudgeAckStatus,
-  ) => Promise<BuddyNudgeAckResponse>;
+  ackNudge: (currentUser: CurrentUser, nudgeId: string, status: BuddyNudgeAckStatus) => Promise<BuddyNudgeAckResponse>;
   createNudge: (currentUser: CurrentUser, input: CreateBuddyNudgeRequest) => Promise<BuddyNudge>;
   getSettings: (currentUser: CurrentUser) => Promise<BuddyNudgeSettingsResponse>;
   listInbox: (currentUser: CurrentUser) => Promise<BuddyNudgesResponse>;
   listSent: (currentUser: CurrentUser) => Promise<BuddyNudgesResponse>;
+  listThreads: (currentUser: CurrentUser) => Promise<NudgeThreadsResponse>;
   listThread: (
     currentUser: CurrentUser,
     buddyUserId: string,
@@ -91,13 +104,7 @@ export function createDrizzleNudgeService(
       })
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(
-        and(
-          eq(teamMembers.userId, currentUser.id),
-          eq(teamMembers.status, 'active'),
-          isNull(teams.archivedAt),
-        ),
-      )
+      .where(and(eq(teamMembers.userId, currentUser.id), eq(teamMembers.status, 'active'), isNull(teams.archivedAt)))
       .limit(1);
 
     if (!teamRow) {
@@ -150,28 +157,6 @@ export function createDrizzleNudgeService(
     };
   }
 
-  async function findUserSummary(userId: string) {
-    const [user] = await db
-      .select({
-        avatarUrl: users.avatarUrl,
-        id: users.id,
-        nickname: users.nickname,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!user) {
-      throw new ApiError(404, 'not_found', '没有找到这个用户。');
-    }
-
-    return {
-      avatarUrl: deserializeAvatarConfig(user.avatarUrl),
-      id: user.id,
-      nickname: user.nickname,
-    };
-  }
-
   async function findUserTimezone(userId: string) {
     const [user] = await db
       .select({
@@ -184,38 +169,62 @@ export function createDrizzleNudgeService(
     return user?.timezone ?? defaultTimezone;
   }
 
-  async function getNudgeRecord(nudgeId: string) {
-    const [nudge] = await db.select().from(buddyNudges).where(eq(buddyNudges.id, nudgeId)).limit(1);
-
-    if (!nudge) {
-      throw new ApiError(404, 'not_found', '没有找到这条提醒。');
-    }
-
-    const [ack] = await db.select().from(buddyNudgeAcks).where(eq(buddyNudgeAcks.nudgeId, nudge.id)).limit(1);
-
+  function joinedRowToNudge(row: Awaited<ReturnType<typeof selectNudges>>[number]) {
     return toNudge({
-      ack: ack ? toAck(ack) : null,
-      createdAt: nudge.createdAt,
-      expiresAt: nudge.expiresAt,
-      fromUser: await findUserSummary(nudge.fromUserId),
-      id: nudge.id,
-      messageTemplate: nudge.messageTemplate,
-      teamId: nudge.teamId,
-      toUser: await findUserSummary(nudge.toUserId),
-      type: nudge.type,
+      ack:
+        row.ackCreatedAt && row.ackStatus && row.ackUpdatedAt
+          ? toAck({
+              createdAt: row.ackCreatedAt,
+              revisionCount: row.ackRevisionCount ?? 0,
+              status: row.ackStatus,
+              updatedAt: row.ackUpdatedAt,
+            })
+          : null,
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+      fromUser: {
+        avatarUrl: deserializeAvatarConfig(row.fromAvatarUrl),
+        id: row.fromUserId,
+        nickname: row.fromNickname,
+      },
+      id: row.id,
+      messageTemplate: row.messageTemplate,
+      teamId: row.teamId,
+      toUser: {
+        avatarUrl: deserializeAvatarConfig(row.toAvatarUrl),
+        id: row.toUserId,
+        nickname: row.toNickname,
+      },
+      type: row.type,
     });
   }
 
-  async function listNudgesBy(field: 'from' | 'to', userId: string) {
-    const rows = await db
-      .select()
+  function selectNudges() {
+    return db
+      .select(nudgeSelection)
       .from(buddyNudges)
+      .innerJoin(fromUsers, eq(buddyNudges.fromUserId, fromUsers.id))
+      .innerJoin(toUsers, eq(buddyNudges.toUserId, toUsers.id))
+      .leftJoin(buddyNudgeAcks, eq(buddyNudgeAcks.nudgeId, buddyNudges.id));
+  }
+
+  async function getNudgeRecord(nudgeId: string) {
+    const [row] = await selectNudges().where(eq(buddyNudges.id, nudgeId)).limit(1);
+
+    if (!row) {
+      throw new ApiError(404, 'not_found', '没有找到这条提醒。');
+    }
+    return joinedRowToNudge(row);
+  }
+
+  async function listNudgesBy(field: 'from' | 'to', userId: string) {
+    const rows = await selectNudges()
       .where(eq(field === 'from' ? buddyNudges.fromUserId : buddyNudges.toUserId, userId))
       .orderBy(desc(buddyNudges.createdAt))
       .limit(50);
 
     return {
-      nudges: await Promise.all(rows.map((row) => getNudgeRecord(row.id))),
+      nudges: rows.map(joinedRowToNudge),
     };
   }
 
@@ -230,9 +239,7 @@ export function createDrizzleNudgeService(
       and(eq(buddyNudges.fromUserId, currentUser.id), eq(buddyNudges.toUserId, buddyUserId)),
       and(eq(buddyNudges.fromUserId, buddyUserId), eq(buddyNudges.toUserId, currentUser.id)),
     );
-    const rows = await db
-      .select()
-      .from(buddyNudges)
+    const rows = await selectNudges()
       .where(
         options.before
           ? and(eq(buddyNudges.teamId, team.id), participantFilter, lt(buddyNudges.createdAt, options.before))
@@ -245,8 +252,8 @@ export function createDrizzleNudgeService(
 
     return {
       hasMore,
-      nextCursor: hasMore ? page.at(-1)?.createdAt.toISOString() ?? null : null,
-      nudges: await Promise.all(page.map((row) => getNudgeRecord(row.id))),
+      nextCursor: hasMore ? (page.at(-1)?.createdAt.toISOString() ?? null) : null,
+      nudges: page.map(joinedRowToNudge),
     };
   }
 
@@ -287,26 +294,14 @@ export function createDrizzleNudgeService(
         throw new ApiError(403, 'forbidden', '只能回复发给自己的提醒。');
       }
 
-      const [existingAck] = await db
-        .select()
-        .from(buddyNudgeAcks)
-        .where(and(eq(buddyNudgeAcks.nudgeId, nudgeId), eq(buddyNudgeAcks.userId, currentUser.id)))
-        .limit(1);
       const now = new Date();
+      const [createdAck] = await db
+        .insert(buddyNudgeAcks)
+        .values({ nudgeId, status, userId: currentUser.id })
+        .onConflictDoNothing({ target: [buddyNudgeAcks.nudgeId, buddyNudgeAcks.userId] })
+        .returning();
 
-      if (!existingAck) {
-        const [ack] = await db
-          .insert(buddyNudgeAcks)
-          .values({
-            nudgeId,
-            status,
-            userId: currentUser.id,
-          })
-          .returning();
-
-        if (!ack) {
-          throw new Error('Failed to create nudge ack.');
-        }
+      if (createdAck) {
         await notifySafely(pushNotificationService, {
           body: ackNotificationMessages[status],
           data: {
@@ -318,14 +313,7 @@ export function createDrizzleNudgeService(
           userId: nudge.fromUserId,
         });
 
-        return { ack: toAck(ack) };
-      }
-
-      if (
-        existingAck.revisionCount >= 1 ||
-        now.getTime() - existingAck.createdAt.getTime() > ackRevisionWindowMs
-      ) {
-        throw new ApiError(409, 'conflict', '这条回执已经不能修改了。');
+        return { ack: toAck(createdAck) };
       }
 
       const [updatedAck] = await db
@@ -335,11 +323,18 @@ export function createDrizzleNudgeService(
           status,
           updatedAt: now,
         })
-        .where(eq(buddyNudgeAcks.id, existingAck.id))
+        .where(
+          and(
+            eq(buddyNudgeAcks.nudgeId, nudgeId),
+            eq(buddyNudgeAcks.userId, currentUser.id),
+            eq(buddyNudgeAcks.revisionCount, 0),
+            gt(buddyNudgeAcks.createdAt, new Date(now.getTime() - ackRevisionWindowMs)),
+          ),
+        )
         .returning();
 
       if (!updatedAck) {
-        throw new Error('Failed to update nudge ack.');
+        throw new ApiError(409, 'conflict', '这条回执已经不能修改了。');
       }
       await notifySafely(pushNotificationService, {
         body: ackNotificationMessages[status],
@@ -364,38 +359,52 @@ export function createDrizzleNudgeService(
           userId: input.toUserId,
         });
       const recipientTimezone = await findUserTimezone(input.toUserId);
-      const todayRows = await db
-        .select({ id: buddyNudges.id })
-        .from(buddyNudges)
-        .where(
-          and(
-            eq(buddyNudges.fromUserId, currentUser.id),
-            eq(buddyNudges.toUserId, input.toUserId),
-            gte(buddyNudges.createdAt, todayStartInTimezone(recipientTimezone)),
-          ),
-        );
-
       assertCanNudge({
         currentUser,
         recipientTimezone,
         settings,
         team,
         toUserId: input.toUserId,
-        todayCount: todayRows.length,
+        todayCount: 0,
       });
 
       const now = new Date();
-      const [nudge] = await db
-        .insert(buddyNudges)
-        .values({
-          expiresAt: new Date(now.getTime() + nudgeTtlMs),
-          fromUserId: currentUser.id,
-          messageTemplate: nudgeMessages[input.type],
-          teamId: team.id,
-          toUserId: input.toUserId,
-          type: input.type,
-        })
-        .returning();
+      const nudge = await db.transaction(async (transaction) => {
+        const [counter] = await transaction
+          .insert(buddyNudgeDailyCounters)
+          .values({
+            count: 1,
+            fromUserId: currentUser.id,
+            localDate: todayDateKeyInTimezone(recipientTimezone, now),
+            toUserId: input.toUserId,
+          })
+          .onConflictDoUpdate({
+            set: { count: sql`${buddyNudgeDailyCounters.count} + 1`, updatedAt: now },
+            target: [
+              buddyNudgeDailyCounters.fromUserId,
+              buddyNudgeDailyCounters.toUserId,
+              buddyNudgeDailyCounters.localDate,
+            ],
+          })
+          .returning({ count: buddyNudgeDailyCounters.count });
+
+        if (!counter || counter.count > settings.dailyLimit) {
+          throw new ApiError(429, 'rate_limited', '今天已经轻轻戳够了，明天再来。');
+        }
+
+        const [created] = await transaction
+          .insert(buddyNudges)
+          .values({
+            expiresAt: new Date(now.getTime() + nudgeTtlMs),
+            fromUserId: currentUser.id,
+            messageTemplate: nudgeMessages[input.type],
+            teamId: team.id,
+            toUserId: input.toUserId,
+            type: input.type,
+          })
+          .returning();
+        return created;
+      });
 
       if (!nudge) {
         throw new Error('Failed to create nudge.');
@@ -435,6 +444,21 @@ export function createDrizzleNudgeService(
     },
     async listSent(currentUser) {
       return listNudgesBy('from', currentUser.id);
+    },
+    async listThreads(currentUser) {
+      const team = await getTeamForNudge(currentUser);
+      const rows = await selectNudges()
+        .where(
+          and(
+            eq(buddyNudges.teamId, team.id),
+            or(eq(buddyNudges.fromUserId, currentUser.id), eq(buddyNudges.toUserId, currentUser.id)),
+          ),
+        )
+        .orderBy(desc(buddyNudges.createdAt))
+        .limit(200);
+      return {
+        threads: toNudgeThreadSummaries(currentUser.id, team.members, rows.map(joinedRowToNudge)),
+      };
     },
     async listThread(currentUser, buddyUserId, options) {
       return listThreadNudges(currentUser, buddyUserId, options);

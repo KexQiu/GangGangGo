@@ -49,7 +49,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     set({ error: null, isHydrating: true });
 
     try {
-      const checkIns = await listHabitCheckIns();
+      const since = new Date();
+      since.setDate(since.getDate() - 366);
+      const checkIns = await listHabitCheckIns(getLocalDateKey(since));
       set({ checkIns, hasHydrated: true, isHydrating: false });
     } catch (error) {
       set({
