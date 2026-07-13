@@ -52,7 +52,7 @@ xcodebuild -workspace apps/mobile/ios/app.xcworkspace \
 - 三类 Complication 的表盘展示、过期态、Pro 锁定态、深链和系统刷新节奏。
 - iPhone/Watch 前后台切换与配对稳定性。
 
-本次两次真机构建均已识别 Apple Watch Series 10，但设备要求解锁并靠近 Mac，Xcode 等待设备准备超时，因此不将真机项标记为通过。
+本次三次真机构建均已识别 Apple Watch Series 10，但设备要求解锁并靠近 Mac，Xcode 等待设备准备超时，因此不将真机项标记为通过。最近一次签名构建仍返回相同的设备准备错误，证明阻塞来自当前设备状态，而不是 Watch scheme 或项目编译配置。
 
 ## Live Activity
 
