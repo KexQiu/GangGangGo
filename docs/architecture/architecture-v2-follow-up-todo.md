@@ -203,10 +203,11 @@
 
 ### 文档校准
 
-- [ ] 更新 `docs/development-roadmap.md`，删除已完成的“M1 下一步”和过期阶段描述。
-- [ ] 校准 `docs/v0.2/todo-checklist.md`，修正 mock 用户、认证会话、并发保护、Postgres 测试设施和 OpenAPI 等已完成项。
-- [ ] 更新移动端联调清单，删除“固定 mock 用户”和“上传冗余滚动汇总”等过期步骤。
-- [ ] 在 API 分层完成后更新相关 ADR 和项目结构文档。
+- [x] 更新 `docs/development-roadmap.md`，删除已完成的“M1 下一步”和过期阶段描述。
+- [x] 校准 `docs/v0.2/todo-checklist.md`，修正 mock 用户、认证会话、并发保护、Postgres 测试设施和 OpenAPI 等已完成项。
+- [x] 更新移动端联调清单，删除“固定 mock 用户”和“上传冗余滚动汇总”等过期步骤。
+- [x] 在 API 分层完成后更新相关 ADR 和项目结构文档。
+  - 证据：路线图与后端/Watch 开发计划改为代码主链路完成后的生产化顺序；总待办已区分代码完成与人工验收，Mock 用户、refresh session、真实 Postgres、并发保护和自动化门禁状态已校准。移动联调清单改为 `mock-user-a/b/c` 双用户流程，报告上传只包含日级低敏字段；新增 API 分层 ADR，项目结构同步 contracts、repository/policy、TanStack Query、SyncCoordinator 和本地 Expo Modules。
 
 ### 图片资产
 

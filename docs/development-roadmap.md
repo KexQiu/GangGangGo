@@ -1,18 +1,21 @@
 # 小提督整体开发路线图
 
-日期：2026-05-22
-阶段：v0.1 已完成，v0.2 规划开发
+日期：2026-07-13
+阶段：v0.1 已完成，v0.2 代码主链路完成，进入生产化与人工验收
 关联文档：[项目结构说明](./project-structure.md)、[v0.1 PRD](./v0.1/prd-v0.1.md)、[v0.2 PRD](./v0.2/prd.md)、[v0.2 开发方案](./v0.2/development-plan.md)
 
 ## 1. 当前状态
 
-当前项目已经完成 v0.1 的单人本地闭环，并已改造成轻量 monorepo。
+当前项目已经完成 v0.1 的单人本地闭环，并完成 v0.2 代码主链路与 Architecture v2 的 P1 结构优化。
 
 已完成：
 
 - 移动端 App：`apps/mobile`
-- 后端骨架：`apps/api`
-- 前后端共享类型：`packages/contracts`
+- 模块化 API、Postgres 基线迁移与真实数据库测试：`apps/api`
+- Zod 运行时契约与生成式 OpenAPI：`packages/contracts`
+- TanStack Query 云端状态、SecureStore 会话与事件化同步：`apps/mobile`
+- WatchConnectivity、Live Activity 本地 Expo Modules 与 Watch 离线队列。
+- Linux、Postgres 与三个 Apple scheme 的 GitHub Actions 门禁。
 - v0.1 文档归档：`docs/v0.1`
 - v0.2 需求与开发方案：`docs/v0.2`
 
@@ -26,12 +29,14 @@ v0.1 当前能力：
 - 小花说明书。
 - iOS Live Activity / 灵动岛计时基础能力。
 
-v0.2 目标：
+v0.2 已实现的代码能力：
 
 - 小提督 Pro 会员权益。
 - 好友监督、小队、搭子提醒和提醒回执。
 - Apple Watch 联动。
 - 高级小报告。
+
+尚未完成的生产化能力包括真实 StoreKit、Sign in with Apple、远程 Push、生产部署、完整真机人工清单和 App Store 发布材料。这些事项不再与已完成的基础设施重构混写。
 
 ## 2. 开发原则
 
@@ -95,7 +100,7 @@ v0.2 后端不做完整健康数据仓库。默认只上传 Pro 功能必要的�
 
 1. 先定义 contracts。
 2. 再实现 API。
-3. 再接移动端 store/client。
+3. 再接移动端 Query、client 与本地领域 store。
 4. 最后补 UI 和验收。
 
 ## 3. 版本节奏
@@ -327,7 +332,8 @@ contracts：
 后端：
 
 - `POST /nudges`
-- `GET /nudges/inbox`
+- `GET /nudges/threads`
+- `GET /nudges/threads/:buddyUserId`
 - `POST /nudges/:id/ack`
 - 每日提醒次数限制。
 - 30 分钟内允许修改一次回执。
@@ -468,12 +474,11 @@ codex/watch-app
 
 ## 8. 每阶段验收命令
 
-基础命令：
+统一门禁：
 
 ```bash
-pnpm run typecheck
+pnpm check
 pnpm --filter @xiaotidu/mobile exec expo install --check
-pnpm peers check
 git diff --check
 ```
 
@@ -496,12 +501,12 @@ cd apps/mobile
 pnpm exec eas build --profile development --platform ios
 ```
 
-## 9. 当前下一步
+## 9. 剩余发布工作
 
-M1-M8 的开发骨架已经完成，当前进入 **v0.2 联调与生产准备**：
+M1-M9 的代码主链路、真实 Postgres 并发测试和三个 Apple scheme 自动构建已经完成。后续按发布依赖推进：
 
-1. 使用 `mock-user-a/b/c` 完成小队、邀请、共享和提醒双用户回归。
-2. 在真实 Postgres 执行集成测试和并发约束验证。
-3. 完成三个 Xcode scheme、Watch Complication 和 haptic 真机验收。
-4. Apple Developer Program 准备完成后接入真实 Apple 登录、Push 和 StoreKit。
-5. 发布前执行 `pnpm check`、移动端手动清单和 Watch 手动清单。
+1. 使用开发环境 `mock-user-a/b/c` 完成小队、邀请、共享和提醒双用户人工回归并留痕。
+2. 完成 Watch 离线恢复、重复事件、haptic、Complication、Live Activity 和三套 entitlement 真机清单。
+3. Apple Developer Program 准备完成后接入真实 Apple 登录、远程 Push 和 StoreKit。
+4. 建立生产 API/Postgres、可观测性、备份恢复、账号删除与数据保留流程。
+5. 准备隐私申报、订阅说明、截图、审核备注和 TestFlight 发布验收。

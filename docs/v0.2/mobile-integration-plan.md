@@ -1,8 +1,8 @@
 # 小提督 v0.2 移动端后端接入计划
 
 版本：v0.2
-日期：2026-06-10
-状态：前端开发基线
+日期：2026-07-13
+状态：代码接入完成，待生产能力与人工验收
 
 ## 1. 目标
 
@@ -21,8 +21,9 @@ v0.1 本地能力继续免费、离线可用；v0.2 云端能力只在用户登�
 已接入：
 
 - API base URL 集中配置。
-- Typed API client，复用 `@xiaotidu/contracts`。
-- 账号会话 store，持久化 access token、用户资料和 Pro 状态。
+- 按 auth/users/teams/nudges/reports/push 拆分的 API client，支持超时、取消、错误分类和 Zod 响应校验。
+- SecureStore 会话，包含 15 分钟 access token、30 天可轮换 refresh session 和服务端撤销。
+- TanStack Query 管理用户、权益、小队、提醒和报告；Zustand 只保存本地领域状态、短期 UI 状态和登录会话。
 - `/me` 我的页，集中承载登录、昵称与头像编辑、Pro 状态、小队入口、搭子提醒和高级小报告入口。
 - `/me` 当前使用开发 Mock 登录。真实 Apple 登录入口因 Personal Team 不支持相关 capability，已临时关闭。
 - 设置页已精简为外观、小暗号、安全说明、灵动岛、声音与震动。
@@ -32,25 +33,26 @@ v0.1 本地能力继续免费、离线可用；v0.2 云端能力只在用户登�
 - Pro 高级报告最近 90 天快照批量同步。
 - `/trends/advanced` 90 天高级小报告详情页。
 - Push token 注册尝试。
-- 后端 `/auth/logout` 已改为需要鉴权。
+- 后端 `/auth/refresh` 与 `/auth/logout` 已接入轮换和撤销。
+- `SyncCoordinator` 负责防抖、single-flight、尾随补跑和子任务失败隔离。
+- WatchConnectivity 与 Live Activity 已迁入独立本地 Expo Modules。
 
 未完成：
 
 - 真实 Apple 登录入口和真机联调。
 - 真实订阅购买和恢复。
-- Apple Watch 正式联动。
 - 完整视觉验收和真机联调。
 
 ## 3. 前端分层规则
 
 移动端后端接入按以下分层：
 
-- `src/api`：只负责 HTTP、鉴权 header、错误解析。
-- `src/features/account`：账号、token、权益状态。
-- `src/features/team`：小队、邀请、成员、共享设置。
-- `src/features/nudges`：搭子提醒、回执、提醒设置。
-- `src/features/sync`：从本地 store 生成低敏摘要并上传。
-- 页面只消费 store，不直接拼接 fetch。
+- `src/api/client`：按领域负责 HTTP、鉴权、超时、取消、错误分类和运行时响应校验。
+- `src/features/account`：安全会话与账户 Query。
+- `src/features/team`：小队、邀请、成员、共享设置 Query 与 mutation。
+- `src/features/nudges`：线程、游标分页、回执和提醒设置 Query 与 mutation。
+- `src/features/sync`：从范围化 SQLite repository 读取本地记录，生成低敏摘要并协调上传。
+- 路由文件只解析参数和挂载 feature screen；页面不直接拼接 fetch，也不复制云端 store。
 
 所有 API 类型必须来自 `@xiaotidu/contracts`，移动端不重复定义后端 DTO。
 
@@ -62,7 +64,7 @@ v0.1 本地能力继续免费、离线可用；v0.2 云端能力只在用户登�
 - 小账本完成度 `0-4`。
 - 今天是否记过蹲会儿。
 - 连续天数。
-- 高级报告使用的最近 90 天低敏日级摘要和 7/30/90 天滚动聚合。
+- 高级报告使用的最近 90 天日级 `date`、`trainingDone`、`habitCompletion`、`streakDays`、`toiletRecorded` 和 `toiletLongMeeting`。
 
 不允许上传：
 
@@ -73,6 +75,7 @@ v0.1 本地能力继续免费、离线可用；v0.2 云端能力只在用户登�
 - 本地 SQLite 原始记录。
 
 云端同步失败不能影响本地功能。
+7/30/90 天聚合只在服务端读取响应时计算，不由移动端上传或持久化。
 
 ## 5. Pro 体验规则
 

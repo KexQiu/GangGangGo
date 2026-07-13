@@ -1,8 +1,16 @@
 # 小提督 v0.2 移动端后端联调手动测试清单
 
 版本：v0.2
-日期：2026-05-25
+日期：2026-07-13
 适用范围：移动端接入后端后的本地联调
+
+执行记录：
+
+- 日期：待填写
+- Mac / iPhone / iOS：待填写
+- API commit：待填写
+- 测试账号：`mock-user-a` / `mock-user-b` / `mock-user-c`
+- 结果与问题链接：待填写
 
 ## 1. 测试前准备
 
@@ -57,7 +65,8 @@ pnpm mobile:ios
 ## 3. Mock 登录与我的页
 
 - [ ] 进入 `我的`。
-- [ ] 点击 `开发 Mock 登录`。
+- [ ] 确认开发登录区只在非生产构建显示。
+- [ ] 选择 `mock-user-a` 并点击 `开发 Mock 登录`。
 - [ ] 登录后显示资料摘要、权益状态和用户 ID。
 - [ ] Pro 状态显示为 `免费版`。
 - [ ] `我的` 页默认不显示昵称输入框和头像网格。
@@ -136,7 +145,7 @@ select
   'on',
   now()
 from users
-where apple_user_id = 'mock-mobile-mock-user'
+where apple_user_id = 'mock:mock-user-a'
 on conflict (original_transaction_id)
 do update set
   status = 'active',
@@ -165,15 +174,15 @@ do update set
 
 ## 7. 接受邀请
 
-当前移动端 Mock 登录固定为同一测试用户，完整双用户测试建议后续增加“切换 Mock 用户”入口。
+使用开发环境用户切换完成完整双用户流程：
 
-可先使用接口验证接受邀请：
-
-- [ ] 使用第二个 identity token 调用 `POST /auth/apple` 获取第二用户 token。
-- [ ] 使用邀请 token 调用 `POST /team-invites/:token/accept`。
-- [ ] 第二用户成功加入小队。
-- [ ] 回到 App 小队页并刷新。
-- [ ] 小队成员数增加。
+- [ ] `mock-user-a` 创建小队和邀请，保留邀请 token / 链接。
+- [ ] 在 `我的` 开发登录区切换到 `mock-user-b`。
+- [ ] 确认切换后旧用户 Query cache 已清空，本机健康记录仍保留。
+- [ ] `mock-user-b` 打开邀请链接并预览邀请。
+- [ ] `mock-user-b` 接受邀请并看到小队。
+- [ ] 切换回 `mock-user-a`，刷新后成员数增加。
+- [ ] 用 `mock-user-c` 验证已使用、过期、满员和已在其他小队的错误状态。
 
 ## 8. 共享快照同步
 
@@ -212,11 +221,12 @@ psql xiaotidu -c "select * from daily_report_snapshots order by updated_at desc 
 
 预期：
 
-- [ ] 有当前用户今日高级报告快照。
-- [ ] 包含 7/30/90 天聚合字段。
+- [ ] 最多有当前用户最近 90 天的日级高级报告快照。
+- [ ] 每条只包含 `date`、`habit_completion`、`streak_days`、`toilet_recorded`、`training_done` 和 `toilet_long_meeting`。
 - [ ] Pro 用户触发批量同步时，最多上传最近 90 天快照。
 - [ ] 免费用户不会上传高级报告快照。
 - [ ] 不包含原始健康明细。
+- [ ] `GET /reports/advanced?range=90d` 在读取时返回独立的 `7d`、`30d`、`90d` 汇总。
 
 进入 App：
 
@@ -253,14 +263,14 @@ psql xiaotidu -c "select * from daily_report_snapshots order by updated_at desc 
   - [ ] 小账本还差一点
   - [ ] 该换个姿势了
 - [ ] 不存在自由文本输入。
-- [ ] 进入 `搭子提醒` 页面。
-- [ ] 收件箱可以展示收到的提醒。
+- [ ] 进入提醒线程列表并选择对应搭子。
+- [ ] 线程按游标分页展示双方提醒，进入后台或页面失焦后停止 15 秒刷新。
 - [ ] 可选择回执：
   - [ ] 收到
   - [ ] 等会儿
   - [ ] 已完成
 - [ ] 回执后提醒卡显示已回执状态。
-- [ ] 已发送列表显示对方回执状态。
+- [ ] 同一线程内发出的提醒显示对方回执状态。
 
 ## 12. 搭子提醒设置
 
@@ -297,7 +307,7 @@ psql xiaotidu -c "select user_id, provider, platform, enabled, last_seen_at from
 
 - [ ] 已登录状态进入账号页。
 - [ ] 点击退出登录。
-- [ ] 本地 token 被清除。
+- [ ] 服务端当前 refresh session 被撤销，SecureStore 中 access / refresh token 被清除。
 - [ ] 设置页回到未登录状态。
 - [ ] 小队入口回到登录引导。
 - [ ] 本地健康记录仍保留。
@@ -310,13 +320,12 @@ psql xiaotidu -c "select user_id, provider, platform, enabled, last_seen_at from
 - [ ] 本地菊花抬、蹲会儿、小账本仍可用。
 - [ ] 云端入口显示轻量错误，不崩溃。
 - [ ] 重新启动后端后，刷新可恢复。
-- [ ] token 失效时，App 清理登录状态并提示重新登录。
+- [ ] access token 失效时只刷新并重放一次；refresh 失败后才清理登录状态并提示重新登录。
 
 ## 16. 当前已知限制
 
 - [ ] 真实 Apple 登录 UI 已临时关闭，等待 Apple Developer Program / 签名能力准备好后恢复。
 - [ ] 真实订阅购买和恢复尚未接入。
-- [ ] 当前移动端 Mock 登录固定为同一个测试用户。
-- [ ] 双用户完整流程需要接口辅助或后续增加开发环境用户切换入口。
+- [ ] Mock 用户切换仅用于 development，preview / production 不显示该入口。
 - [ ] 真机 API 地址不能用 `localhost`，需要改成 Mac 局域网 IP 或远程地址。
 - [ ] Push 通知真机表现需要 development build 或正式构建验证。

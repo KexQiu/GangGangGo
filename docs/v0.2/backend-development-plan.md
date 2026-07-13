@@ -1,8 +1,8 @@
 # 小提督 v0.2 后端详细开发方案
 
 版本：v0.2
-日期：2026-05-22
-阶段：后端开发规划
+日期：2026-07-13
+阶段：代码主链路与 Architecture v2 分层已完成，待生产化
 关联文档：[v0.2 PRD](./prd.md)、[v0.2 开发方案](./development-plan.md)、[整体开发路线图](../development-roadmap.md)、[项目结构说明](../project-structure.md)
 
 ## 1. 后端目标
@@ -31,8 +31,8 @@ v0.2 后端只服务 Pro 能力，不接管 v0.1 的本地单人闭环。
 
 当前仓库已有：
 
-- `apps/api`：后端服务骨架。
-- `packages/contracts`：前后端共享类型。
+- `apps/api`：Hono + Drizzle 模块化 API、单一基线迁移和真实 Postgres 集成测试。
+- `packages/contracts`：按领域拆分的共享 Zod schema 与推导类型。
 
 推荐 v0.2 技术栈：
 
@@ -352,7 +352,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 
 ### 5.9 daily_report_snapshots
 
-用户自己的高级小报告摘要。它可以存更多聚合字段，但仍不存便血、不适、排便感受和具体蹲会儿时长。
+用户自己的高级小报告日级摘要。7/30/90 天汇总在读取时计算，不重复持久化滚动聚合；仍不存便血、不适、排便感受和具体蹲会儿时长。
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -361,19 +361,9 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 | date | date | 日期 |
 | training_done | boolean | 今日菊花抬是否完成 |
 | habit_completion | smallint | 0-4 |
-| habit_full | boolean | 小账本是否满格 |
 | toilet_recorded | boolean | 今日是否记过蹲会儿 |
 | toilet_long_meeting | boolean | 今日是否出现蹲会儿长会，仅用户自己报告可用 |
 | streak_days | integer | 连续完成天数 |
-| weekly_training_days | smallint | 近 7 天小花训练达标天数 |
-| weekly_habit_full_days | smallint | 近 7 天小账本满格天数 |
-| weekly_toilet_long_meeting_count | smallint | 近 7 天蹲会儿长会次数 |
-| thirty_day_training_days | smallint | 近 30 天小花训练达标天数 |
-| thirty_day_habit_full_days | smallint | 近 30 天小账本满格天数 |
-| thirty_day_toilet_long_meeting_count | smallint | 近 30 天蹲会儿长会次数 |
-| ninety_day_training_days | smallint | 近 90 天小花训练达标天数 |
-| ninety_day_habit_full_days | smallint | 近 90 天小账本满格天数 |
-| ninety_day_toilet_long_meeting_count | smallint | 近 90 天蹲会儿长会次数 |
 | created_at | timestamptz | 创建时间 |
 | updated_at | timestamptz | 更新时间 |
 
@@ -381,7 +371,7 @@ Postgres 表建议使用 `uuid` 主键、`timestamptz` 时间、必要字段加�
 
 - `unique (user_id, date)`
 - `habit_completion between 0 and 4`
-- 7/30/90 天计数字段必须在对应范围内或非负。
+- `streak_days >= 0`
 
 ### 5.10 buddy_nudges
 
@@ -696,6 +686,8 @@ type UpsertDailyShareSnapshotRequest = {
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | POST | `/nudges` | 发送搭子提醒 |
+| GET | `/nudges/threads` | 当前小队提醒线程摘要 |
+| GET | `/nudges/threads/:buddyUserId` | 单个搭子会话游标分页 |
 | GET | `/nudges/inbox` | 收到的提醒 |
 | GET | `/nudges/sent` | 发出的提醒 |
 | POST | `/nudges/:id/ack` | 提交或修改回执 |
@@ -1092,7 +1084,7 @@ API base URL：
 
 ### B5. 小队与共享快照
 
-当前已完成第一阶段最小链路：
+当前已完成线程化与并发保护链路：
 
 1. 实现 `POST /teams` 创建小队。
 2. 实现 `GET /teams/current` 查询当前小队。
@@ -1150,6 +1142,9 @@ API base URL：
 15. 免打扰时间格式限制为 `HH:mm` 且必须落在 `00:00-23:59`。
 16. 搭子提醒的免打扰判断和每日次数日切按被提醒人的 `timezone` 计算，避免部署服务器时区影响午休/夜间范围。
 17. Expo Push 返回 `DeviceNotRegistered` 时，会自动禁用对应 push token。
+18. 实现 `GET /nudges/threads` 与单个搭子游标会话接口，移动端不再依赖 inbox/sent 双请求。
+19. 每日额度使用 `nudge_daily_counters` 唯一行原子递增；回执使用条件 upsert/update 保证幂等和只修改一次。
+20. 提醒列表和会话详情使用固定次数联表查询，真实 Postgres 测试断言查询数不随记录条数增长。
 
 暂未实现：
 
@@ -1174,7 +1169,7 @@ API base URL：
 2. 实现 `GET /teams/current/reports/weekly`。
 3. 两个接口都要求登录，并通过 Pro 权益校验。
 4. `pro_active` 和 `pro_grace_period` 可访问；`free / pro_expired` 返回 `403 forbidden`。
-5. 个人 90 天报告读取 `daily_report_snapshots` 最新摘要；没有数据时返回 `snapshot: null`。
+5. 个人 90 天报告读取日级 `daily_report_snapshots`，返回 90 天序列、读取时计算的 `7d/30d/90d` 汇总和最新 `snapshot`。
 6. 小队周报基于 `daily_share_snapshots` 聚合最近 7 天成员数据。
 7. 小队周报只统计低敏字段：小花训练达标天数、小账本满格天数、蹲会儿记过天数。
 8. 小队周报会应用成员共享设置；暂停共享或关闭某项共享后，对应字段不会计入周报。
@@ -1184,6 +1179,7 @@ API base URL：
 12. 上传接口要求 Pro 权益，免费用户不能产生云端报告数据。
 13. 上传数据按 `user_id + date` upsert；同一批内同一天重复数据以请求内最后一条为准。
 14. 上传数据只允许低敏聚合字段，不允许便血、不适、排便感受和具体蹲会儿时长。
+15. 批量写入使用一次 bulk upsert SQL，真实 Postgres 测试覆盖 90 条、覆盖写入和三档汇总。
 
 暂未实现：
 
@@ -1196,12 +1192,11 @@ API base URL：
 - Pro 用户可查询。
 - 报告只基于低敏摘要。
 
-## 15. 当前下一步
+## 15. 剩余生产化工作
 
-B1-B7.1 后端基础链路已经完成。下一步建议进入 **移动端 Pro 接入准备**：
+B1-B7 的 API、15 分钟 access token / refresh session、repository-policy 分层、生成式 OpenAPI 和真实 Postgres 并发门禁已经完成。后续工作不再是移动端接入准备，而是：
 
-1. 新增移动端 API client 和 token 存储。
-2. 当前继续使用 mock/dev 登录配置；Apple Developer Program 和签名能力准备好后，再恢复 Apple 登录按钮并完成真机联调。
-3. 新增 Pro paywall 占位页。
-4. 接入 `/me/entitlements` 判断 Pro 状态。
-5. 之后再开发小队 UI、搭子提醒 UI 和高级小报告页面。
+1. Apple Developer Program 准备完成后接入真实 Apple 登录、StoreKit 校验和远程 Push。
+2. 增加通用 rate limit、请求体大小限制、安全响应头、账号删除和数据保留策略。
+3. 部署生产 API/Postgres，配置 secrets、日志、指标、告警、备份恢复与迁移回滚。
+4. 完成生产双用户、订阅生命周期和 Push 回执人工回归。

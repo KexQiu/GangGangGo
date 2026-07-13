@@ -1,8 +1,8 @@
 # 小提督 v0.2 Apple Watch 开发计划
 
 版本：v0.2
-日期：2026-06-16
-阶段：开发联调中
+日期：2026-07-13
+阶段：代码与自动化门禁完成，待完整真机人工验收
 关联文档：[Apple Watch 需求文档](./apple-watch-prd.md)、[v0.2 开发方案](./development-plan.md)
 
 ## 1. 开发目标
@@ -15,7 +15,7 @@
 - 查看蹲会儿计时并快速收工。
 - 通过 WatchConnectivity 与 iPhone 同步。
 
-本计划采用 **原生 SwiftUI watchOS target + iPhone 端原生桥接/服务层**。移动端 React Native 继续作为 iPhone 主界面；Watch 端不使用 React Native。
+本计划采用 **原生 SwiftUI watchOS target + iPhone 端本地 Expo Module/服务层**。移动端 React Native 继续作为 iPhone 主界面；Watch 端不使用 React Native。
 
 ## 2. 工程策略
 
@@ -93,10 +93,12 @@ Xcode target：
 - Watch 菊花抬已支持选择新手、标准、快速模式；再次点击当前选中模式会直接开始。训练模式时长来自 iPhone 下发的 `trainingModes`，Watch 端只保留兼容 fallback。
 - Watch 菊花抬计时已改为真实时间推导：`TimelineView` 负责刷新显示，`WatchTrainingSession.snapshot(at:)` 根据 `Date()` 推导阶段、剩余秒数、轮次和进度，checkpoint tick 只处理阶段 haptic 与完成事件。
 - Watch 小账本支持四项达标和撤销，ACK 后立即刷新最新 `WatchTodayState`。
-- Watch 蹲会儿页面可滚动，计时用 iPhone 快照加本地时间推导，0.25 秒刷新 UI；暂停、继续、收工回传 Watch 当前计算出的用时。
+- Watch 蹲会儿页面可滚动，计时用 iPhone 快照加本地时间推导并以 1 Hz 刷新显示；阶段 haptic 由下一边界的一次性 Task 调度，不由显示 tick 判断。
 - Watch 蹲会儿收工会触发 iPhone 端结束计时、保存记录、结束 Live Activity，并取消阶段通知，避免灵动岛继续计时。
 - Watch 蹲会儿按 5/10/15/20 分钟阶段触发不同 haptic，收工前有确认弹层，减少误触。
 - Watch 离线队列保留 24 小时过期、最多 25 条、按 event id 去重；回放前用最新 `todayState.isPro` 做本地过滤，iPhone 端仍做最终校验。
+- WCSession 推送失败只在 Watch 前台按 5、10、20、30 秒退避重试，后台不保留轮询。
+- `WatchSessionManager` 已收敛为主线程 ViewModel，连接、磁盘状态和 actor 离线队列分别位于独立类型中。
 - Watch -> iPhone ACK 携带最新 `WatchTodayState` 或 `stateJson`；Watch 收到后立即刷新 UI，失败时展示中文短文案并保留可重试状态。
 - Complication 已接入 App Group `group.com.kex.xiaotidu.watch` 共享低敏状态，支持 circular、rectangular、inline 三种 family；状态过期时展示打开同步。
 - Complication 样式已升级：圆形使用 gauge 和状态图标，矩形展示图标、标题、详情和 footnote；蹲会儿进行中显示计时状态，普通状态展示小账本完成度和菊花抬状态。
@@ -582,9 +584,8 @@ apps/mobile/ios/XiaoTiduWatchComplications/XiaoTiduWatchComplications.swift
 每个阶段至少运行：
 
 ```bash
-pnpm --filter @xiaotidu/mobile typecheck
+pnpm check
 pnpm --filter @xiaotidu/mobile exec expo install --check
-pnpm peers check
 git diff --check
 ```
 
@@ -646,15 +647,10 @@ xcodebuild -workspace apps/mobile/ios/app.xcworkspace -scheme XiaoTiduWatchApp -
 - Watch 离线队列必须去重，避免重复写入训练或小账本记录。
 - 蹲会儿风险详情必须回到 iPhone 填写，Watch 不做敏感记录。
 
-## 10. 推荐开工顺序
+## 10. 剩余验收顺序
 
-1. 先做 iPhone 端 `WatchTodayState` 和 `WatchEvent` TypeScript 类型。
-2. 再做 iPhone 端 Swift WatchConnectivity manager。
-3. 新增 watchOS target 和 WatchSessionManager。
-4. 跑通 iPhone <-> Watch 测试消息。
-5. 做 Watch 首页。
-6. 做菊花抬。
-7. 做小账本。
-8. 做蹲会儿。
-9. 做 complication。
-10. 最后真机验收和 Pro 权限回归。
+1. 按手动清单验证离线队列重启恢复、重复事件幂等和错误 ACK。
+2. 真机验证训练与蹲会儿阶段 haptic 只触发一次且手感合理。
+3. 将 Complication 添加到三类表盘，验证系统刷新节奏、过期态和深链。
+4. 验证 iPhone/Watch 前后台切换后无后台轮询，重连退避符合预期。
+5. 在真实 Pro、免费、过期和未登录状态下完成权限回归并记录设备、账号和结果。
