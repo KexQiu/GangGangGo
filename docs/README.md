@@ -14,6 +14,8 @@ packages/contracts   # 跨端 Zod schema 与 TypeScript 类型
 
 整体开发步骤详见：[开发路线图](./development-roadmap.md)。
 
+当前架构重构的实际剩余工作以 [Architecture v2 后续待办](./architecture/architecture-v2-follow-up-todo.md) 为准。
+
 ## v0.1 当前完成版
 
 - [产品定位](./v0.1/product-positioning.md)
@@ -35,7 +37,7 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 - [后端接口文档](./v0.2/api-reference.md)
 - [移动端后端接入计划](./v0.2/mobile-integration-plan.md)
 - [移动端后端联调手动测试清单](./v0.2/mobile-backend-manual-test-checklist.md)
-- [总待办清单](./v0.2/todo-checklist.md)
+- [产品总待办清单（历史规划）](./v0.2/todo-checklist.md)
 - [Apifox/OpenAPI 导入文件](./v0.2/openapi.json)
 
 v0.2 是小提督 Pro 的开发联调版，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。
