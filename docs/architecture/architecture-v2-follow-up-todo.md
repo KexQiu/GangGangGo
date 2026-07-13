@@ -32,18 +32,19 @@
 
 路由文件尚未做到只负责参数解析和导航，以下页面仍是大型单体文件：
 
-- [ ] 拆分 `apps/mobile/app/trends/advanced.tsx`（约 1035 行）。
-- [ ] 拆分 `apps/mobile/app/reminders/index.tsx`（约 977 行）。
-- [ ] 拆分 `apps/mobile/app/index.tsx`（约 738 行）。
-- [ ] 拆分 `apps/mobile/app/nudges/[userId]/index.tsx`（约 718 行）。
-- [ ] 拆分 `apps/mobile/app/trends/index.tsx`（约 622 行）。
-- [ ] 拆分 `apps/mobile/app/habits/index.tsx`（约 614 行）。
-- [ ] 拆分 `apps/mobile/app/team/index.tsx`（约 596 行）。
-- [ ] 拆分 `apps/mobile/app/watch/index.tsx`（约 537 行）。
-- [ ] 拆分 `apps/mobile/app/toilet/index.tsx`（约 492 行）。
-- [ ] 拆分 `apps/mobile/app/me/profile/index.tsx`（约 312 行）。
-- [ ] 为上述页面建立对应 feature 目录，将 screen、section、hook 和样式按职责分离。
+- [x] 拆分 `apps/mobile/app/trends/advanced.tsx`（约 1035 行）。
+- [x] 拆分 `apps/mobile/app/reminders/index.tsx`（约 977 行）。
+- [x] 拆分 `apps/mobile/app/index.tsx`（约 738 行）。
+- [x] 拆分 `apps/mobile/app/nudges/[userId]/index.tsx`（约 718 行）。
+- [x] 拆分 `apps/mobile/app/trends/index.tsx`（约 622 行）。
+- [x] 拆分 `apps/mobile/app/habits/index.tsx`（约 614 行）。
+- [x] 拆分 `apps/mobile/app/team/index.tsx`（约 596 行）。
+- [x] 拆分 `apps/mobile/app/watch/index.tsx`（约 537 行）。
+- [x] 拆分 `apps/mobile/app/toilet/index.tsx`（约 492 行）。
+- [x] 拆分 `apps/mobile/app/me/profile/index.tsx`（约 312 行）。
+- [x] 为上述页面建立对应 feature 目录，将 screen、section、hook 和样式按职责分离。
   - 验收：路由文件只保留路由参数、导航配置和 feature screen 挂载；业务逻辑可独立测试；原则上单文件不超过约 300 行。
+  - 证据：9 个静态路由均缩减为 3 行挂载入口，提醒会话动态路由为 10 行并显式解析 `userId`；页面实现迁入 account/habits/nudges/reminders/team/today/toilet/trends/watch feature。复杂计时与提醒逻辑分别进入 hook，高级报告日历、趋势、首页、小队和 Watch 展示进入 section，纯展示计算进入 presentation。拆分区域除 301 行的纯样式表外均不超过 300 行；移动端类型检查、ESLint、格式检查和 37 项测试通过。
 
 ### API 分层
 
