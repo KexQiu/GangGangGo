@@ -72,3 +72,16 @@ jobs:
             -o /tmp/watch-protocol-fixture-test
           /tmp/watch-protocol-fixture-test ../fixtures/watch-today-state-v2.json
         working-directory: apps/mobile/ios
+      - name: Test Watch queue and timelines
+        run: |
+          xcrun swiftc \
+            -module-cache-path /tmp/gangganggo-swift-module-cache \
+            XiaoTiduWatchApp/Models/WatchTodayState.swift \
+            XiaoTiduWatchApp/Models/WatchTrainingTimeline.swift \
+            XiaoTiduWatchApp/Models/WatchToiletHapticTimeline.swift \
+            XiaoTiduWatchApp/Connectivity/WatchOfflineEventQueue.swift \
+            XiaoTiduWatchApp/Connectivity/WatchRefreshBackoff.swift \
+            Tests/WatchCoreTestMain.swift \
+            -o /tmp/watch-core-test
+          /tmp/watch-core-test
+        working-directory: apps/mobile/ios

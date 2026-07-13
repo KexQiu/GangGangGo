@@ -122,25 +122,28 @@
 
 ### WatchSessionManager 解耦
 
-- [ ] 将约 612 行的 `WatchSessionManager.swift` 拆成主线程 ViewModel。
-- [ ] 提取独立 Connectivity client。
-- [ ] 提取持久化 state store。
-- [ ] 使用 actor 隔离离线事件队列和 ACK 状态。
-- [ ] 缩小 Watch Expo Module 原生文件的职责。
+- [x] 将约 612 行的 `WatchSessionManager.swift` 拆成主线程 ViewModel。
+- [x] 提取独立 Connectivity client。
+- [x] 提取持久化 state store。
+- [x] 使用 actor 隔离离线事件队列和 ACK 状态。
+- [x] 缩小 Watch Expo Module 原生文件的职责。
   - 验收：UI 状态、WCSession 生命周期、磁盘状态和队列并发可分别测试；重复事件保持幂等。
+  - 证据：Watch 侧拆为 `@MainActor` ViewModel、WCSession client、state store、actor 离线队列和纯时间线/退避策略；iPhone Expo Module 仅保留 JS API 声明，WCSession client 已独立。Swift 自动化覆盖重启恢复、重复入队、in-flight 去重、失败重试、ACK 持久清理、24 小时过期和 25 条上限。
 
 ### Watch 计时与刷新
 
-- [ ] 用下一阶段边界的一次性调度替代训练和蹲会儿每秒检查阶段 haptic。
-- [ ] 保留 1 Hz 显示刷新，但确保它不承担阶段业务判断。
-- [ ] 验证 WCSession 推送优先、首次失败后 5 秒重试、指数退避至 30 秒和后台零轮询。
+- [x] 用下一阶段边界的一次性调度替代训练和蹲会儿每秒检查阶段 haptic。
+- [x] 保留 1 Hz 显示刷新，但确保它不承担阶段业务判断。
+- [x] 验证 WCSession 推送优先、首次失败后 5 秒重试、指数退避至 30 秒和后台零轮询。
   - 验收：每个阶段只触发一次 haptic；切换前后台不会遗留 timer；后台网络和连接轮询计数为零。
+  - 证据：训练使用 `TimelineView` 以 1 Hz 渲染，蹲会儿 1 Hz tick 只更新时间；两者业务 haptic 均使用可取消的一次性 Task。纯 Swift 测试断言阶段边界唯一、暂停后边界顺延、5/10/20/30 秒退避、30 秒封顶及后台返回零调度。
 
 ### 隐私日志约束
 
-- [ ] 为日志建立统一脱敏入口，禁止 token、健康记录明细和完整 Watch payload。
-- [ ] 为错误日志和调试日志增加自动化检查或测试。
+- [x] 为日志建立统一脱敏入口，禁止 token、健康记录明细和完整 Watch payload。
+- [x] 为错误日志和调试日志增加自动化检查或测试。
   - 验收：测试 fixture 中的敏感值不会出现在日志输出；生产构建关闭仅供开发的 payload 日志。
+  - 证据：API logger 使用字段级 redact；Watch 调试日志只记录 schema、日期、事件类型和 ID，完整状态/ACK 仅在 `__DEV__` 内存调试状态中保留，生产记录入口为 no-op。API 与移动端测试均注入敏感值并断言输出不包含原值。
 
 ## P1：自动化测试与性能验收
 
@@ -180,17 +183,19 @@
 
 ### Watch
 
-- [ ] 覆盖 schema v2 兼容、隐私字段过滤和错误 ACK。
-- [ ] 覆盖离线队列重启恢复、重复事件幂等和发送成功清理。
-- [ ] 覆盖训练剩余时间推导、阶段边界和一次性 haptic 调度。
-- [ ] 覆盖连接失败退避、恢复连接和后台无轮询。
+- [x] 覆盖 schema v2 兼容、隐私字段过滤和错误 ACK。
+- [x] 覆盖离线队列重启恢复、重复事件幂等和发送成功清理。
+- [x] 覆盖训练剩余时间推导、阶段边界和一次性 haptic 调度。
+- [x] 覆盖连接失败退避、恢复连接和后台无轮询。
+  - 证据：TypeScript fixture/解析测试覆盖 v2、未知版本拒绝、隐私键和 rejected ACK；Swift 测试覆盖 v1 默认值兼容、队列生命周期、训练/蹲会儿时间线、退避重置与后台零调度，并纳入 Apple CI。
 
 ### 性能门禁
 
 - [ ] 为提醒列表和线程详情增加数据库语句计数断言，证明返回条数增加时查询数保持固定。
 - [ ] 断言 90 天上传最多执行一次 bulk upsert SQL。
 - [ ] 为 SQLite 大历史量建立启动、分页和 90 天报告基准。
-- [ ] 为同步风暴和 Watch 后台行为建立可重复的计数型测试。
+- [x] 为同步风暴和 Watch 后台行为建立可重复的计数型测试。
+  - 证据：SyncCoordinator 测试统计一次运行中任务和一次尾随补跑；Watch 退避策略测试统计前台延迟序列并断言后台不产生调度。
 
 ## P1：文档、资产与人工验收
 

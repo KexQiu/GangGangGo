@@ -32,6 +32,7 @@ type WatchDebugState = {
 };
 
 const maxLogs = 16;
+const isWatchDebugEnabled = typeof __DEV__ !== 'undefined' && __DEV__;
 
 export const useWatchDebugStore = create<WatchDebugState>((set) => ({
   lastAck: null,
@@ -41,22 +42,23 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
   lastSyncResult: null,
   logs: [],
   recordAck: (ack) => {
+    if (!isWatchDebugEnabled) return;
     set((state) => ({
       lastAck: ack,
       logs: prependLog(state.logs, {
-        detail: ack.message ?? `eventId=${ack.eventId}`,
+        detail: `eventId=${safeIdentifier(ack.eventId)}`,
         direction: 'outgoing',
         title: `ACK ${ack.status}`,
       }),
     }));
   },
   recordBuiltState: (builtState) => {
-    const toiletDetail = `${builtState.toilet.sessionCount} 次`;
+    if (!isWatchDebugEnabled) return;
 
     set((state) => ({
       lastBuiltState: builtState,
       logs: prependLog(state.logs, {
-        detail: `${builtState.date} · 小账本 ${builtState.habits.completion}/4 · 蹲会儿 ${toiletDetail}`,
+        detail: summarizeWatchStateForDebug(builtState),
         direction: 'state',
         title: '构建 WatchTodayState',
       }),
@@ -68,7 +70,8 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
     });
   },
   recordIncomingPayload: (payload) => {
-    const summary = summarizePayload(payload);
+    if (!isWatchDebugEnabled) return;
+    const summary = summarizeWatchPayloadForDebug(payload);
     set((state) => ({
       lastIncomingPayload: summary,
       logs: prependLog(state.logs, {
@@ -79,6 +82,7 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
     }));
   },
   recordSyncResult: (result, source) => {
+    if (!isWatchDebugEnabled) return;
     const at = new Date().toISOString();
     set((state) => ({
       lastSyncResult: {
@@ -87,7 +91,7 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
         source,
       },
       logs: prependLog(state.logs, {
-        detail: result.sent ? source : `${source} · ${result.reason ?? 'unknown'}`,
+        detail: safeIdentifier(source),
         direction: 'sync',
         title: result.sent ? '同步已发出' : '同步未发出',
       }),
@@ -106,9 +110,9 @@ function prependLog(logs: WatchDebugLog[], entry: Omit<WatchDebugLog, 'at' | 'id
   return [nextLog, ...logs].slice(0, maxLogs);
 }
 
-function summarizePayload(payload: unknown): string {
+export function summarizeWatchPayloadForDebug(payload: unknown): string {
   if (!payload || typeof payload !== 'object') {
-    return String(payload);
+    return 'type=invalid';
   }
 
   const value = payload as {
@@ -118,12 +122,21 @@ function summarizePayload(payload: unknown): string {
   };
 
   if (value.type === 'request_today_state') {
-    return `request_today_state · replyId=${String(value.replyId ?? '-')}`;
+    return `request_today_state · replyId=${safeIdentifier(value.replyId)}`;
   }
 
   if (value.type === 'watch_event') {
-    return `${String(value.event?.type ?? 'watch_event')} · eventId=${String(value.event?.id ?? '-')}`;
+    return `${safeIdentifier(value.event?.type ?? 'watch_event')} · eventId=${safeIdentifier(value.event?.id)}`;
   }
 
-  return `type=${String(value.type ?? 'unknown')}`;
+  return 'type=unknown';
+}
+
+export function summarizeWatchStateForDebug(state: WatchTodayState): string {
+  return `schema=${state.schemaVersion} · date=${safeIdentifier(state.date)} · pro=${safeIdentifier(state.proStatus)}`;
+}
+
+function safeIdentifier(value: unknown): string {
+  const normalized = typeof value === 'string' ? value : '-';
+  return normalized.replace(/[^a-zA-Z0-9_.:-]/g, '').slice(0, 80) || '-';
 }

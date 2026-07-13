@@ -9,6 +9,9 @@ struct XiaoTiduWatchApp: App {
     WindowGroup {
       WatchHomeView()
         .environmentObject(sessionManager)
+        .onAppear {
+          sessionManager.setApplicationActive(scenePhase == .active)
+        }
         .onChange(of: scenePhase) { _, phase in
           sessionManager.setApplicationActive(phase == .active)
         }

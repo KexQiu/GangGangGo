@@ -1,59 +1,60 @@
 import Combine
 import Foundation
-import WatchConnectivity
-import WidgetKit
 
-final class WatchSessionManager: NSObject, ObservableObject {
+@MainActor
+final class WatchSessionManager: ObservableObject {
+  @Published private(set) var isApplicationActive = true
   @Published private(set) var isReachable = false
   @Published private(set) var lastAckMessage: String?
   @Published private(set) var lastError: String?
   @Published private(set) var lastSyncedAt: Date?
   @Published private(set) var pendingEventCount = 0
   @Published private(set) var pendingEventSummaries: [String] = []
-  @Published private(set) var todayState = WatchTodayState.placeholder
+  @Published private(set) var todayState: WatchTodayState
 
-  private let session: WCSession? = WCSession.isSupported() ? WCSession.default : nil
-  private let maxPendingEvents = 25
-  private let pendingEventLifetime: TimeInterval = 24 * 60 * 60
-  private let legacyStateStorageKey = "xiaotidu-watch-today-state"
-  private let pendingEventsStorageKey = "xiaotidu-watch-pending-events"
-  private var pendingEvents: [[String: Any]] = []
-  private var stateRefreshTimer: Timer?
-  private var refreshBackoff: TimeInterval = 5
-  private var isApplicationActive = true
+  private let connectivityClient: WatchConnectivityClient
+  private let eventQueue: WatchOfflineEventQueue
+  private let stateStore: WatchStateStore
+  private var refreshBackoff = WatchRefreshBackoff()
+  private var stateRefreshTask: Task<Void, Never>?
 
-  override init() {
-    super.init()
-    loadPersistedState()
-    loadPendingEvents()
+  init(
+    connectivityClient: WatchConnectivityClient = WatchConnectivityClient(),
+    eventQueue: WatchOfflineEventQueue = WatchOfflineEventQueue(),
+    stateStore: WatchStateStore = WatchStateStore()
+  ) {
+    self.connectivityClient = connectivityClient
+    self.eventQueue = eventQueue
+    self.stateStore = stateStore
+    todayState = stateStore.load()
+
+    bindConnectivityClient()
     activate()
-  }
-
-  deinit {
-    stateRefreshTimer?.invalidate()
+    refreshPendingEventState()
   }
 
   func activate() {
-    guard let session else {
+    guard connectivityClient.isSupported else {
       lastError = "这块表暂时不支持 WatchConnectivity。"
       return
     }
 
-    session.delegate = self
-    session.activate()
-    isReachable = session.isReachable
+    connectivityClient.activate()
+    isReachable = connectivityClient.isReachable
     requestLatestStateIfPossible()
   }
 
   func setApplicationActive(_ isActive: Bool) {
     isApplicationActive = isActive
-    stateRefreshTimer?.invalidate()
-    stateRefreshTimer = nil
-    if isActive {
-      refreshBackoff = 5
-      requestLatestStateIfPossible()
-      flushPendingEventsIfPossible()
+    cancelStateRefreshRetry()
+
+    guard isActive else {
+      return
     }
+
+    refreshBackoff.reset()
+    requestLatestStateIfPossible()
+    flushPendingEventsIfPossible()
   }
 
   func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) {
@@ -61,13 +62,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
       return
     }
 
-    sendEvent(
-      type: "training_completed",
-      payload: [
-        "completedSets": completedSets,
-        "durationSeconds": durationSeconds,
-        "mode": mode,
-      ]
+    sendOrQueue(
+      .trainingCompleted(
+        mode: mode,
+        completedSets: completedSets,
+        durationSeconds: durationSeconds
+      )
     )
   }
 
@@ -77,15 +77,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     applyHabitToggle(habitKey: habitKey, isDone: level != nil)
-    var payload: [String: Any] = [
-      "habitKey": habitKey,
-    ]
-
-    if let level {
-      payload["level"] = level
-    }
-
-    sendEvent(type: "habit_toggled", payload: payload)
+    sendOrQueue(.habitToggled(habitKey: habitKey, level: level))
   }
 
   func sendToiletAction(_ action: String, elapsedSeconds: Int) {
@@ -93,121 +85,168 @@ final class WatchSessionManager: NSObject, ObservableObject {
       return
     }
 
-    sendEvent(
-      type: "toilet_timer_action",
-      payload: [
-        "action": action,
-        "elapsedSeconds": elapsedSeconds,
-      ]
-    )
+    sendOrQueue(.toiletTimerAction(action: action, elapsedSeconds: elapsedSeconds))
   }
 
-  private func sendEvent(type: String, payload: [String: Any]) {
-    let event: [String: Any] = [
-      "createdAt": ISO8601DateFormatter().string(from: Date()),
-      "id": UUID().uuidString,
-      "payload": payload,
-      "schemaVersion": 2,
-      "type": type,
-    ]
-    let message: [String: Any] = [
-      "event": event,
-      "schemaVersion": 2,
-      "type": "watch_event",
-    ]
+  private func bindConnectivityClient() {
+    connectivityClient.onActivationCompleted = { [weak self] error in
+      Task { @MainActor [weak self] in
+        self?.handleActivationCompleted(error: error)
+      }
+    }
 
-    sendOrQueue(message)
+    connectivityClient.onReachabilityChanged = { [weak self] isReachable in
+      Task { @MainActor [weak self] in
+        self?.handleReachabilityChanged(isReachable)
+      }
+    }
+
+    connectivityClient.onPayloadReceived = { [weak self] payload in
+      Task { @MainActor [weak self] in
+        self?.updateState(from: payload)
+      }
+    }
   }
 
-  private func ensureProActionAllowed() -> Bool {
-    guard todayState.account.isLoggedIn else {
+  private func handleActivationCompleted(error: Error?) {
+    isReachable = connectivityClient.isReachable
+    lastError = error.map(friendlyConnectivityMessage)
+    flushPendingEventsIfPossible()
+    requestLatestStateIfPossible()
+  }
+
+  private func handleReachabilityChanged(_ reachable: Bool) {
+    isReachable = reachable
+
+    guard reachable else {
+      if isApplicationActive {
+        scheduleStateRefreshRetry()
+      }
+      return
+    }
+
+    flushPendingEventsIfPossible()
+    requestLatestStateIfPossible()
+  }
+
+  private func sendOrQueue(_ event: WatchOutboundEvent) {
+    guard connectivityClient.isReadyToSend else {
+      queue(event)
+      return
+    }
+
+    deliver(event, isReplay: false)
+  }
+
+  private func deliver(_ event: WatchOutboundEvent, isReplay: Bool) {
+    guard let message = event.messageDictionary else {
       lastAckMessage = nil
-      lastError = "先在 iPhone 上登录小提督。"
-      return false
-    }
-
-    guard todayState.isPro else {
-      lastAckMessage = nil
-      lastError = proLockedMessage
-      return false
-    }
-
-    return true
-  }
-
-  private var proLockedMessage: String {
-    if todayState.proStatus == "pro_expired" {
-      return "小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。"
-    }
-
-    return "Apple Watch 联动属于小提督 Pro。"
-  }
-
-  private func sendOrQueue(_ message: [String: Any]) {
-    guard let session else {
-      queue(message)
+      lastError = "手表操作暂时无法编码。"
+      if isReplay {
+        markDeliveryFailed(eventId: event.id)
+      }
       return
     }
 
-    if session.isReachable {
-      session.sendMessage(
-        message,
-        replyHandler: { [weak self] reply in
-          DispatchQueue.main.async {
-            self?.handleReply(reply)
-          }
-        },
-        errorHandler: { [weak self] error in
-          DispatchQueue.main.async {
-            self?.lastError = self?.friendlyConnectivityMessage(for: error)
-            self?.queue(message)
-          }
-        }
-      )
-      return
+    connectivityClient.sendMessage(message) { [weak self] result in
+      Task { @MainActor [weak self] in
+        self?.handleDeliveryResult(result, event: event, isReplay: isReplay)
+      }
     }
-
-    queue(message)
   }
 
-  private func queue(_ message: [String: Any]) {
-    purgeExpiredPendingEvents()
-
-    if let eventId = eventId(from: message), pendingEvents.contains(where: { self.eventId(from: $0) == eventId }) {
-      refreshPendingEventState()
-      return
+  private func handleDeliveryResult(
+    _ result: Result<[String: Any], Error>,
+    event: WatchOutboundEvent,
+    isReplay: Bool
+  ) {
+    switch result {
+    case let .success(reply):
+      handleReply(reply)
+      if isReplay {
+        acknowledge(eventId: event.id)
+      }
+    case let .failure(error):
+      lastError = friendlyConnectivityMessage(for: error)
+      if isReplay {
+        markDeliveryFailed(eventId: event.id)
+      } else {
+        queue(event)
+      }
     }
+  }
 
-    if pendingEvents.count >= maxPendingEvents {
-      pendingEvents.removeFirst(pendingEvents.count - maxPendingEvents + 1)
+  private func queue(_ event: WatchOutboundEvent) {
+    Task { [weak self, eventQueue] in
+      let snapshot = await eventQueue.enqueue(event)
+      self?.applyPendingSnapshot(snapshot)
     }
-
-    pendingEvents.append(message)
-    refreshPendingEventState()
-    persistPendingEvents()
   }
 
   private func flushPendingEventsIfPossible() {
-    purgeExpiredPendingEvents()
-
-    guard let session, session.isReachable, !pendingEvents.isEmpty else {
+    guard connectivityClient.isReadyToSend else {
       return
     }
 
-    let events = pendingEvents.filter { canReplayPendingEvent($0) }
-    let removedCount = pendingEvents.count - events.count
-    pendingEvents.removeAll()
-    refreshPendingEventState()
-    persistPendingEvents()
+    let allowDelivery = todayState.account.isLoggedIn && todayState.isPro
+    Task { [weak self, eventQueue] in
+      let batch = await eventQueue.beginReplay(allowDelivery: allowDelivery)
+      guard let self else {
+        return
+      }
 
-    if removedCount > 0 {
-      lastAckMessage = nil
-      lastError = "Pro 状态暂停，未继续同步 \(removedCount) 条手表操作。"
-    }
+      applyPendingSnapshot(batch.snapshot)
+      if batch.removedUnauthorizedCount > 0 {
+        lastAckMessage = nil
+        lastError = "Pro 状态暂停，未继续同步 \(batch.removedUnauthorizedCount) 条手表操作。"
+      }
 
-    for event in events {
-      sendOrQueue(event)
+      for event in batch.events {
+        deliver(event, isReplay: true)
+      }
     }
+  }
+
+  private func acknowledge(eventId: String) {
+    Task { [weak self, eventQueue] in
+      let snapshot = await eventQueue.acknowledge(eventId: eventId)
+      self?.applyPendingSnapshot(snapshot)
+    }
+  }
+
+  private func markDeliveryFailed(eventId: String) {
+    Task { [weak self, eventQueue] in
+      let snapshot = await eventQueue.deliveryFailed(eventId: eventId)
+      self?.applyPendingSnapshot(snapshot)
+    }
+  }
+
+  private func refreshPendingEventState() {
+    Task { [weak self, eventQueue] in
+      let snapshot = await eventQueue.snapshot()
+      self?.applyPendingSnapshot(snapshot)
+    }
+  }
+
+  private func prunePendingEventsForCurrentState() {
+    let allowDelivery = todayState.account.isLoggedIn && todayState.isPro
+    Task { [weak self, eventQueue] in
+      let (snapshot, removedCount) = await eventQueue.pruneForAuthorization(allowDelivery: allowDelivery)
+      guard let self else {
+        return
+      }
+
+      applyPendingSnapshot(snapshot)
+      if removedCount > 0 {
+        lastAckMessage = nil
+        lastError = "Pro 状态暂停，未继续同步 \(removedCount) 条手表操作。"
+      }
+    }
+  }
+
+  private func applyPendingSnapshot(_ snapshot: WatchPendingQueueSnapshot) {
+    pendingEventCount = snapshot.count
+    pendingEventSummaries = snapshot.summaries
   }
 
   private func handleReply(_ reply: [String: Any]) {
@@ -235,35 +274,34 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
   @discardableResult
   private func updateState(from payload: [String: Any]) -> Bool {
+    let decodedState: WatchTodayState?
+
     if let stateJson = payload["stateJson"] as? String,
-       let data = stateJson.data(using: .utf8),
-       let decoded = try? JSONDecoder().decode(WatchTodayState.self, from: data) {
-      todayState = decoded
-      refreshBackoff = 5
-      stateRefreshTimer?.invalidate()
-      lastError = nil
-      lastSyncedAt = Date()
-      persistTodayState()
-      prunePendingEventsForCurrentState()
-      return true
+       let data = stateJson.data(using: .utf8) {
+      decodedState = try? JSONDecoder().decode(WatchTodayState.self, from: data)
+    } else {
+      let rawState = dictionaryValue(payload["state"]) ?? payload
+      if JSONSerialization.isValidJSONObject(rawState),
+         let data = try? JSONSerialization.data(withJSONObject: rawState) {
+        decodedState = try? JSONDecoder().decode(WatchTodayState.self, from: data)
+      } else {
+        decodedState = nil
+      }
     }
 
-    let rawState = dictionaryValue(payload["state"]) ?? payload
-
-    guard JSONSerialization.isValidJSONObject(rawState),
-          let data = try? JSONSerialization.data(withJSONObject: rawState),
-          let decoded = try? JSONDecoder().decode(WatchTodayState.self, from: data) else {
+    guard let decodedState else {
       lastError = "手表收到的今日状态格式不对。"
       return false
     }
 
-    todayState = decoded
-    refreshBackoff = 5
-    stateRefreshTimer?.invalidate()
+    todayState = decodedState
+    refreshBackoff.reset()
+    cancelStateRefreshRetry()
     lastError = nil
     lastSyncedAt = Date()
-    persistTodayState()
+    stateStore.save(todayState)
     prunePendingEventsForCurrentState()
+    flushPendingEventsIfPossible()
     return true
   }
 
@@ -295,46 +333,67 @@ final class WatchSessionManager: NSObject, ObservableObject {
   }
 
   private func requestLatestStateIfPossible() {
-    guard let session, session.activationState == .activated, session.isReachable else {
-      scheduleStateRefreshRetry()
-      return
-    }
-
-    session.sendMessage(
-      [
-        "requestedAt": ISO8601DateFormatter().string(from: Date()),
-        "type": "request_today_state",
-      ],
-      replyHandler: { [weak self] reply in
-        DispatchQueue.main.async {
-          if self?.updateStateIfPresent(in: reply) != true {
-            self?.lastError = nil
-          }
-          self?.refreshBackoff = 5
-        }
-      },
-      errorHandler: { [weak self] error in
-        DispatchQueue.main.async {
-          self?.lastError = self?.friendlyConnectivityMessage(for: error)
-          self?.scheduleStateRefreshRetry()
-        }
-      }
-    )
-  }
-
-  private func scheduleStateRefreshRetry() {
     guard isApplicationActive else {
       return
     }
 
-    stateRefreshTimer?.invalidate()
-    let delay = refreshBackoff
-    refreshBackoff = min(refreshBackoff * 2, 30)
-    stateRefreshTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-      DispatchQueue.main.async {
-        self?.requestLatestStateIfPossible()
+    guard connectivityClient.isReadyToSend else {
+      scheduleStateRefreshRetry()
+      return
+    }
+
+    connectivityClient.sendMessage(
+      [
+        "requestedAt": ISO8601DateFormatter().string(from: Date()),
+        "type": "request_today_state",
+      ]
+    ) { [weak self] result in
+      Task { @MainActor [weak self] in
+        guard let self else {
+          return
+        }
+
+        switch result {
+        case let .success(reply):
+          if !updateStateIfPresent(in: reply) {
+            lastError = nil
+          }
+          refreshBackoff.reset()
+          cancelStateRefreshRetry()
+        case let .failure(error):
+          lastError = friendlyConnectivityMessage(for: error)
+          scheduleStateRefreshRetry()
+        }
       }
     }
+  }
+
+  private func scheduleStateRefreshRetry() {
+    guard let delay = refreshBackoff.takeNextDelay(isApplicationActive: isApplicationActive) else {
+      return
+    }
+
+    cancelStateRefreshRetry()
+
+    stateRefreshTask = Task { @MainActor [weak self] in
+      do {
+        try await Task.sleep(for: .seconds(delay))
+      } catch {
+        return
+      }
+
+      guard let self, isApplicationActive else {
+        return
+      }
+
+      stateRefreshTask = nil
+      requestLatestStateIfPossible()
+    }
+  }
+
+  private func cancelStateRefreshRetry() {
+    stateRefreshTask?.cancel()
+    stateRefreshTask = nil
   }
 
   private func friendlyConnectivityMessage(for error: Error) -> String {
@@ -351,28 +410,28 @@ final class WatchSessionManager: NSObject, ObservableObject {
     return message
   }
 
-  private func loadPersistedState() {
-    if let state = WatchSharedStateStore.load() {
-      todayState = state
-      return
+  private func ensureProActionAllowed() -> Bool {
+    guard todayState.account.isLoggedIn else {
+      lastAckMessage = nil
+      lastError = "先在 iPhone 上登录小提督。"
+      return false
     }
 
-    guard let data = UserDefaults.standard.data(forKey: legacyStateStorageKey),
-          let state = try? JSONDecoder().decode(WatchTodayState.self, from: data) else {
-      return
+    guard todayState.isPro else {
+      lastAckMessage = nil
+      lastError = proLockedMessage
+      return false
     }
 
-    todayState = state
+    return true
   }
 
-  private func persistTodayState() {
-    guard let data = try? JSONEncoder().encode(todayState) else {
-      return
+  private var proLockedMessage: String {
+    if todayState.proStatus == "pro_expired" {
+      return "小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。"
     }
 
-    UserDefaults.standard.set(data, forKey: legacyStateStorageKey)
-    WatchSharedStateStore.save(todayState)
-    WidgetCenter.shared.reloadTimelines(ofKind: WatchSharedStateStore.widgetKind)
+    return "Apple Watch 联动属于小提督 Pro。"
   }
 
   private func applyHabitToggle(habitKey: String, isDone: Bool) {
@@ -396,217 +455,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
       todayState.habits.bowelDone,
     ].filter { $0 }.count
     todayState.generatedAt = ISO8601DateFormatter().string(from: Date())
-    persistTodayState()
-  }
-
-  private func loadPendingEvents() {
-    guard let encodedMessages = UserDefaults.standard.stringArray(forKey: pendingEventsStorageKey) else {
-      pendingEventCount = 0
-      return
-    }
-
-    pendingEvents = encodedMessages.compactMap { encodedMessage in
-      guard let data = encodedMessage.data(using: .utf8),
-            let object = try? JSONSerialization.jsonObject(with: data),
-            let message = object as? [String: Any] else {
-        return nil
-      }
-
-      return message
-    }
-
-    purgeExpiredPendingEvents()
-    refreshPendingEventState()
-  }
-
-  private func persistPendingEvents() {
-    let encodedMessages = pendingEvents.compactMap { message -> String? in
-      guard JSONSerialization.isValidJSONObject(message),
-            let data = try? JSONSerialization.data(withJSONObject: message),
-            let encoded = String(data: data, encoding: .utf8) else {
-        return nil
-      }
-
-      return encoded
-    }
-
-    UserDefaults.standard.set(encodedMessages, forKey: pendingEventsStorageKey)
-  }
-
-  private func purgeExpiredPendingEvents() {
-    let now = Date()
-    pendingEvents = pendingEvents.filter { message in
-      guard let createdAt = eventCreatedAt(from: message) else {
-        return false
-      }
-
-      return now.timeIntervalSince(createdAt) <= pendingEventLifetime
-    }
-
-    if pendingEvents.count > maxPendingEvents {
-      pendingEvents.removeFirst(pendingEvents.count - maxPendingEvents)
-    }
-
-    refreshPendingEventState()
-    persistPendingEvents()
-  }
-
-  private func refreshPendingEventState() {
-    pendingEventCount = pendingEvents.count
-    pendingEventSummaries = pendingEvents.compactMap { summary(from: $0) }
-  }
-
-  private func prunePendingEventsForCurrentState() {
-    guard !pendingEvents.isEmpty else {
-      return
-    }
-
-    let filteredEvents = pendingEvents.filter { canReplayPendingEvent($0) }
-
-    guard filteredEvents.count != pendingEvents.count else {
-      return
-    }
-
-    let removedCount = pendingEvents.count - filteredEvents.count
-    pendingEvents = filteredEvents
-    refreshPendingEventState()
-    persistPendingEvents()
-    lastAckMessage = nil
-    lastError = "Pro 状态暂停，未继续同步 \(removedCount) 条手表操作。"
-  }
-
-  private func canReplayPendingEvent(_ message: [String: Any]) -> Bool {
-    guard eventType(from: message) != nil else {
-      return true
-    }
-
-    return todayState.account.isLoggedIn && todayState.isPro
-  }
-
-  private func summary(from message: [String: Any]) -> String? {
-    guard let type = eventType(from: message) else {
-      return nil
-    }
-
-    switch type {
-    case "training_completed":
-      return "菊花抬完成待同步"
-    case "habit_toggled":
-      guard let payload = eventPayload(from: message),
-            let habitKey = payload["habitKey"] as? String else {
-        return "小账本待同步"
-      }
-      return "\(habitTitle(for: habitKey))待同步"
-    case "toilet_timer_action":
-      guard let payload = eventPayload(from: message),
-            let action = payload["action"] as? String else {
-        return "蹲会儿操作待同步"
-      }
-      return "\(toiletActionTitle(for: action))待同步"
-    default:
-      return "待同步事件"
-    }
-  }
-
-  private func habitTitle(for key: String) -> String {
-    switch key {
-    case "water":
-      return "喝水"
-    case "fiber":
-      return "纤维"
-    case "movement":
-      return "活动"
-    case "bowel":
-      return "顺畅"
-    default:
-      return "小账本"
-    }
-  }
-
-  private func toiletActionTitle(for action: String) -> String {
-    switch action {
-    case "pause":
-      return "蹲会儿暂停"
-    case "resume":
-      return "蹲会儿继续"
-    case "finish":
-      return "蹲会儿收工"
-    default:
-      return "蹲会儿"
-    }
-  }
-
-  private func eventId(from message: [String: Any]) -> String? {
-    guard let event = message["event"] as? [String: Any] else {
-      return nil
-    }
-
-    return event["id"] as? String
-  }
-
-  private func eventType(from message: [String: Any]) -> String? {
-    guard let event = message["event"] as? [String: Any] else {
-      return nil
-    }
-
-    return event["type"] as? String
-  }
-
-  private func eventPayload(from message: [String: Any]) -> [String: Any]? {
-    guard let event = message["event"] as? [String: Any] else {
-      return nil
-    }
-
-    return event["payload"] as? [String: Any]
-  }
-
-  private func eventCreatedAt(from message: [String: Any]) -> Date? {
-    guard let event = message["event"] as? [String: Any],
-          let createdAt = event["createdAt"] as? String else {
-      return nil
-    }
-
-    return ISO8601DateFormatter().date(from: createdAt)
-  }
-}
-
-extension WatchSessionManager: WCSessionDelegate {
-  func session(
-    _ session: WCSession,
-    activationDidCompleteWith activationState: WCSessionActivationState,
-    error: Error?
-  ) {
-    DispatchQueue.main.async {
-      self.isReachable = session.isReachable
-      self.lastError = error.map { self.friendlyConnectivityMessage(for: $0) }
-      self.flushPendingEventsIfPossible()
-      self.requestLatestStateIfPossible()
-    }
-  }
-
-  func sessionReachabilityDidChange(_ session: WCSession) {
-    DispatchQueue.main.async {
-      self.isReachable = session.isReachable
-      self.flushPendingEventsIfPossible()
-      self.requestLatestStateIfPossible()
-    }
-  }
-
-  func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-    DispatchQueue.main.async {
-      self.updateState(from: applicationContext)
-    }
-  }
-
-  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-    DispatchQueue.main.async {
-      self.updateState(from: userInfo)
-    }
-  }
-
-  func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-    DispatchQueue.main.async {
-      self.updateState(from: message)
-    }
+    stateStore.save(todayState)
   }
 }
