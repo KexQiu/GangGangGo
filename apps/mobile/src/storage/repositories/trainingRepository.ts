@@ -2,6 +2,7 @@ import { initializeDatabase } from '../db';
 import { isTrainingPresetId } from '../../features/training/presets';
 import { type TrainingSession } from '../../features/training/trainingTypes';
 import { normalizePageSize, type Page } from '../pagination';
+import { trainingSessionPageSql } from './pageQueries';
 
 type TrainingSessionRow = {
   completed_repetitions: number;
@@ -69,28 +70,7 @@ export async function listTrainingSessionsPage(
 ): Promise<Page<TrainingSession, TrainingSessionCursor>> {
   const db = await initializeDatabase();
   const limit = normalizePageSize(options.limit);
-  const query = `
-      SELECT
-        id,
-        preset_id,
-        started_at,
-        ended_at,
-        duration_seconds,
-        completed_repetitions,
-        is_completed,
-        discomfort_reported
-      FROM training_sessions
-      WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
-        AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)
-        AND (
-          $cursorEndedAt IS NULL
-          OR ended_at < $cursorEndedAt
-          OR (ended_at = $cursorEndedAt AND id < $cursorId)
-        )
-      ORDER BY ended_at DESC, id DESC
-      LIMIT $queryLimit;
-    `;
-  const rows = await db.getAllAsync<TrainingSessionRow>(query, {
+  const rows = await db.getAllAsync<TrainingSessionRow>(trainingSessionPageSql, {
     $cursorEndedAt: options.cursor?.endedAt ?? null,
     $cursorId: options.cursor?.id ?? null,
     $fromDateTime: options.fromDateTime ?? null,

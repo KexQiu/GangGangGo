@@ -2,6 +2,7 @@ import { isHabitLevel } from '../../features/habits/habitLogic';
 import { type HabitCheckIn } from '../../features/habits/habitTypes';
 import { initializeDatabase } from '../db';
 import { normalizePageSize, type Page } from '../pagination';
+import { habitCheckInPageSql } from './pageQueries';
 
 type HabitCheckInRow = {
   bowel: string | null;
@@ -62,22 +63,7 @@ export async function listHabitCheckInsPage(
 ): Promise<Page<HabitCheckIn, string>> {
   const db = await initializeDatabase();
   const limit = normalizePageSize(options.limit);
-  const query = `
-      SELECT
-        date,
-        water,
-        fiber,
-        movement,
-        bowel,
-        updated_at
-      FROM habit_checkins
-      WHERE ($fromDate IS NULL OR date >= $fromDate)
-        AND ($toDateExclusive IS NULL OR date < $toDateExclusive)
-        AND ($cursorDate IS NULL OR date < $cursorDate)
-      ORDER BY date DESC
-      LIMIT $queryLimit;
-    `;
-  const rows = await db.getAllAsync<HabitCheckInRow>(query, {
+  const rows = await db.getAllAsync<HabitCheckInRow>(habitCheckInPageSql, {
     $cursorDate: options.cursor ?? null,
     $fromDate: options.fromDate ?? null,
     $queryLimit: limit + 1,

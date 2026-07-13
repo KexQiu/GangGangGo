@@ -1,6 +1,7 @@
 import { type ToiletFeeling, type ToiletSession } from '../../features/toilet/toiletTypes';
 import { initializeDatabase } from '../db';
 import { normalizePageSize, type Page } from '../pagination';
+import { toiletSessionPageSql } from './pageQueries';
 
 type ToiletSessionRow = {
   bleeding: number;
@@ -66,27 +67,7 @@ export async function listToiletSessionsPage(
 ): Promise<Page<ToiletSession, ToiletSessionCursor>> {
   const db = await initializeDatabase();
   const limit = normalizePageSize(options.limit);
-  const query = `
-      SELECT
-        id,
-        started_at,
-        ended_at,
-        duration_seconds,
-        feeling,
-        discomfort,
-        bleeding
-      FROM toilet_sessions
-      WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
-        AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)
-        AND (
-          $cursorEndedAt IS NULL
-          OR ended_at < $cursorEndedAt
-          OR (ended_at = $cursorEndedAt AND id < $cursorId)
-        )
-      ORDER BY ended_at DESC, id DESC
-      LIMIT $queryLimit;
-    `;
-  const rows = await db.getAllAsync<ToiletSessionRow>(query, {
+  const rows = await db.getAllAsync<ToiletSessionRow>(toiletSessionPageSql, {
     $cursorEndedAt: options.cursor?.endedAt ?? null,
     $cursorId: options.cursor?.id ?? null,
     $fromDateTime: options.fromDateTime ?? null,
