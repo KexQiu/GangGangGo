@@ -3,7 +3,6 @@ import { MessageCircle, SendHorizonal, UserRound, UsersRound } from 'lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  AppState,
   FlatList,
   Modal,
   Pressable,
@@ -13,8 +12,6 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-
-import type { BuddyNudge } from '@xiaotidu/contracts';
 
 import { queryClient } from '../../../src/api/queryClient';
 import { queryKeys } from '../../../src/api/queryKeys';
@@ -32,15 +29,19 @@ import {
   getNudgeChatMessages,
   nudgeActionTypes,
   nudgeCopies,
-  useNudgeStore,
   type NudgeChatMessage,
-} from '../../../src/features/nudges/nudgeStore';
+} from '../../../src/features/nudges/nudgeModel';
+import { nudgePollIntervalMs, shouldPollNudges } from '../../../src/features/nudges/nudgePolling';
+import {
+  useAckNudgeMutation,
+  useNudgeThreadQuery,
+  useNudgeThreadsQuery,
+  useSendNudgeMutation,
+} from '../../../src/features/nudges/nudgeQueries';
 import { useTeamStore } from '../../../src/features/team/teamStore';
 import { routes } from '../../../src/navigation/routes';
+import { useForegroundFocus } from '../../../src/navigation/useForegroundFocus';
 import { useAppTheme } from '../../../src/theme/themeProvider';
-
-const nudgeChatPollIntervalMs = 15_000;
-const emptyThreadItems: BuddyNudge[] = [];
 
 export default function NudgeChatScreen() {
   const router = useRouter();
@@ -51,28 +52,41 @@ export default function NudgeChatScreen() {
   const shouldStickToBottomRef = useRef(true);
   const lastContentHeightRef = useRef(0);
   const pendingOlderLoadRef = useRef(false);
-  const isPollingRefreshRef = useRef(false);
-  const appStateRef = useRef(AppState.currentState);
   const [isActionDrawerVisible, setIsActionDrawerVisible] = useState(false);
-  const [isChatFocused, setIsChatFocused] = useState(false);
+  const { isAppActive, isFocused } = useForegroundFocus();
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentUser = useAuthStore((state) => state.user);
   const proStatus = useAuthStore((state) => state.proStatus);
-  const isLoading = useNudgeStore((state) => state.isLoading);
-  const isMutating = useNudgeStore((state) => state.isMutating);
-  const loadThread = useNudgeStore((state) => state.loadThread);
-  const loadThreads = useNudgeStore((state) => state.loadThreads);
-  const threadByBuddyUserId = useNudgeStore((state) => state.threadByBuddyUserId);
-  const ackNudge = useNudgeStore((state) => state.ackNudge);
-  const sendNudge = useNudgeStore((state) => state.sendNudge);
+  const isPollingEnabled = shouldPollNudges({
+    hasSession: Boolean(accessToken && currentUser?.id),
+    hasTarget: Boolean(buddyUserId),
+    isAppActive,
+    isFocused,
+  });
+  const threadQuery = useNudgeThreadQuery(buddyUserId, {
+    enabled: isPollingEnabled,
+    refetchInterval: isPollingEnabled ? nudgePollIntervalMs : false,
+  });
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending: isThreadPending,
+    items: threadItems,
+  } = threadQuery;
+  useNudgeThreadsQuery({
+    enabled: isPollingEnabled,
+    refetchInterval: isPollingEnabled ? nudgePollIntervalMs : false,
+  });
+  const ackNudge = useAckNudgeMutation(buddyUserId);
+  const sendNudge = useSendNudgeMutation(buddyUserId);
+  const isMutating = ackNudge.isPending || sendNudge.isPending;
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
   const team = useTeamStore((state) => state.team);
   const teamIsLoading = useTeamStore((state) => state.isLoading);
   const member = team?.members.find((item) => item.user.id === buddyUserId);
-  const threadState = buddyUserId ? threadByBuddyUserId[buddyUserId] : undefined;
-  const threadItems = threadState?.items ?? emptyThreadItems;
   const messages = useMemo(
     () =>
       getNudgeChatMessages({
@@ -85,107 +99,33 @@ export default function NudgeChatScreen() {
   const buddy = member?.user ?? fallbackBuddy;
   const isPro = isProStatus(proStatus);
   const canSend = Boolean(buddyUserId && isPro && member?.status === 'active');
-  const isThreadBootstrapping = Boolean(accessToken && buddyUserId && !threadState);
-  const isSyncing = Boolean(isLoading || teamIsLoading || threadState?.isLoading || isThreadBootstrapping);
+  const isThreadBootstrapping = Boolean(isPollingEnabled && isThreadPending);
+  const isSyncing = Boolean(teamIsLoading || isThreadBootstrapping);
   const disabledSendReason = getDisabledSendReason({
     isPro,
     memberStatus: member?.status,
     userId: buddyUserId,
   });
 
-  const refreshChat = useCallback(() => {
-    if (!accessToken) {
-      return;
-    }
-
-    void loadCurrentTeam();
-    if (buddyUserId) {
-      didInitialScrollRef.current = false;
-      shouldStickToBottomRef.current = true;
-      void loadThread(buddyUserId, 'initial');
-    }
-    void loadThreads();
-  }, [accessToken, buddyUserId, loadCurrentTeam, loadThread, loadThreads]);
-
   useFocusEffect(
     useCallback(() => {
-      setIsChatFocused(true);
-      refreshChat();
+      didInitialScrollRef.current = false;
+      shouldStickToBottomRef.current = true;
+      if (accessToken) void loadCurrentTeam();
       return () => {
-        setIsChatFocused(false);
         if (currentUser?.id && buddyUserId) {
           void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(currentUser.id, buddyUserId) });
           void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUser.id) });
         }
       };
-    }, [buddyUserId, currentUser?.id, refreshChat]),
+    }, [accessToken, buddyUserId, currentUser?.id, loadCurrentTeam]),
   );
 
-  const refreshChatSilently = useCallback(async () => {
-    if (
-      !accessToken ||
-      !buddyUserId ||
-      AppState.currentState !== 'active' ||
-      isMutating ||
-      isLoading ||
-      teamIsLoading ||
-      threadState?.isLoading ||
-      threadState?.isLoadingMore ||
-      isThreadBootstrapping ||
-      pendingOlderLoadRef.current ||
-      isPollingRefreshRef.current
-    ) {
-      return;
-    }
-
-    isPollingRefreshRef.current = true;
-
-    try {
-      await Promise.all([loadThread(buddyUserId, 'refresh'), loadThreads({ silent: true })]);
-    } finally {
-      isPollingRefreshRef.current = false;
-    }
-  }, [
-    accessToken,
-    buddyUserId,
-    isLoading,
-    isMutating,
-    isThreadBootstrapping,
-    loadThread,
-    loadThreads,
-    teamIsLoading,
-    threadState?.isLoading,
-    threadState?.isLoadingMore,
-  ]);
-
   useEffect(() => {
-    if (!isChatFocused || !accessToken || !buddyUserId) {
-      return undefined;
-    }
-
-    const timer = setInterval(() => {
-      void refreshChatSilently();
-    }, nudgeChatPollIntervalMs);
-
-    return () => clearInterval(timer);
-  }, [accessToken, buddyUserId, isChatFocused, refreshChatSilently]);
-
-  useEffect(() => {
-    if (!isChatFocused || !accessToken || !buddyUserId) {
-      return undefined;
-    }
-
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      const previousState = appStateRef.current;
-      appStateRef.current = nextState;
-
-      if (previousState !== 'active' && nextState === 'active') {
-        void refreshChatSilently();
-      }
-    });
-
-    return () => subscription.remove();
-  }, [accessToken, buddyUserId, isChatFocused, refreshChatSilently]);
+    if (isPollingEnabled || !currentUser?.id || !buddyUserId) return;
+    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(currentUser.id, buddyUserId) });
+    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUser.id) });
+  }, [buddyUserId, currentUser?.id, isPollingEnabled]);
 
   const handleContentSizeChange = useCallback((_width: number, height: number) => {
     if (pendingOlderLoadRef.current) {
@@ -211,16 +151,26 @@ export default function NudgeChatScreen() {
       shouldStickToBottomRef.current = distanceFromBottom < 80;
       lastContentHeightRef.current = contentSize.height;
 
-      if (!buddyUserId || !threadState?.hasMore || threadState.isLoadingMore || pendingOlderLoadRef.current) {
+      if (!buddyUserId || !hasNextPage || isFetchingNextPage || pendingOlderLoadRef.current) {
         return;
       }
 
       if (contentOffset.y < 32) {
+        const itemCountBeforeLoad = threadItems.length;
         pendingOlderLoadRef.current = true;
-        void loadThread(buddyUserId, 'older');
+        void fetchNextPage()
+          .then((result) => {
+            const itemCountAfterLoad = new Set(
+              result.data?.pages.flatMap((page) => page.nudges.map((nudge) => nudge.id)),
+            ).size;
+            if (result.isError || itemCountAfterLoad <= itemCountBeforeLoad) pendingOlderLoadRef.current = false;
+          })
+          .catch(() => {
+            pendingOlderLoadRef.current = false;
+          });
       }
     },
-    [buddyUserId, loadThread, threadState?.hasMore, threadState?.isLoadingMore],
+    [buddyUserId, fetchNextPage, hasNextPage, isFetchingNextPage, threadItems.length],
   );
 
   const handleSendNudge = useCallback(
@@ -231,7 +181,7 @@ export default function NudgeChatScreen() {
 
       shouldStickToBottomRef.current = true;
       setIsActionDrawerVisible(false);
-      void sendNudge(buddyUserId, type);
+      sendNudge.mutate(type);
     },
     [buddyUserId, sendNudge],
   );
@@ -242,7 +192,7 @@ export default function NudgeChatScreen() {
         buddyUserId={buddyUserId}
         isMutating={isMutating}
         message={message}
-        onAck={(status) => void ackNudge(message.nudge.id, status, buddyUserId)}
+        onAck={(status) => ackNudge.mutate({ id: message.nudge.id, status })}
       />
     ),
     [ackNudge, buddyUserId, isMutating],
@@ -308,7 +258,7 @@ export default function NudgeChatScreen() {
                 </View>
               }
               ListHeaderComponent={
-                threadState?.isLoadingMore ? <Text style={styles.loadingText}>正在加载更早互动...</Text> : null
+                isFetchingNextPage ? <Text style={styles.loadingText}>正在加载更早互动...</Text> : null
               }
               onContentSizeChange={handleContentSizeChange}
               onScroll={handleScroll}

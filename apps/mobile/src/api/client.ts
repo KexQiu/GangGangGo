@@ -10,7 +10,6 @@ import type {
   BuddyNudgeAckResponse,
   BuddyNudgeSettingsResponse,
   BuddyNudgeThreadResponse,
-  BuddyNudgesResponse,
   NudgeThreadsResponse,
   CreateBuddyNudgeRequest,
   CreateTeamInviteResponse,
@@ -47,7 +46,6 @@ import {
   buddyNudgeSchema,
   buddyNudgeSettingsResponseSchema,
   buddyNudgeThreadResponseSchema,
-  buddyNudgesResponseSchema,
   nudgeThreadsResponseSchema,
   createTeamInviteResponseSchema,
   dailyReportSnapshotResponseSchema,
@@ -119,8 +117,6 @@ export const apiClient = {
   getCurrentUser: (token: string) => request<AuthResponse['user']>('/me', userProfileSchema, { token }),
   getEntitlements: (token: string) =>
     request<EntitlementsResponse>('/me/entitlements', entitlementsResponseSchema, { token }),
-  getNudgeInbox: (token: string) => request<BuddyNudgesResponse>('/nudges/inbox', buddyNudgesResponseSchema, { token }),
-  getNudgeSent: (token: string) => request<BuddyNudgesResponse>('/nudges/sent', buddyNudgesResponseSchema, { token }),
   getNudgeThreads: (token: string, signal?: AbortSignal) =>
     request<NudgeThreadsResponse>('/nudges/threads', nudgeThreadsResponseSchema, { signal, token }),
   getNudgeThread: (buddyUserId: string, options: NudgeThreadOptions, token: string, signal?: AbortSignal) => {

@@ -64,7 +64,8 @@
 ### 移动端模块拆分
 
 - [ ] 按 auth、users、teams、nudges、reports、push 拆分约 319 行的 API client。
-- [ ] 拆分约 567 行的 nudge store，并在完成服务端状态迁移后删除不再需要的 store action。
+- [x] 拆分约 567 行的 nudge store，并在完成服务端状态迁移后删除不再需要的 store action。
+  - 证据：提醒服务端状态已迁入 `nudgeQueries.ts`，纯展示模型迁入 `nudgeModel.ts`，原 `nudgeStore.ts` 已删除。
 - [ ] 为 Query hooks、mutation hooks 和 query key 建立稳定的 feature 级出口。
   - 验收：调用方不直接依赖一个全局大 client 或大 store；模块职责与 contracts 领域划分一致。
 
@@ -74,10 +75,11 @@
 
 - [ ] 将用户资料、Pro 权益、小队、邀请、提醒线程和报告改为直接由 TanStack Query 持有。
 - [ ] 从 Zustand 中移除云端状态副本及其手工刷新动作。
-  - 当前仍有副本：`authStore` 的 user/proStatus、`teamStore` 的 team/snapshots/invite、`nudgeStore` 的 inbox/sent/threads、`reportStore` 的云端报告。
-- [ ] 删除移动端对 inbox/sent 双接口的依赖。
-  - 待删除内容包括 `getNudgeInbox`、`getNudgeSent`、`loadInbox`、`loadSent` 及对应 query key。
-- [ ] 统一改用 `GET /nudges/threads` 和线程游标接口。
+  - 当前仍有副本：`authStore` 的 user/proStatus、`teamStore` 的 team/snapshots/invite、`reportStore` 的云端报告；提醒副本已移除。
+- [x] 删除移动端对 inbox/sent 双接口的依赖。
+  - 证据：`getNudgeInbox`、`getNudgeSent`、`loadInbox`、`loadSent` 及对应 query key 已删除，移动端旧引用扫描为空。
+- [x] 统一改用 `GET /nudges/threads` 和线程游标接口。
+  - 证据：首页、小队页、成员设置和提醒聊天均直接使用 TanStack Query；聊天使用 30 条游标分页。
   - 验收：Zustand 只保留本地领域状态、短期 UI 状态和登录会话；云端数据没有双份缓存和双重失效逻辑。
 
 ### SQLite 范围读取与分页
@@ -99,7 +101,8 @@
 
 ### 提醒会话刷新
 
-- [ ] 验证提醒列表和聊天仅在页面聚焦且 App 位于前台时启用 15 秒刷新。
+- [x] 验证提醒列表和聊天仅在页面聚焦且 App 位于前台时启用 15 秒刷新。
+  - 证据：首页、小队页和聊天统一使用 `useForegroundFocus` 与 `shouldPollNudges`；条件矩阵已有自动化测试。
 - [ ] 页面失焦、进入后台和用户切换时取消未完成请求。
 - [ ] 完成游标翻页、去重、顺序稳定和新消息回填。
   - 验收：后台无提醒轮询；快速切换页面不会把旧用户或旧线程响应写入当前缓存。
@@ -166,7 +169,7 @@
 - [ ] SQLite：从 v0/v1 升级、失败回滚和数据无损。
 - [ ] 提醒：聚焦刷新、后台停刷、取消请求和游标分页。
   - 审计基线：移动端只有 Watch 协议 fixture 的 2 个测试。
-  - 进展：2026-07-13 已增加 API transport、同步协调器、报告构建、分页和迁移测试，移动端测试增至 20 项。
+  - 进展：2026-07-13 已增加 API transport、同步协调器、报告构建、分页、迁移、提醒模型和轮询条件测试，移动端测试增至 25 项。
 
 ### Watch
 

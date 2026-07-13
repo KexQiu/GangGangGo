@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, type ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, type ComponentType } from 'react';
 import {
   Bell,
   ChevronRight,
@@ -14,6 +14,8 @@ import {
 import type { Team, TeamSnapshotsResponse } from '@xiaotidu/contracts';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { queryClient } from '../src/api/queryClient';
+import { queryKeys } from '../src/api/queryKeys';
 import { AppButton } from '../src/components/AppButton';
 import { AppCard } from '../src/components/AppCard';
 import { PressableScale } from '../src/components/feedback/PressableScale';
@@ -25,11 +27,9 @@ import { getHabitCheckInForDate, useHabitStore } from '../src/features/habits/ha
 import { HabitQuickCheckInCard } from '../src/features/habits/HabitQuickCheckInCard';
 import { getReminderHomeSummary, hasAnyReminderEnabled } from '../src/features/reminders/reminderLogic';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
-import {
-  getNudgeHomeSummaryFromThreads,
-  useNudgeStore,
-  type NudgeHomeSummary,
-} from '../src/features/nudges/nudgeStore';
+import { getNudgeHomeSummaryFromThreads, type NudgeHomeSummary } from '../src/features/nudges/nudgeModel';
+import { nudgePollIntervalMs, shouldPollNudges } from '../src/features/nudges/nudgePolling';
+import { useNudgeThreadsQuery } from '../src/features/nudges/nudgeQueries';
 import {
   getHabitStatusLabel,
   getTodayPositiveFeedback,
@@ -42,6 +42,7 @@ import { FlowerLiftIcon } from '../src/features/training/FlowerLiftIcon';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../src/features/training/trainingStore';
 import { buildSevenDayTrend } from '../src/features/trends/trendLogic';
 import { routes } from '../src/navigation/routes';
+import { useForegroundFocus } from '../src/navigation/useForegroundFocus';
 import { useAppTheme } from '../src/theme/themeProvider';
 
 const trainingTarget = 2;
@@ -59,8 +60,21 @@ export default function HomeScreen() {
   const teamIsLoading = useTeamStore((state) => state.isLoading);
   const teamSnapshots = useTeamStore((state) => state.snapshots);
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
-  const nudgeThreads = useNudgeStore((state) => state.threads);
-  const loadNudgeThreads = useNudgeStore((state) => state.loadThreads);
+  const { isAppActive, isFocused } = useForegroundFocus();
+  const shouldPollNudgeThreads = shouldPollNudges({
+    hasSession: Boolean(accessToken && user?.id),
+    isAppActive,
+    isFocused,
+  });
+  const {
+    data: nudgeThreadsData,
+    error: nudgeThreadsError,
+    isFetching: isFetchingNudgeThreads,
+    refetch: refetchNudgeThreads,
+  } = useNudgeThreadsQuery({
+    enabled: shouldPollNudgeThreads,
+    refetchInterval: shouldPollNudgeThreads ? nudgePollIntervalMs : false,
+  });
   const todayTrainingCount = getTodayCompletedTrainingCount(trainingSessions);
   const todayToiletCount = getTodayToiletSessionCount(toiletSessions);
   const today = getLocalDateKey();
@@ -82,7 +96,10 @@ export default function HomeScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const userId = user?.id;
-  const nudgeSummary = useMemo(() => getNudgeHomeSummaryFromThreads(nudgeThreads), [nudgeThreads]);
+  const nudgeSummary = useMemo(
+    () => getNudgeHomeSummaryFromThreads(nudgeThreadsData?.threads ?? []),
+    [nudgeThreadsData],
+  );
 
   const refreshTeamHomeCard = useCallback(() => {
     if (!accessToken) {
@@ -95,10 +112,19 @@ export default function HomeScreen() {
     }
 
     void loadCurrentTeam();
-    void loadNudgeThreads();
-  }, [accessToken, loadCurrentTeam, loadNudgeThreads, userId]);
+    void refetchNudgeThreads();
+
+    return () => {
+      void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(userId) });
+    };
+  }, [accessToken, loadCurrentTeam, refetchNudgeThreads, userId]);
 
   useFocusEffect(refreshTeamHomeCard);
+
+  useEffect(() => {
+    if (isAppActive || !userId) return;
+    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(userId) });
+  }, [isAppActive, userId]);
 
   return (
     <Screen>
@@ -152,8 +178,8 @@ export default function HomeScreen() {
 
       {user ? (
         <TeamHomeCard
-          error={teamError}
-          isLoading={teamIsLoading}
+          error={teamError ?? nudgeThreadsError?.message ?? null}
+          isLoading={teamIsLoading || isFetchingNudgeThreads}
           onPress={() => router.push(routes.team)}
           nudgeSummary={nudgeSummary}
           snapshots={teamSnapshots}

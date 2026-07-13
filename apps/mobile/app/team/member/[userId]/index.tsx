@@ -10,7 +10,7 @@ import { PageHeader } from '../../../../src/components/PageHeader';
 import { PageStack } from '../../../../src/components/PageStack';
 import { Screen } from '../../../../src/components/Screen';
 import { useAuthStore } from '../../../../src/features/account/authStore';
-import { useNudgeStore } from '../../../../src/features/nudges/nudgeStore';
+import { useNudgeSettingsQuery, useUpdateNudgeSettingsMutation } from '../../../../src/features/nudges/nudgeQueries';
 import { useTeamStore } from '../../../../src/features/team/teamStore';
 import { routes } from '../../../../src/navigation/routes';
 import { useAppTheme } from '../../../../src/theme/themeProvider';
@@ -36,22 +36,23 @@ export default function TeamMemberScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const currentUser = useAuthStore((state) => state.user);
-  const loadSettings = useNudgeStore((state) => state.loadSettings);
-  const settings = useNudgeStore((state) => state.settings);
-  const updateSettings = useNudgeStore((state) => state.updateSettings);
+  const nudgeSettingsQuery = useNudgeSettingsQuery();
+  const updateSettings = useUpdateNudgeSettingsMutation();
   const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
   const removeMember = useTeamStore((state) => state.removeMember);
   const team = useTeamStore((state) => state.team);
   const member = team?.members.find((item) => item.user.id === userId);
   const me = team?.members.find((item) => item.user.id === currentUser?.id);
-  const nudgeSetting = useMemo(() => settings.find((item) => item.buddyUserId === userId), [settings, userId]);
+  const nudgeSetting = useMemo(
+    () => nudgeSettingsQuery.data?.settings.find((item) => item.buddyUserId === userId),
+    [nudgeSettingsQuery.data, userId],
+  );
   const isMe = userId === currentUser?.id;
   const canManageMember = me?.role === 'owner' && !isMe && member?.role !== 'owner';
 
   useEffect(() => {
     void loadCurrentTeam();
-    void loadSettings();
-  }, [loadCurrentTeam, loadSettings]);
+  }, [loadCurrentTeam]);
 
   return (
     <Screen>
@@ -72,10 +73,13 @@ export default function TeamMemberScreen() {
                 <AppButton
                   key={limit}
                   onPress={() =>
-                    void updateSettings(userId, {
-                      dailyLimit: limit,
-                      enabled: limit > 0,
-                      quietRanges: nudgeSetting?.quietRanges ?? [],
+                    updateSettings.mutate({
+                      buddyUserId: userId,
+                      settings: {
+                        dailyLimit: limit,
+                        enabled: limit > 0,
+                        quietRanges: nudgeSetting?.quietRanges ?? [],
+                      },
                     })
                   }
                   style={styles.chipButton}
@@ -92,10 +96,13 @@ export default function TeamMemberScreen() {
                 <AppButton
                   key={preset.label}
                   onPress={() =>
-                    void updateSettings(userId, {
-                      dailyLimit: nudgeSetting?.dailyLimit ?? 5,
-                      enabled: nudgeSetting?.enabled ?? true,
-                      quietRanges: preset.ranges,
+                    updateSettings.mutate({
+                      buddyUserId: userId,
+                      settings: {
+                        dailyLimit: nudgeSetting?.dailyLimit ?? 5,
+                        enabled: nudgeSetting?.enabled ?? true,
+                        quietRanges: preset.ranges,
+                      },
                     })
                   }
                   style={styles.chipButton}

@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   Bell,
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react-native';
 import type { TeamMember, TeamSnapshot } from '@xiaotidu/contracts';
 
+import { queryClient } from '../../src/api/queryClient';
+import { queryKeys } from '../../src/api/queryKeys';
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
@@ -21,10 +23,13 @@ import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
-import { getDisplayName, useNudgeStore, type NudgeThread } from '../../src/features/nudges/nudgeStore';
+import { getDisplayName, type NudgeThread } from '../../src/features/nudges/nudgeModel';
+import { nudgePollIntervalMs, shouldPollNudges } from '../../src/features/nudges/nudgePolling';
+import { useNudgeThreadsQuery } from '../../src/features/nudges/nudgeQueries';
 import { useReportStore } from '../../src/features/reports/reportStore';
 import { useTeamStore } from '../../src/features/team/teamStore';
 import { routes } from '../../src/navigation/routes';
+import { useForegroundFocus } from '../../src/navigation/useForegroundFocus';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
 export default function TeamScreen() {
@@ -41,10 +46,22 @@ export default function TeamScreen() {
   const snapshots = useTeamStore((state) => state.snapshots);
   const team = useTeamStore((state) => state.team);
   const teamError = useTeamStore((state) => state.error);
-  const nudgeError = useNudgeStore((state) => state.error);
-  const nudgeIsLoading = useNudgeStore((state) => state.isLoading);
-  const loadThreads = useNudgeStore((state) => state.loadThreads);
-  const threads = useNudgeStore((state) => state.threads);
+  const { isAppActive, isFocused } = useForegroundFocus();
+  const shouldPollNudgeThreads = shouldPollNudges({
+    hasSession: Boolean(accessToken && user?.id),
+    isAppActive,
+    isFocused,
+  });
+  const {
+    data: nudgeThreadsData,
+    error: nudgeThreadsError,
+    isFetching: isFetchingNudgeThreads,
+    refetch: refetchNudgeThreads,
+  } = useNudgeThreadsQuery({
+    enabled: shouldPollNudgeThreads,
+    refetchInterval: shouldPollNudgeThreads ? nudgePollIntervalMs : false,
+  });
+  const threads = useMemo(() => nudgeThreadsData?.threads ?? [], [nudgeThreadsData]);
   const loadTeamWeeklyReport = useReportStore((state) => state.loadTeamWeeklyReport);
   const teamWeeklyReport = useReportStore((state) => state.teamWeeklyReport);
   const isPro = isProStatus(proStatus);
@@ -53,7 +70,7 @@ export default function TeamScreen() {
   const buddyMembers = activeMembers.filter((member) => member.user.id !== currentUserId);
   const threadByUserId = useMemo(() => new Map(threads.map((thread) => [thread.buddy.id, thread])), [threads]);
   const pendingCount = threads.reduce((total, thread) => total + thread.pendingCount, 0);
-  const isSyncing = isLoading || nudgeIsLoading;
+  const isSyncing = isLoading || isFetchingNudgeThreads;
 
   const refreshTeam = useCallback(() => {
     if (!accessToken) {
@@ -63,20 +80,30 @@ export default function TeamScreen() {
 
     void loadCurrentTeam();
     void loadTeamWeeklyReport();
-    void loadThreads();
-  }, [accessToken, loadCurrentTeam, loadTeamWeeklyReport, loadThreads]);
+    void refetchNudgeThreads();
+  }, [accessToken, loadCurrentTeam, loadTeamWeeklyReport, refetchNudgeThreads]);
 
   useFocusEffect(
     useCallback(() => {
       refreshTeam();
-    }, [refreshTeam]),
+      return () => {
+        if (currentUserId) {
+          void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUserId) });
+        }
+      };
+    }, [currentUserId, refreshTeam]),
   );
+
+  useEffect(() => {
+    if (isAppActive || !currentUserId) return;
+    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUserId) });
+  }, [currentUserId, isAppActive]);
 
   const handleRefresh = useCallback(() => {
     void loadCurrentTeam();
     void loadTeamWeeklyReport();
-    void loadThreads();
-  }, [loadCurrentTeam, loadTeamWeeklyReport, loadThreads]);
+    void refetchNudgeThreads();
+  }, [loadCurrentTeam, loadTeamWeeklyReport, refetchNudgeThreads]);
 
   return (
     <Screen>
@@ -220,7 +247,7 @@ export default function TeamScreen() {
         ) : null}
 
         {teamError ? <Text style={styles.errorText}>{teamError}</Text> : null}
-        {nudgeError ? <Text style={styles.errorText}>{nudgeError}</Text> : null}
+        {nudgeThreadsError ? <Text style={styles.errorText}>{nudgeThreadsError.message}</Text> : null}
         {isSyncing ? <Text style={styles.loadingText}>监督搭子同步中...</Text> : null}
       </PageStack>
     </Screen>
