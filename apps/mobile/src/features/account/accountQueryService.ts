@@ -3,6 +3,7 @@ import type { AuthResponse, EntitlementsResponse, UserProfile } from '@xiaotidu/
 import { queryClient } from '../../api/queryClient';
 import { queryKeys } from '../../api/queryKeys';
 import { defaultProStatus } from './accountModel';
+import { setCurrentUserQueryData } from './accountQueryCache';
 import { currentUserQueryOptions, entitlementsQueryOptions } from './accountQueryOptions';
 
 export function getCachedCurrentUser(): UserProfile | null {
@@ -26,5 +27,5 @@ export async function refreshEntitlementsQuery(accessToken: string) {
 }
 
 export function seedCurrentUser(user: AuthResponse['user']) {
-  queryClient.setQueryData(queryKeys.currentUser, user);
+  setCurrentUserQueryData(queryClient, user);
 }

@@ -8,6 +8,7 @@ import { ApiClientError, apiClient, setApiSessionRefreshHandler, setApiUnauthori
 import { queryClient } from '../../api/queryClient';
 import { showToast } from '../../components/toast/AppToast';
 import { migrateAuthPreferences, type MockUserId } from './accountModel';
+import { clearCloudQueryCache, resetCloudQueryCacheForUser } from './accountQueryCache';
 import { refreshCurrentUserQuery, refreshEntitlementsQuery, seedCurrentUser } from './accountQueryService';
 import { clearSecureSession, loadSecureSession, saveSecureSession } from './sessionStorage';
 
@@ -56,13 +57,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await apiClient.loginWithApple({ identityToken, ...(nickname ? { nickname } : {}) });
           await persistResponseSession(response);
-          queryClient.clear();
           set({
             ...sessionState(response),
             error: null,
             isLoading: false,
           });
-          seedCurrentUser(response.user);
+          resetCloudQueryCacheForUser(queryClient, response.user);
           try {
             await refreshEntitlementsQuery(response.session.accessToken);
           } catch (error) {
@@ -93,7 +93,7 @@ export const useAuthStore = create<AuthState>()(
           // 本地清理必须成功，服务端撤销失败由 session 过期兜底。
         } finally {
           await clearSecureSession();
-          queryClient.clear();
+          clearCloudQueryCache(queryClient);
           set({
             accessToken: null,
             accessTokenExpiresAt: null,
@@ -116,7 +116,7 @@ export const useAuthStore = create<AuthState>()(
             return response.session.accessToken;
           } catch {
             await clearSecureSession();
-            queryClient.clear();
+            clearCloudQueryCache(queryClient);
             set({
               accessToken: null,
               accessTokenExpiresAt: null,
@@ -178,7 +178,7 @@ export function toUserMessage(error: unknown): string {
 setApiSessionRefreshHandler(() => useAuthStore.getState().refreshSession());
 setApiUnauthorizedHandler(() => {
   void clearSecureSession();
-  queryClient.clear();
+  clearCloudQueryCache(queryClient);
   useAuthStore.setState({
     accessToken: null,
     accessTokenExpiresAt: null,
