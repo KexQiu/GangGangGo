@@ -14,13 +14,14 @@
     "api:typecheck": "pnpm --filter @xiaotidu/api typecheck",
     "contracts:typecheck": "pnpm --filter @xiaotidu/contracts typecheck",
     "typecheck": "pnpm -r --if-present typecheck",
+    "versions:check": "node scripts/check-versions.mjs",
     "lint": "eslint apps packages",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "hooks:install": "git config core.hooksPath .githooks",
     "test": "pnpm -r --if-present test",
     "docs:check": "pnpm --filter @xiaotidu/api docs:check",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check && pnpm --filter @xiaotidu/mobile bundle:check"
+    "check": "pnpm versions:check && pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check && pnpm --filter @xiaotidu/mobile bundle:check"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",

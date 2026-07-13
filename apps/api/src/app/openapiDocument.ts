@@ -1,3 +1,4 @@
+import { apiVersion } from '../config/version.js';
 import { createApiApp } from './createApiApp.js';
 
 export function createOpenApiDocument() {
@@ -11,7 +12,7 @@ export function createOpenApiDocument() {
   return app.getOpenAPI31Document({
     info: {
       title: '小提督 API',
-      version: '0.2.0',
+      version: apiVersion,
     },
     openapi: '3.1.0',
     servers: [{ url: 'http://localhost:8787' }],

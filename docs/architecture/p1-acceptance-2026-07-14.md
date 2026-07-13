@@ -52,7 +52,7 @@ xcodebuild -workspace apps/mobile/ios/app.xcworkspace \
 - 三类 Complication 的表盘展示、过期态、Pro 锁定态、深链和系统刷新节奏。
 - iPhone/Watch 前后台切换与配对稳定性。
 
-本次真机构建已识别 Apple Watch Series 10，但设备要求解锁并靠近 Mac，Xcode 等待设备准备超时，因此不将真机项标记为通过。
+本次两次真机构建均已识别 Apple Watch Series 10，但设备要求解锁并靠近 Mac，Xcode 等待设备准备超时，因此不将真机项标记为通过。
 
 ## Live Activity
 
@@ -71,6 +71,10 @@ xcodebuild -workspace apps/mobile/ios/app.xcworkspace \
 - Expo dependency check：本地依赖映射检查通过。
 - `app`、`XiaoTiduWatchApp`、`XiaoTiduWatchComplications` 三个 Xcode scheme 构建通过。
 - Watch protocol fixture 与 queue/timeline Swift 测试通过。
+
+### 版本一致性补审
+
+完成度审计发现主 App、Live Activity、Watch App 与 Complication 的 Xcode build setting 仍为 `0.1.0`，主 App plist 也硬编码旧版本。现已统一为 `0.2.0`，重新构建后四个实际产物的 `CFBundleShortVersionString` 均读出 `0.2.0`。所有 iOS plist 均从 `MARKETING_VERSION` 取值，OpenAPI 改为复用 API 版本常量；根 `pnpm versions:check` 会同时检查 package、podspec、Expo、API、Xcode 和 plist，后续漂移会直接阻断 `pnpm check`。
 
 Xcode 输出的警告来自当前 Expo/React Native Pods，未出现项目源码编译错误。
 
