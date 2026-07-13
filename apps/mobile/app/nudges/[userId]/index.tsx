@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 
 import { queryClient } from '../../../src/api/queryClient';
-import { queryKeys } from '../../../src/api/queryKeys';
 import { AppButton } from '../../../src/components/AppButton';
 import { AppCard } from '../../../src/components/AppCard';
 import { AppTopBar } from '../../../src/components/AppTopBar';
@@ -34,6 +33,7 @@ import {
   type NudgeChatMessage,
 } from '../../../src/features/nudges/nudgeModel';
 import { nudgePollIntervalMs, shouldPollNudges } from '../../../src/features/nudges/nudgePolling';
+import { cancelNudgeQueries } from '../../../src/features/nudges/nudgeQueryCache';
 import {
   useAckNudgeMutation,
   useNudgeThreadQuery,
@@ -119,8 +119,7 @@ export default function NudgeChatScreen() {
       if (accessToken) void refetchTeam();
       return () => {
         if (currentUser?.id && buddyUserId) {
-          void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(currentUser.id, buddyUserId) });
-          void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUser.id) });
+          void cancelNudgeQueries(queryClient, currentUser.id, buddyUserId);
         }
       };
     }, [accessToken, buddyUserId, currentUser?.id, refetchTeam]),
@@ -128,8 +127,7 @@ export default function NudgeChatScreen() {
 
   useEffect(() => {
     if (isPollingEnabled || !currentUser?.id || !buddyUserId) return;
-    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(currentUser.id, buddyUserId) });
-    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUser.id) });
+    void cancelNudgeQueries(queryClient, currentUser.id, buddyUserId);
   }, [buddyUserId, currentUser?.id, isPollingEnabled]);
 
   const handleContentSizeChange = useCallback((_width: number, height: number) => {

@@ -15,7 +15,6 @@ import type { Team, TeamSnapshotsResponse } from '@xiaotidu/contracts';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { queryClient } from '../src/api/queryClient';
-import { queryKeys } from '../src/api/queryKeys';
 import { AppButton } from '../src/components/AppButton';
 import { AppCard } from '../src/components/AppCard';
 import { PressableScale } from '../src/components/feedback/PressableScale';
@@ -30,6 +29,7 @@ import { getReminderHomeSummary, hasAnyReminderEnabled } from '../src/features/r
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import { getNudgeHomeSummaryFromThreads, type NudgeHomeSummary } from '../src/features/nudges/nudgeModel';
 import { nudgePollIntervalMs, shouldPollNudges } from '../src/features/nudges/nudgePolling';
+import { cancelNudgeQueries } from '../src/features/nudges/nudgeQueryCache';
 import { useNudgeThreadsQuery } from '../src/features/nudges/nudgeQueries';
 import {
   getHabitStatusLabel,
@@ -119,7 +119,7 @@ export default function HomeScreen() {
     void refetchNudgeThreads();
 
     return () => {
-      void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(userId) });
+      void cancelNudgeQueries(queryClient, userId);
     };
   }, [accessToken, refetchNudgeThreads, refetchTeam, refetchTeamSnapshots, team, userId]);
 
@@ -127,7 +127,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (isAppActive || !userId) return;
-    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(userId) });
+    void cancelNudgeQueries(queryClient, userId);
   }, [isAppActive, userId]);
 
   return (

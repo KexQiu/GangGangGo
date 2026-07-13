@@ -1,20 +1,15 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import type {
-  BuddyNudgeAckStatus,
-  BuddyNudgeThreadResponse,
-  BuddyNudgeType,
-  UpdateBuddyNudgeSettingsRequest,
-} from '@xiaotidu/contracts';
+import type { BuddyNudgeAckStatus, BuddyNudgeType, UpdateBuddyNudgeSettingsRequest } from '@xiaotidu/contracts';
 
 import { apiClient } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { useCurrentUserQuery } from '../account/accountQueries';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 import { mergeNudges } from './nudgeModel';
-
-const nudgeThreadPageSize = 30;
+import { invalidateNudgeQueries } from './nudgeQueryCache';
+import { nudgeThreadQueryOptions, nudgeThreadsQueryOptions } from './nudgeQueryOptions';
 
 type NudgeQueryOptions = {
   enabled?: boolean;
@@ -26,9 +21,8 @@ export function useNudgeThreadsQuery(options: NudgeQueryOptions = {}) {
   const userId = useCurrentUserQuery().data?.id;
 
   return useQuery({
+    ...nudgeThreadsQueryOptions(accessToken ?? '', userId ?? 'anonymous'),
     enabled: Boolean((options.enabled ?? true) && accessToken && userId),
-    queryFn: ({ signal }) => apiClient.getNudgeThreads(requireValue(accessToken), signal),
-    queryKey: queryKeys.nudgeThreads(userId ?? 'anonymous'),
     refetchInterval: options.refetchInterval,
   });
 }
@@ -37,18 +31,8 @@ export function useNudgeThreadQuery(buddyUserId: string | undefined, options: Nu
   const accessToken = useAuthStore((state) => state.accessToken);
   const userId = useCurrentUserQuery().data?.id;
   const query = useInfiniteQuery({
+    ...nudgeThreadQueryOptions(accessToken ?? '', userId ?? 'anonymous', buddyUserId ?? 'unknown'),
     enabled: Boolean((options.enabled ?? true) && accessToken && userId && buddyUserId),
-    getNextPageParam: (lastPage: BuddyNudgeThreadResponse) =>
-      lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
-    initialPageParam: null as string | null,
-    queryFn: ({ pageParam, signal }): Promise<BuddyNudgeThreadResponse> =>
-      apiClient.getNudgeThread(
-        requireValue(buddyUserId),
-        { before: pageParam, limit: nudgeThreadPageSize },
-        requireValue(accessToken),
-        signal,
-      ),
-    queryKey: queryKeys.nudgeThread(userId ?? 'anonymous', buddyUserId ?? 'unknown'),
     refetchInterval: options.refetchInterval,
   });
   const items = useMemo(() => mergeNudges(query.data?.pages.flatMap((page) => page.nudges) ?? []), [query.data]);
@@ -104,21 +88,6 @@ export function useUpdateNudgeSettingsMutation() {
     onError: notifyUserError,
     onSuccess: (response) => queryClient.setQueryData(queryKeys.nudgeSettings(userId ?? 'anonymous'), response),
   });
-}
-
-async function invalidateNudgeQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  userId: string | undefined,
-  buddyUserId: string | undefined,
-) {
-  if (!userId) return;
-  const invalidations: Promise<unknown>[] = [
-    queryClient.invalidateQueries({ queryKey: queryKeys.nudgeThreads(userId) }),
-  ];
-  if (buddyUserId) {
-    invalidations.push(queryClient.invalidateQueries({ queryKey: queryKeys.nudgeThread(userId, buddyUserId) }));
-  }
-  await Promise.all(invalidations);
 }
 
 function requireValue<T>(value: T | null | undefined): T {

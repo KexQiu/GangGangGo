@@ -14,7 +14,6 @@ import {
 import type { TeamMember, TeamSnapshot, TeamWeeklyReportResponse } from '@xiaotidu/contracts';
 
 import { queryClient } from '../../src/api/queryClient';
-import { queryKeys } from '../../src/api/queryKeys';
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
@@ -27,6 +26,7 @@ import { useCurrentUserQuery, useEntitlementsQuery } from '../../src/features/ac
 import { useAuthStore } from '../../src/features/account/authStore';
 import { getDisplayName, type NudgeThread } from '../../src/features/nudges/nudgeModel';
 import { nudgePollIntervalMs, shouldPollNudges } from '../../src/features/nudges/nudgePolling';
+import { cancelNudgeQueries } from '../../src/features/nudges/nudgeQueryCache';
 import { useNudgeThreadsQuery } from '../../src/features/nudges/nudgeQueries';
 import { useTeamWeeklyReportQuery } from '../../src/features/reports/reportQueries';
 import { useCreateTeamMutation, useCurrentTeamQuery, useTeamSnapshotsQuery } from '../../src/features/team/teamQueries';
@@ -93,7 +93,7 @@ export default function TeamScreen() {
       refreshTeam();
       return () => {
         if (currentUserId) {
-          void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUserId) });
+          void cancelNudgeQueries(queryClient, currentUserId);
         }
       };
     }, [currentUserId, refreshTeam]),
@@ -101,7 +101,7 @@ export default function TeamScreen() {
 
   useEffect(() => {
     if (isAppActive || !currentUserId) return;
-    void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUserId) });
+    void cancelNudgeQueries(queryClient, currentUserId);
   }, [currentUserId, isAppActive]);
 
   const handleRefresh = useCallback(() => {
