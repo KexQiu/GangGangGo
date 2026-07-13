@@ -9,7 +9,7 @@ import { AppTopBar } from '../../../../src/components/AppTopBar';
 import { PageHeader } from '../../../../src/components/PageHeader';
 import { PageStack } from '../../../../src/components/PageStack';
 import { Screen } from '../../../../src/components/Screen';
-import { useAuthStore } from '../../../../src/features/account/authStore';
+import { useCurrentUserQuery } from '../../../../src/features/account/accountQueries';
 import { useNudgeSettingsQuery, useUpdateNudgeSettingsMutation } from '../../../../src/features/nudges/nudgeQueries';
 import { useCurrentTeamQuery, useRemoveTeamMemberMutation } from '../../../../src/features/team/teamQueries';
 import { routes } from '../../../../src/navigation/routes';
@@ -35,7 +35,7 @@ export default function TeamMemberScreen() {
   const userId = Array.isArray(params.userId) ? params.userId[0] : params.userId;
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const currentUser = useAuthStore((state) => state.user);
+  const currentUser = useCurrentUserQuery().data;
   const nudgeSettingsQuery = useNudgeSettingsQuery();
   const updateSettings = useUpdateNudgeSettingsMutation();
   const teamQuery = useCurrentTeamQuery();

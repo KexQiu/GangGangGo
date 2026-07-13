@@ -10,6 +10,7 @@ import type {
 
 import { apiClient } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
+import { useCurrentUserQuery } from '../account/accountQueries';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 import { mergeNudges } from './nudgeModel';
 
@@ -22,7 +23,7 @@ type NudgeQueryOptions = {
 
 export function useNudgeThreadsQuery(options: NudgeQueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
 
   return useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId),
@@ -34,7 +35,7 @@ export function useNudgeThreadsQuery(options: NudgeQueryOptions = {}) {
 
 export function useNudgeThreadQuery(buddyUserId: string | undefined, options: NudgeQueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
   const query = useInfiniteQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId && buddyUserId),
     getNextPageParam: (lastPage: BuddyNudgeThreadResponse) =>
@@ -57,7 +58,7 @@ export function useNudgeThreadQuery(buddyUserId: string | undefined, options: Nu
 
 export function useSendNudgeMutation(buddyUserId: string | undefined) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -70,7 +71,7 @@ export function useSendNudgeMutation(buddyUserId: string | undefined) {
 
 export function useAckNudgeMutation(buddyUserId: string | undefined) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -83,7 +84,7 @@ export function useAckNudgeMutation(buddyUserId: string | undefined) {
 
 export function useNudgeSettingsQuery() {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
 
   return useQuery({
     enabled: Boolean(accessToken && userId),
@@ -94,7 +95,7 @@ export function useNudgeSettingsQuery() {
 
 export function useUpdateNudgeSettingsMutation() {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
   const queryClient = useQueryClient();
 
   return useMutation({

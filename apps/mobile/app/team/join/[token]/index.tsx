@@ -8,6 +8,7 @@ import { AppTopBar } from '../../../../src/components/AppTopBar';
 import { PageHeader } from '../../../../src/components/PageHeader';
 import { PageStack } from '../../../../src/components/PageStack';
 import { Screen } from '../../../../src/components/Screen';
+import { useCurrentUserQuery } from '../../../../src/features/account/accountQueries';
 import { useAuthStore } from '../../../../src/features/account/authStore';
 import { useAcceptTeamInviteMutation, useTeamInvitePreviewQuery } from '../../../../src/features/team/teamQueries';
 import { routes } from '../../../../src/navigation/routes';
@@ -21,7 +22,7 @@ export default function JoinTeamScreen() {
   const styles = createStyles(colors);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const authIsLoading = useAuthStore((state) => state.isLoading);
-  const user = useAuthStore((state) => state.user);
+  const user = useCurrentUserQuery().data;
   const acceptInvite = useAcceptTeamInviteMutation();
   const invitePreviewQuery = useTeamInvitePreviewQuery(token);
   const invitePreview = invitePreviewQuery.data;

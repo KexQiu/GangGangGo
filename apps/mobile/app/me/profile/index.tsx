@@ -18,7 +18,7 @@ import {
   profileAvatarEmojiOptions,
 } from '../../../src/components/ProfileAvatar';
 import { Screen } from '../../../src/components/Screen';
-import { useAuthStore } from '../../../src/features/account/authStore';
+import { useCurrentUserQuery, useUpdateProfileMutation } from '../../../src/features/account/accountQueries';
 import { routes } from '../../../src/navigation/routes';
 import { useAppTheme } from '../../../src/theme/themeProvider';
 
@@ -26,9 +26,8 @@ export default function ProfileEditScreen() {
   const router = useRouter();
   const { colors, resolvedScheme } = useAppTheme();
   const styles = createStyles(colors);
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const updateProfile = useAuthStore((state) => state.updateProfile);
-  const user = useAuthStore((state) => state.user);
+  const user = useCurrentUserQuery().data;
+  const updateProfile = useUpdateProfileMutation();
   const [nicknameDraft, setNicknameDraft] = useState(user?.nickname ?? '');
   const [avatarDraft, setAvatarDraft] = useState<AvatarConfig | null>(() => getNullableAvatarConfig(user?.avatarUrl));
   const [isAvatarPickerVisible, setIsAvatarPickerVisible] = useState(false);
@@ -40,7 +39,7 @@ export default function ProfileEditScreen() {
     (normalizedNickname !== user.nickname ||
       !areAvatarConfigsEqual(avatarDraft, getNullableAvatarConfig(user.avatarUrl))),
   );
-  const canSave = Boolean(user && normalizedNickname && hasChanges && !isLoading);
+  const canSave = Boolean(user && normalizedNickname && hasChanges && !updateProfile.isPending);
 
   useEffect(() => {
     setNicknameDraft(user?.nickname ?? '');
@@ -53,13 +52,14 @@ export default function ProfileEditScreen() {
       return;
     }
 
-    const succeeded = await updateProfile({
-      avatarUrl: avatarDraft,
-      nickname: normalizedNickname,
-    });
-
-    if (succeeded) {
+    try {
+      await updateProfile.mutateAsync({
+        avatarUrl: avatarDraft,
+        nickname: normalizedNickname,
+      });
       router.replace(routes.me);
+    } catch {
+      // Mutation errors are surfaced by the shared account Query handler.
     }
   }
 

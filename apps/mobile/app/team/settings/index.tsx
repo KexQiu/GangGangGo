@@ -7,7 +7,7 @@ import { AppTopBar } from '../../../src/components/AppTopBar';
 import { PageHeader } from '../../../src/components/PageHeader';
 import { PageStack } from '../../../src/components/PageStack';
 import { Screen } from '../../../src/components/Screen';
-import { useAuthStore } from '../../../src/features/account/authStore';
+import { useCurrentUserQuery } from '../../../src/features/account/accountQueries';
 import {
   useCurrentTeamQuery,
   useLeaveTeamMutation,
@@ -22,7 +22,7 @@ import { useAppTheme } from '../../../src/theme/themeProvider';
 export default function TeamSettingsScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const user = useAuthStore((state) => state.user);
+  const user = useCurrentUserQuery().data;
   const teamQuery = useCurrentTeamQuery();
   const team = teamQuery.data?.team;
   const snapshotsQuery = useTeamSnapshotsQuery({ enabled: Boolean(team) });

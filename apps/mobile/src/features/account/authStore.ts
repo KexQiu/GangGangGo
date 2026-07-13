@@ -2,15 +2,17 @@ import AsyncStorage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { AuthResponse, ProStatus, UpdateUserProfileRequest, UserProfile } from '@xiaotidu/contracts';
+import type { AuthResponse } from '@xiaotidu/contracts';
 
 import { ApiClientError, apiClient, setApiSessionRefreshHandler, setApiUnauthorizedHandler } from '../../api/client';
 import { queryClient } from '../../api/queryClient';
 import { showToast } from '../../components/toast/AppToast';
+import { migrateAuthPreferences, type MockUserId } from './accountModel';
+import { refreshCurrentUserQuery, refreshEntitlementsQuery, seedCurrentUser } from './accountQueryService';
 import { clearSecureSession, loadSecureSession, saveSecureSession } from './sessionStorage';
 
-export const mockUserIds = ['mock-user-a', 'mock-user-b', 'mock-user-c'] as const;
-export type MockUserId = (typeof mockUserIds)[number];
+export { isProStatus, mockUserIds } from './accountModel';
+export type { MockUserId } from './accountModel';
 
 type AuthState = {
   accessToken: null | string;
@@ -18,22 +20,15 @@ type AuthState = {
   error: null | string;
   hasHydrated: boolean;
   isLoading: boolean;
-  lastUpdatedAt: null | string;
   loginWithApple: (identityToken: string, nickname?: string) => Promise<void>;
   loginWithMockApple: (mockUserId?: MockUserId) => Promise<void>;
   logout: () => Promise<void>;
-  proStatus: ProStatus;
-  refreshEntitlements: () => Promise<void>;
-  refreshMe: () => Promise<void>;
   refreshSession: () => Promise<null | string>;
   refreshToken: null | string;
   restoreSecureSession: () => Promise<void>;
   selectedMockUserId: MockUserId;
-  updateProfile: (input: UpdateUserProfileRequest) => Promise<boolean>;
-  user: null | UserProfile;
 };
 
-const defaultProStatus: ProStatus = 'free';
 let refreshPromise: Promise<null | string> | null = null;
 
 function sessionState(response: AuthResponse) {
@@ -56,7 +51,6 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       hasHydrated: false,
       isLoading: false,
-      lastUpdatedAt: null,
       loginWithApple: async (identityToken, nickname) => {
         set({ error: null, isLoading: true });
         try {
@@ -67,11 +61,13 @@ export const useAuthStore = create<AuthState>()(
             ...sessionState(response),
             error: null,
             isLoading: false,
-            lastUpdatedAt: new Date().toISOString(),
-            proStatus: defaultProStatus,
-            user: response.user,
           });
-          await get().refreshEntitlements();
+          seedCurrentUser(response.user);
+          try {
+            await refreshEntitlementsQuery(response.session.accessToken);
+          } catch (error) {
+            handleAuthError(error, set);
+          }
         } catch (error) {
           set({ error: notifyUserError(error), isLoading: false });
         }
@@ -103,37 +99,8 @@ export const useAuthStore = create<AuthState>()(
             accessTokenExpiresAt: null,
             error: null,
             isLoading: false,
-            lastUpdatedAt: new Date().toISOString(),
-            proStatus: defaultProStatus,
             refreshToken: null,
-            user: null,
           });
-        }
-      },
-      proStatus: defaultProStatus,
-      refreshEntitlements: async () => {
-        const token = get().accessToken;
-        if (!token) {
-          set({ proStatus: defaultProStatus });
-          return;
-        }
-        try {
-          const response = await apiClient.getEntitlements(token);
-          set({ error: null, lastUpdatedAt: new Date().toISOString(), proStatus: response.proStatus });
-        } catch (error) {
-          handleAuthError(error, set);
-        }
-      },
-      refreshMe: async () => {
-        const token = get().accessToken;
-        if (!token) return;
-        set({ error: null, isLoading: true });
-        try {
-          const user = await apiClient.getCurrentUser(token);
-          set({ error: null, isLoading: false, lastUpdatedAt: new Date().toISOString(), user });
-        } catch (error) {
-          handleAuthError(error, set);
-          set({ isLoading: false });
         }
       },
       refreshSession: async () => {
@@ -144,16 +111,16 @@ export const useAuthStore = create<AuthState>()(
           try {
             const response = await apiClient.refreshSession(refreshToken);
             await persistResponseSession(response);
-            set({ ...sessionState(response), user: response.user });
+            set(sessionState(response));
+            seedCurrentUser(response.user);
             return response.session.accessToken;
           } catch {
             await clearSecureSession();
+            queryClient.clear();
             set({
               accessToken: null,
               accessTokenExpiresAt: null,
-              proStatus: defaultProStatus,
               refreshToken: null,
-              user: null,
             });
             return null;
           } finally {
@@ -170,29 +137,12 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
         set({ ...session, hasHydrated: true });
-        await Promise.all([get().refreshMe(), get().refreshEntitlements()]);
+        await Promise.allSettled([
+          refreshCurrentUserQuery(session.accessToken),
+          refreshEntitlementsQuery(session.accessToken),
+        ]);
       },
       selectedMockUserId: 'mock-user-a',
-      updateProfile: async (input) => {
-        const token = get().accessToken;
-        if (!token) {
-          const message = '请先登录。';
-          showToast(message, { type: 'error' });
-          set({ error: message });
-          return false;
-        }
-        set({ error: null, isLoading: true });
-        try {
-          const user = await apiClient.updateUserProfile(input, token);
-          set({ error: null, isLoading: false, lastUpdatedAt: new Date().toISOString(), user });
-          return true;
-        } catch (error) {
-          handleAuthError(error, set);
-          set({ isLoading: false });
-          return false;
-        }
-      },
-      user: null,
     }),
     {
       name: 'xiaotidu-auth-profile-v2',
@@ -200,19 +150,14 @@ export const useAuthStore = create<AuthState>()(
         if (state) void state.restoreSecureSession();
       },
       partialize: (state) => ({
-        lastUpdatedAt: state.lastUpdatedAt,
-        proStatus: state.proStatus,
         selectedMockUserId: state.selectedMockUserId,
-        user: state.user,
       }),
       storage: createJSONStorage(() => AsyncStorage),
+      migrate: migrateAuthPreferences,
+      version: 3,
     },
   ),
 );
-
-export function isProStatus(proStatus: ProStatus): boolean {
-  return proStatus === 'pro_active' || proStatus === 'pro_grace_period';
-}
 
 function handleAuthError(error: unknown, set: (state: Partial<AuthState>) => void) {
   if (error instanceof ApiClientError && error.status === 401) return;
@@ -238,8 +183,6 @@ setApiUnauthorizedHandler(() => {
     accessToken: null,
     accessTokenExpiresAt: null,
     error: '登录状态过期，请重新登录。',
-    proStatus: defaultProStatus,
     refreshToken: null,
-    user: null,
   });
 });

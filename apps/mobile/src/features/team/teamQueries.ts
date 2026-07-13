@@ -10,6 +10,7 @@ import type {
 import { apiClient } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
+import { useCurrentUserQuery } from '../account/accountQueries';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 import { invalidateTeamSnapshots, updateTeamQueryCache, type TeamCacheUpdateOptions } from './teamQueryCache';
 
@@ -25,7 +26,7 @@ type QueryOptions = { enabled?: boolean };
 
 export function useCurrentTeamQuery(options: QueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
 
   const query = useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId),
@@ -38,7 +39,7 @@ export function useCurrentTeamQuery(options: QueryOptions = {}) {
 
 export function useTeamSnapshotsQuery(options: QueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
 
   const query = useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId),
@@ -106,7 +107,7 @@ export function useUpdateMyMemberStatusMutation() {
 
 export function useUpdateShareSettingsMutation() {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -121,7 +122,7 @@ function useTeamMutation<TInput>(
   options: TeamCacheUpdateOptions = {},
 ) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useCurrentUserQuery().data?.id;
   const queryClient = useQueryClient();
 
   return useMutation({

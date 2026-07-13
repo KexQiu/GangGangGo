@@ -1,5 +1,7 @@
 export const queryKeys = {
   advancedReport: (userId: string) => ['advanced-report', userId] as const,
+  currentUser: ['current-user'] as const,
+  entitlements: ['entitlements'] as const,
   invitePreview: (token: string) => ['invite-preview', token] as const,
   nudgeThreads: (userId: string) => ['nudge-threads', userId] as const,
   nudgeThread: (userId: string, buddyUserId: string) => ['nudge-thread', userId, buddyUserId] as const,

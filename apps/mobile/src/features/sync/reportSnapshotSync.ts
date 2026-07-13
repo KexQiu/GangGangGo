@@ -4,7 +4,9 @@ import { collectAllPages } from '../../storage/pagination';
 import { listHabitCheckInsPage } from '../../storage/repositories/habitRepository';
 import { listToiletSessionsPage, type ToiletSessionCursor } from '../../storage/repositories/toiletRepository';
 import { listTrainingSessionsPage, type TrainingSessionCursor } from '../../storage/repositories/trainingRepository';
-import { isProStatus, useAuthStore } from '../account/authStore';
+import { isProStatus } from '../account/accountModel';
+import { getCachedProStatus } from '../account/accountQueryService';
+import { useAuthStore } from '../account/authStore';
 import {
   buildRecentReportSnapshots,
   recentReportDays,
@@ -18,8 +20,8 @@ export async function syncTodayReportSnapshot(): Promise<boolean> {
 }
 
 export async function syncRecentReportSnapshots(): Promise<boolean> {
-  const { accessToken, proStatus } = useAuthStore.getState();
-  if (!accessToken || !isProStatus(proStatus)) return false;
+  const { accessToken } = useAuthStore.getState();
+  if (!accessToken || !isProStatus(getCachedProStatus())) return false;
 
   try {
     const now = new Date();

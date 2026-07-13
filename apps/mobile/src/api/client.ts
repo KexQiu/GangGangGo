@@ -115,9 +115,10 @@ export const apiClient = {
     request<BuddyNudgeSettingsResponse>('/buddy-nudge-settings', buddyNudgeSettingsResponseSchema, { token }),
   getCurrentTeam: (token: string, signal?: AbortSignal) =>
     request<TeamResponse>('/teams/current', teamResponseSchema, { signal, token }),
-  getCurrentUser: (token: string) => request<AuthResponse['user']>('/me', userProfileSchema, { token }),
-  getEntitlements: (token: string) =>
-    request<EntitlementsResponse>('/me/entitlements', entitlementsResponseSchema, { token }),
+  getCurrentUser: (token: string, signal?: AbortSignal) =>
+    request<AuthResponse['user']>('/me', userProfileSchema, { signal, token }),
+  getEntitlements: (token: string, signal?: AbortSignal) =>
+    request<EntitlementsResponse>('/me/entitlements', entitlementsResponseSchema, { signal, token }),
   getNudgeThreads: (token: string, signal?: AbortSignal) =>
     request<NudgeThreadsResponse>('/nudges/threads', nudgeThreadsResponseSchema, { signal, token }),
   getNudgeThread: (buddyUserId: string, options: NudgeThreadOptions, token: string, signal?: AbortSignal) => {

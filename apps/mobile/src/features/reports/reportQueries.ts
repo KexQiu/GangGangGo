@@ -3,15 +3,17 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
-import { isProStatus, useAuthStore } from '../account/authStore';
+import { defaultProStatus, isProStatus } from '../account/accountModel';
+import { useCurrentUserQuery, useEntitlementsQuery } from '../account/accountQueries';
+import { useAuthStore } from '../account/authStore';
 import { syncRecentReportSnapshots } from '../sync/reportSnapshotSync';
 
 type ReportQueryOptions = { enabled?: boolean };
 
 export function useAdvancedReportQuery(options: ReportQueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const proStatus = useAuthStore((state) => state.proStatus);
-  const userId = useAuthStore((state) => state.user?.id);
+  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
+  const userId = useCurrentUserQuery().data?.id;
 
   const query = useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),
@@ -28,8 +30,8 @@ export function useAdvancedReportQuery(options: ReportQueryOptions = {}) {
 
 export function useTeamWeeklyReportQuery(options: ReportQueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const proStatus = useAuthStore((state) => state.proStatus);
-  const userId = useAuthStore((state) => state.user?.id);
+  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
+  const userId = useCurrentUserQuery().data?.id;
 
   const query = useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),

@@ -9,7 +9,8 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { Screen } from '../../src/components/Screen';
-import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
+import { defaultProStatus, isProStatus } from '../../src/features/account/accountModel';
+import { useCurrentUserQuery, useEntitlementsQuery } from '../../src/features/account/accountQueries';
 import { getWatchConnectivityDebugInfo, getWatchConnectivityStatus } from '../../src/features/watch/watchConnectivity';
 import { useWatchDebugStore } from '../../src/features/watch/watchDebugStore';
 import {
@@ -30,8 +31,8 @@ export default function WatchScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const isDevelopment = __DEV__;
-  const user = useAuthStore((state) => state.user);
-  const proStatus = useAuthStore((state) => state.proStatus);
+  const user = useCurrentUserQuery().data;
+  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
   const isPro = isProStatus(proStatus);
   const [status, setStatus] = useState<WatchConnectivityStatus | null>(null);
   const [debugInfo, setDebugInfo] = useState<WatchConnectivityDebugInfo | null>(null);

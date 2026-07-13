@@ -1,4 +1,5 @@
 import { buildWatchTodayState } from './watchStateBuilder';
+import { refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
 import { addWatchConnectivityEventListener, replyToWatchMessage, sendWatchTodayState } from './watchConnectivity';
 import { useWatchDebugStore } from './watchDebugStore';
@@ -23,7 +24,7 @@ export async function refreshEntitlementsAndSyncWatchTodayState(
   const auth = useAuthStore.getState();
 
   if (auth.accessToken) {
-    await auth.refreshEntitlements();
+    await refreshEntitlementsQuery(auth.accessToken);
   }
 
   return syncWatchTodayState(now, source);

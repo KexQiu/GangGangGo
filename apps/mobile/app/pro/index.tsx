@@ -8,7 +8,8 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { PageStack } from '../../src/components/PageStack';
 import { Screen } from '../../src/components/Screen';
-import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
+import { defaultProStatus, isProStatus } from '../../src/features/account/accountModel';
+import { useCurrentUserQuery, useEntitlementsQuery } from '../../src/features/account/accountQueries';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -34,8 +35,8 @@ export default function ProScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const proStatus = useAuthStore((state) => state.proStatus);
-  const user = useAuthStore((state) => state.user);
+  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
+  const user = useCurrentUserQuery().data;
   const isPro = isProStatus(proStatus);
 
   return (

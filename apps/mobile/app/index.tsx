@@ -21,6 +21,7 @@ import { AppCard } from '../src/components/AppCard';
 import { PressableScale } from '../src/components/feedback/PressableScale';
 import { PageHeader } from '../src/components/PageHeader';
 import { Screen } from '../src/components/Screen';
+import { useCurrentUserQuery } from '../src/features/account/accountQueries';
 import { useAuthStore } from '../src/features/account/authStore';
 import { calculateHabitCompletion, createEmptyHabitCheckIn, getLocalDateKey } from '../src/features/habits/habitLogic';
 import { getHabitCheckInForDate, useHabitStore } from '../src/features/habits/habitStore';
@@ -50,7 +51,7 @@ const trainingTarget = 2;
 export default function HomeScreen() {
   const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
-  const user = useAuthStore((state) => state.user);
+  const user = useCurrentUserQuery().data;
   const checkIns = useHabitStore((state) => state.checkIns);
   const reminderSettings = useReminderStore((state) => state.settings);
   const toiletSessions = useToiletStore((state) => state.sessions);

@@ -21,7 +21,9 @@ import { AppTopBar } from '../../../src/components/AppTopBar';
 import { PressableScale } from '../../../src/components/feedback/PressableScale';
 import { ProfileAvatar } from '../../../src/components/ProfileAvatar';
 import { Screen } from '../../../src/components/Screen';
-import { isProStatus, useAuthStore } from '../../../src/features/account/authStore';
+import { defaultProStatus, isProStatus } from '../../../src/features/account/accountModel';
+import { useCurrentUserQuery, useEntitlementsQuery } from '../../../src/features/account/accountQueries';
+import { useAuthStore } from '../../../src/features/account/authStore';
 import {
   ackCopies,
   ackStatuses,
@@ -57,8 +59,8 @@ export default function NudgeChatScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const accessToken = useAuthStore((state) => state.accessToken);
-  const currentUser = useAuthStore((state) => state.user);
-  const proStatus = useAuthStore((state) => state.proStatus);
+  const currentUser = useCurrentUserQuery().data;
+  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
   const isPollingEnabled = shouldPollNudges({
     hasSession: Boolean(accessToken && currentUser?.id),
     hasTarget: Boolean(buddyUserId),
