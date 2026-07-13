@@ -137,8 +137,8 @@ describeWithDatabase('postgres auth and team integration', () => {
       .set({ expiresAt: new Date(Date.now() - 1_000) })
       .where(eq(teamInvites.id, expiredInvite.inviteId));
     await expect(service.acceptInvite(expiredBuddy, expiredInvite.token, {})).rejects.toMatchObject({
-      code: 'conflict',
-      statusCode: 409,
+      code: 'not_found',
+      statusCode: 404,
     });
 
     const fullOwner = await createIntegrationUser(client, createdUserIds, 'full-owner');
