@@ -7,9 +7,12 @@ export const registerPushTokenRequestSchema = z
     provider: z.enum(['apns', 'expo']),
     token: z.string().min(1).max(300),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'RegisterPushTokenRequest' });
 export type RegisterPushTokenRequest = z.infer<typeof registerPushTokenRequestSchema>;
 export type PushPlatform = RegisterPushTokenRequest['platform'];
 export type PushProvider = RegisterPushTokenRequest['provider'];
-export const registerPushTokenResponseSchema = z.object({ id: z.string().uuid() });
+export const registerPushTokenResponseSchema = z
+  .object({ id: z.string().uuid() })
+  .meta({ id: 'RegisterPushTokenResponse' });
 export type RegisterPushTokenResponse = z.infer<typeof registerPushTokenResponseSchema>;

@@ -15,14 +15,18 @@ export const verifySubscriptionRequestSchema = z
     productId: subscriptionProductIdSchema,
     transactionId: z.string().min(1).max(200),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'VerifySubscriptionRequest' });
 export type VerifySubscriptionRequest = z.infer<typeof verifySubscriptionRequestSchema>;
 export const restoreSubscriptionRequestSchema = z
   .object({ transactionIds: z.array(z.string().min(1).max(200)).min(1).max(20) })
-  .strict();
+  .strict()
+  .meta({ id: 'RestoreSubscriptionRequest' });
 export type RestoreSubscriptionRequest = z.infer<typeof restoreSubscriptionRequestSchema>;
-export const subscriptionActionResponseSchema = z.object({
-  entitlements: entitlementsResponseSchema,
-  status: z.literal('pending_verification'),
-});
+export const subscriptionActionResponseSchema = z
+  .object({
+    entitlements: entitlementsResponseSchema,
+    status: z.literal('pending_verification'),
+  })
+  .meta({ id: 'SubscriptionActionResponse' });
 export type SubscriptionActionResponse = z.infer<typeof subscriptionActionResponseSchema>;

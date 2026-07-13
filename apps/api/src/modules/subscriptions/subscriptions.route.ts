@@ -1,44 +1,65 @@
-import { Hono } from 'hono';
+import { createRoute } from '@hono/zod-openapi';
 
-import type {
-  RestoreSubscriptionRequest,
-  SubscriptionActionResponse,
-  VerifySubscriptionRequest,
+import {
+  restoreSubscriptionRequestSchema,
+  subscriptionActionResponseSchema,
+  verifySubscriptionRequestSchema,
+  type SubscriptionActionResponse,
 } from '@xiaotidu/contracts';
 
+import { apiResponses, bearerSecurity, createOpenApiRouter, jsonRequest } from '../../http/openapi.js';
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';
 import type { EntitlementsService } from '../entitlements/entitlementsService.js';
-import { restoreSubscriptionRequestSchema, verifySubscriptionRequestSchema } from './subscriptions.schemas.js';
 
 type CreateSubscriptionsRouteOptions = {
   entitlementsService: EntitlementsService;
 };
 
 export function createSubscriptionsRoute(options: CreateSubscriptionsRouteOptions) {
-  const route = new Hono<{ Variables: AuthVariables }>();
+  const route = createOpenApiRouter<{ Variables: AuthVariables }>();
 
-  route.post('/verify', async (context) => {
-    verifySubscriptionRequestSchema.parse(await context.req.json()) satisfies VerifySubscriptionRequest;
-    const entitlements = await options.entitlementsService.getEntitlements(context.get('currentUser'));
-    const body: SubscriptionActionResponse = {
-      entitlements,
-      status: 'pending_verification',
-    };
+  route.openapi(
+    createRoute({
+      method: 'post',
+      path: '/verify',
+      request: { body: jsonRequest(verifySubscriptionRequestSchema) },
+      responses: apiResponses(subscriptionActionResponseSchema),
+      security: bearerSecurity,
+      summary: '提交订阅校验',
+    }),
+    async (context) => {
+      context.req.valid('json');
+      const entitlements = await options.entitlementsService.getEntitlements(context.get('currentUser'));
+      const body: SubscriptionActionResponse = {
+        entitlements,
+        status: 'pending_verification',
+      };
 
-    return context.json(toSuccessResponse(body));
-  });
+      return context.json(toSuccessResponse(body), 200);
+    },
+  );
 
-  route.post('/restore', async (context) => {
-    restoreSubscriptionRequestSchema.parse(await context.req.json()) satisfies RestoreSubscriptionRequest;
-    const entitlements = await options.entitlementsService.getEntitlements(context.get('currentUser'));
-    const body: SubscriptionActionResponse = {
-      entitlements,
-      status: 'pending_verification',
-    };
+  route.openapi(
+    createRoute({
+      method: 'post',
+      path: '/restore',
+      request: { body: jsonRequest(restoreSubscriptionRequestSchema) },
+      responses: apiResponses(subscriptionActionResponseSchema),
+      security: bearerSecurity,
+      summary: '恢复订阅',
+    }),
+    async (context) => {
+      context.req.valid('json');
+      const entitlements = await options.entitlementsService.getEntitlements(context.get('currentUser'));
+      const body: SubscriptionActionResponse = {
+        entitlements,
+        status: 'pending_verification',
+      };
 
-    return context.json(toSuccessResponse(body));
-  });
+      return context.json(toSuccessResponse(body), 200);
+    },
+  );
 
   return route;
 }

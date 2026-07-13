@@ -1,0 +1,5300 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAPI document > matches the registered route and contract schema snapshot 1`] = `
+{
+  "components": {
+    "parameters": {},
+    "schemas": {
+      "AcceptTeamInviteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string",
+          },
+          "shareSettings": {
+            "additionalProperties": false,
+            "properties": {
+              "paused": {
+                "type": "boolean",
+              },
+              "shareHabitCompletion": {
+                "type": "boolean",
+              },
+              "shareStreak": {
+                "type": "boolean",
+              },
+              "shareToiletRecorded": {
+                "type": "boolean",
+              },
+              "shareTraining": {
+                "type": "boolean",
+              },
+            },
+            "type": "object",
+          },
+        },
+        "type": "object",
+      },
+      "AckBuddyNudgeRequest": {
+        "properties": {
+          "status": {
+            "enum": [
+              "received",
+              "later",
+              "done",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "status",
+        ],
+        "type": "object",
+      },
+      "AdvancedReportResponse": {
+        "properties": {
+          "days": {
+            "items": {
+              "properties": {
+                "date": {
+                  "$ref": "#/components/schemas/IsoDate",
+                },
+                "habitCompletion": {
+                  "maximum": 4,
+                  "minimum": 0,
+                  "type": "integer",
+                },
+                "habitFull": {
+                  "type": "boolean",
+                },
+                "toiletLongMeeting": {
+                  "type": "boolean",
+                },
+                "toiletRecorded": {
+                  "type": "boolean",
+                },
+                "trainingDone": {
+                  "type": "boolean",
+                },
+              },
+              "required": [
+                "date",
+                "habitCompletion",
+                "habitFull",
+                "toiletLongMeeting",
+                "toiletRecorded",
+                "trainingDone",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "endedAt": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "range": {
+            "enum": [
+              "90d",
+            ],
+            "type": "string",
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyReportSnapshot",
+          },
+          "startedAt": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "summary": {
+            "properties": {
+              "currentStreakDays": {
+                "minimum": 0,
+                "type": "integer",
+              },
+              "habitFullDays": {
+                "minimum": 0,
+                "type": "integer",
+              },
+              "hasAnyRecord": {
+                "type": "boolean",
+              },
+              "recordDays": {
+                "minimum": 0,
+                "type": "integer",
+              },
+              "toiletLongMeetingCount": {
+                "minimum": 0,
+                "type": "integer",
+              },
+              "toiletRecordDays": {
+                "minimum": 0,
+                "type": "integer",
+              },
+              "trainingDays": {
+                "minimum": 0,
+                "type": "integer",
+              },
+            },
+            "required": [
+              "currentStreakDays",
+              "habitFullDays",
+              "hasAnyRecord",
+              "recordDays",
+              "toiletLongMeetingCount",
+              "toiletRecordDays",
+              "trainingDays",
+            ],
+            "type": "object",
+          },
+        },
+        "required": [
+          "days",
+          "endedAt",
+          "range",
+          "snapshot",
+          "startedAt",
+          "summary",
+        ],
+        "type": "object",
+      },
+      "ApiErrorResponse": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "bad_request",
+                  "conflict",
+                  "database_not_configured",
+                  "database_unreachable",
+                  "forbidden",
+                  "internal_error",
+                  "internal_server_error",
+                  "not_found",
+                  "rate_limited",
+                  "unauthorized",
+                  "validation_error",
+                ],
+                "type": "string",
+              },
+              "details": {},
+              "message": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "code",
+              "message",
+            ],
+            "type": "object",
+          },
+        },
+        "required": [
+          "error",
+        ],
+        "type": "object",
+      },
+      "ApiHealthResponse": {
+        "properties": {
+          "ok": {
+            "enum": [
+              true,
+            ],
+            "type": "boolean",
+          },
+          "service": {
+            "enum": [
+              "xiaotidu-api",
+            ],
+            "type": "string",
+          },
+          "version": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "ok",
+          "service",
+          "version",
+        ],
+        "type": "object",
+      },
+      "AppleLoginRequest": {
+        "properties": {
+          "authorizationCode": {
+            "type": "string",
+          },
+          "identityToken": {
+            "minLength": 1,
+            "type": "string",
+          },
+          "nickname": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "identityToken",
+        ],
+        "type": "object",
+      },
+      "AuthResponse": {
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/AuthSession",
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile",
+          },
+        },
+        "required": [
+          "session",
+          "user",
+        ],
+        "type": "object",
+      },
+      "AuthSession": {
+        "properties": {
+          "accessToken": {
+            "minLength": 1,
+            "type": "string",
+          },
+          "accessTokenExpiresAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "refreshToken": {
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "accessToken",
+          "accessTokenExpiresAt",
+          "refreshToken",
+        ],
+        "type": "object",
+      },
+      "AvatarConfig": {
+        "properties": {
+          "background": {
+            "enum": [
+              "leaf",
+              "mint",
+              "sky",
+              "sun",
+              "peach",
+              "rose",
+              "lilac",
+              "stone",
+            ],
+            "type": "string",
+          },
+          "emoji": {
+            "enum": [
+              "smile",
+              "calm",
+              "cool",
+              "thinking",
+              "sleepy",
+              "party",
+              "angel",
+              "determined",
+              "grin",
+              "wink",
+              "starry",
+              "hug",
+              "joy",
+              "melting",
+              "blush",
+              "yum",
+              "slight",
+              "laugh",
+              "relieved",
+              "upside_down",
+              "grimace",
+              "playful",
+              "heart_eyes",
+              "touched",
+              "nerd",
+              "smirk",
+              "dizzy",
+              "cowboy",
+              "cat",
+              "dog",
+              "fox",
+              "panda",
+              "rabbit",
+              "bear",
+              "tiger",
+              "frog",
+              "monkey",
+              "penguin",
+              "koala",
+              "lion",
+              "pig",
+              "mouse",
+              "hamster",
+              "chick",
+              "owl",
+              "unicorn",
+              "cow",
+              "octopus",
+              null,
+            ],
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+        },
+        "required": [
+          "background",
+          "emoji",
+        ],
+        "type": [
+          "object",
+          "null",
+        ],
+      },
+      "BuddyNudge": {
+        "properties": {
+          "ack": {
+            "$ref": "#/components/schemas/BuddyNudgeAck",
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "expiresAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "fromUser": {
+            "$ref": "#/components/schemas/UserSummary",
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "messageTemplate": {
+            "type": "string",
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "toUser": {
+            "$ref": "#/components/schemas/UserSummary",
+          },
+          "type": {
+            "enum": [
+              "gentle",
+              "move",
+              "not_blank",
+              "habit_left",
+              "posture",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "ack",
+          "createdAt",
+          "expiresAt",
+          "fromUser",
+          "id",
+          "messageTemplate",
+          "teamId",
+          "toUser",
+          "type",
+        ],
+        "type": "object",
+      },
+      "BuddyNudgeAck": {
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "revisionCount": {
+            "anyOf": [
+              {
+                "enum": [
+                  0,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  1,
+                ],
+                "type": "number",
+              },
+            ],
+          },
+          "status": {
+            "enum": [
+              "received",
+              "later",
+              "done",
+            ],
+            "type": "string",
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+        },
+        "required": [
+          "createdAt",
+          "revisionCount",
+          "status",
+          "updatedAt",
+        ],
+        "type": [
+          "object",
+          "null",
+        ],
+      },
+      "BuddyNudgeAckResponse": {
+        "properties": {
+          "ack": {
+            "$ref": "#/components/schemas/BuddyNudgeAck",
+          },
+        },
+        "required": [
+          "ack",
+        ],
+        "type": "object",
+      },
+      "BuddyNudgeSettings": {
+        "properties": {
+          "buddyUserId": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "dailyLimit": {
+            "anyOf": [
+              {
+                "enum": [
+                  0,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  3,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  5,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  8,
+                ],
+                "type": "number",
+              },
+            ],
+          },
+          "enabled": {
+            "type": "boolean",
+          },
+          "quietRanges": {
+            "items": {
+              "properties": {
+                "end": {
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string",
+                },
+                "start": {
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "end",
+                "start",
+              ],
+              "type": "object",
+            },
+            "maxItems": 4,
+            "type": "array",
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string",
+          },
+        },
+        "required": [
+          "buddyUserId",
+          "dailyLimit",
+          "enabled",
+          "quietRanges",
+          "teamId",
+          "userId",
+        ],
+        "type": "object",
+      },
+      "BuddyNudgeSettingsResponse": {
+        "properties": {
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/BuddyNudgeSettings",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "settings",
+        ],
+        "type": "object",
+      },
+      "BuddyNudgeThreadResponse": {
+        "properties": {
+          "hasMore": {
+            "type": "boolean",
+          },
+          "nextCursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IsoDateTime",
+              },
+              {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+            ],
+          },
+          "nudges": {
+            "items": {
+              "$ref": "#/components/schemas/BuddyNudge",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "hasMore",
+          "nextCursor",
+          "nudges",
+        ],
+        "type": "object",
+      },
+      "BuddyNudgesResponse": {
+        "properties": {
+          "nudges": {
+            "items": {
+              "$ref": "#/components/schemas/BuddyNudge",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "nudges",
+        ],
+        "type": "object",
+      },
+      "CreateBuddyNudgeRequest": {
+        "properties": {
+          "toUserId": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "type": {
+            "enum": [
+              "gentle",
+              "move",
+              "not_blank",
+              "habit_left",
+              "posture",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "toUserId",
+          "type",
+        ],
+        "type": "object",
+      },
+      "CreateTeamInviteResponse": {
+        "properties": {
+          "expiresAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "inviteId": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "inviteUrl": {
+            "format": "uri",
+            "type": "string",
+          },
+          "token": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "expiresAt",
+          "inviteId",
+          "inviteUrl",
+          "token",
+        ],
+        "type": "object",
+      },
+      "CreateTeamRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "DailyReportSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "habitCompletion": {
+            "maximum": 4,
+            "minimum": 0,
+            "type": "integer",
+          },
+          "streakDays": {
+            "minimum": 0,
+            "type": "integer",
+          },
+          "toiletLongMeeting": {
+            "type": "boolean",
+          },
+          "toiletRecorded": {
+            "type": "boolean",
+          },
+          "trainingDone": {
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "date",
+          "habitCompletion",
+          "streakDays",
+          "toiletRecorded",
+          "trainingDone",
+          "toiletLongMeeting",
+        ],
+        "type": [
+          "object",
+          "null",
+        ],
+      },
+      "DailyReportSnapshotResponse": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyReportSnapshot",
+          },
+        },
+        "required": [
+          "snapshot",
+        ],
+        "type": "object",
+      },
+      "DailyReportSnapshotsBulkResponse": {
+        "properties": {
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/DailyReportSnapshot",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "snapshots",
+        ],
+        "type": "object",
+      },
+      "DailyShareSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "habitCompletion": {
+            "maximum": 4,
+            "minimum": 0,
+            "type": "integer",
+          },
+          "streakDays": {
+            "minimum": 0,
+            "type": "integer",
+          },
+          "toiletRecorded": {
+            "type": "boolean",
+          },
+          "trainingDone": {
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "date",
+          "habitCompletion",
+          "streakDays",
+          "toiletRecorded",
+          "trainingDone",
+        ],
+        "type": "object",
+      },
+      "DailyShareSnapshotResponse": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyShareSnapshot",
+          },
+        },
+        "required": [
+          "snapshot",
+        ],
+        "type": "object",
+      },
+      "DatabaseHealthResponse": {
+        "properties": {
+          "database": {
+            "enum": [
+              "reachable",
+            ],
+            "type": "string",
+          },
+          "ok": {
+            "enum": [
+              true,
+            ],
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "database",
+          "ok",
+        ],
+        "type": "object",
+      },
+      "EntitlementsResponse": {
+        "properties": {
+          "proStatus": {
+            "enum": [
+              "free",
+              "pro_active",
+              "pro_grace_period",
+              "pro_expired",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "proStatus",
+        ],
+        "type": "object",
+      },
+      "IsoDate": {
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "type": "string",
+      },
+      "IsoDateTime": {
+        "format": "date-time",
+        "type": "string",
+      },
+      "NudgeThreadsResponse": {
+        "properties": {
+          "threads": {
+            "items": {
+              "properties": {
+                "buddy": {
+                  "$ref": "#/components/schemas/UserSummary",
+                },
+                "latestAt": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/IsoDateTime",
+                    },
+                    {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                  ],
+                },
+                "latestPreview": {
+                  "type": "string",
+                },
+                "messageCount": {
+                  "minimum": 0,
+                  "type": "integer",
+                },
+                "pendingCount": {
+                  "minimum": 0,
+                  "type": "integer",
+                },
+                "status": {
+                  "enum": [
+                    "active",
+                    "paused",
+                    "removed",
+                    null,
+                  ],
+                  "type": [
+                    "string",
+                    "null",
+                  ],
+                },
+              },
+              "required": [
+                "buddy",
+                "latestAt",
+                "latestPreview",
+                "messageCount",
+                "pendingCount",
+                "status",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "threads",
+        ],
+        "type": "object",
+      },
+      "RefreshSessionRequest": {
+        "properties": {
+          "refreshToken": {
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "refreshToken",
+        ],
+        "type": "object",
+      },
+      "RegisterPushTokenRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string",
+          },
+          "platform": {
+            "enum": [
+              "android",
+              "ios",
+            ],
+            "type": "string",
+          },
+          "provider": {
+            "enum": [
+              "apns",
+              "expo",
+            ],
+            "type": "string",
+          },
+          "token": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "platform",
+          "provider",
+          "token",
+        ],
+        "type": "object",
+      },
+      "RegisterPushTokenResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string",
+          },
+        },
+        "required": [
+          "id",
+        ],
+        "type": "object",
+      },
+      "RestoreSubscriptionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "transactionIds": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string",
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array",
+          },
+        },
+        "required": [
+          "transactionIds",
+        ],
+        "type": "object",
+      },
+      "ShareSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "paused": {
+            "type": "boolean",
+          },
+          "shareHabitCompletion": {
+            "type": "boolean",
+          },
+          "shareStreak": {
+            "type": "boolean",
+          },
+          "shareToiletRecorded": {
+            "type": "boolean",
+          },
+          "shareTraining": {
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "paused",
+          "shareHabitCompletion",
+          "shareStreak",
+          "shareToiletRecorded",
+          "shareTraining",
+        ],
+        "type": "object",
+      },
+      "ShareSettingsResponse": {
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/ShareSettings",
+          },
+        },
+        "required": [
+          "settings",
+        ],
+        "type": "object",
+      },
+      "SubscriptionActionResponse": {
+        "properties": {
+          "entitlements": {
+            "$ref": "#/components/schemas/EntitlementsResponse",
+          },
+          "status": {
+            "enum": [
+              "pending_verification",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "entitlements",
+          "status",
+        ],
+        "type": "object",
+      },
+      "Team": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember",
+            },
+            "type": "array",
+          },
+          "name": {
+            "type": "string",
+          },
+          "ownerUserId": {
+            "format": "uuid",
+            "type": "string",
+          },
+        },
+        "required": [
+          "id",
+          "members",
+          "name",
+          "ownerUserId",
+        ],
+        "type": [
+          "object",
+          "null",
+        ],
+      },
+      "TeamInvitePreviewResponse": {
+        "properties": {
+          "expiresAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "inviterNickname": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "teamName": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "expiresAt",
+          "inviterNickname",
+          "teamName",
+        ],
+        "type": "object",
+      },
+      "TeamMember": {
+        "properties": {
+          "displayName": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "joinedAt": {
+            "$ref": "#/components/schemas/IsoDateTime",
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "buddy",
+            ],
+            "type": "string",
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused",
+              "removed",
+            ],
+            "type": "string",
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummary",
+          },
+        },
+        "required": [
+          "displayName",
+          "id",
+          "joinedAt",
+          "role",
+          "status",
+          "user",
+        ],
+        "type": "object",
+      },
+      "TeamResponse": {
+        "properties": {
+          "team": {
+            "$ref": "#/components/schemas/Team",
+          },
+        },
+        "required": [
+          "team",
+        ],
+        "type": "object",
+      },
+      "TeamSnapshotsResponse": {
+        "properties": {
+          "date": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "snapshots": {
+            "items": {
+              "properties": {
+                "member": {
+                  "properties": {
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string",
+                    },
+                    "role": {
+                      "enum": [
+                        "owner",
+                        "buddy",
+                      ],
+                      "type": "string",
+                    },
+                    "status": {
+                      "enum": [
+                        "active",
+                        "paused",
+                        "removed",
+                      ],
+                      "type": "string",
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/UserSummary",
+                    },
+                  },
+                  "required": [
+                    "displayName",
+                    "id",
+                    "role",
+                    "status",
+                    "user",
+                  ],
+                  "type": "object",
+                },
+                "shareSettings": {
+                  "$ref": "#/components/schemas/ShareSettings",
+                },
+                "snapshot": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "date": {
+                      "$ref": "#/components/schemas/IsoDate",
+                    },
+                    "habitCompletion": {
+                      "maximum": 4,
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                    "streakDays": {
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                    "toiletRecorded": {
+                      "type": "boolean",
+                    },
+                    "trainingDone": {
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "date",
+                  ],
+                  "type": [
+                    "object",
+                    "null",
+                  ],
+                },
+              },
+              "required": [
+                "member",
+                "shareSettings",
+                "snapshot",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "date",
+          "snapshots",
+        ],
+        "type": "object",
+      },
+      "TeamWeeklyReportResponse": {
+        "properties": {
+          "endedAt": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "memberCount": {
+            "minimum": 0,
+            "type": "integer",
+          },
+          "startedAt": {
+            "$ref": "#/components/schemas/IsoDate",
+          },
+          "summaries": {
+            "items": {
+              "properties": {
+                "habitFullDays": {
+                  "minimum": 0,
+                  "type": "integer",
+                },
+                "member": {
+                  "properties": {
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string",
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/UserSummary",
+                    },
+                  },
+                  "required": [
+                    "displayName",
+                    "id",
+                    "user",
+                  ],
+                  "type": "object",
+                },
+                "toiletRecordedDays": {
+                  "minimum": 0,
+                  "type": "integer",
+                },
+                "trainingDays": {
+                  "minimum": 0,
+                  "type": "integer",
+                },
+              },
+              "required": [
+                "habitFullDays",
+                "member",
+                "toiletRecordedDays",
+                "trainingDays",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "endedAt",
+          "memberCount",
+          "startedAt",
+          "summaries",
+        ],
+        "type": "object",
+      },
+      "UpdateBuddyNudgeSettingsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dailyLimit": {
+            "anyOf": [
+              {
+                "enum": [
+                  0,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  3,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  5,
+                ],
+                "type": "number",
+              },
+              {
+                "enum": [
+                  8,
+                ],
+                "type": "number",
+              },
+            ],
+          },
+          "enabled": {
+            "type": "boolean",
+          },
+          "quietRanges": {
+            "items": {
+              "properties": {
+                "end": {
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string",
+                },
+                "start": {
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "end",
+                "start",
+              ],
+              "type": "object",
+            },
+            "maxItems": 4,
+            "type": "array",
+          },
+        },
+        "required": [
+          "dailyLimit",
+          "enabled",
+          "quietRanges",
+        ],
+        "type": "object",
+      },
+      "UpdateTeamMemberStatusRequest": {
+        "properties": {
+          "status": {
+            "enum": [
+              "active",
+              "paused",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "status",
+        ],
+        "type": "object",
+      },
+      "UpdateTeamRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "name",
+        ],
+        "type": "object",
+      },
+      "UpdateUserProfileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarUrl": {
+            "$ref": "#/components/schemas/AvatarConfig",
+          },
+          "nickname": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "UpsertDailyReportSnapshotRequest": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyReportSnapshot",
+          },
+        },
+        "required": [
+          "snapshot",
+        ],
+        "type": "object",
+      },
+      "UpsertDailyReportSnapshotsBulkRequest": {
+        "properties": {
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/DailyReportSnapshot",
+            },
+            "maxItems": 90,
+            "minItems": 1,
+            "type": "array",
+          },
+        },
+        "required": [
+          "snapshots",
+        ],
+        "type": "object",
+      },
+      "UpsertDailyShareSnapshotRequest": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/DailyShareSnapshot",
+          },
+        },
+        "required": [
+          "snapshot",
+        ],
+        "type": "object",
+      },
+      "UserProfile": {
+        "properties": {
+          "avatarUrl": {
+            "$ref": "#/components/schemas/AvatarConfig",
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "nickname": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "timezone": {
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "avatarUrl",
+          "id",
+          "nickname",
+          "timezone",
+        ],
+        "type": "object",
+      },
+      "UserSummary": {
+        "properties": {
+          "avatarUrl": {
+            "$ref": "#/components/schemas/AvatarConfig",
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string",
+          },
+          "nickname": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+        },
+        "required": [
+          "avatarUrl",
+          "id",
+          "nickname",
+        ],
+        "type": "object",
+      },
+      "VerifySubscriptionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "productId": {
+            "enum": [
+              "xiaotidu.pro.monthly",
+              "xiaotidu.pro.yearly",
+            ],
+            "type": "string",
+          },
+          "transactionId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "productId",
+          "transactionId",
+        ],
+        "type": "object",
+      },
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http",
+      },
+    },
+  },
+  "info": {
+    "title": "小提督 API",
+    "version": "0.2.0",
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/auth/apple": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleLoginRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "summary": "Apple 或开发 Mock 登录",
+      },
+    },
+    "/auth/logout": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "ok": {
+                          "enum": [
+                            true,
+                          ],
+                          "type": "boolean",
+                        },
+                      },
+                      "required": [
+                        "ok",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "撤销当前会话",
+      },
+    },
+    "/auth/refresh": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSessionRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "summary": "轮换登录会话",
+      },
+    },
+    "/buddy-nudge-settings": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudgeSettingsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提醒设置",
+      },
+    },
+    "/buddy-nudge-settings/{buddyUserId}": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "buddyUserId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBuddyNudgeSettingsRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudgeSettingsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "更新提醒设置",
+      },
+    },
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ApiHealthResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "summary": "服务健康检查",
+      },
+    },
+    "/health/db": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DatabaseHealthResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "summary": "数据库健康检查",
+      },
+    },
+    "/me": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserProfile",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "当前用户",
+      },
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserProfileRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserProfile",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "更新用户资料",
+      },
+    },
+    "/me/entitlements": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EntitlementsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "会员权益",
+      },
+    },
+    "/nudges": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBuddyNudgeRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudge",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "发送搭子提醒",
+      },
+    },
+    "/nudges/inbox": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudgesResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提醒收件箱",
+      },
+    },
+    "/nudges/sent": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudgesResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提醒发件箱",
+      },
+    },
+    "/nudges/threads": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/NudgeThreadsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提醒会话摘要",
+      },
+    },
+    "/nudges/threads/{buddyUserId}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "buddyUserId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudgeThreadResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提醒会话详情",
+      },
+    },
+    "/nudges/{id}/ack": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AckBuddyNudgeRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BuddyNudgeAckResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "回复提醒",
+      },
+    },
+    "/push-tokens": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RegisterPushTokenResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "注册 Push token",
+      },
+    },
+    "/report-snapshots/bulk": {
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertDailyReportSnapshotsBulkRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DailyReportSnapshotsBulkResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "批量上传个人日报",
+      },
+    },
+    "/report-snapshots/today": {
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertDailyReportSnapshotRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DailyReportSnapshotResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "上传个人日报",
+      },
+    },
+    "/reports/advanced": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "default": "90d",
+              "enum": [
+                "90d",
+              ],
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdvancedReportResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "90 天高级报告",
+      },
+    },
+    "/share-settings": {
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareSettings",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ShareSettingsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "更新共享设置",
+      },
+    },
+    "/share-snapshots/today": {
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertDailyShareSnapshotRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DailyShareSnapshotResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "上传今日共享快照",
+      },
+    },
+    "/subscriptions/restore": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreSubscriptionRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SubscriptionActionResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "恢复订阅",
+      },
+    },
+    "/subscriptions/verify": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySubscriptionRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SubscriptionActionResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提交订阅校验",
+      },
+    },
+    "/team-invites/{token}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 16,
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamInvitePreviewResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "summary": "预览邀请",
+      },
+    },
+    "/team-invites/{token}/accept": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 16,
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTeamInviteRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "接受邀请",
+      },
+    },
+    "/teams": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "创建小队",
+      },
+    },
+    "/teams/current": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "当前小队",
+      },
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "更新小队",
+      },
+    },
+    "/teams/current/invites": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreateTeamInviteResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "创建邀请",
+      },
+    },
+    "/teams/current/leave": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "退出小队",
+      },
+    },
+    "/teams/current/members/me/status": {
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamMemberStatusRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "更新当前成员状态",
+      },
+    },
+    "/teams/current/members/{memberId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "移除小队成员",
+      },
+    },
+    "/teams/current/reports/weekly": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamWeeklyReportResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "小队周报",
+      },
+    },
+    "/teams/current/snapshots": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TeamSnapshotsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "小队今日快照",
+      },
+    },
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8787",
+    },
+  ],
+  "webhooks": {},
+}
+`;

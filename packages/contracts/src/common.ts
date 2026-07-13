@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
-export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-export const isoDateTimeSchema = z.string().datetime({ offset: true });
+export const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .meta({ id: 'IsoDate' });
+export const isoDateTimeSchema = z.string().datetime({ offset: true }).meta({ id: 'IsoDateTime' });
 
 export const proStatusSchema = z.enum(['free', 'pro_active', 'pro_grace_period', 'pro_expired']);
 export type ProStatus = z.infer<typeof proStatusSchema>;
@@ -21,13 +24,15 @@ export const apiErrorCodeSchema = z.enum([
 ]);
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;
 
-export const apiErrorResponseSchema = z.object({
-  error: z.object({
-    code: apiErrorCodeSchema,
-    details: z.unknown().optional(),
-    message: z.string(),
-  }),
-});
+export const apiErrorResponseSchema = z
+  .object({
+    error: z.object({
+      code: apiErrorCodeSchema,
+      details: z.unknown().optional(),
+      message: z.string(),
+    }),
+  })
+  .meta({ id: 'ApiErrorResponse' });
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 
 export type ApiSuccessResponse<T> = { data: T };
@@ -38,18 +43,22 @@ export const quietRangeSchema = z.object({
 });
 export type QuietRange = z.infer<typeof quietRangeSchema>;
 
-export const entitlementsResponseSchema = z.object({ proStatus: proStatusSchema });
+export const entitlementsResponseSchema = z.object({ proStatus: proStatusSchema }).meta({ id: 'EntitlementsResponse' });
 export type EntitlementsResponse = z.infer<typeof entitlementsResponseSchema>;
 
-export const apiHealthResponseSchema = z.object({
-  ok: z.literal(true),
-  service: z.literal('xiaotidu-api'),
-  version: z.string(),
-});
+export const apiHealthResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    service: z.literal('xiaotidu-api'),
+    version: z.string(),
+  })
+  .meta({ id: 'ApiHealthResponse' });
 export type ApiHealthResponse = z.infer<typeof apiHealthResponseSchema>;
 
-export const databaseHealthResponseSchema = z.object({
-  database: z.literal('reachable'),
-  ok: z.literal(true),
-});
+export const databaseHealthResponseSchema = z
+  .object({
+    database: z.literal('reachable'),
+    ok: z.literal(true),
+  })
+  .meta({ id: 'DatabaseHealthResponse' });
 export type DatabaseHealthResponse = z.infer<typeof databaseHealthResponseSchema>;

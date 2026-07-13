@@ -58,20 +58,24 @@ export const avatarBackgroundPresetKeySchema = z.enum(avatarBackgroundPresetKeys
 export type AvatarEmojiPresetKey = z.infer<typeof avatarEmojiPresetKeySchema>;
 export type AvatarBackgroundPresetKey = z.infer<typeof avatarBackgroundPresetKeySchema>;
 
-export const avatarConfigSchema = z.object({
-  background: avatarBackgroundPresetKeySchema,
-  emoji: avatarEmojiPresetKeySchema.nullable(),
-});
+export const avatarConfigSchema = z
+  .object({
+    background: avatarBackgroundPresetKeySchema,
+    emoji: avatarEmojiPresetKeySchema.nullable(),
+  })
+  .meta({ id: 'AvatarConfig' });
 export type AvatarConfig = z.infer<typeof avatarConfigSchema>;
 
-export const userSummarySchema = z.object({
-  avatarUrl: avatarConfigSchema.nullable(),
-  id: z.string().uuid(),
-  nickname: z.string().nullable(),
-});
+export const userSummarySchema = z
+  .object({
+    avatarUrl: avatarConfigSchema.nullable(),
+    id: z.string().uuid(),
+    nickname: z.string().nullable(),
+  })
+  .meta({ id: 'UserSummary' });
 export type UserSummary = z.infer<typeof userSummarySchema>;
 
-export const userProfileSchema = userSummarySchema.extend({ timezone: z.string().min(1) });
+export const userProfileSchema = userSummarySchema.extend({ timezone: z.string().min(1) }).meta({ id: 'UserProfile' });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
 export const updateUserProfileRequestSchema = z
@@ -80,7 +84,8 @@ export const updateUserProfileRequestSchema = z
     nickname: z.string().trim().min(1).max(20).nullable().optional(),
     timezone: z.string().trim().min(1).max(64).optional(),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'UpdateUserProfileRequest' });
 export type UpdateUserProfileRequest = z.infer<typeof updateUserProfileRequestSchema>;
 
 export function isAvatarEmojiPresetKey(value: unknown): value is AvatarEmojiPresetKey {

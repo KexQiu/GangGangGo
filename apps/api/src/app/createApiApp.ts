@@ -1,6 +1,6 @@
-import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
 
+import { createOpenApiRouter } from '../http/openapi.js';
 import { createAuthMiddleware } from '../http/middleware/auth.js';
 import { createProMiddleware } from '../http/middleware/pro.js';
 import { logger as defaultLogger } from '../lib/logger.js';
@@ -27,7 +27,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const pushTokenService = options.pushTokenService ?? createMockPushTokenService();
   const reportService = options.reportService ?? createMockReportService({ teamService });
   const userRepository = options.userRepository ?? createMockUserRepository();
-  const app = new Hono();
+  const app = createOpenApiRouter();
   const authMiddleware = createAuthMiddleware(userRepository, authSessionService);
   const proMiddleware = createProMiddleware(entitlementsService);
 

@@ -1,11 +1,5 @@
 import { z } from 'zod';
 
-export {
-  ackBuddyNudgeRequestSchema,
-  createBuddyNudgeRequestSchema,
-  updateBuddyNudgeSettingsRequestSchema,
-} from '@xiaotidu/contracts';
-
 export const nudgeUserIdSchema = z.uuid();
 export const nudgeIdSchema = z.string().min(1).max(80);
 

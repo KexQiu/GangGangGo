@@ -57,10 +57,11 @@
 
 ### OpenAPI 单一来源
 
-- [ ] 用 Hono Zod OpenAPI 路由定义替代 `apps/api/scripts/generate-openapi.ts` 中手工维护的 operations 列表。
-- [ ] 让请求、响应和错误 schema 直接来自 `packages/contracts`。
-- [ ] 保留生成命令和 CI 漂移检查，但删除路由与生成脚本之间的重复接口登记。
+- [x] 用 Hono Zod OpenAPI 路由定义替代 `apps/api/scripts/generate-openapi.ts` 中手工维护的 operations 列表。
+- [x] 让请求、响应和错误 schema 直接来自 `packages/contracts`。
+- [x] 保留生成命令和 CI 漂移检查，但删除路由与生成脚本之间的重复接口登记。
   - 验收：新增或修改路由只需改路由声明和共享 schema；生成的 `openapi.json` 无人工编辑；快照测试通过。
+  - 证据：33 个真实路径、35 个 operations 均由 `OpenAPIHono` 注册表生成，手工 operations/schema 清单已删除；此前遗漏的数据库健康检查、成员删除与成员状态接口已自动进入文档。contracts 使用 Zod `id` 元数据生成 52 个复用组件，完整 OpenAPI 文档已有 Vitest 快照和现有 CI 漂移检查双重保护。
 
 ### 移动端模块拆分
 

@@ -1,16 +1,18 @@
-import { Hono } from 'hono';
+import { createRoute } from '@hono/zod-openapi';
 
-import type {
-  DailyShareSnapshotResponse,
-  ShareSettingsResponse,
-  UpdateShareSettingsRequest,
-  UpsertDailyShareSnapshotRequest,
+import {
+  dailyShareSnapshotResponseSchema,
+  shareSettingsResponseSchema,
+  shareSettingsSchema,
+  upsertDailyShareSnapshotRequestSchema,
+  type DailyShareSnapshotResponse,
+  type ShareSettingsResponse,
 } from '@xiaotidu/contracts';
 
+import { apiResponses, bearerSecurity, createOpenApiRouter, jsonRequest } from '../../http/openapi.js';
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';
 import type { TeamService } from './teamService.js';
-import { shareSettingsSchema, upsertDailyShareSnapshotSchema } from './teams.schemas.js';
 
 type CreateShareSettingsRouteOptions = {
   teamService: TeamService;
@@ -21,35 +23,52 @@ type CreateShareSnapshotsRouteOptions = {
 };
 
 export function createShareSettingsRoute(options: CreateShareSettingsRouteOptions) {
-  const route = new Hono<{ Variables: AuthVariables }>();
+  const route = createOpenApiRouter<{ Variables: AuthVariables }>();
 
-  route.put('/', async (context) => {
-    const request = shareSettingsSchema.parse(await context.req.json()) satisfies UpdateShareSettingsRequest;
-    const body: ShareSettingsResponse = await options.teamService.updateShareSettings(
-      context.get('currentUser'),
-      request,
-    );
+  route.openapi(
+    createRoute({
+      method: 'put',
+      path: '/',
+      request: { body: jsonRequest(shareSettingsSchema) },
+      responses: apiResponses(shareSettingsResponseSchema),
+      security: bearerSecurity,
+      summary: '更新共享设置',
+    }),
+    async (context) => {
+      const body: ShareSettingsResponse = await options.teamService.updateShareSettings(
+        context.get('currentUser'),
+        context.req.valid('json'),
+      );
 
-    return context.json(toSuccessResponse(body));
-  });
+      return context.json(toSuccessResponse(body), 200);
+    },
+  );
 
   return route;
 }
 
 export function createShareSnapshotsRoute(options: CreateShareSnapshotsRouteOptions) {
-  const route = new Hono<{ Variables: AuthVariables }>();
+  const route = createOpenApiRouter<{ Variables: AuthVariables }>();
 
-  route.put('/today', async (context) => {
-    const request = upsertDailyShareSnapshotSchema.parse(
-      await context.req.json(),
-    ) satisfies UpsertDailyShareSnapshotRequest;
-    const body: DailyShareSnapshotResponse = await options.teamService.upsertDailyShareSnapshot(
-      context.get('currentUser'),
-      request.snapshot,
-    );
+  route.openapi(
+    createRoute({
+      method: 'put',
+      path: '/today',
+      request: { body: jsonRequest(upsertDailyShareSnapshotRequestSchema) },
+      responses: apiResponses(dailyShareSnapshotResponseSchema),
+      security: bearerSecurity,
+      summary: '上传今日共享快照',
+    }),
+    async (context) => {
+      const request = context.req.valid('json');
+      const body: DailyShareSnapshotResponse = await options.teamService.upsertDailyShareSnapshot(
+        context.get('currentUser'),
+        request.snapshot,
+      );
 
-    return context.json(toSuccessResponse(body));
-  });
+      return context.json(toSuccessResponse(body), 200);
+    },
+  );
 
   return route;
 }

@@ -14,39 +14,51 @@ export type BuddyNudgeType = z.infer<typeof buddyNudgeTypeSchema>;
 export type BuddyNudgeAckStatus = z.infer<typeof buddyNudgeAckStatusSchema>;
 export type BuddyNudgeDailyLimit = z.infer<typeof buddyNudgeDailyLimitSchema>;
 
-export const buddyNudgeAckSchema = z.object({
-  createdAt: isoDateTimeSchema,
-  revisionCount: z.union([z.literal(0), z.literal(1)]),
-  status: buddyNudgeAckStatusSchema,
-  updatedAt: isoDateTimeSchema,
-});
+export const buddyNudgeAckSchema = z
+  .object({
+    createdAt: isoDateTimeSchema,
+    revisionCount: z.union([z.literal(0), z.literal(1)]),
+    status: buddyNudgeAckStatusSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .meta({ id: 'BuddyNudgeAck' });
 export type BuddyNudgeAck = z.infer<typeof buddyNudgeAckSchema>;
-export const buddyNudgeSchema = z.object({
-  ack: buddyNudgeAckSchema.nullable(),
-  createdAt: isoDateTimeSchema,
-  expiresAt: isoDateTimeSchema,
-  fromUser: userSummarySchema,
-  id: z.string().uuid(),
-  messageTemplate: z.string(),
-  teamId: z.string().uuid(),
-  toUser: userSummarySchema,
-  type: buddyNudgeTypeSchema,
-});
+export const buddyNudgeSchema = z
+  .object({
+    ack: buddyNudgeAckSchema.nullable(),
+    createdAt: isoDateTimeSchema,
+    expiresAt: isoDateTimeSchema,
+    fromUser: userSummarySchema,
+    id: z.string().uuid(),
+    messageTemplate: z.string(),
+    teamId: z.string().uuid(),
+    toUser: userSummarySchema,
+    type: buddyNudgeTypeSchema,
+  })
+  .meta({ id: 'BuddyNudge' });
 export type BuddyNudge = z.infer<typeof buddyNudgeSchema>;
 
-export const createBuddyNudgeRequestSchema = z.object({ toUserId: z.string().uuid(), type: buddyNudgeTypeSchema });
+export const createBuddyNudgeRequestSchema = z
+  .object({ toUserId: z.string().uuid(), type: buddyNudgeTypeSchema })
+  .meta({ id: 'CreateBuddyNudgeRequest' });
 export type CreateBuddyNudgeRequest = z.infer<typeof createBuddyNudgeRequestSchema>;
-export const ackBuddyNudgeRequestSchema = z.object({ status: buddyNudgeAckStatusSchema });
+export const ackBuddyNudgeRequestSchema = z
+  .object({ status: buddyNudgeAckStatusSchema })
+  .meta({ id: 'AckBuddyNudgeRequest' });
 export type AckBuddyNudgeRequest = z.infer<typeof ackBuddyNudgeRequestSchema>;
-export const buddyNudgeAckResponseSchema = z.object({ ack: buddyNudgeAckSchema });
+export const buddyNudgeAckResponseSchema = z.object({ ack: buddyNudgeAckSchema }).meta({ id: 'BuddyNudgeAckResponse' });
 export type BuddyNudgeAckResponse = z.infer<typeof buddyNudgeAckResponseSchema>;
-export const buddyNudgesResponseSchema = z.object({ nudges: z.array(buddyNudgeSchema) });
+export const buddyNudgesResponseSchema = z
+  .object({ nudges: z.array(buddyNudgeSchema) })
+  .meta({ id: 'BuddyNudgesResponse' });
 export type BuddyNudgesResponse = z.infer<typeof buddyNudgesResponseSchema>;
-export const buddyNudgeThreadResponseSchema = z.object({
-  hasMore: z.boolean(),
-  nextCursor: isoDateTimeSchema.nullable(),
-  nudges: z.array(buddyNudgeSchema),
-});
+export const buddyNudgeThreadResponseSchema = z
+  .object({
+    hasMore: z.boolean(),
+    nextCursor: isoDateTimeSchema.nullable(),
+    nudges: z.array(buddyNudgeSchema),
+  })
+  .meta({ id: 'BuddyNudgeThreadResponse' });
 export type BuddyNudgeThreadResponse = z.infer<typeof buddyNudgeThreadResponseSchema>;
 
 export const nudgeThreadSummarySchema = z.object({
@@ -58,26 +70,32 @@ export const nudgeThreadSummarySchema = z.object({
   status: teamMemberStatusSchema.nullable(),
 });
 export type NudgeThreadSummary = z.infer<typeof nudgeThreadSummarySchema>;
-export const nudgeThreadsResponseSchema = z.object({ threads: z.array(nudgeThreadSummarySchema) });
+export const nudgeThreadsResponseSchema = z
+  .object({ threads: z.array(nudgeThreadSummarySchema) })
+  .meta({ id: 'NudgeThreadsResponse' });
 export type NudgeThreadsResponse = z.infer<typeof nudgeThreadsResponseSchema>;
 
-export const buddyNudgeSettingsSchema = z.object({
-  buddyUserId: z.string().uuid(),
-  dailyLimit: buddyNudgeDailyLimitSchema,
-  enabled: z.boolean(),
-  quietRanges: z
-    .array(
-      z.object({
-        end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-        start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-      }),
-    )
-    .max(4),
-  teamId: z.string().uuid(),
-  userId: z.string().uuid(),
-});
+export const buddyNudgeSettingsSchema = z
+  .object({
+    buddyUserId: z.string().uuid(),
+    dailyLimit: buddyNudgeDailyLimitSchema,
+    enabled: z.boolean(),
+    quietRanges: z
+      .array(
+        z.object({
+          end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        }),
+      )
+      .max(4),
+    teamId: z.string().uuid(),
+    userId: z.string().uuid(),
+  })
+  .meta({ id: 'BuddyNudgeSettings' });
 export type BuddyNudgeSettings = z.infer<typeof buddyNudgeSettingsSchema>;
-export const buddyNudgeSettingsResponseSchema = z.object({ settings: z.array(buddyNudgeSettingsSchema) });
+export const buddyNudgeSettingsResponseSchema = z
+  .object({ settings: z.array(buddyNudgeSettingsSchema) })
+  .meta({ id: 'BuddyNudgeSettingsResponse' });
 export type BuddyNudgeSettingsResponse = z.infer<typeof buddyNudgeSettingsResponseSchema>;
 export const updateBuddyNudgeSettingsRequestSchema = buddyNudgeSettingsSchema
   .pick({
@@ -85,5 +103,6 @@ export const updateBuddyNudgeSettingsRequestSchema = buddyNudgeSettingsSchema
     enabled: true,
     quietRanges: true,
   })
-  .strict();
+  .strict()
+  .meta({ id: 'UpdateBuddyNudgeSettingsRequest' });
 export type UpdateBuddyNudgeSettingsRequest = z.infer<typeof updateBuddyNudgeSettingsRequestSchema>;
