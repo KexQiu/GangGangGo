@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { apiClient } from '../../api/client';
+import { pushApi } from '../../api/client';
 import { useAuthStore } from '../account/authStore';
 
 export async function registerPushTokenIfAllowed(): Promise<boolean> {
@@ -23,7 +23,7 @@ export async function registerPushTokenIfAllowed(): Promise<boolean> {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     const token = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
 
-    await apiClient.registerPushToken(
+    await pushApi.registerPushToken(
       {
         platform: Platform.OS === 'android' ? 'android' : 'ios',
         provider: 'expo',

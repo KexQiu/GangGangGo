@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { UpdateUserProfileRequest } from '@xiaotidu/contracts';
 
-import { apiClient } from '../../api/client';
-import { queryKeys } from '../../api/queryKeys';
+import { usersApi } from '../../api/client';
 import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
 import { notifyUserError, useAuthStore } from './authStore';
+import { accountQueryKeys } from './accountQueryKeys';
 import { currentUserQueryOptions, entitlementsQueryOptions } from './accountQueryOptions';
 
 type AccountQueryOptions = { enabled?: boolean };
@@ -35,9 +35,9 @@ export function useUpdateProfileMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: UpdateUserProfileRequest) => apiClient.updateUserProfile(input, requireValue(accessToken)),
+    mutationFn: (input: UpdateUserProfileRequest) => usersApi.updateUserProfile(input, requireValue(accessToken)),
     onError: notifyUserError,
-    onSuccess: (user) => queryClient.setQueryData(queryKeys.currentUser, user),
+    onSuccess: (user) => queryClient.setQueryData(accountQueryKeys.currentUser, user),
   });
 }
 

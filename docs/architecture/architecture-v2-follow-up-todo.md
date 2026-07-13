@@ -65,11 +65,12 @@
 
 ### 移动端模块拆分
 
-- [ ] 按 auth、users、teams、nudges、reports、push 拆分约 319 行的 API client。
+- [x] 按 auth、users、teams、nudges、reports、push 拆分约 319 行的 API client。
 - [x] 拆分约 567 行的 nudge store，并在完成服务端状态迁移后删除不再需要的 store action。
   - 证据：提醒服务端状态已迁入 `nudgeQueries.ts`，纯展示模型迁入 `nudgeModel.ts`，原 `nudgeStore.ts` 已删除。
-- [ ] 为 Query hooks、mutation hooks 和 query key 建立稳定的 feature 级出口。
+- [x] 为 Query hooks、mutation hooks 和 query key 建立稳定的 feature 级出口。
   - 验收：调用方不直接依赖一个全局大 client 或大 store；模块职责与 contracts 领域划分一致。
+  - 证据：全局 `apiClient` 已删除，transport 认证回调与 auth/users/teams/nudges/reports/push/health/subscriptions 请求分层；各调用方只依赖对应领域 client。account/team/nudges/reports 分别导出 Query hooks、mutation hooks 和领域 query key，并提供 feature barrel 入口。
 
 ## P1：移动端状态、存储与同步
 

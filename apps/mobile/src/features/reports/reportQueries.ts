@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { apiClient } from '../../api/client';
-import { queryKeys } from '../../api/queryKeys';
+import { reportsApi } from '../../api/client';
 import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
 import { defaultProStatus, isProStatus } from '../account/accountModel';
 import { useCurrentUserQuery, useEntitlementsQuery } from '../account/accountQueries';
 import { useAuthStore } from '../account/authStore';
 import { syncRecentReportSnapshots } from '../sync/reportSnapshotSync';
+import { reportQueryKeys } from './reportQueryKeys';
 
 type ReportQueryOptions = { enabled?: boolean };
 
@@ -19,9 +19,9 @@ export function useAdvancedReportQuery(options: ReportQueryOptions = {}) {
     enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),
     queryFn: async ({ signal }) => {
       await syncRecentReportSnapshots();
-      return apiClient.getAdvancedReport(requireValue(accessToken), signal);
+      return reportsApi.getAdvancedReport(requireValue(accessToken), signal);
     },
-    queryKey: queryKeys.advancedReport(userId ?? 'anonymous'),
+    queryKey: reportQueryKeys.advanced(userId ?? 'anonymous'),
     staleTime: 0,
   });
   useQueryErrorNotification(query.error);
@@ -35,8 +35,8 @@ export function useTeamWeeklyReportQuery(options: ReportQueryOptions = {}) {
 
   const query = useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),
-    queryFn: ({ signal }) => apiClient.getTeamWeeklyReport(requireValue(accessToken), signal),
-    queryKey: queryKeys.teamWeeklyReport(userId ?? 'anonymous'),
+    queryFn: ({ signal }) => reportsApi.getTeamWeeklyReport(requireValue(accessToken), signal),
+    queryKey: reportQueryKeys.teamWeekly(userId ?? 'anonymous'),
   });
   useQueryErrorNotification(query.error);
   return query;

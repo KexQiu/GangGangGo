@@ -1,7 +1,7 @@
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { queryClient } from '../../api/queryClient';
-import { queryKeys } from '../../api/queryKeys';
+import { accountQueryKeys } from '../account/accountQueryKeys';
 import { getCachedProStatus, refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
 import { syncWatchTodayState } from '../watch/watchSyncService';
@@ -38,7 +38,7 @@ export const syncCoordinator = new SyncCoordinator({
       }),
     );
     const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
-      if (event.query.queryKey[0] !== queryKeys.entitlements[0]) return;
+      if (event.query.queryKey[0] !== accountQueryKeys.entitlements[0]) return;
       const nextProStatus = getCachedProStatus();
       if (nextProStatus === previousProStatus) return;
       previousProStatus = nextProStatus;

@@ -3,12 +3,12 @@ import { useMemo } from 'react';
 
 import type { BuddyNudgeAckStatus, BuddyNudgeType, UpdateBuddyNudgeSettingsRequest } from '@xiaotidu/contracts';
 
-import { apiClient } from '../../api/client';
-import { queryKeys } from '../../api/queryKeys';
+import { nudgesApi } from '../../api/client';
 import { useCurrentUserQuery } from '../account/accountQueries';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 import { mergeNudges } from './nudgeModel';
 import { invalidateNudgeQueries } from './nudgeQueryCache';
+import { nudgeQueryKeys } from './nudgeQueryKeys';
 import { nudgeThreadQueryOptions, nudgeThreadsQueryOptions } from './nudgeQueryOptions';
 
 type NudgeQueryOptions = {
@@ -47,7 +47,7 @@ export function useSendNudgeMutation(buddyUserId: string | undefined) {
 
   return useMutation({
     mutationFn: (type: BuddyNudgeType) =>
-      apiClient.sendNudge({ toUserId: requireValue(buddyUserId), type }, requireValue(accessToken)),
+      nudgesApi.sendNudge({ toUserId: requireValue(buddyUserId), type }, requireValue(accessToken)),
     onError: notifyUserError,
     onSuccess: () => invalidateNudgeQueries(queryClient, userId, buddyUserId),
   });
@@ -60,7 +60,7 @@ export function useAckNudgeMutation(buddyUserId: string | undefined) {
 
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: BuddyNudgeAckStatus }) =>
-      apiClient.ackNudge(id, { status }, requireValue(accessToken)),
+      nudgesApi.ackNudge(id, { status }, requireValue(accessToken)),
     onError: notifyUserError,
     onSuccess: () => invalidateNudgeQueries(queryClient, userId, buddyUserId),
   });
@@ -72,8 +72,8 @@ export function useNudgeSettingsQuery() {
 
   return useQuery({
     enabled: Boolean(accessToken && userId),
-    queryFn: () => apiClient.getBuddyNudgeSettings(requireValue(accessToken)),
-    queryKey: queryKeys.nudgeSettings(userId ?? 'anonymous'),
+    queryFn: () => nudgesApi.getBuddyNudgeSettings(requireValue(accessToken)),
+    queryKey: nudgeQueryKeys.settings(userId ?? 'anonymous'),
   });
 }
 
@@ -84,9 +84,9 @@ export function useUpdateNudgeSettingsMutation() {
 
   return useMutation({
     mutationFn: ({ buddyUserId, settings }: { buddyUserId: string; settings: UpdateBuddyNudgeSettingsRequest }) =>
-      apiClient.updateBuddyNudgeSettings(buddyUserId, settings, requireValue(accessToken)),
+      nudgesApi.updateBuddyNudgeSettings(buddyUserId, settings, requireValue(accessToken)),
     onError: notifyUserError,
-    onSuccess: (response) => queryClient.setQueryData(queryKeys.nudgeSettings(userId ?? 'anonymous'), response),
+    onSuccess: (response) => queryClient.setQueryData(nudgeQueryKeys.settings(userId ?? 'anonymous'), response),
   });
 }
 

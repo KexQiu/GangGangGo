@@ -4,8 +4,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { UserProfile } from '@xiaotidu/contracts';
 
-import { queryKeys } from '../../../api/queryKeys';
+import { teamQueryKeys } from '../../team/teamQueryKeys';
 import { clearCloudQueryCache, resetCloudQueryCacheForUser } from '../accountQueryCache';
+import { accountQueryKeys } from '../accountQueryKeys';
 
 const databases: DatabaseSync[] = [];
 const oldUser = createUser('00000000-0000-4000-8000-000000000001', '旧用户');
@@ -22,9 +23,9 @@ describe('account query cache', () => {
 
     resetCloudQueryCacheForUser(queryClient, newUser);
 
-    expect(queryClient.getQueryData(queryKeys.currentUser)).toEqual(newUser);
-    expect(queryClient.getQueryData(queryKeys.entitlements)).toBeUndefined();
-    expect(queryClient.getQueryData(queryKeys.team(oldUser.id))).toBeUndefined();
+    expect(queryClient.getQueryData(accountQueryKeys.currentUser)).toEqual(newUser);
+    expect(queryClient.getQueryData(accountQueryKeys.entitlements)).toBeUndefined();
+    expect(queryClient.getQueryData(teamQueryKeys.team(oldUser.id))).toBeUndefined();
     expect(getHealthRecordIds(database)).toEqual(['health-record-1']);
   });
 
@@ -34,17 +35,17 @@ describe('account query cache', () => {
 
     clearCloudQueryCache(queryClient);
 
-    expect(queryClient.getQueryData(queryKeys.currentUser)).toBeUndefined();
-    expect(queryClient.getQueryData(queryKeys.entitlements)).toBeUndefined();
+    expect(queryClient.getQueryData(accountQueryKeys.currentUser)).toBeUndefined();
+    expect(queryClient.getQueryData(accountQueryKeys.entitlements)).toBeUndefined();
     expect(getHealthRecordIds(database)).toEqual(['health-record-1']);
   });
 });
 
 function createPopulatedQueryClient() {
   const queryClient = new QueryClient();
-  queryClient.setQueryData(queryKeys.currentUser, oldUser);
-  queryClient.setQueryData(queryKeys.entitlements, { proStatus: 'pro_active' });
-  queryClient.setQueryData(queryKeys.team(oldUser.id), { team: null });
+  queryClient.setQueryData(accountQueryKeys.currentUser, oldUser);
+  queryClient.setQueryData(accountQueryKeys.entitlements, { proStatus: 'pro_active' });
+  queryClient.setQueryData(teamQueryKeys.team(oldUser.id), { team: null });
   return queryClient;
 }
 

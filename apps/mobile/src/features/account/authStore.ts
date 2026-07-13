@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { AuthResponse } from '@xiaotidu/contracts';
 
-import { ApiClientError, apiClient, setApiSessionRefreshHandler, setApiUnauthorizedHandler } from '../../api/client';
+import { ApiClientError, authApi, setApiSessionRefreshHandler, setApiUnauthorizedHandler } from '../../api/client';
 import { queryClient } from '../../api/queryClient';
 import { showToast } from '../../components/toast/AppToast';
 import { migrateAuthPreferences, type MockUserId } from './accountModel';
@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
       loginWithApple: async (identityToken, nickname) => {
         set({ error: null, isLoading: true });
         try {
-          const response = await apiClient.loginWithApple({ identityToken, ...(nickname ? { nickname } : {}) });
+          const response = await authApi.loginWithApple({ identityToken, ...(nickname ? { nickname } : {}) });
           await persistResponseSession(response);
           set({
             ...sessionState(response),
@@ -76,7 +76,7 @@ export const useAuthStore = create<AuthState>()(
         const current = get();
         if (current.accessToken) {
           try {
-            await apiClient.logout(current.accessToken, current.refreshToken);
+            await authApi.logout(current.accessToken, current.refreshToken);
           } catch {
             // 切换开发账号不能被旧会话撤销失败阻塞。
           }
@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
         const { accessToken, refreshToken } = get();
         set({ error: null, isLoading: true });
         try {
-          if (accessToken) await apiClient.logout(accessToken, refreshToken);
+          if (accessToken) await authApi.logout(accessToken, refreshToken);
         } catch {
           // 本地清理必须成功，服务端撤销失败由 session 过期兜底。
         } finally {
@@ -109,7 +109,7 @@ export const useAuthStore = create<AuthState>()(
         if (!refreshToken) return null;
         refreshPromise = (async () => {
           try {
-            const response = await apiClient.refreshSession(refreshToken);
+            const response = await authApi.refreshSession(refreshToken);
             await persistResponseSession(response);
             set(sessionState(response));
             seedCurrentUser(response.user);

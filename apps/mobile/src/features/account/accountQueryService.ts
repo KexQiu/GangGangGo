@@ -1,17 +1,17 @@
 import type { AuthResponse, EntitlementsResponse, UserProfile } from '@xiaotidu/contracts';
 
 import { queryClient } from '../../api/queryClient';
-import { queryKeys } from '../../api/queryKeys';
+import { accountQueryKeys } from './accountQueryKeys';
 import { defaultProStatus } from './accountModel';
 import { setCurrentUserQueryData } from './accountQueryCache';
 import { currentUserQueryOptions, entitlementsQueryOptions } from './accountQueryOptions';
 
 export function getCachedCurrentUser(): UserProfile | null {
-  return queryClient.getQueryData<UserProfile>(queryKeys.currentUser) ?? null;
+  return queryClient.getQueryData<UserProfile>(accountQueryKeys.currentUser) ?? null;
 }
 
 export function getCachedEntitlements(): EntitlementsResponse | null {
-  return queryClient.getQueryData<EntitlementsResponse>(queryKeys.entitlements) ?? null;
+  return queryClient.getQueryData<EntitlementsResponse>(accountQueryKeys.entitlements) ?? null;
 }
 
 export function getCachedProStatus() {

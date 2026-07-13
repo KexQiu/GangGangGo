@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { BuddyNudge, BuddyNudgeThreadResponse, NudgeThreadsResponse } from '@xiaotidu/contracts';
 
-import { apiClient } from '../../../api/client';
-import { queryKeys } from '../../../api/queryKeys';
+import { nudgesApi } from '../../../api/client';
 import { getNudgeChatMessages } from '../nudgeModel';
 import { cancelNudgeQueries } from '../nudgeQueryCache';
+import { nudgeQueryKeys } from '../nudgeQueryKeys';
 import { nudgeThreadQueryOptions, nudgeThreadsQueryOptions } from '../nudgeQueryOptions';
 
 const currentUser = { avatarUrl: null, id: '00000000-0000-4000-8000-000000000001', nickname: '当前用户' };
@@ -20,7 +20,7 @@ describe('nudge query options', () => {
   it('aborts an unfinished request without touching another user cache', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     let wasAborted = false;
-    vi.spyOn(apiClient, 'getNudgeThreads').mockImplementation(
+    vi.spyOn(nudgesApi, 'getNudgeThreads').mockImplementation(
       (_token, signal) =>
         new Promise<NudgeThreadsResponse>((_resolve, reject) => {
           signal?.addEventListener('abort', () => {
@@ -29,7 +29,7 @@ describe('nudge query options', () => {
           });
         }),
     );
-    queryClient.setQueryData(queryKeys.nudgeThreads('new-user'), { threads: [] });
+    queryClient.setQueryData(nudgeQueryKeys.threads('new-user'), { threads: [] });
     const request = queryClient.fetchQuery(nudgeThreadsQueryOptions('token', 'old-user')).catch((error) => error);
     await Promise.resolve();
 
@@ -37,7 +37,7 @@ describe('nudge query options', () => {
 
     expect(isCancelledError(await request)).toBe(true);
     expect(wasAborted).toBe(true);
-    expect(queryClient.getQueryData(queryKeys.nudgeThreads('new-user'))).toEqual({ threads: [] });
+    expect(queryClient.getQueryData(nudgeQueryKeys.threads('new-user'))).toEqual({ threads: [] });
   });
 
   it('uses the returned cursor and keeps paginated messages deduplicated and ordered', async () => {
@@ -46,7 +46,7 @@ describe('nudge query options', () => {
     const newest = createNudge('00000000-0000-4000-8000-000000000011', '2026-07-13T08:02:00.000Z');
     const oldest = createNudge('00000000-0000-4000-8000-000000000012', '2026-07-13T08:00:00.000Z');
     let shouldReturnNewMessage = false;
-    const getThread = vi.spyOn(apiClient, 'getNudgeThread').mockImplementation(async (_buddyId, options) => {
+    const getThread = vi.spyOn(nudgesApi, 'getNudgeThread').mockImplementation(async (_buddyId, options) => {
       if (options.before) return page([oldest, newest], false, null);
       return page(shouldReturnNewMessage ? [newMessage, newest] : [newest], true, '2026-07-13T08:01:00.000Z');
     });

@@ -1,4 +1,4 @@
-import { apiClient } from '../../api/client';
+import { reportsApi } from '../../api/client';
 import { buildLocalDateRange } from '../../storage/dateRange';
 import { collectAllPages } from '../../storage/pagination';
 import { listHabitCheckInsPage } from '../../storage/repositories/habitRepository';
@@ -26,7 +26,7 @@ export async function syncRecentReportSnapshots(): Promise<boolean> {
   try {
     const now = new Date();
     const input = await loadRecentReportInput(now);
-    await apiClient.upsertReportSnapshotsBulk({ snapshots: buildRecentReportSnapshots(input, now) }, accessToken);
+    await reportsApi.upsertReportSnapshotsBulk({ snapshots: buildRecentReportSnapshots(input, now) }, accessToken);
     return true;
   } catch {
     return false;

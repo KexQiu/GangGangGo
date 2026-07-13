@@ -2,7 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import type { TeamResponse } from '@xiaotidu/contracts';
 
-import { queryKeys } from '../../api/queryKeys';
+import { teamQueryKeys } from './teamQueryKeys';
 
 export type TeamCacheUpdateOptions = {
   clearSnapshotsWhenTeamMissing?: boolean;
@@ -16,9 +16,9 @@ export async function updateTeamQueryCache(
   options: TeamCacheUpdateOptions = {},
 ) {
   if (!userId) return;
-  queryClient.setQueryData(queryKeys.team(userId), response);
+  queryClient.setQueryData(teamQueryKeys.team(userId), response);
   if (!response.team && options.clearSnapshotsWhenTeamMissing) {
-    queryClient.removeQueries({ queryKey: queryKeys.teamSnapshots(userId) });
+    queryClient.removeQueries({ queryKey: teamQueryKeys.teamSnapshots(userId) });
   } else if (options.invalidateSnapshots) {
     await invalidateTeamSnapshots(queryClient, userId);
   }
@@ -26,5 +26,5 @@ export async function updateTeamQueryCache(
 
 export async function invalidateTeamSnapshots(queryClient: QueryClient, userId: string | undefined) {
   if (!userId) return;
-  await queryClient.invalidateQueries({ queryKey: queryKeys.teamSnapshots(userId) });
+  await queryClient.invalidateQueries({ queryKey: teamQueryKeys.teamSnapshots(userId) });
 }

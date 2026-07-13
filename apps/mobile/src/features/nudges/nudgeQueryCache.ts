@@ -1,11 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import { queryKeys } from '../../api/queryKeys';
+import { nudgeQueryKeys } from './nudgeQueryKeys';
 
 export async function cancelNudgeQueries(queryClient: QueryClient, userId: string, buddyUserId?: string) {
-  const cancellations = [queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(userId) })];
+  const cancellations = [queryClient.cancelQueries({ queryKey: nudgeQueryKeys.threads(userId) })];
   if (buddyUserId) {
-    cancellations.push(queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(userId, buddyUserId) }));
+    cancellations.push(queryClient.cancelQueries({ queryKey: nudgeQueryKeys.thread(userId, buddyUserId) }));
   }
   await Promise.all(cancellations);
 }
@@ -16,9 +16,9 @@ export async function invalidateNudgeQueries(
   buddyUserId?: string,
 ) {
   if (!userId) return;
-  const invalidations = [queryClient.invalidateQueries({ queryKey: queryKeys.nudgeThreads(userId) })];
+  const invalidations = [queryClient.invalidateQueries({ queryKey: nudgeQueryKeys.threads(userId) })];
   if (buddyUserId) {
-    invalidations.push(queryClient.invalidateQueries({ queryKey: queryKeys.nudgeThread(userId, buddyUserId) }));
+    invalidations.push(queryClient.invalidateQueries({ queryKey: nudgeQueryKeys.thread(userId, buddyUserId) }));
   }
   await Promise.all(invalidations);
 }

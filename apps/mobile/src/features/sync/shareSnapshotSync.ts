@@ -1,6 +1,6 @@
 import type { DailyShareSnapshot } from '@xiaotidu/contracts';
 
-import { apiClient } from '../../api/client';
+import { teamsApi } from '../../api/client';
 import {
   calculateHabitCompletion,
   calculateHabitStreak,
@@ -22,7 +22,7 @@ export async function syncTodayShareSnapshot(): Promise<boolean> {
   }
 
   try {
-    await apiClient.upsertShareSnapshot(
+    await teamsApi.upsertShareSnapshot(
       {
         snapshot: buildTodayShareSnapshot(),
       },
