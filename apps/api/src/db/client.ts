@@ -1,4 +1,5 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { Logger } from 'drizzle-orm/logger';
 import postgres, { type Sql } from 'postgres';
 
 import type { ApiEnv } from '../config/env.js';
@@ -21,6 +22,7 @@ export function isDatabaseConfigured(config: Pick<ApiEnv, 'DATABASE_URL'> = env)
 export function createDatabaseClient(
   config: Pick<ApiEnv, 'DATABASE_URL' | 'DB_SSL'> &
     Partial<Pick<ApiEnv, 'DB_CONNECT_TIMEOUT_SECONDS' | 'DB_IDLE_TIMEOUT_SECONDS' | 'DB_POOL_MAX'>> = env,
+  options: { logger?: Logger } = {},
 ): DatabaseClient {
   if (!config.DATABASE_URL) {
     throw new ApiError(503, 'database_not_configured', '数据库连接还没有配置。');
@@ -37,7 +39,7 @@ export function createDatabaseClient(
     close: async () => {
       await sqlClient.end({ timeout: 5 });
     },
-    db: drizzle(sqlClient, { schema }),
+    db: drizzle(sqlClient, { logger: options.logger, schema }),
     sql: sqlClient,
   };
 }

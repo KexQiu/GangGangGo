@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
+import type { AdvancedReportSummary, DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { createApiApp } from '../app.js';
 import { checkDatabaseHealth } from '../db/health.js';
@@ -82,6 +82,10 @@ function createDailyReportSnapshot(input: Partial<DailyReportSnapshot> = {}): Da
     trainingDone: true,
     ...input,
   };
+}
+
+function repeatAdvancedSummary(summary: AdvancedReportSummary) {
+  return { '7d': summary, '30d': summary, '90d': summary };
 }
 
 describe('api app', () => {
@@ -524,7 +528,7 @@ describe('api app', () => {
           range,
           snapshot,
           startedAt: '2026-02-22',
-          summary: {
+          summaries: repeatAdvancedSummary({
             currentStreakDays: snapshot.streakDays,
             habitFullDays: 20,
             hasAnyRecord: true,
@@ -532,7 +536,7 @@ describe('api app', () => {
             toiletLongMeetingCount: 2,
             toiletRecordDays: 20,
             trainingDays: 31,
-          },
+          }),
         };
       },
       async getTeamWeeklyReport() {
@@ -613,7 +617,7 @@ describe('api app', () => {
           range: '90d',
           snapshot: null,
           startedAt: '2026-02-22',
-          summary: {
+          summaries: repeatAdvancedSummary({
             currentStreakDays: 0,
             habitFullDays: 0,
             hasAnyRecord: false,
@@ -621,7 +625,7 @@ describe('api app', () => {
             toiletLongMeetingCount: 0,
             toiletRecordDays: 0,
             trainingDays: 0,
-          },
+          }),
         };
       },
       async getTeamWeeklyReport(currentUser) {
@@ -824,7 +828,7 @@ describe('api app', () => {
       habitFull: true,
       trainingDone: true,
     });
-    expect(reportBody.data.summary).toMatchObject({
+    expect(reportBody.data.summaries['90d']).toMatchObject({
       currentStreakDays: 9,
       habitFullDays: 1,
       hasAnyRecord: true,
@@ -910,7 +914,7 @@ describe('api app', () => {
       habitFull: true,
       trainingDone: true,
     });
-    expect(reportBody.data.summary).toMatchObject({
+    expect(reportBody.data.summaries['90d']).toMatchObject({
       currentStreakDays: 2,
       habitFullDays: 2,
       recordDays: 2,

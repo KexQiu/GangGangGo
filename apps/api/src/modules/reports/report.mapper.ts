@@ -78,6 +78,20 @@ function hasAnyAdvancedReportRecord(day: AdvancedReportDay) {
   return day.trainingDone || day.habitCompletion > 0 || day.toiletRecorded || day.toiletLongMeeting;
 }
 
+function summarizeAdvancedReportDays(days: AdvancedReportDay[], snapshots: DailyReportSnapshot[]) {
+  const latestSnapshot = snapshots.at(-1) ?? null;
+
+  return {
+    currentStreakDays: latestSnapshot?.streakDays ?? 0,
+    habitFullDays: days.filter((day) => day.habitFull).length,
+    hasAnyRecord: days.some(hasAnyAdvancedReportRecord),
+    recordDays: days.filter(hasAnyAdvancedReportRecord).length,
+    toiletLongMeetingCount: days.filter((day) => day.toiletLongMeeting).length,
+    toiletRecordDays: days.filter((day) => day.toiletRecorded).length,
+    trainingDays: days.filter((day) => day.trainingDone).length,
+  };
+}
+
 export function buildAdvancedReport(input: {
   endedAt: string;
   range: '90d';
@@ -89,6 +103,14 @@ export function buildAdvancedReport(input: {
     toAdvancedReportDay(date, snapshotsByDate.get(date)),
   );
   const latestSnapshot = input.snapshots.at(-1) ?? null;
+  const summarizeLast = (dayCount: number) => {
+    const windowDays = days.slice(-dayCount);
+    const startedAt = windowDays[0]?.date;
+    const windowSnapshots = startedAt
+      ? input.snapshots.filter((snapshot) => snapshot.date >= startedAt)
+      : input.snapshots;
+    return summarizeAdvancedReportDays(windowDays, windowSnapshots);
+  };
 
   return {
     days,
@@ -96,14 +118,10 @@ export function buildAdvancedReport(input: {
     range: input.range,
     snapshot: latestSnapshot,
     startedAt: input.startedAt,
-    summary: {
-      currentStreakDays: latestSnapshot?.streakDays ?? 0,
-      habitFullDays: days.filter((day) => day.habitFull).length,
-      hasAnyRecord: days.some(hasAnyAdvancedReportRecord),
-      recordDays: days.filter(hasAnyAdvancedReportRecord).length,
-      toiletLongMeetingCount: days.filter((day) => day.toiletLongMeeting).length,
-      toiletRecordDays: days.filter((day) => day.toiletRecorded).length,
-      trainingDays: days.filter((day) => day.trainingDone).length,
+    summaries: {
+      '7d': summarizeLast(7),
+      '30d': summarizeLast(30),
+      '90d': summarizeLast(90),
     },
   };
 }

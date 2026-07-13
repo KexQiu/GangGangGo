@@ -49,6 +49,12 @@ export const advancedReportSummarySchema = z.object({
   trainingDays: z.number().int().min(0),
 });
 export type AdvancedReportSummary = z.infer<typeof advancedReportSummarySchema>;
+export const advancedReportSummariesSchema = z.object({
+  '7d': advancedReportSummarySchema,
+  '30d': advancedReportSummarySchema,
+  '90d': advancedReportSummarySchema,
+});
+export type AdvancedReportSummaries = z.infer<typeof advancedReportSummariesSchema>;
 export const advancedReportResponseSchema = z
   .object({
     days: z.array(advancedReportDaySchema),
@@ -56,7 +62,7 @@ export const advancedReportResponseSchema = z
     range: advancedReportRangeSchema,
     snapshot: dailyReportSnapshotSchema.nullable(),
     startedAt: isoDateSchema,
-    summary: advancedReportSummarySchema,
+    summaries: advancedReportSummariesSchema,
   })
   .meta({ id: 'AdvancedReportResponse' });
 export type AdvancedReportResponse = z.infer<typeof advancedReportResponseSchema>;

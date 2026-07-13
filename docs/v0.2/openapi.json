@@ -1319,45 +1319,137 @@
           "startedAt": {
             "$ref": "#/components/schemas/IsoDate"
           },
-          "summary": {
+          "summaries": {
             "type": "object",
             "properties": {
-              "currentStreakDays": {
-                "type": "integer",
-                "minimum": 0
+              "7d": {
+                "type": "object",
+                "properties": {
+                  "currentStreakDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "habitFullDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "hasAnyRecord": {
+                    "type": "boolean"
+                  },
+                  "recordDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toiletLongMeetingCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toiletRecordDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "trainingDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "currentStreakDays",
+                  "habitFullDays",
+                  "hasAnyRecord",
+                  "recordDays",
+                  "toiletLongMeetingCount",
+                  "toiletRecordDays",
+                  "trainingDays"
+                ]
               },
-              "habitFullDays": {
-                "type": "integer",
-                "minimum": 0
+              "30d": {
+                "type": "object",
+                "properties": {
+                  "currentStreakDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "habitFullDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "hasAnyRecord": {
+                    "type": "boolean"
+                  },
+                  "recordDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toiletLongMeetingCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toiletRecordDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "trainingDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "currentStreakDays",
+                  "habitFullDays",
+                  "hasAnyRecord",
+                  "recordDays",
+                  "toiletLongMeetingCount",
+                  "toiletRecordDays",
+                  "trainingDays"
+                ]
               },
-              "hasAnyRecord": {
-                "type": "boolean"
-              },
-              "recordDays": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "toiletLongMeetingCount": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "toiletRecordDays": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "trainingDays": {
-                "type": "integer",
-                "minimum": 0
+              "90d": {
+                "type": "object",
+                "properties": {
+                  "currentStreakDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "habitFullDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "hasAnyRecord": {
+                    "type": "boolean"
+                  },
+                  "recordDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toiletLongMeetingCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "toiletRecordDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "trainingDays": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "currentStreakDays",
+                  "habitFullDays",
+                  "hasAnyRecord",
+                  "recordDays",
+                  "toiletLongMeetingCount",
+                  "toiletRecordDays",
+                  "trainingDays"
+                ]
               }
             },
             "required": [
-              "currentStreakDays",
-              "habitFullDays",
-              "hasAnyRecord",
-              "recordDays",
-              "toiletLongMeetingCount",
-              "toiletRecordDays",
-              "trainingDays"
+              "7d",
+              "30d",
+              "90d"
             ]
           }
         },
@@ -1367,7 +1459,7 @@
           "range",
           "snapshot",
           "startedAt",
-          "summary"
+          "summaries"
         ]
       },
       "DailyReportSnapshot": {

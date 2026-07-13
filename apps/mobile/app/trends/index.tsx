@@ -99,16 +99,24 @@ export default function TrendsScreen() {
         {isPro ? (
           <>
             <Text style={styles.proTitle}>90 天回看</Text>
-            {advancedReport?.summary.hasAnyRecord ? (
+            {advancedReport?.summaries['90d'].hasAnyRecord ? (
               <View style={styles.summaryGrid}>
-                <SummaryTile label="小花训练达标" tone="primary" value={`${advancedReport.summary.trainingDays} 天`} />
-                <SummaryTile label="小账本满格" tone="primary" value={`${advancedReport.summary.habitFullDays} 天`} />
+                <SummaryTile
+                  label="小花训练达标"
+                  tone="primary"
+                  value={`${advancedReport.summaries['90d'].trainingDays} 天`}
+                />
+                <SummaryTile
+                  label="小账本满格"
+                  tone="primary"
+                  value={`${advancedReport.summaries['90d'].habitFullDays} 天`}
+                />
                 <SummaryTile
                   label="蹲会儿长会"
                   tone="warning"
-                  value={`${advancedReport.summary.toiletLongMeetingCount} 次`}
+                  value={`${advancedReport.summaries['90d'].toiletLongMeetingCount} 次`}
                 />
-                <SummaryTile label="有记录" tone="primary" value={`${advancedReport.summary.recordDays} 天`} />
+                <SummaryTile label="有记录" tone="primary" value={`${advancedReport.summaries['90d'].recordDays} 天`} />
               </View>
             ) : (
               <Text style={styles.mutedText}>高级小报告还在等第一笔云端摘要。完成今天的本地记录后会自动同步。</Text>

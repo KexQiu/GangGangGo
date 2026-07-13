@@ -117,32 +117,32 @@ export default function AdvancedReportScreen() {
                 <Text style={styles.emptyTitle}>90 天摘要刷新中...</Text>
                 <Text style={styles.noticeBody}>正在先同步本机低敏日报，再读取云端 90 天回看。</Text>
               </AppCard>
-            ) : advancedReport?.summary.hasAnyRecord ? (
+            ) : advancedReport?.summaries['90d'].hasAnyRecord ? (
               <>
                 <View style={styles.summaryGrid}>
                   <SummaryTile
                     icon={ChartNoAxesColumnIncreasing}
                     label="小花训练达标"
                     tone="primary"
-                    value={`${advancedReport.summary.trainingDays} 天`}
+                    value={`${advancedReport.summaries['90d'].trainingDays} 天`}
                   />
                   <SummaryTile
                     icon={BookOpenCheck}
                     label="小账本满格"
                     tone="primary"
-                    value={`${advancedReport.summary.habitFullDays} 天`}
+                    value={`${advancedReport.summaries['90d'].habitFullDays} 天`}
                   />
                   <SummaryTile
                     icon={Hourglass}
                     label="蹲会儿长会"
                     tone="warning"
-                    value={`${advancedReport.summary.toiletLongMeetingCount} 次`}
+                    value={`${advancedReport.summaries['90d'].toiletLongMeetingCount} 次`}
                   />
                   <SummaryTile
                     icon={RefreshCw}
                     label="有记录"
                     tone="info"
-                    value={`${advancedReport.summary.recordDays} 天`}
+                    value={`${advancedReport.summaries['90d'].recordDays} 天`}
                   />
                 </View>
 
@@ -491,7 +491,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 }
 
 function getInsight(report: AdvancedReportResponse) {
-  const { summary } = report;
+  const summary = report.summaries['90d'];
 
   if (summary.toiletLongMeetingCount >= 3) {
     return {

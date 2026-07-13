@@ -5,6 +5,7 @@ import {
   advancedReportDaySchema,
   advancedReportRangeSchema,
   advancedReportResponseSchema,
+  advancedReportSummariesSchema,
   advancedReportSummarySchema,
   buddyNudgeAckResponseSchema,
   buddyNudgeAckSchema,
@@ -141,7 +142,11 @@ describe('report contracts', () => {
     range: '90d',
     snapshot: dailyReportSnapshot,
     startedAt: '2026-04-15',
-    summary: advancedReportSummary,
+    summaries: {
+      '7d': advancedReportSummary,
+      '30d': advancedReportSummary,
+      '90d': advancedReportSummary,
+    },
   };
   const weeklyResponse = {
     endedAt: DATE,
@@ -182,6 +187,11 @@ describe('report contracts', () => {
     ['advancedReportRangeSchema', advancedReportRangeSchema, '90d'],
     ['advancedReportDaySchema', advancedReportDaySchema, advancedReportDay],
     ['advancedReportSummarySchema', advancedReportSummarySchema, advancedReportSummary],
+    [
+      'advancedReportSummariesSchema',
+      advancedReportSummariesSchema,
+      { '7d': advancedReportSummary, '30d': advancedReportSummary, '90d': advancedReportSummary },
+    ],
     ['advancedReportResponseSchema', advancedReportResponseSchema, advancedResponse],
     ['teamWeeklyReportResponseSchema', teamWeeklyReportResponseSchema, weeklyResponse],
   ])('%s accepts a legal value', (_name, schema, value) => {

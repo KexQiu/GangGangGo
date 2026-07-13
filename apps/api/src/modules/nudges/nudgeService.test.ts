@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BuddyNudgeSettings } from '@xiaotidu/contracts';
+import type { BuddyNudge, BuddyNudgeSettings } from '@xiaotidu/contracts';
 
 import type { CurrentUser } from '../users/userTypes.js';
 import type { NudgeRepository, NudgeRepositoryQueries } from './nudge.repository.js';
@@ -99,5 +99,32 @@ describe('nudge service', () => {
     expect(repository.incrementDailyCounter).toHaveBeenCalledTimes(1);
     expect(createNudge).not.toHaveBeenCalled();
     expect(repository.findNudge).not.toHaveBeenCalled();
+  });
+
+  it('returns an existing ACK without consuming its revision', async () => {
+    const now = new Date().toISOString();
+    const ack = { createdAt: now, revisionCount: 0 as const, status: 'received' as const, updatedAt: now };
+    const nudge: BuddyNudge = {
+      ack,
+      createdAt: now,
+      expiresAt: now,
+      fromUser: { avatarUrl: null, id: 'user-2', nickname: '乙' },
+      id: 'nudge-1',
+      messageTemplate: '收到提醒',
+      teamId: team.id,
+      toUser: { avatarUrl: null, id: currentUser.id, nickname: currentUser.nickname },
+      type: 'gentle',
+    };
+    const reviseAck = vi.fn<NudgeRepositoryQueries['reviseAck']>();
+    const repository = createRepository({
+      createAck: vi.fn(async () => null),
+      findNudge: vi.fn(async () => nudge),
+      reviseAck,
+    });
+    const service = createNudgeService(repository);
+
+    await expect(service.ackNudge(currentUser, nudge.id, 'received')).resolves.toEqual({ ack });
+    expect(repository.findAck).not.toHaveBeenCalled();
+    expect(reviseAck).not.toHaveBeenCalled();
   });
 });

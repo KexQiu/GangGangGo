@@ -117,6 +117,11 @@ export function createNudgeService(
 
       const now = new Date();
       const existingAck = nudge.ack ?? (await repository.findAck(nudgeId, currentUser.id));
+
+      if (existingAck?.status === status) {
+        return { ack: existingAck };
+      }
+
       assertAckCanBeRevised(existingAck, now);
       const updatedAck = await repository.reviseAck(
         nudgeId,

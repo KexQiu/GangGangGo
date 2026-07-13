@@ -107,44 +107,136 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           "startedAt": {
             "$ref": "#/components/schemas/IsoDate",
           },
-          "summary": {
+          "summaries": {
             "properties": {
-              "currentStreakDays": {
-                "minimum": 0,
-                "type": "integer",
+              "30d": {
+                "properties": {
+                  "currentStreakDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "habitFullDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "hasAnyRecord": {
+                    "type": "boolean",
+                  },
+                  "recordDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "toiletLongMeetingCount": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "toiletRecordDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "trainingDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                },
+                "required": [
+                  "currentStreakDays",
+                  "habitFullDays",
+                  "hasAnyRecord",
+                  "recordDays",
+                  "toiletLongMeetingCount",
+                  "toiletRecordDays",
+                  "trainingDays",
+                ],
+                "type": "object",
               },
-              "habitFullDays": {
-                "minimum": 0,
-                "type": "integer",
+              "7d": {
+                "properties": {
+                  "currentStreakDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "habitFullDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "hasAnyRecord": {
+                    "type": "boolean",
+                  },
+                  "recordDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "toiletLongMeetingCount": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "toiletRecordDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "trainingDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                },
+                "required": [
+                  "currentStreakDays",
+                  "habitFullDays",
+                  "hasAnyRecord",
+                  "recordDays",
+                  "toiletLongMeetingCount",
+                  "toiletRecordDays",
+                  "trainingDays",
+                ],
+                "type": "object",
               },
-              "hasAnyRecord": {
-                "type": "boolean",
-              },
-              "recordDays": {
-                "minimum": 0,
-                "type": "integer",
-              },
-              "toiletLongMeetingCount": {
-                "minimum": 0,
-                "type": "integer",
-              },
-              "toiletRecordDays": {
-                "minimum": 0,
-                "type": "integer",
-              },
-              "trainingDays": {
-                "minimum": 0,
-                "type": "integer",
+              "90d": {
+                "properties": {
+                  "currentStreakDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "habitFullDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "hasAnyRecord": {
+                    "type": "boolean",
+                  },
+                  "recordDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "toiletLongMeetingCount": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "toiletRecordDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "trainingDays": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                },
+                "required": [
+                  "currentStreakDays",
+                  "habitFullDays",
+                  "hasAnyRecord",
+                  "recordDays",
+                  "toiletLongMeetingCount",
+                  "toiletRecordDays",
+                  "trainingDays",
+                ],
+                "type": "object",
               },
             },
             "required": [
-              "currentStreakDays",
-              "habitFullDays",
-              "hasAnyRecord",
-              "recordDays",
-              "toiletLongMeetingCount",
-              "toiletRecordDays",
-              "trainingDays",
+              "7d",
+              "30d",
+              "90d",
             ],
             "type": "object",
           },
@@ -155,7 +247,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           "range",
           "snapshot",
           "startedAt",
-          "summary",
+          "summaries",
         ],
         "type": "object",
       },
