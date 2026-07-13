@@ -158,14 +158,15 @@
 
 ### 移动端
 
-- [ ] API client：10 秒超时、外部 AbortSignal、非 JSON、Zod 校验失败和错误分类。
+- [x] API client：10 秒超时、外部 AbortSignal、非 JSON、Zod 校验失败和错误分类。
 - [ ] 认证：401 只刷新一次，并发 401 合并刷新，刷新失败只清会话不删健康数据。
-- [ ] 重试：GET/幂等 PUT 最多自动重试一次，创建类 POST 不隐式重试。
+- [x] 重试：GET/幂等 PUT 最多自动重试一次，创建类 POST 不隐式重试。
 - [x] 同步：防抖、single-flight、尾随补跑和子任务失败隔离。
 - [ ] Mock 用户切换：清云端 Query cache，保留 SQLite 健康记录。
 - [ ] SQLite：从 v0/v1 升级、失败回滚和数据无损。
 - [ ] 提醒：聚焦刷新、后台停刷、取消请求和游标分页。
-  - 当前状态：移动端只有 Watch 协议 fixture 的 2 个测试。
+  - 审计基线：移动端只有 Watch 协议 fixture 的 2 个测试。
+  - 进展：2026-07-13 已增加 API transport、同步协调器、报告构建、分页和迁移测试，移动端测试增至 20 项。
 
 ### Watch
 
