@@ -71,6 +71,41 @@ describe('SyncCoordinator', () => {
     expect(harness.syncShareSnapshot).toHaveBeenCalledTimes(1);
     expect(harness.syncReports).toHaveBeenCalledTimes(1);
     expect(harness.registerPushToken).toHaveBeenCalledTimes(1);
+    expect(coordinator.getTaskStatuses().entitlements).toMatchObject({
+      lastError: 'entitlements unavailable',
+      phase: 'error',
+    });
+    expect(coordinator.getTaskStatuses().shareSnapshot).toMatchObject({
+      lastError: 'share unavailable',
+      phase: 'error',
+    });
+    expect(coordinator.getTaskStatuses().reports.phase).toBe('success');
+    coordinator.stop();
+  });
+
+  it('retries only the selected synchronization task', async () => {
+    vi.useFakeTimers();
+    const harness = createHarness({ accessToken: 'access-token' });
+    harness.syncReports.mockRejectedValueOnce(new Error('reports unavailable'));
+    const coordinator = new SyncCoordinator(harness.dependencies);
+    coordinator.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(coordinator.getTaskStatuses().reports.phase).toBe('error');
+
+    harness.refreshEntitlements.mockClear();
+    harness.registerPushToken.mockClear();
+    harness.syncReports.mockClear();
+    harness.syncShareSnapshot.mockClear();
+    harness.syncWatch.mockClear();
+    coordinator.retryTask('reports');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(harness.syncReports).toHaveBeenCalledTimes(1);
+    expect(harness.refreshEntitlements).not.toHaveBeenCalled();
+    expect(harness.registerPushToken).not.toHaveBeenCalled();
+    expect(harness.syncShareSnapshot).not.toHaveBeenCalled();
+    expect(harness.syncWatch).not.toHaveBeenCalled();
+    expect(coordinator.getTaskStatuses().reports).toMatchObject({ lastError: null, phase: 'success' });
     coordinator.stop();
   });
 
