@@ -223,7 +223,7 @@
 - [ ] 完成 Watch 手动清单，包括离线恢复、重复事件、haptic、Complication 和系统刷新节奏。
 - [ ] 在真机验证 Live Activity 签名、启动、更新、结束和 App 重启恢复。
 - [x] 复核 development、preview、production 三套 entitlement 与 Push capability。
-  - 证据：2026-07-14 在 iPhone 17 Pro 模拟器使用 `mock-user-a/b` 完成登录、小队创建、邀请加入、账号切换、缓存隔离、会话恢复和本地健康数据保留的自动化联调；详细结果见 [P1 验收记录](./p1-acceptance-2026-07-14.md)。Watch 离线队列、重复事件、ACK、阶段调度和刷新退避自动化通过，配对模拟器构建、启动及状态接收通过；真机触感、Complication 和 Live Activity 仍保持未完成。动态 Expo 配置只接受 `development` / `production` 两种 APNs entitlement；EAS `development` 显式映射 development，`preview` 与 `production` 映射 production。三套生成配置均已检查。远程 Push 证书、付费 Apple Developer Team 和通知收发仍属于 P2 产品化，不在本轮伪装为已验收。
+  - 证据：2026-07-14 在 iPhone 17 Pro 模拟器使用 `mock-user-a/b` 完成登录、小队创建、邀请加入、账号切换、缓存隔离、会话恢复和本地健康数据保留的自动化联调；详细结果见 [P1 验收记录](./p1-acceptance-2026-07-14.md)。Watch 离线队列、重复事件、ACK、阶段调度和刷新退避自动化通过，配对模拟器构建、启动及状态接收通过。Live Activity 已增加启动时原生活动枚举、重关联、重复/孤儿清理和竞态尾随恢复，并由 7 项测试及 iOS 编译验证；签名安装和重启后的真机视觉结果仍保持未完成。动态 Expo 配置只接受 `development` / `production` 两种 APNs entitlement；EAS `development` 显式映射 development，`preview` 与 `production` 映射 production。三套生成配置均已检查。远程 Push 证书、付费 Apple Developer Team 和通知收发仍属于 P2 产品化，不在本轮伪装为已验收。
 
 ## P2：上线前产品化
 
@@ -278,6 +278,7 @@
 - 移动端 API 超时/取消/校验基础、TanStack Query、SyncCoordinator、SQLite 版本迁移和 90 天范围报告已实现。
 - 开发环境 mock-user-a/b/c 切换已实现。
 - Watch schema v2、共享 fixture、WatchConnectivity Expo Module、文件保护、1 Hz 显示刷新和前台退避重试已实现。
+- Live Activity 启动恢复已实现原生枚举、重关联、孤儿清理、缺失重建和状态竞态尾随协调。
 - 根 README、四份 ADR、动态 Expo 配置和生成式 OpenAPI 文档已建立。
 - 三个 Xcode scheme 已在本地和当前 Apple CI 中通过。
 

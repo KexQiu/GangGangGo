@@ -10,6 +10,7 @@ import { useHabitStore } from '../src/features/habits/habitStore';
 import { configureNotificationHandler } from '../src/features/reminders/notificationService';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import { syncCoordinator } from '../src/features/sync/syncCoordinator';
+import { recoverToiletLiveActivityAfterLaunch } from '../src/features/toilet/toiletLiveActivity';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
 import { startWatchConnectivityEventListener } from '../src/features/watch/watchSyncService';
@@ -21,6 +22,7 @@ function RootStack() {
   useEffect(() => {
     configureNotificationHandler();
     startWatchConnectivityEventListener();
+    void recoverToiletLiveActivityAfterLaunch();
     void Promise.all([
       useTrainingStore.getState().hydrate(),
       useToiletStore.getState().hydrate(),

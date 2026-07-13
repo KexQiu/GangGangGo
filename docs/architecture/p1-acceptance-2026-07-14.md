@@ -58,7 +58,9 @@ xcodebuild -workspace apps/mobile/ios/app.xcworkspace \
 
 状态：未完成真机验收。
 
-配对 iPhone 15 Pro Max 当前不可用，尚未取得签名安装、启动、更新、结束和 App 重启恢复的真机证据。模拟器构建通过不能替代这一验收。
+代码级重启恢复已补齐并通过自动化验证：App 启动时等待设置与计时会话完成持久化恢复，再枚举原生 Activity；恢复过程会重新关联有效 ID、在 ID 丢失时复用或重建 Activity、清理重复或孤儿 Activity，并在用户同时开始新计时或状态变化时执行尾随协调。7 项恢复测试覆盖持久化等待、孤儿清理、禁用清理、清理与新会话竞态、会话切换竞态、瞬时失败保留 ID，以及原生不支持时清除旧 ID；包含 Live Activity extension 和 Expo Module 的 `app` scheme 重新编译通过。
+
+配对 iPhone 15 Pro Max 当前不可用，尚未取得签名安装、启动、更新、结束和 App 终止后重启恢复的真机视觉证据。模拟器编译与代码级测试不能替代这一验收，因此该项继续保持未完成。
 
 ## 当前门禁
 
@@ -67,7 +69,7 @@ xcodebuild -workspace apps/mobile/ios/app.xcworkspace \
 - `pnpm check`：类型、lint、格式、单元测试、OpenAPI 漂移和真实 iOS bundle 全部通过。
 - Contracts：5 个测试文件、99 项测试通过。
 - API：真实 PostgreSQL 下 14 个测试文件、61 项测试通过。
-- 移动端：13 个测试文件、40 项测试通过；XCUITest smoke 与双用户关键流程通过。
+- 移动端：14 个测试文件、47 项测试通过；XCUITest smoke 与双用户关键流程通过。
 - Expo dependency check：本地依赖映射检查通过。
 - `app`、`XiaoTiduWatchApp`、`XiaoTiduWatchComplications` 三个 Xcode scheme 构建通过。
 - Watch protocol fixture 与 queue/timeline Swift 测试通过。

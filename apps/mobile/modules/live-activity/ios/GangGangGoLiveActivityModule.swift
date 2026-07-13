@@ -49,6 +49,27 @@ public final class GangGangGoLiveActivityModule: Module {
       (activityId: String, elapsedSeconds: Double, snapshot: [String: Any], promise: Promise) in
       self.client.end(activityId, elapsedSeconds: elapsedSeconds, snapshot: snapshot, promise: promise)
     }
+    AsyncFunction("endAll") { (promise: Promise) in
+      self.client.endAll(promise: promise)
+    }
+    AsyncFunction("reconcile") {
+      (
+        activityId: String?,
+        startedAtISO: String,
+        elapsedSeconds: Double,
+        isPaused: Bool,
+        snapshot: [String: Any],
+        promise: Promise
+      ) in
+      self.client.reconcile(
+        activityId: activityId,
+        startedAtISO: startedAtISO,
+        elapsedSeconds: elapsedSeconds,
+        isPaused: isPaused,
+        snapshot: snapshot,
+        promise: promise
+      )
+    }
   }
 }
 
@@ -141,14 +162,77 @@ private final class LiveActivityClient {
     }
   }
 
+  func endAll(promise: Promise) {
+    guard #available(iOS 16.1, *) else {
+      promise.resolve(nil)
+      return
+    }
+
+    Task {
+      await endExistingActivities()
+      promise.resolve(nil)
+    }
+  }
+
+  func reconcile(
+    activityId: String?,
+    startedAtISO: String,
+    elapsedSeconds: Double,
+    isPaused: Bool,
+    snapshot: [String: Any],
+    promise: Promise
+  ) {
+    guard #available(iOS 16.1, *) else {
+      promise.resolve(nil)
+      return
+    }
+
+    Task {
+      do {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+          promise.resolve(nil)
+          return
+        }
+
+        let activities = Activity<ToiletTimerAttributes>.activities
+        let retainedActivity = activityId.flatMap { requestedId in
+          activities.first { $0.id == requestedId }
+        } ?? activities.first
+        let elapsed = max(0, elapsedSeconds)
+        let state = makeContentState(
+          startedAtISO: startedAtISO,
+          elapsedSeconds: elapsed,
+          isPaused: isPaused,
+          snapshot: snapshot
+        )
+
+        if let retainedActivity {
+          await endExistingActivities(except: retainedActivity.id)
+          await retainedActivity.update(using: state)
+          promise.resolve(retainedActivity.id)
+          return
+        }
+
+        let activity = try Activity<ToiletTimerAttributes>.request(
+          attributes: ToiletTimerAttributes(title: "蹲会儿"),
+          contentState: state,
+          pushType: nil
+        )
+        promise.resolve(activity.id)
+      } catch {
+        promise.reject("toilet_live_activity_reconcile_failed", error.localizedDescription)
+      }
+    }
+  }
+
   @available(iOS 16.1, *)
   private func activity(with id: String) -> Activity<ToiletTimerAttributes>? {
     Activity<ToiletTimerAttributes>.activities.first { $0.id == id }
   }
 
   @available(iOS 16.1, *)
-  private func endExistingActivities() async {
-    for activity in Activity<ToiletTimerAttributes>.activities {
+  private func endExistingActivities(except retainedActivityId: String? = nil) async {
+    for activity in Activity<ToiletTimerAttributes>.activities where activity.id != retainedActivityId {
       let state = makeContentState(elapsedSeconds: 0, isPaused: true, snapshot: nil)
       await activity.end(using: state, dismissalPolicy: .immediate)
     }
