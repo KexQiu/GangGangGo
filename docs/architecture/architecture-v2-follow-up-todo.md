@@ -114,10 +114,11 @@
 
 ### Expo Modules 迁移
 
-- [ ] 将 `ToiletTimerLiveActivityModule` 从旧 React Native bridge 迁移为本地 Expo Module。
-- [ ] 保持 Live Activity 与 WatchConnectivity 为两个独立、类型化的 TypeScript 接口。
-- [ ] 清理 `NativeModules.ToiletTimerLiveActivityModule` 和旧 `.m` 导出层。
+- [x] 将 `ToiletTimerLiveActivityModule` 从旧 React Native bridge 迁移为本地 Expo Module。
+- [x] 保持 Live Activity 与 WatchConnectivity 为两个独立、类型化的 TypeScript 接口。
+- [x] 清理 `NativeModules.ToiletTimerLiveActivityModule` 和旧 `.m` 导出层。
   - 验收：Expo prebuild/Xcode 工程可重复生成；模块在开发、预览和生产配置下均能编译。
+  - 证据：Live Activity 与 WatchConnectivity 分别位于独立本地 Expo Module；ActivityKit attributes 由 App 与 Live Activity extension 通过 pod subspec 共享。`app`、`XiaoTiduWatchApp`、`XiaoTiduWatchComplications` 三个 scheme 已通过无签名模拟器构建。
 
 ### WatchSessionManager 解耦
 

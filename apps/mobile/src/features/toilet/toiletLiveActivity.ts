@@ -1,25 +1,10 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
-import { getToiletLiveActivitySnapshot, type ToiletLiveActivitySnapshot } from './toiletLogic';
+import liveActivityModule from '../../../modules/live-activity';
 
-type ToiletTimerLiveActivityNativeModule = {
-  end: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
-  isSupported: () => Promise<boolean>;
-  pause: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
-  resume: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
-  start: (startedAtISO: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<string | null>;
-  sync: (
-    activityId: string,
-    elapsedSeconds: number,
-    isPaused: boolean,
-    snapshot: ToiletLiveActivitySnapshot,
-  ) => Promise<void>;
-};
+import { getToiletLiveActivitySnapshot } from './toiletLogic';
 
-const nativeModule =
-  Platform.OS === 'ios'
-    ? (NativeModules.ToiletTimerLiveActivityModule as ToiletTimerLiveActivityNativeModule | undefined)
-    : undefined;
+const nativeModule = Platform.OS === 'ios' ? liveActivityModule : null;
 
 export async function isToiletLiveActivitySupported(): Promise<boolean> {
   if (!nativeModule) {

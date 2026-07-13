@@ -8,7 +8,7 @@ PODS:
     - ExpoModulesCore
   - EXNotifications (0.32.17):
     - ExpoModulesCore
-  - Expo (54.0.34):
+  - Expo (54.0.35):
     - ExpoModulesCore
     - hermes-engine
     - RCTRequired
@@ -210,13 +210,13 @@ PODS:
     - ExpoModulesCore
   - ExpoClipboard (8.0.8):
     - ExpoModulesCore
-  - ExpoFileSystem (19.0.22):
+  - ExpoFileSystem (19.0.23):
     - ExpoModulesCore
-  - ExpoFont (14.0.11):
+  - ExpoFont (14.0.12):
     - ExpoModulesCore
   - ExpoHaptics (15.0.8):
     - ExpoModulesCore
-  - ExpoHead (6.0.23):
+  - ExpoHead (6.0.24):
     - ExpoModulesCore
     - RNScreens
   - ExpoKeepAwake (15.0.8):
@@ -253,6 +253,12 @@ PODS:
   - EXUpdatesInterface (2.0.0):
     - ExpoModulesCore
   - FBLazyVector (0.81.5)
+  - GangGangGoLiveActivity (0.2.0):
+    - GangGangGoLiveActivity/Module (= 0.2.0)
+  - GangGangGoLiveActivity/Attributes (0.2.0)
+  - GangGangGoLiveActivity/Module (0.2.0):
+    - ExpoModulesCore
+    - GangGangGoLiveActivity/Attributes
   - GangGangGoStorageProtection (0.2.0):
     - ExpoModulesCore
   - GangGangGoWatchConnectivity (0.2.0):
@@ -2077,6 +2083,8 @@ DEPENDENCIES:
   - ExpoSQLite (from `../../../node_modules/expo-sqlite/ios`)
   - EXUpdatesInterface (from `../../../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../../../node_modules/react-native/Libraries/FBLazyVector`)
+  - GangGangGoLiveActivity (from `../modules/live-activity/ios`)
+  - GangGangGoLiveActivity/Attributes (from `../modules/live-activity/ios`)
   - GangGangGoStorageProtection (from `../modules/storage-protection/ios`)
   - GangGangGoWatchConnectivity (from `../modules/watch-connectivity/ios`)
   - hermes-engine (from `../../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2199,6 +2207,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/expo-updates-interface/ios"
   FBLazyVector:
     :path: "../../../node_modules/react-native/Libraries/FBLazyVector"
+  GangGangGoLiveActivity:
+    :path: "../modules/live-activity/ios"
   GangGangGoStorageProtection:
     :path: "../modules/storage-protection/ios"
   GangGangGoWatchConnectivity:
@@ -2349,7 +2359,7 @@ SPEC CHECKSUMS:
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
   EXManifests: 4eb6d80e7f6e07b4db68d2e1a5da58a915825b68
   EXNotifications: 6b4dced0f3dfd0dfb9d7c5d47a5ccd86764fc73c
-  Expo: e165e0db6ee12e51b5a914ef0758d309f28bdb4a
+  Expo: 0402aa13b318225ab96c28f8f6ed374efd62ca16
   expo-dev-client: 11d439b492da4debb14d8c1d1ac5c725ecc71a37
   expo-dev-launcher: a1fa980e36477563afcbc19e759e76f9bf2d20ad
   expo-dev-menu: 34e1cbb3d6e1408904d341f448be69b158425c60
@@ -2357,10 +2367,10 @@ SPEC CHECKSUMS:
   ExpoAsset: cc98e16f65a64e58079d9ccad3b5eec2b57b9263
   ExpoAudio: 12dd2d82554f4228008ca64851d7064ad9f47533
   ExpoClipboard: 50fa3332136758be7ca2ea912bae585f74bb93c3
-  ExpoFileSystem: dc2c00cc568d432efc36ea1d994c25050909d23d
-  ExpoFont: c625dbd97ed57e9089b172b2a7bb99003d074664
+  ExpoFileSystem: 72c7bedb30b6c8565322f9c6377663a1476d7703
+  ExpoFont: cc2be150f9c107bc8cd072eb0cd15388d6081479
   ExpoHaptics: 7240781406f4563c3f4eb1e72864302a8c643fd0
-  ExpoHead: 3f6ed6cbda48f13bcaddae98f8e5dc525dcfb34f
+  ExpoHead: f9362a2c2b1ae9ad47f1347bf7515d17900c4bfb
   ExpoKeepAwake: 44bf6715bc1d2ddb17afe19d927cd039cda123f0
   ExpoLinking: 4f1fc07ec4b3c10d60ec91617db973575104ec7e
   ExpoModulesCore: 92b8d81c177eb970ee6e01b86e85bf296533c179
@@ -2368,6 +2378,7 @@ SPEC CHECKSUMS:
   ExpoSQLite: 087db2057a7f1e9da38a8126f4388a324f9a4522
   EXUpdatesInterface: 1436757deb0d574b84bba063bd024c315e0ec08b
   FBLazyVector: e95a291ad2dadb88e42b06e0c5fb8262de53ec12
+  GangGangGoLiveActivity: fb78f643fa5111c2f976d9806da5fbab3e1ab8f9
   GangGangGoStorageProtection: cc43d604e55810152c118a6a4fcb7f58ad2021fd
   GangGangGoWatchConnectivity: ba677506ec02f19cf545c6b73cb62ce4f10f7823
   hermes-engine: 9f4dfe93326146a1c99eb535b1cb0b857a3cd172
@@ -2440,6 +2451,6 @@ SPEC CHECKSUMS:
   RNSVG: 2825ee146e0f6a16221e852299943e4cceef4528
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
 
-PODFILE CHECKSUM: 256cca54e3c27672e1b6896ac9077f8bbff8bea1
+PODFILE CHECKSUM: 61cc17387a67b6466d12162ccaa774e09b696419
 
 COCOAPODS: 1.15.2
