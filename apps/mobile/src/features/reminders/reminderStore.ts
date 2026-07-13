@@ -1,14 +1,7 @@
 import { create } from 'zustand';
 
-import {
-  getReminderSettings,
-  upsertReminderSettings,
-} from '../../storage/repositories/reminderRepository';
-import {
-  defaultReminderSettings,
-  hasAnyReminderEnabled,
-  normalizeReminderSettings,
-} from './reminderLogic';
+import { getReminderSettings, upsertReminderSettings } from '../../storage/repositories/reminderRepository';
+import { defaultReminderSettings, hasAnyReminderEnabled, normalizeReminderSettings } from './reminderLogic';
 import {
   cancelReminderNotifications,
   configureNotificationHandler,
@@ -16,11 +9,7 @@ import {
   requestReminderPermission,
   syncReminderNotifications,
 } from './notificationService';
-import {
-  type NotificationPermissionState,
-  type ReminderSettings,
-  type ReminderSettingsPatch,
-} from './reminderTypes';
+import { type NotificationPermissionState, type ReminderSettings, type ReminderSettingsPatch } from './reminderTypes';
 
 type ReminderState = {
   error: string | null;

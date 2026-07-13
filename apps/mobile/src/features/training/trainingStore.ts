@@ -23,7 +23,9 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     set({ error: null, isHydrating: true });
 
     try {
-      const sessions = await listTrainingSessions();
+      const since = new Date();
+      since.setDate(since.getDate() - 366);
+      const sessions = await listTrainingSessions(since.toISOString());
       set({ hasHydrated: true, isHydrating: false, sessions });
     } catch (error) {
       set({

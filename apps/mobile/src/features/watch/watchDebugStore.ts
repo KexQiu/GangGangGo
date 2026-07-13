@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 
-import { type WatchConnectivityStatus, type WatchEventAck, type WatchSyncResult, type WatchTodayState } from './watchTypes';
+import {
+  type WatchConnectivityStatus,
+  type WatchEventAck,
+  type WatchSyncResult,
+  type WatchTodayState,
+} from './watchTypes';
 
 type WatchDebugLogDirection = 'incoming' | 'outgoing' | 'state' | 'sync';
 
@@ -90,10 +95,7 @@ export const useWatchDebugStore = create<WatchDebugState>((set) => ({
   },
 }));
 
-function prependLog(
-  logs: WatchDebugLog[],
-  entry: Omit<WatchDebugLog, 'at' | 'id'>,
-): WatchDebugLog[] {
+function prependLog(logs: WatchDebugLog[], entry: Omit<WatchDebugLog, 'at' | 'id'>): WatchDebugLog[] {
   const at = new Date().toISOString();
   const nextLog: WatchDebugLog = {
     ...entry,

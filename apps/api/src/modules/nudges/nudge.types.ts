@@ -1,8 +1,4 @@
-import type {
-  BuddyNudgeAck,
-  BuddyNudgeType,
-  UserProfile,
-} from '@xiaotidu/contracts';
+import type { BuddyNudgeAck, BuddyNudgeType, UserProfile } from '@xiaotidu/contracts';
 
 export type NudgeRecord = {
   ack: BuddyNudgeAck | null;

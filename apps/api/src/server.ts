@@ -8,6 +8,7 @@ import { logger } from './lib/logger.js';
 const dependencies = createApiDependencies();
 const app = createApiApp({
   appleAuthService: createDefaultAppleAuthService(),
+  authSessionService: dependencies.authSessionService,
   entitlementsService: dependencies.entitlementsService,
   nudgeService: dependencies.nudgeService,
   pushTokenService: dependencies.pushTokenService,
@@ -22,10 +23,13 @@ serve({
   port: env.PORT,
 });
 
-logger.info({
-  host: env.HOST,
-  port: env.PORT,
-}, `xiaotidu api listening on http://${env.HOST}:${env.PORT}`);
+logger.info(
+  {
+    host: env.HOST,
+    port: env.PORT,
+  },
+  `xiaotidu api listening on http://${env.HOST}:${env.PORT}`,
+);
 
 async function shutdown() {
   await dependencies.close();

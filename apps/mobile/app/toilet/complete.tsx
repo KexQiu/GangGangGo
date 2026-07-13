@@ -137,9 +137,7 @@ export default function ToiletCompleteScreen() {
         <AppCard style={styles.longSessionCard}>
           <View style={styles.riskHeader}>
             <AlertTriangle color={colors.warning} size={22} strokeWidth={2.4} />
-            <Text style={styles.riskText}>
-              这趟坐得有点久。先收工，手机小剧场下次再播。
-            </Text>
+            <Text style={styles.riskText}>这趟坐得有点久。先收工，手机小剧场下次再播。</Text>
           </View>
           <AppButton onPress={() => router.push(routes.safety)} style={styles.riskButton} variant="warning">
             看看怎么少开长会

@@ -91,9 +91,7 @@ export async function cancelToiletStageNotifications(): Promise<void> {
   });
 
   await Promise.all(
-    toiletNotifications.map((notification) =>
-      Notifications.cancelScheduledNotificationAsync(notification.identifier),
-    ),
+    toiletNotifications.map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
   );
 }
 

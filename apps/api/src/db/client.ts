@@ -18,13 +18,18 @@ export function isDatabaseConfigured(config: Pick<ApiEnv, 'DATABASE_URL'> = env)
   return Boolean(config.DATABASE_URL);
 }
 
-export function createDatabaseClient(config: Pick<ApiEnv, 'DATABASE_URL' | 'DB_SSL'> = env): DatabaseClient {
+export function createDatabaseClient(
+  config: Pick<ApiEnv, 'DATABASE_URL' | 'DB_SSL'> &
+    Partial<Pick<ApiEnv, 'DB_CONNECT_TIMEOUT_SECONDS' | 'DB_IDLE_TIMEOUT_SECONDS' | 'DB_POOL_MAX'>> = env,
+): DatabaseClient {
   if (!config.DATABASE_URL) {
     throw new ApiError(503, 'database_not_configured', '数据库连接还没有配置。');
   }
 
   const sqlClient = postgres(config.DATABASE_URL, {
-    max: 5,
+    connect_timeout: config.DB_CONNECT_TIMEOUT_SECONDS ?? 10,
+    idle_timeout: config.DB_IDLE_TIMEOUT_SECONDS ?? 20,
+    max: config.DB_POOL_MAX ?? 5,
     ssl: config.DB_SSL ? 'require' : false,
   });
 

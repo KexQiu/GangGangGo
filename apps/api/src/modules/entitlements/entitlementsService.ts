@@ -49,18 +49,6 @@ export function resolveProStatus(subscription: EntitlementSubscriptionState | nu
   return 'pro_expired';
 }
 
-function toProStatus(status: SubscriptionStatus): ProStatus {
-  if (status === 'active') {
-    return 'pro_active';
-  }
-
-  if (status === 'grace_period') {
-    return 'pro_grace_period';
-  }
-
-  return 'pro_expired';
-}
-
 export function createDrizzleEntitlementsService(db: Database): EntitlementsService {
   return {
     async getEntitlements(user) {

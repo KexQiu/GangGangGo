@@ -18,6 +18,7 @@ export function registerRoutes(app: Hono, dependencies: ApiRouteDependencies) {
     '/auth',
     createAuthRoute({
       appleAuthService: dependencies.appleAuthService,
+      authSessionService: dependencies.authSessionService,
       authMiddleware: dependencies.authMiddleware,
       userRepository: dependencies.userRepository,
     }),

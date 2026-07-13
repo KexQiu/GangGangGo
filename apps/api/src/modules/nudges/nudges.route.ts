@@ -6,6 +6,7 @@ import type {
   BuddyNudgeSettingsResponse,
   BuddyNudgeThreadResponse,
   BuddyNudgesResponse,
+  NudgeThreadsResponse,
   CreateBuddyNudgeRequest,
   UpdateBuddyNudgeSettingsRequest,
 } from '@xiaotidu/contracts';
@@ -51,6 +52,11 @@ export function createNudgesRoute(options: CreateNudgesRouteOptions) {
   route.get('/sent', async (context) => {
     const body: BuddyNudgesResponse = await options.nudgeService.listSent(context.get('currentUser'));
 
+    return context.json(toSuccessResponse(body));
+  });
+
+  route.get('/threads', async (context) => {
+    const body: NudgeThreadsResponse = await options.nudgeService.listThreads(context.get('currentUser'));
     return context.json(toSuccessResponse(body));
   });
 

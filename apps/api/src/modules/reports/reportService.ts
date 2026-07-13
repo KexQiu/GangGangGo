@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lte, ne } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm';
 
 import type {
   AdvancedReportResponse,
@@ -52,13 +52,7 @@ export function createDrizzleReportService(db: Database): ReportService {
       })
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(
-        and(
-          eq(teamMembers.userId, currentUser.id),
-          ne(teamMembers.status, 'removed'),
-          isNull(teams.archivedAt),
-        ),
-      )
+      .where(and(eq(teamMembers.userId, currentUser.id), ne(teamMembers.status, 'removed'), isNull(teams.archivedAt)))
       .limit(1);
 
     if (!team) {
@@ -73,41 +67,21 @@ export function createDrizzleReportService(db: Database): ReportService {
       .insert(dailyReportSnapshots)
       .values({
         habitCompletion: snapshot.habitCompletion,
-        habitFull: snapshot.habitFull,
-        ninetyDayHabitFullDays: snapshot.ninetyDayHabitFullDays,
-        ninetyDayToiletLongMeetingCount: snapshot.ninetyDayToiletLongMeetingCount,
-        ninetyDayTrainingDays: snapshot.ninetyDayTrainingDays,
         streakDays: snapshot.streakDays,
-        thirtyDayHabitFullDays: snapshot.thirtyDayHabitFullDays,
-        thirtyDayToiletLongMeetingCount: snapshot.thirtyDayToiletLongMeetingCount,
-        thirtyDayTrainingDays: snapshot.thirtyDayTrainingDays,
         toiletLongMeeting: snapshot.toiletLongMeeting,
         toiletRecorded: snapshot.toiletRecorded,
         trainingDone: snapshot.trainingDone,
-        weeklyHabitFullDays: snapshot.weeklyHabitFullDays,
-        weeklyToiletLongMeetingCount: snapshot.weeklyToiletLongMeetingCount,
-        weeklyTrainingDays: snapshot.weeklyTrainingDays,
         date: snapshot.date,
         userId: currentUser.id,
       })
       .onConflictDoUpdate({
         set: {
           habitCompletion: snapshot.habitCompletion,
-          habitFull: snapshot.habitFull,
-          ninetyDayHabitFullDays: snapshot.ninetyDayHabitFullDays,
-          ninetyDayToiletLongMeetingCount: snapshot.ninetyDayToiletLongMeetingCount,
-          ninetyDayTrainingDays: snapshot.ninetyDayTrainingDays,
           streakDays: snapshot.streakDays,
-          thirtyDayHabitFullDays: snapshot.thirtyDayHabitFullDays,
-          thirtyDayToiletLongMeetingCount: snapshot.thirtyDayToiletLongMeetingCount,
-          thirtyDayTrainingDays: snapshot.thirtyDayTrainingDays,
           toiletLongMeeting: snapshot.toiletLongMeeting,
           toiletRecorded: snapshot.toiletRecorded,
           trainingDone: snapshot.trainingDone,
           updatedAt: new Date(),
-          weeklyHabitFullDays: snapshot.weeklyHabitFullDays,
-          weeklyToiletLongMeetingCount: snapshot.weeklyToiletLongMeetingCount,
-          weeklyTrainingDays: snapshot.weeklyTrainingDays,
         },
         target: [dailyReportSnapshots.userId, dailyReportSnapshots.date],
       })
@@ -200,8 +174,7 @@ export function createDrizzleReportService(db: Database): ReportService {
         summaries: activeMembers.map((member) => {
           const memberShareSettings = settingsByUserId.get(member.userId) ?? defaultReportShareSettings;
           const memberSnapshots = snapshots.filter((snapshot) => snapshot.userId === member.userId);
-          const visibleSnapshots =
-            member.status === 'paused' || memberShareSettings.paused ? [] : memberSnapshots;
+          const visibleSnapshots = member.status === 'paused' || memberShareSettings.paused ? [] : memberSnapshots;
 
           return {
             habitFullDays: memberShareSettings.shareHabitCompletion
@@ -232,14 +205,25 @@ export function createDrizzleReportService(db: Database): ReportService {
       };
     },
     async upsertDailyReportSnapshots(currentUser, snapshots) {
-      const uploadedSnapshots: DailyReportSnapshot[] = [];
-
-      for (const snapshot of dedupeSnapshotsByDate(snapshots)) {
-        uploadedSnapshots.push(await upsertSnapshot(currentUser, snapshot));
-      }
+      const deduped = dedupeSnapshotsByDate(snapshots);
+      const records = await db
+        .insert(dailyReportSnapshots)
+        .values(deduped.map((snapshot) => ({ ...snapshot, userId: currentUser.id })))
+        .onConflictDoUpdate({
+          set: {
+            habitCompletion: sql`excluded.habit_completion`,
+            streakDays: sql`excluded.streak_days`,
+            toiletLongMeeting: sql`excluded.toilet_long_meeting`,
+            toiletRecorded: sql`excluded.toilet_recorded`,
+            trainingDone: sql`excluded.training_done`,
+            updatedAt: new Date(),
+          },
+          target: [dailyReportSnapshots.userId, dailyReportSnapshots.date],
+        })
+        .returning();
 
       return {
-        snapshots: uploadedSnapshots,
+        snapshots: records.map(toDailyReportSnapshot).sort((left, right) => left.date.localeCompare(right.date)),
       };
     },
   };

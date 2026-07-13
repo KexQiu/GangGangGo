@@ -5,6 +5,7 @@ import { createAuthMiddleware } from '../http/middleware/auth.js';
 import { createProMiddleware } from '../http/middleware/pro.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 import { createMockAppleAuthService } from '../modules/auth/appleAuthService.js';
+import { createMockAuthSessionService } from '../modules/auth/authSessionService.js';
 import { createMockEntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import { createMockNudgeService } from '../modules/nudges/nudgeService.js';
 import { createMockPushTokenService } from '../modules/push/pushTokenService.js';
@@ -19,6 +20,7 @@ import type { CreateApiAppOptions } from './types.js';
 export function createApiApp(options: CreateApiAppOptions = {}) {
   const log = options.logger ?? defaultLogger;
   const appleAuthService = options.appleAuthService ?? createMockAppleAuthService();
+  const authSessionService = options.authSessionService ?? createMockAuthSessionService();
   const entitlementsService = options.entitlementsService ?? createMockEntitlementsService();
   const teamService = options.teamService ?? createMockTeamService();
   const nudgeService = options.nudgeService ?? createMockNudgeService({ teamService });
@@ -26,7 +28,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const reportService = options.reportService ?? createMockReportService({ teamService });
   const userRepository = options.userRepository ?? createMockUserRepository();
   const app = new Hono();
-  const authMiddleware = createAuthMiddleware(userRepository);
+  const authMiddleware = createAuthMiddleware(userRepository, authSessionService);
   const proMiddleware = createProMiddleware(entitlementsService);
 
   app.use('*', requestId());
@@ -34,6 +36,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
 
   registerRoutes(app, {
     appleAuthService,
+    authSessionService,
     authMiddleware,
     databaseHealthChecker: options.databaseHealthChecker,
     entitlementsService,

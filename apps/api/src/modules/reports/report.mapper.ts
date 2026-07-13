@@ -1,9 +1,4 @@
-import type {
-  AdvancedReportDay,
-  AdvancedReportResponse,
-  DailyReportSnapshot,
-  TeamMember,
-} from '@xiaotidu/contracts';
+import type { AdvancedReportDay, AdvancedReportResponse, DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { dailyReportSnapshots } from '../../db/schema.js';
 import type { CurrentUser } from '../users/userTypes.js';
@@ -72,7 +67,7 @@ function toAdvancedReportDay(date: string, snapshot?: DailyReportSnapshot): Adva
   return {
     date,
     habitCompletion: snapshot?.habitCompletion ?? 0,
-    habitFull: snapshot?.habitFull ?? false,
+    habitFull: (snapshot?.habitCompletion ?? 0) === 4,
     toiletLongMeeting: snapshot?.toiletLongMeeting ?? false,
     toiletRecorded: snapshot?.toiletRecorded ?? false,
     trainingDone: snapshot?.trainingDone ?? false,
@@ -106,7 +101,7 @@ export function buildAdvancedReport(input: {
       habitFullDays: days.filter((day) => day.habitFull).length,
       hasAnyRecord: days.some(hasAnyAdvancedReportRecord),
       recordDays: days.filter(hasAnyAdvancedReportRecord).length,
-      toiletLongMeetingCount: latestSnapshot?.ninetyDayToiletLongMeetingCount ?? 0,
+      toiletLongMeetingCount: days.filter((day) => day.toiletLongMeeting).length,
       toiletRecordDays: days.filter((day) => day.toiletRecorded).length,
       trainingDays: days.filter((day) => day.trainingDone).length,
     },
@@ -127,20 +122,10 @@ export function toDailyReportSnapshot(record: typeof dailyReportSnapshots.$infer
   return {
     date: record.date,
     habitCompletion: record.habitCompletion as DailyReportSnapshot['habitCompletion'],
-    habitFull: record.habitFull,
-    ninetyDayHabitFullDays: record.ninetyDayHabitFullDays,
-    ninetyDayToiletLongMeetingCount: record.ninetyDayToiletLongMeetingCount,
-    ninetyDayTrainingDays: record.ninetyDayTrainingDays,
     streakDays: record.streakDays,
-    thirtyDayHabitFullDays: record.thirtyDayHabitFullDays,
-    thirtyDayToiletLongMeetingCount: record.thirtyDayToiletLongMeetingCount,
-    thirtyDayTrainingDays: record.thirtyDayTrainingDays,
     toiletLongMeeting: record.toiletLongMeeting,
     toiletRecorded: record.toiletRecorded,
     trainingDone: record.trainingDone,
-    weeklyHabitFullDays: record.weeklyHabitFullDays as DailyReportSnapshot['weeklyHabitFullDays'],
-    weeklyToiletLongMeetingCount: record.weeklyToiletLongMeetingCount,
-    weeklyTrainingDays: record.weeklyTrainingDays as DailyReportSnapshot['weeklyTrainingDays'],
   };
 }
 

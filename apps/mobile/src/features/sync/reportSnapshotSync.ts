@@ -7,10 +7,9 @@ import { useHabitStore } from '../habits/habitStore';
 import { isLongToiletSession } from '../toilet/toiletLogic';
 import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
-import { buildSevenDayTrend, buildThirtyDaySummary } from '../trends/trendLogic';
-import { buildTodayShareSnapshot } from './shareSnapshotSync';
 
 const recentReportDays = 90;
+const trainingTarget = 2;
 
 export async function syncTodayReportSnapshot(): Promise<boolean> {
   return syncRecentReportSnapshots();
@@ -18,18 +17,10 @@ export async function syncTodayReportSnapshot(): Promise<boolean> {
 
 export async function syncRecentReportSnapshots(): Promise<boolean> {
   const { accessToken, proStatus } = useAuthStore.getState();
-
-  if (!accessToken || !isProStatus(proStatus)) {
-    return false;
-  }
+  if (!accessToken || !isProStatus(proStatus)) return false;
 
   try {
-    await apiClient.upsertReportSnapshotsBulk(
-      {
-        snapshots: buildRecentReportSnapshots(),
-      },
-      accessToken,
-    );
+    await apiClient.upsertReportSnapshotsBulk({ snapshots: buildRecentReportSnapshots() }, accessToken);
     return true;
   } catch {
     return false;
@@ -37,47 +28,67 @@ export async function syncRecentReportSnapshots(): Promise<boolean> {
 }
 
 export function buildTodayReportSnapshot(now = new Date()): DailyReportSnapshot {
-  return buildReportSnapshotForDate(now);
+  return buildRecentReportSnapshots(now).at(-1) ?? emptySnapshot(now);
 }
 
 export function buildRecentReportSnapshots(now = new Date()): DailyReportSnapshot[] {
-  return buildRecentDates(recentReportDays, now).map((date) => buildReportSnapshotForDate(date));
-}
-
-function buildReportSnapshotForDate(now = new Date()): DailyReportSnapshot {
+  const dates = buildRecentDates(recentReportDays, now);
   const habitCheckIns = useHabitStore.getState().checkIns;
   const toiletSessions = useToiletStore.getState().sessions;
   const trainingSessions = useTrainingStore.getState().sessions;
-  const shareSnapshot = buildTodayShareSnapshot(now);
-  const trendInput = {
-    habitCheckIns,
-    toiletSessions,
-    trainingSessions,
-  };
-  const sevenDay = buildSevenDayTrend(trendInput, now);
-  const thirtyDay = buildThirtyDaySummary(trendInput, now);
-  const ninetyDay = buildRangeSummary(90, now);
+  const habitsByDate = new Map(habitCheckIns.map((checkIn) => [checkIn.date, checkIn]));
+  const streakByDate = buildStreakByDate(habitCheckIns);
+  const toiletByDate = new Map<string, { longMeeting: boolean; recorded: boolean }>();
+  const completedTrainingByDate = new Map<string, number>();
 
-  return {
-    ...shareSnapshot,
-    habitFull: shareSnapshot.habitCompletion >= 4,
-    ninetyDayHabitFullDays: ninetyDay.habitFullDays,
-    ninetyDayToiletLongMeetingCount: ninetyDay.longToiletCount,
-    ninetyDayTrainingDays: ninetyDay.trainingDays,
-    thirtyDayHabitFullDays: thirtyDay.habitFullDays,
-    thirtyDayToiletLongMeetingCount: thirtyDay.longToiletCount,
-    thirtyDayTrainingDays: thirtyDay.trainingActiveDays,
-    toiletLongMeeting: hasLongToiletSessionOnDate(getLocalDateKey(now)),
-    weeklyHabitFullDays: clampWeekCount(sevenDay.habitFullDays),
-    weeklyToiletLongMeetingCount: sevenDay.longToiletCount,
-    weeklyTrainingDays: clampWeekCount(sevenDay.trainingActiveDays),
-  };
+  for (const session of toiletSessions) {
+    const date = getLocalDateKey(new Date(session.endedAt));
+    const current = toiletByDate.get(date) ?? { longMeeting: false, recorded: false };
+    current.recorded = true;
+    current.longMeeting ||= isLongToiletSession(session.durationSeconds);
+    toiletByDate.set(date, current);
+  }
+
+  for (const session of trainingSessions) {
+    if (!session.isCompleted) continue;
+    const date = getLocalDateKey(new Date(session.endedAt));
+    completedTrainingByDate.set(date, (completedTrainingByDate.get(date) ?? 0) + 1);
+  }
+
+  return dates.map((date) => {
+    const dateKey = getLocalDateKey(date);
+    const habitCompletion = clampHabitCompletion(calculateHabitCompletion(habitsByDate.get(dateKey)));
+    const toilet = toiletByDate.get(dateKey);
+    return {
+      date: dateKey,
+      habitCompletion,
+      streakDays: streakByDate.get(dateKey) ?? 0,
+      toiletLongMeeting: toilet?.longMeeting ?? false,
+      toiletRecorded: toilet?.recorded ?? false,
+      trainingDone: (completedTrainingByDate.get(dateKey) ?? 0) >= trainingTarget,
+    };
+  });
+}
+
+function buildStreakByDate(checkIns: ReturnType<typeof useHabitStore.getState>['checkIns']) {
+  const result = new Map<string, number>();
+  const sorted = [...checkIns].sort((left, right) => left.date.localeCompare(right.date));
+  let previousDate: string | null = null;
+  let streak = 0;
+
+  for (const checkIn of sorted) {
+    const complete = calculateHabitCompletion(checkIn) === 4;
+    const consecutive = previousDate ? addDaysToDateKey(previousDate, 1) === checkIn.date : false;
+    streak = complete ? (consecutive ? streak + 1 : 1) : 0;
+    result.set(checkIn.date, streak);
+    previousDate = checkIn.date;
+  }
+  return result;
 }
 
 function buildRecentDates(days: number, now: Date) {
   const end = new Date(now);
   end.setHours(12, 0, 0, 0);
-
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(end);
     date.setDate(end.getDate() - (days - 1 - index));
@@ -85,40 +96,23 @@ function buildRecentDates(days: number, now: Date) {
   });
 }
 
-function buildRangeSummary(days: number, now: Date) {
-  const habitCheckIns = useHabitStore.getState().checkIns;
-  const toiletSessions = useToiletStore.getState().sessions;
-  const trainingSessions = useTrainingStore.getState().sessions;
-  const dateKeys = new Set<string>();
+function addDaysToDateKey(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return getLocalDateKey(date);
+}
 
-  for (let index = 0; index < days; index += 1) {
-    const date = new Date(now);
-    date.setDate(now.getDate() - index);
-    dateKeys.add(getLocalDateKey(date));
-  }
+function clampHabitCompletion(value: number): DailyReportSnapshot['habitCompletion'] {
+  return Math.max(0, Math.min(4, value)) as DailyReportSnapshot['habitCompletion'];
+}
 
+function emptySnapshot(now: Date): DailyReportSnapshot {
   return {
-    habitFullDays: habitCheckIns.filter((checkIn) => dateKeys.has(checkIn.date) && calculateHabitCompletion(checkIn) >= 4)
-      .length,
-    longToiletCount: toiletSessions.filter(
-      (session) => dateKeys.has(getLocalDateKey(new Date(session.endedAt))) && isLongToiletSession(session.durationSeconds),
-    ).length,
-    trainingDays: new Set(
-      trainingSessions
-        .filter((session) => session.isCompleted && dateKeys.has(getLocalDateKey(new Date(session.endedAt))))
-        .map((session) => getLocalDateKey(new Date(session.endedAt))),
-    ).size,
+    date: getLocalDateKey(now),
+    habitCompletion: 0,
+    streakDays: 0,
+    toiletLongMeeting: false,
+    toiletRecorded: false,
+    trainingDone: false,
   };
-}
-
-function hasLongToiletSessionOnDate(dateKey: string): boolean {
-  return useToiletStore
-    .getState()
-    .sessions.some(
-      (session) => getLocalDateKey(new Date(session.endedAt)) === dateKey && isLongToiletSession(session.durationSeconds),
-    );
-}
-
-function clampWeekCount(value: number): DailyReportSnapshot['weeklyHabitFullDays'] {
-  return Math.max(0, Math.min(7, value)) as DailyReportSnapshot['weeklyHabitFullDays'];
 }

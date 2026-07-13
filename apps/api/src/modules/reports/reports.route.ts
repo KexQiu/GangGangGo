@@ -26,10 +26,7 @@ type CreateReportsRouteOptions = {
   reportService: ReportService;
 };
 
-async function requirePro(
-  entitlementsService: EntitlementsService,
-  currentUser: AuthVariables['currentUser'],
-) {
+async function requirePro(entitlementsService: EntitlementsService, currentUser: AuthVariables['currentUser']) {
   const entitlements = await entitlementsService.getEntitlements(currentUser);
   const allowedStatuses: ProStatus[] = ['pro_active', 'pro_grace_period'];
 

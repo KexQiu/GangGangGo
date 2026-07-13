@@ -1,9 +1,6 @@
 import { Hono } from 'hono';
 
-import type {
-  EntitlementsResponse,
-  UpdateUserProfileRequest,
-} from '@xiaotidu/contracts';
+import type { EntitlementsResponse, UpdateUserProfileRequest } from '@xiaotidu/contracts';
 
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';

@@ -17,8 +17,6 @@
 		A10000000000000000000004 /* ToiletTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ToiletTimerAttributes.swift */; };
 		A10000000000000000000005 /* ToiletTimerLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */; };
 		A10000000000000000000006 /* XiaoTiduLiveActivities.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* XiaoTiduLiveActivities.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		A10000000000000000000007 /* WatchConnectivityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* WatchConnectivityModule.swift */; };
-		A10000000000000000000008 /* WatchConnectivityModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* WatchConnectivityModule.m */; };
 		AA87B636CC972064CCD11544 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */; };
 		B10000000000000000000101 /* WatchTodayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000101 /* WatchTodayState.swift */; };
 		B10000000000000000000102 /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000102 /* WatchSessionManager.swift */; };
@@ -110,8 +108,6 @@
 		A20000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToiletTimerLiveActivityWidget.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* XiaoTiduLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = XiaoTiduLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000007 /* WatchConnectivityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WatchConnectivityModule.swift; path = app/WatchConnectivityModule.swift; sourceTree = "<group>"; };
-		A20000000000000000000008 /* WatchConnectivityModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = WatchConnectivityModule.m; path = app/WatchConnectivityModule.m; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = app/SplashScreen.storyboard; sourceTree = "<group>"; };
 		B20000000000000000000100 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B20000000000000000000101 /* WatchTodayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/WatchTodayState.swift; sourceTree = "<group>"; };
@@ -176,8 +172,6 @@
 				F11748442D0722820044C1D9 /* app-Bridging-Header.h */,
 				A20000000000000000000002 /* ToiletTimerLiveActivityModule.swift */,
 				A20000000000000000000003 /* ToiletTimerLiveActivityModule.m */,
-				A20000000000000000000007 /* WatchConnectivityModule.swift */,
-				A20000000000000000000008 /* WatchConnectivityModule.m */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -598,8 +592,6 @@
 				A10000000000000000000001 /* ToiletTimerAttributes.swift in Sources */,
 				A10000000000000000000002 /* ToiletTimerLiveActivityModule.swift in Sources */,
 				A10000000000000000000003 /* ToiletTimerLiveActivityModule.m in Sources */,
-				A10000000000000000000007 /* WatchConnectivityModule.swift in Sources */,
-				A10000000000000000000008 /* WatchConnectivityModule.m in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				045FF9E6A11DE75CF0FF5FFB /* ExpoModulesProvider.swift in Sources */,
 			);

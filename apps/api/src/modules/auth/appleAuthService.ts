@@ -30,7 +30,9 @@ export function createMockAppleAuthService(): AppleAuthService {
   };
 }
 
-export function createAppleJwtAuthService(config: Pick<ApiEnv, 'APPLE_BUNDLE_ID' | 'APPLE_JWKS_URL'> = env): AppleAuthService {
+export function createAppleJwtAuthService(
+  config: Pick<ApiEnv, 'APPLE_BUNDLE_ID' | 'APPLE_JWKS_URL'> = env,
+): AppleAuthService {
   if (!config.APPLE_BUNDLE_ID) {
     throw new ApiError(500, 'internal_server_error', 'Apple 登录配置缺失。');
   }

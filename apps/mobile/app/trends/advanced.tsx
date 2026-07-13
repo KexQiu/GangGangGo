@@ -1,7 +1,24 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { AlertTriangle, BookOpenCheck, ChartNoAxesColumnIncreasing, Crown, Hourglass, RefreshCw } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  BookOpenCheck,
+  ChartNoAxesColumnIncreasing,
+  Crown,
+  Hourglass,
+  RefreshCw,
+} from 'lucide-react-native';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, Modal, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  type LayoutChangeEvent,
+  Modal,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { AdvancedReportDay, AdvancedReportResponse } from '@xiaotidu/contracts';
 
 import { AppButton } from '../../src/components/AppButton';
@@ -82,7 +99,9 @@ export default function AdvancedReportScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.headerTitle}>{advancedReport ? formatReportRange(advancedReport) : '正在准备 90 天数据'}</Text>
+              <Text style={styles.headerTitle}>
+                {advancedReport ? formatReportRange(advancedReport) : '正在准备 90 天数据'}
+              </Text>
               <Text style={styles.headerBody}>
                 {isLoading ? '正在同步本机低敏日报，再读取云端回看。' : '数据来自本机低敏日报，云端只保存聚合结果。'}
               </Text>
@@ -96,10 +115,30 @@ export default function AdvancedReportScreen() {
             ) : advancedReport?.summary.hasAnyRecord ? (
               <>
                 <View style={styles.summaryGrid}>
-                  <SummaryTile icon={ChartNoAxesColumnIncreasing} label="小花训练达标" tone="primary" value={`${advancedReport.summary.trainingDays} 天`} />
-                  <SummaryTile icon={BookOpenCheck} label="小账本满格" tone="primary" value={`${advancedReport.summary.habitFullDays} 天`} />
-                  <SummaryTile icon={Hourglass} label="蹲会儿长会" tone="warning" value={`${advancedReport.summary.toiletLongMeetingCount} 次`} />
-                  <SummaryTile icon={RefreshCw} label="有记录" tone="info" value={`${advancedReport.summary.recordDays} 天`} />
+                  <SummaryTile
+                    icon={ChartNoAxesColumnIncreasing}
+                    label="小花训练达标"
+                    tone="primary"
+                    value={`${advancedReport.summary.trainingDays} 天`}
+                  />
+                  <SummaryTile
+                    icon={BookOpenCheck}
+                    label="小账本满格"
+                    tone="primary"
+                    value={`${advancedReport.summary.habitFullDays} 天`}
+                  />
+                  <SummaryTile
+                    icon={Hourglass}
+                    label="蹲会儿长会"
+                    tone="warning"
+                    value={`${advancedReport.summary.toiletLongMeetingCount} 次`}
+                  />
+                  <SummaryTile
+                    icon={RefreshCw}
+                    label="有记录"
+                    tone="info"
+                    value={`${advancedReport.summary.recordDays} 天`}
+                  />
                 </View>
 
                 <PageSection subtitle="按月份看每天的小状态，点点只代表低敏记录。" title="90 天节奏图">
@@ -120,10 +159,11 @@ export default function AdvancedReportScreen() {
             ) : (
               <AppCard style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>90 天还在等第一笔</Text>
-                <Text style={styles.noticeBody}>完成今天的本地记录后会自动同步。这里不会上传便血、不适、排便感受或具体蹲会儿时长。</Text>
+                <Text style={styles.noticeBody}>
+                  完成今天的本地记录后会自动同步。这里不会上传便血、不适、排便感受或具体蹲会儿时长。
+                </Text>
               </AppCard>
             )}
-
           </>
         ) : null}
       </PageStack>
@@ -366,14 +406,24 @@ function DayDetailModal({ day, onClose }: { day: AdvancedReportDay | null; onClo
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible>
       <View style={styles.dayDetailOverlay}>
-        <Pressable accessibilityLabel="关闭日期详情" accessibilityRole="button" onPress={onClose} style={styles.dayDetailBackdrop} />
+        <Pressable
+          accessibilityLabel="关闭日期详情"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.dayDetailBackdrop}
+        />
         <View accessibilityLabel={`${formatFullDateLabel(day.date)} 低敏记录详情`} style={styles.dayDetailCard}>
           <View style={styles.dayDetailHeader}>
             <View>
               <Text style={styles.dayDetailTitle}>{formatFullDateLabel(day.date)}</Text>
               <Text style={styles.dayDetailCaption}>当天低敏记录</Text>
             </View>
-            <Pressable accessibilityLabel="关闭" accessibilityRole="button" onPress={onClose} style={styles.dayDetailCloseButton}>
+            <Pressable
+              accessibilityLabel="关闭"
+              accessibilityRole="button"
+              onPress={onClose}
+              style={styles.dayDetailCloseButton}
+            >
               <Text style={styles.dayDetailCloseText}>关闭</Text>
             </Pressable>
           </View>

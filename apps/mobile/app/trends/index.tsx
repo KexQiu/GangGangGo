@@ -1,11 +1,6 @@
 import { useRouter } from 'expo-router';
 import { type ComponentType, useEffect } from 'react';
-import {
-  AlertTriangle,
-  BookOpenCheck,
-  ChartNoAxesColumnIncreasing,
-  Hourglass,
-} from 'lucide-react-native';
+import { AlertTriangle, BookOpenCheck, ChartNoAxesColumnIncreasing, Hourglass } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
@@ -99,7 +94,9 @@ export default function TrendsScreen() {
       {thirtyDaySummary.redFlagCount > 0 ? (
         <AppCard style={styles.riskCard}>
           <AlertTriangle color={colors.danger} size={22} strokeWidth={2.4} />
-          <Text style={styles.riskText}>近 30 天出现过需要留意的小信号。小报告只负责帮你记住；明显便血、不适加重或剧烈疼痛时，建议咨询医生。</Text>
+          <Text style={styles.riskText}>
+            近 30 天出现过需要留意的小信号。小报告只负责帮你记住；明显便血、不适加重或剧烈疼痛时，建议咨询医生。
+          </Text>
         </AppCard>
       ) : null}
 
@@ -110,16 +107,8 @@ export default function TrendsScreen() {
             <Text style={styles.proTitle}>90 天回看</Text>
             {advancedReport?.summary.hasAnyRecord ? (
               <View style={styles.summaryGrid}>
-                <SummaryTile
-                  label="小花训练达标"
-                  tone="primary"
-                  value={`${advancedReport.summary.trainingDays} 天`}
-                />
-                <SummaryTile
-                  label="小账本满格"
-                  tone="primary"
-                  value={`${advancedReport.summary.habitFullDays} 天`}
-                />
+                <SummaryTile label="小花训练达标" tone="primary" value={`${advancedReport.summary.trainingDays} 天`} />
+                <SummaryTile label="小账本满格" tone="primary" value={`${advancedReport.summary.habitFullDays} 天`} />
                 <SummaryTile
                   label="蹲会儿长会"
                   tone="warning"
@@ -138,7 +127,11 @@ export default function TrendsScreen() {
           <>
             <Text style={styles.proTitle}>{user ? '解锁 90 天小报告' : '登录后查看 Pro 能力'}</Text>
             <Text style={styles.mutedText}>基础小报告继续免费。Pro 会看更长周期，但仍不上传敏感细节。</Text>
-            <AppButton onPress={() => router.push(user ? routes.pro : routes.me)} style={styles.proButton} variant="secondary">
+            <AppButton
+              onPress={() => router.push(user ? routes.pro : routes.me)}
+              style={styles.proButton}
+              variant="secondary"
+            >
               {user ? '了解 Pro' : '去登录'}
             </AppButton>
           </>
@@ -178,9 +171,24 @@ function WeeklyReportCard({ trend }: { trend: SevenDayTrend }) {
       </View>
 
       <View style={styles.weeklySummaryRow}>
-        <WeeklySummaryPill color={colors.primary} icon={FlowerLiftIcon} label="小花训练达标" value={`${trend.trainingActiveDays} 天`} />
-        <WeeklySummaryPill color={colors.info} icon={BookOpenCheck} label="小账本满格" value={`${trend.habitFullDays} 天`} />
-        <WeeklySummaryPill color={toiletTone} icon={Hourglass} label="蹲会儿长会" value={`${trend.longToiletCount} 次`} />
+        <WeeklySummaryPill
+          color={colors.primary}
+          icon={FlowerLiftIcon}
+          label="小花训练达标"
+          value={`${trend.trainingActiveDays} 天`}
+        />
+        <WeeklySummaryPill
+          color={colors.info}
+          icon={BookOpenCheck}
+          label="小账本满格"
+          value={`${trend.habitFullDays} 天`}
+        />
+        <WeeklySummaryPill
+          color={toiletTone}
+          icon={Hourglass}
+          label="蹲会儿长会"
+          value={`${trend.longToiletCount} 次`}
+        />
       </View>
 
       <View style={styles.weekTimeline}>
@@ -198,7 +206,9 @@ function WeeklyReportCard({ trend }: { trend: SevenDayTrend }) {
       {trend.longToiletCount > 0 ? (
         <View style={styles.weekNotice}>
           <AlertTriangle color={colors.warning} size={17} strokeWidth={2.4} />
-          <Text style={styles.weekNoticeText}>这周有 {trend.longToiletCount} 次蹲会儿长会，知道就好，下次早点散会。</Text>
+          <Text style={styles.weekNoticeText}>
+            这周有 {trend.longToiletCount} 次蹲会儿长会，知道就好，下次早点散会。
+          </Text>
         </View>
       ) : null}
 
@@ -209,7 +219,17 @@ function WeeklyReportCard({ trend }: { trend: SevenDayTrend }) {
   );
 }
 
-function WeeklySummaryPill({ color, icon: Icon, label, value }: { color: string; icon: IconComponent; label: string; value: string }) {
+function WeeklySummaryPill({
+  color,
+  icon: Icon,
+  label,
+  value,
+}: {
+  color: string;
+  icon: IconComponent;
+  label: string;
+  value: string;
+}) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
@@ -318,11 +338,7 @@ function formatWeekDayLabel(label: string) {
 }
 
 function getTrendDailyRecordCount(day: DailyTrend) {
-  return [
-    day.trainingCompletedCount > 0,
-    day.habitCompletion > 0,
-    day.toiletSessionCount > 0,
-  ].filter(Boolean).length;
+  return [day.trainingCompletedCount > 0, day.habitCompletion > 0, day.toiletSessionCount > 0].filter(Boolean).length;
 }
 
 function hasTrendDailyRecord(day: DailyTrend) {

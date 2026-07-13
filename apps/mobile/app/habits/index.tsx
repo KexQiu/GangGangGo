@@ -1,24 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import {
-  Droplets,
-  Frown,
-  Leaf,
-  ListChecks,
-  Meh,
-  Move,
-  PlusCircle,
-  Smile,
-} from 'lucide-react-native';
+import { Droplets, Frown, Leaf, ListChecks, Meh, Move, PlusCircle, Smile } from 'lucide-react-native';
 import { type ComponentType, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  type TextStyle,
-  View,
-} from 'react-native';
+import { Animated, PanResponder, Pressable, StyleSheet, Text, type TextStyle, View } from 'react-native';
 
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
@@ -94,11 +77,7 @@ export default function HabitsScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.home} title="小账本" />
 
-      <PageHeader
-        eyebrow="健康习惯"
-        subtitle="快速记今天的基础习惯，不写精确数字，也不写小作文。"
-        title="今日小账本"
-      />
+      <PageHeader eyebrow="健康习惯" subtitle="快速记今天的基础习惯，不写精确数字，也不写小作文。" title="今日小账本" />
 
       <AppCard muted style={styles.summaryCard}>
         <View style={styles.summaryIcon}>
@@ -142,10 +121,7 @@ export default function HabitsScreen() {
                   <View style={styles.habitTitleRow}>
                     <Text style={styles.habitTitle}>{standard.title}</Text>
                     {activeLevel ? (
-                      <AnimatedLevelIcon
-                        level={activeLevel}
-                        label={getHabitStateLabel(options, activeLevel)}
-                      />
+                      <AnimatedLevelIcon level={activeLevel} label={getHabitStateLabel(options, activeLevel)} />
                     ) : null}
                   </View>
                   <Text style={styles.habitSubtitle}>{standard.goodReference}</Text>
@@ -602,7 +578,10 @@ function getHabitStateLabel(options: HabitLevelOption[], level: HabitLevel): str
   return `当前：${options.find((option) => option.level === level)?.label ?? '已记录'}`;
 }
 
-function getLevelTone(colors: ThemeColors, level: HabitLevel): {
+function getLevelTone(
+  colors: ThemeColors,
+  level: HabitLevel,
+): {
   color: string;
   iconBackground: string;
   softColor: string;

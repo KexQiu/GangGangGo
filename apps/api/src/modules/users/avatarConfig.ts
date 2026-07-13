@@ -1,13 +1,5 @@
-import type {
-  AvatarBackgroundPresetKey,
-  AvatarConfig,
-  AvatarEmojiPresetKey,
-} from '@xiaotidu/contracts';
-import {
-  isAvatarBackgroundPresetKey,
-  isAvatarConfig,
-  isAvatarEmojiPresetKey,
-} from '@xiaotidu/contracts';
+import type { AvatarBackgroundPresetKey, AvatarConfig, AvatarEmojiPresetKey } from '@xiaotidu/contracts';
+import { isAvatarBackgroundPresetKey, isAvatarConfig, isAvatarEmojiPresetKey } from '@xiaotidu/contracts';
 
 const avatarStoragePrefix = 'avatar:v1:';
 const initialAvatarToken = 'initial';

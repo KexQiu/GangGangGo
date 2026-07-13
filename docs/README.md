@@ -5,14 +5,16 @@
 当前仓库已经整理为轻量 monorepo：
 
 ```text
-apps/mobile          # v0.1 Expo App
-apps/api             # v0.2 后端骨架
-packages/contracts   # 前后端共享类型
+apps/mobile          # v0.2 Expo / iOS / Watch App
+apps/api             # v0.2 Hono + Postgres API
+packages/contracts   # 跨端 Zod schema 与 TypeScript 类型
 ```
 
 工程结构详见：[项目结构说明](./project-structure.md)。
 
 整体开发步骤详见：[开发路线图](./development-roadmap.md)。
+
+当前架构重构的实际剩余工作以 [Architecture v2 后续待办](./architecture/architecture-v2-follow-up-todo.md) 为准。
 
 ## v0.1 当前完成版
 
@@ -35,10 +37,10 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 - [后端接口文档](./v0.2/api-reference.md)
 - [移动端后端接入计划](./v0.2/mobile-integration-plan.md)
 - [移动端后端联调手动测试清单](./v0.2/mobile-backend-manual-test-checklist.md)
-- [总待办清单](./v0.2/todo-checklist.md)
+- [产品总待办清单（历史规划）](./v0.2/todo-checklist.md)
 - [Apifox/OpenAPI 导入文件](./v0.2/openapi.json)
 
-v0.2 规划为小提督 Pro 的第一版商业化验证，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。
+v0.2 是小提督 Pro 的开发联调版，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。
 
 当前代码已包含 90 天高级小报告 v1：Pro 用户可批量同步最近 90 天低敏日报快照，`GET /reports/advanced?range=90d` 返回日期范围、90 天每日序列、汇总指标和兼容旧 UI 的最新 `snapshot`，移动端提供独立 `/trends/advanced` 月历分页、单日详情弹窗和紧凑汇总卡。最近小报告的近 7 天展示已重做为周节奏矩阵，报告文案统一使用“小花训练达标”。
 

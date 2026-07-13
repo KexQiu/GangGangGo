@@ -1,19 +1,10 @@
-import type {
-  BuddyNudgeSettings,
-} from '@xiaotidu/contracts';
+import type { BuddyNudgeSettings } from '@xiaotidu/contracts';
 
 import { ApiError } from '../../http/apiError.js';
-import {
-  createNoopPushNotificationService,
-  type PushNotificationService,
-} from '../push/pushNotificationService.js';
+import { createNoopPushNotificationService, type PushNotificationService } from '../push/pushNotificationService.js';
 import type { TeamService } from '../teams/teamService.js';
 import type { CurrentUser } from '../users/userTypes.js';
-import {
-  toAck,
-  toNudge,
-  toSettings,
-} from './nudge.mapper.js';
+import { toAck, toNudge, toNudgeThreadSummaries, toSettings } from './nudge.mapper.js';
 import {
   ackNotificationMessages,
   ackRevisionWindowMs,
@@ -206,6 +197,12 @@ export function createMockNudgeService(options: {
           .map(toNudge),
       };
     },
+    async listThreads(currentUser) {
+      const team = await getTeam(currentUser);
+      return {
+        threads: toNudgeThreadSummaries(currentUser.id, team.members, [...nudges.values()].map(toNudge)),
+      };
+    },
     async listThread(currentUser, buddyUserId, options) {
       const team = await getTeam(currentUser);
       requireBuddyMember(team, currentUser, buddyUserId);
@@ -228,7 +225,7 @@ export function createMockNudgeService(options: {
 
       return {
         hasMore,
-        nextCursor: hasMore ? page.at(-1)?.createdAt.toISOString() ?? null : null,
+        nextCursor: hasMore ? (page.at(-1)?.createdAt.toISOString() ?? null) : null,
         nudges: page.map(toNudge),
       };
     },

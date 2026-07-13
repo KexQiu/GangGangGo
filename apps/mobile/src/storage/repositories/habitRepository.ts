@@ -49,10 +49,9 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
   );
 }
 
-export async function listHabitCheckIns(): Promise<HabitCheckIn[]> {
+export async function listHabitCheckIns(sinceDate?: string): Promise<HabitCheckIn[]> {
   const db = await initializeDatabase();
-  const rows = await db.getAllAsync<HabitCheckInRow>(
-    `
+  const query = `
       SELECT
         date,
         water,
@@ -61,9 +60,12 @@ export async function listHabitCheckIns(): Promise<HabitCheckIn[]> {
         bowel,
         updated_at
       FROM habit_checkins
+      ${sinceDate ? 'WHERE date >= $sinceDate' : ''}
       ORDER BY date DESC;
-    `,
-  );
+    `;
+  const rows = sinceDate
+    ? await db.getAllAsync<HabitCheckInRow>(query, { $sinceDate: sinceDate })
+    : await db.getAllAsync<HabitCheckInRow>(query);
 
   return rows.map(rowToHabitCheckIn);
 }

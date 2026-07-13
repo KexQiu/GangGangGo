@@ -1,71 +1,53 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { jwtVerify, SignJWT } from 'jose';
 
 import { env } from '../../config/env.js';
 import { ApiError } from '../../http/apiError.js';
 
-type TokenPayload = {
+const accessTokenLifetimeSeconds = 15 * 60;
+const issuer = 'xiaotidu-api';
+const audience = 'xiaotidu-mobile';
+
+export type AccessTokenPayload = {
   exp: number;
+  sessionId: string;
   sub: string;
 };
 
-const textEncoder = new TextEncoder();
-
-function base64UrlEncode(input: string | Uint8Array) {
-  return Buffer.from(input).toString('base64url');
+function secretKey(secret = env.JWT_SECRET) {
+  return new TextEncoder().encode(secret);
 }
 
-function base64UrlDecode(input: string) {
-  return Buffer.from(input, 'base64url').toString('utf8');
+export async function issueAccessToken(
+  userId: string,
+  sessionId: string,
+  options: { expiresInSeconds?: number; secret?: string } = {},
+) {
+  const expiresInSeconds = options.expiresInSeconds ?? accessTokenLifetimeSeconds;
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = new Date((now + expiresInSeconds) * 1000);
+  const accessToken = await new SignJWT({ sessionId })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setSubject(userId)
+    .setIssuer(issuer)
+    .setAudience(audience)
+    .setIssuedAt(now)
+    .setExpirationTime(now + expiresInSeconds)
+    .sign(secretKey(options.secret));
+
+  return { accessToken, accessTokenExpiresAt: expiresAt.toISOString() };
 }
 
-function sign(unsignedToken: string, secret: string) {
-  return createHmac('sha256', secret).update(unsignedToken).digest('base64url');
-}
-
-export function issueAccessToken(userId: string, options: { expiresInSeconds?: number; secret?: string } = {}) {
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT',
-  };
-  const payload: TokenPayload = {
-    exp: Math.floor(Date.now() / 1000) + (options.expiresInSeconds ?? 60 * 60 * 24 * 30),
-    sub: userId,
-  };
-  const unsignedToken = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(payload))}`;
-  const signature = sign(unsignedToken, options.secret ?? env.JWT_SECRET);
-
-  return `${unsignedToken}.${signature}`;
-}
-
-export function verifyAccessToken(token: string, options: { now?: number; secret?: string } = {}) {
-  const [headerPart, payloadPart, signaturePart] = token.split('.');
-
-  if (!headerPart || !payloadPart || !signaturePart) {
-    throw new ApiError(401, 'unauthorized', '登录状态无效，请重新登录。');
-  }
-
-  const unsignedToken = `${headerPart}.${payloadPart}`;
-  const expectedSignature = sign(unsignedToken, options.secret ?? env.JWT_SECRET);
-  const expectedBytes = textEncoder.encode(expectedSignature);
-  const actualBytes = textEncoder.encode(signaturePart);
-
-  if (expectedBytes.byteLength !== actualBytes.byteLength || !timingSafeEqual(expectedBytes, actualBytes)) {
-    throw new ApiError(401, 'unauthorized', '登录状态无效，请重新登录。');
-  }
-
-  let payload: TokenPayload;
-
+export async function verifyAccessToken(token: string, options: { secret?: string } = {}): Promise<AccessTokenPayload> {
   try {
-    payload = JSON.parse(base64UrlDecode(payloadPart)) as TokenPayload;
+    const result = await jwtVerify(token, secretKey(options.secret), { audience, issuer });
+    const sessionId = result.payload.sessionId;
+
+    if (!result.payload.sub || typeof sessionId !== 'string' || typeof result.payload.exp !== 'number') {
+      throw new Error('Invalid access token payload.');
+    }
+
+    return { exp: result.payload.exp, sessionId, sub: result.payload.sub };
   } catch {
-    throw new ApiError(401, 'unauthorized', '登录状态无效，请重新登录。');
+    throw new ApiError(401, 'unauthorized', '登录状态无效或已过期，请重新登录。');
   }
-
-  const now = options.now ?? Math.floor(Date.now() / 1000);
-
-  if (!payload.sub || payload.exp <= now) {
-    throw new ApiError(401, 'unauthorized', '登录已过期，请重新登录。');
-  }
-
-  return payload;
 }

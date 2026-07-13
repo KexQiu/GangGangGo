@@ -4,10 +4,7 @@ import type { UpdateUserProfileRequest } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
 import { users } from '../../db/schema.js';
-import {
-  deserializeAvatarConfig,
-  serializeAvatarConfig,
-} from './avatarConfig.js';
+import { deserializeAvatarConfig, serializeAvatarConfig } from './avatarConfig.js';
 import type { CurrentUser } from './userTypes.js';
 import { mockCurrentUser } from './userTypes.js';
 
@@ -36,10 +33,7 @@ export function createMockUserRepository(): UserRepository {
     const user: CurrentUser = {
       appleUserId: input.appleUserId,
       avatarUrl: null,
-      id:
-        index === 1
-          ? mockCurrentUser.id
-          : `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      id: index === 1 ? mockCurrentUser.id : `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
       nickname: input.nickname ?? (index === 1 ? mockCurrentUser.nickname : `小提督用户 ${index}`),
       timezone: 'Asia/Shanghai',
     };

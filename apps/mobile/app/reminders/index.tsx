@@ -164,11 +164,7 @@ export default function RemindersScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.settings} title="提醒设置" />
 
-      <PageHeader
-        eyebrow="小暗号"
-        subtitle="通知栏尽量说人话、留面子，不把尴尬词写满屏。"
-        title="提醒小秘书"
-      />
+      <PageHeader eyebrow="小暗号" subtitle="通知栏尽量说人话、留面子，不把尴尬词写满屏。" title="提醒小秘书" />
 
       <AppCard muted style={styles.summaryCard}>
         <View style={styles.summaryIcon}>
@@ -443,7 +439,10 @@ function SegmentOption({ label, onPress, selected }: SegmentOptionProps) {
   const styles = createStyles(colors);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && styles.pressed]}
+    >
       <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{label}</Text>
     </Pressable>
   );
@@ -575,7 +574,9 @@ function formatRange(range: QuietHoursRange): string {
 function addMinutesToTime(time: string, deltaMinutes: number): string {
   const currentMinutes = parseTimeToMinutes(time) ?? 0;
   const nextMinutes = (currentMinutes + deltaMinutes + 24 * 60) % (24 * 60);
-  const hours = Math.floor(nextMinutes / 60).toString().padStart(2, '0');
+  const hours = Math.floor(nextMinutes / 60)
+    .toString()
+    .padStart(2, '0');
   const minutes = (nextMinutes % 60).toString().padStart(2, '0');
 
   return `${hours}:${minutes}`;

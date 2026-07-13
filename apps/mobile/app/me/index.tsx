@@ -12,7 +12,7 @@ import { PressableScale } from '../../src/components/feedback/PressableScale';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
-import { useAuthStore } from '../../src/features/account/authStore';
+import { mockUserIds, useAuthStore } from '../../src/features/account/authStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -58,6 +58,7 @@ export default function MeScreen() {
   const proStatus = useAuthStore((state) => state.proStatus);
   const refreshEntitlements = useAuthStore((state) => state.refreshEntitlements);
   const refreshMe = useAuthStore((state) => state.refreshMe);
+  const selectedMockUserId = useAuthStore((state) => state.selectedMockUserId);
   const user = useAuthStore((state) => state.user);
 
   function handleRefresh() {
@@ -101,6 +102,24 @@ export default function MeScreen() {
           )}
         </AppCard>
 
+        {__DEV__ ? (
+          <PageSection title="开发账号">
+            <View style={styles.mockUsers}>
+              {mockUserIds.map((mockUserId) => (
+                <AppButton
+                  disabled={isLoading}
+                  key={mockUserId}
+                  onPress={() => void loginWithMockApple(mockUserId)}
+                  style={styles.mockUserButton}
+                  variant={selectedMockUserId === mockUserId && user ? 'primary' : 'secondary'}
+                >
+                  {mockUserId.slice(-1).toUpperCase()}
+                </AppButton>
+              ))}
+            </View>
+          </PageSection>
+        ) : null}
+
         <PageSection title="云端能力">
           <AppCard style={styles.linkList}>
             {cloudLinks.map((item, index) => {
@@ -135,7 +154,12 @@ export default function MeScreen() {
               <AppButton disabled={isLoading} onPress={handleRefresh} style={styles.actionButton} variant="secondary">
                 刷新
               </AppButton>
-              <AppButton disabled={isLoading} onPress={() => void logout()} style={styles.actionButton} variant="secondary">
+              <AppButton
+                disabled={isLoading}
+                onPress={() => void logout()}
+                style={styles.actionButton}
+                variant="secondary"
+              >
                 退出登录
               </AppButton>
             </View>
@@ -215,6 +239,14 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '600',
       lineHeight: 21,
+    },
+    mockUserButton: {
+      flex: 1,
+      minHeight: 44,
+    },
+    mockUsers: {
+      flexDirection: 'row',
+      gap: 10,
     },
     profileCard: {
       gap: 18,

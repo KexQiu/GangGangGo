@@ -37,8 +37,8 @@ export default function ProfileEditScreen() {
   const avatarPresetRows = chunkItems(profileAvatarEmojiOptions, 6);
   const hasChanges = Boolean(
     user &&
-      (normalizedNickname !== user.nickname ||
-        !areAvatarConfigsEqual(avatarDraft, getNullableAvatarConfig(user.avatarUrl))),
+    (normalizedNickname !== user.nickname ||
+      !areAvatarConfigsEqual(avatarDraft, getNullableAvatarConfig(user.avatarUrl))),
   );
   const canSave = Boolean(user && normalizedNickname && hasChanges && !isLoading);
 
@@ -96,7 +96,11 @@ export default function ProfileEditScreen() {
               <Text style={styles.fieldLabel}>头像</Text>
               <View style={styles.avatarHeader}>
                 <ProfileAvatar avatarUrl={avatarDraft} nickname={normalizedNickname} size="lg" />
-                <AppButton onPress={() => setIsAvatarPickerVisible((visible) => !visible)} style={styles.avatarButton} variant="secondary">
+                <AppButton
+                  onPress={() => setIsAvatarPickerVisible((visible) => !visible)}
+                  style={styles.avatarButton}
+                  variant="secondary"
+                >
                   更换头像
                 </AppButton>
               </View>

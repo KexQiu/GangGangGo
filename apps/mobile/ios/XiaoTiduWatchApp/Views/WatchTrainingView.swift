@@ -8,7 +8,7 @@ struct WatchTrainingView: View {
   @State private var completedTraining: WatchTrainingCompletion?
   @State private var showingCancelConfirmation = false
 
-  private let checkpointTick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+  private let checkpointTick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
     Group {
@@ -216,7 +216,7 @@ private struct TrainingSessionContent: View {
   var onTogglePause: () -> Void
 
   var body: some View {
-    TimelineView(.periodic(from: session.startedAt, by: 0.25)) { context in
+    TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
       let snapshot = session.snapshot(at: context.date)
 
       VStack(spacing: 10) {

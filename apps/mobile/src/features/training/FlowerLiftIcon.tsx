@@ -24,11 +24,12 @@ export function FlowerLiftIcon({
   variant = 'soft',
 }: FlowerLiftIconProps) {
   const petalColor = primary ?? color ?? '#2FB77D';
-  const curvePath = variant === 'quick'
-    ? 'M8 17 C10.5 13.6 14.5 12.7 18.4 13.8'
-    : variant === 'steady'
-      ? 'M6.6 16.2 C9 13.7 12.4 12.9 18 14'
-      : 'M8.3 16.8 C10 15.3 12.2 14.8 15 15.2';
+  const curvePath =
+    variant === 'quick'
+      ? 'M8 17 C10.5 13.6 14.5 12.7 18.4 13.8'
+      : variant === 'steady'
+        ? 'M6.6 16.2 C9 13.7 12.4 12.9 18 14'
+        : 'M8.3 16.8 C10 15.3 12.2 14.8 15 15.2';
   const curveOpacity = variant === 'soft' ? 0.5 : 1;
   const petalScale = variant === 'soft' ? 0.9 : 1;
 
@@ -61,20 +62,8 @@ export function FlowerLiftIcon({
 
       {showLiftLine && variant === 'quick' ? (
         <>
-          <Path
-            d="M18.2 7.2h2.2"
-            fill="none"
-            stroke={info}
-            strokeLinecap="round"
-            strokeWidth={1.8}
-          />
-          <Path
-            d="M17.8 10.1h3.1"
-            fill="none"
-            stroke={info}
-            strokeLinecap="round"
-            strokeWidth={1.8}
-          />
+          <Path d="M18.2 7.2h2.2" fill="none" stroke={info} strokeLinecap="round" strokeWidth={1.8} />
+          <Path d="M17.8 10.1h3.1" fill="none" stroke={info} strokeLinecap="round" strokeWidth={1.8} />
         </>
       ) : null}
 

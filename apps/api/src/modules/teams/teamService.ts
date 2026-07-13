@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, ne } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm';
 
 import type {
   AcceptTeamInviteRequest,
@@ -17,14 +17,7 @@ import type {
 } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
-import {
-  dailyShareSnapshots,
-  shareSettings,
-  teamInvites,
-  teamMembers,
-  teams,
-  users,
-} from '../../db/schema.js';
+import { dailyShareSnapshots, shareSettings, teamInvites, teamMembers, teams, users } from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
 import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
@@ -66,10 +59,7 @@ export type TeamService = {
     currentUser: CurrentUser,
     status: Extract<TeamMemberStatus, 'active' | 'paused'>,
   ) => Promise<TeamResponse>;
-  updateShareSettings: (
-    currentUser: CurrentUser,
-    input: UpdateShareSettingsRequest,
-  ) => Promise<ShareSettingsResponse>;
+  updateShareSettings: (currentUser: CurrentUser, input: UpdateShareSettingsRequest) => Promise<ShareSettingsResponse>;
   updateTeam: (currentUser: CurrentUser, input: UpdateTeamRequest) => Promise<TeamResponse>;
   upsertDailyShareSnapshot: (
     currentUser: CurrentUser,
@@ -90,13 +80,7 @@ export function createDrizzleTeamService(db: Database): TeamService {
       })
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(
-        and(
-          eq(teamMembers.userId, currentUser.id),
-          ne(teamMembers.status, 'removed'),
-          isNull(teams.archivedAt),
-        ),
-      )
+      .where(and(eq(teamMembers.userId, currentUser.id), ne(teamMembers.status, 'removed'), isNull(teams.archivedAt)))
       .limit(1);
 
     return row ?? null;
@@ -193,14 +177,25 @@ export function createDrizzleTeamService(db: Database): TeamService {
         throw new ApiError(409, 'conflict', '你已经在一个小队里了。');
       }
 
-      const currentMembers = await listMembers(invite.teamId);
-
-      if (currentMembers.length >= 4) {
-        throw new ApiError(409, 'conflict', '小队已经满员了。');
-      }
-
       await db.transaction(async (transaction) => {
         const now = new Date();
+        await transaction.execute(sql`select pg_advisory_xact_lock(hashtextextended(${currentUser.id}, 0))`);
+        await transaction.select({ id: teams.id }).from(teams).where(eq(teams.id, invite.teamId)).for('update');
+
+        const [existingMembership] = await transaction
+          .select({ id: teamMembers.id })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(eq(teamMembers.userId, currentUser.id), isNull(teamMembers.removedAt), isNull(teams.archivedAt)))
+          .limit(1);
+        if (existingMembership) throw new ApiError(409, 'conflict', '你已经在一个小队里了。');
+
+        const currentMembers = await transaction
+          .select({ id: teamMembers.id })
+          .from(teamMembers)
+          .where(and(eq(teamMembers.teamId, invite.teamId), isNull(teamMembers.removedAt)));
+        if (currentMembers.length >= 4) throw new ApiError(409, 'conflict', '小队已经满员了。');
+
         const [acceptedInvite] = await transaction
           .update(teamInvites)
           .set({
@@ -236,7 +231,6 @@ export function createDrizzleTeamService(db: Database): TeamService {
           teamId: invite.teamId,
           userId: currentUser.id,
         });
-
       });
 
       return this.getCurrentTeam(currentUser);
@@ -279,6 +273,15 @@ export function createDrizzleTeamService(db: Database): TeamService {
       const teamName = normalizeTeamName(input.name);
 
       await db.transaction(async (transaction) => {
+        await transaction.execute(sql`select pg_advisory_xact_lock(hashtextextended(${currentUser.id}, 0))`);
+        const [existingMembership] = await transaction
+          .select({ id: teamMembers.id })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(eq(teamMembers.userId, currentUser.id), isNull(teamMembers.removedAt), isNull(teams.archivedAt)))
+          .limit(1);
+        if (existingMembership) throw new ApiError(409, 'conflict', '你已经有一个小队了。');
+
         const [createdTeam] = await transaction
           .insert(teams)
           .values({
@@ -321,23 +324,13 @@ export function createDrizzleTeamService(db: Database): TeamService {
     async getCurrentTeamSnapshots(currentUser, date) {
       const { members, teamRecord } = await getRequiredTeam(currentUser);
       const memberUserIds = members.map((member) => member.user.id);
-      const settingsRows = await db
-        .select()
-        .from(shareSettings)
-        .where(eq(shareSettings.teamId, teamRecord.id));
+      const settingsRows = await db.select().from(shareSettings).where(eq(shareSettings.teamId, teamRecord.id));
       const snapshotRows = await db
         .select()
         .from(dailyShareSnapshots)
-        .where(
-          and(
-            eq(dailyShareSnapshots.date, date),
-            inArray(dailyShareSnapshots.userId, memberUserIds),
-          ),
-        );
+        .where(and(eq(dailyShareSnapshots.date, date), inArray(dailyShareSnapshots.userId, memberUserIds)));
       const settingsByUserId = new Map(settingsRows.map((row) => [row.userId, toShareSettings(row)]));
-      const snapshotsByUserId = new Map(
-        snapshotRows.map((row) => [row.userId, toDailyShareSnapshot(row)]),
-      );
+      const snapshotsByUserId = new Map(snapshotRows.map((row) => [row.userId, toDailyShareSnapshot(row)]));
 
       return {
         date,

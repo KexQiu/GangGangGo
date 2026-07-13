@@ -1,9 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 
-import {
-  getToiletLiveActivitySnapshot,
-  type ToiletLiveActivitySnapshot,
-} from './toiletLogic';
+import { getToiletLiveActivitySnapshot, type ToiletLiveActivitySnapshot } from './toiletLogic';
 
 type ToiletTimerLiveActivityNativeModule = {
   end: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
@@ -19,9 +16,10 @@ type ToiletTimerLiveActivityNativeModule = {
   ) => Promise<void>;
 };
 
-const nativeModule = Platform.OS === 'ios'
-  ? (NativeModules.ToiletTimerLiveActivityModule as ToiletTimerLiveActivityNativeModule | undefined)
-  : undefined;
+const nativeModule =
+  Platform.OS === 'ios'
+    ? (NativeModules.ToiletTimerLiveActivityModule as ToiletTimerLiveActivityNativeModule | undefined)
+    : undefined;
 
 export async function isToiletLiveActivitySupported(): Promise<boolean> {
   if (!nativeModule) {
@@ -37,7 +35,6 @@ export async function isToiletLiveActivitySupported(): Promise<boolean> {
 
 export async function startToiletLiveActivity(startedAtISO: string, elapsedSeconds: number): Promise<string | null> {
   if (!nativeModule) {
-    console.warn('[ToiletLiveActivity] native module is unavailable.');
     return null;
   }
 
@@ -47,10 +44,8 @@ export async function startToiletLiveActivity(startedAtISO: string, elapsedSecon
       elapsedSeconds,
       getToiletLiveActivitySnapshot(elapsedSeconds),
     );
-    console.log('[ToiletLiveActivity] started', activityId);
     return activityId;
-  } catch (error) {
-    console.warn('[ToiletLiveActivity] start failed', error);
+  } catch {
     return null;
   }
 }
@@ -89,12 +84,7 @@ export async function syncToiletLiveActivity(
   }
 
   try {
-    await nativeModule.sync(
-      activityId,
-      elapsedSeconds,
-      isPaused,
-      getToiletLiveActivitySnapshot(elapsedSeconds),
-    );
+    await nativeModule.sync(activityId, elapsedSeconds, isPaused, getToiletLiveActivitySnapshot(elapsedSeconds));
   } catch {
     // Native Live Activity failure should not block the in-app timer.
   }

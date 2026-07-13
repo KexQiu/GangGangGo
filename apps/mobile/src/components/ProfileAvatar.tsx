@@ -1,10 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import type {
-  AvatarBackgroundPresetKey,
-  AvatarConfig,
-  AvatarEmojiPresetKey,
-} from '@xiaotidu/contracts';
+import type { AvatarBackgroundPresetKey, AvatarConfig, AvatarEmojiPresetKey } from '@xiaotidu/contracts';
 import { isAvatarConfig } from '@xiaotidu/contracts';
 
 import { useAppTheme } from '../theme/themeProvider';

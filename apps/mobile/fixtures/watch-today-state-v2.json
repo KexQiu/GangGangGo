@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "account": {
+    "isLoggedIn": true,
+    "nickname": "Fixture User"
+  },
+  "date": "2026-07-11",
+  "generatedAt": "2026-07-11T06:30:00.000Z",
+  "habits": {
+    "bowelDone": true,
+    "completion": 3,
+    "fiberDone": true,
+    "movementDone": false,
+    "waterDone": true
+  },
+  "pendingEventCount": 1,
+  "proStatus": "pro_active",
+  "toilet": {
+    "elapsedSeconds": 420,
+    "isPaused": false,
+    "isRunning": true,
+    "sessionCount": 1,
+    "stage": "normal"
+  },
+  "training": {
+    "completedSets": 1,
+    "done": false
+  },
+  "trainingModes": [
+    {
+      "holdSeconds": 3,
+      "id": "beginner",
+      "restSeconds": 3,
+      "rounds": 10
+    },
+    {
+      "holdSeconds": 5,
+      "id": "standard",
+      "restSeconds": 5,
+      "rounds": 12
+    },
+    {
+      "holdSeconds": 1,
+      "id": "quick",
+      "restSeconds": 1,
+      "rounds": 16
+    }
+  ]
+}

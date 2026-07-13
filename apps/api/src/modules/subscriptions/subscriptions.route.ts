@@ -9,10 +9,7 @@ import type {
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';
 import type { EntitlementsService } from '../entitlements/entitlementsService.js';
-import {
-  restoreSubscriptionRequestSchema,
-  verifySubscriptionRequestSchema,
-} from './subscriptions.schemas.js';
+import { restoreSubscriptionRequestSchema, verifySubscriptionRequestSchema } from './subscriptions.schemas.js';
 
 type CreateSubscriptionsRouteOptions = {
   entitlementsService: EntitlementsService;

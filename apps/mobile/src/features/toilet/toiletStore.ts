@@ -37,7 +37,9 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
     set({ error: null, isHydrating: true });
 
     try {
-      const sessions = await listToiletSessions();
+      const since = new Date();
+      since.setDate(since.getDate() - 366);
+      const sessions = await listToiletSessions(since.toISOString());
       set({ hasHydrated: true, isHydrating: false, sessions });
     } catch (error) {
       set({
