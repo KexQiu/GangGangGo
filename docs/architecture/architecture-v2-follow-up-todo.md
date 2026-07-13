@@ -15,9 +15,10 @@
 
 ## P0：关闭当前重构分支
 
-- [ ] 修复 API 测试对 `DATABASE_URL` 的环境依赖。
+- [x] 修复 API 测试对 `DATABASE_URL` 的环境依赖。
   - 现状：`apps/api/src/__tests__/app.test.ts` 中“数据库未配置”场景在 CI 已注入 Postgres 时仍期望 `503`，导致 `typescript` job 失败。
   - 验收：该场景显式隔离环境变量，既不影响其他数据库测试，也不依赖执行顺序。
+  - 证据：2026-07-13 已在未设置和显式设置 `DATABASE_URL` 的两种环境下通过测试。
 - [ ] 重新运行并通过 Draft PR #1 的全部 GitHub Actions。
   - 当前状态：`apple-builds` 已通过，`typescript` 失败。
   - 验收：Linux 类型检查、单元测试、Postgres 集成测试、OpenAPI 漂移检查和三个 Apple scheme 均为绿色。

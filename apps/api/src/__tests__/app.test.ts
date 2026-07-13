@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { createApiApp } from '../app.js';
+import { checkDatabaseHealth } from '../db/health.js';
 import { ApiError } from '../http/apiError.js';
 import { createLogger } from '../lib/logger.js';
 import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
@@ -424,7 +425,10 @@ describe('api app', () => {
   });
 
   it('returns structured database-not-configured errors', async () => {
-    const app = createTestApp();
+    const app = createApiApp({
+      databaseHealthChecker: () => checkDatabaseHealth({ DB_SSL: false }),
+      logger: testLogger,
+    });
     const response = await app.request('/health/db');
     const body = await response.json();
 
