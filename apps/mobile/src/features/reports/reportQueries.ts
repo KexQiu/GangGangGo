@@ -1,0 +1,46 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { apiClient } from '../../api/client';
+import { queryKeys } from '../../api/queryKeys';
+import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
+import { isProStatus, useAuthStore } from '../account/authStore';
+import { syncRecentReportSnapshots } from '../sync/reportSnapshotSync';
+
+type ReportQueryOptions = { enabled?: boolean };
+
+export function useAdvancedReportQuery(options: ReportQueryOptions = {}) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const proStatus = useAuthStore((state) => state.proStatus);
+  const userId = useAuthStore((state) => state.user?.id);
+
+  const query = useQuery({
+    enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),
+    queryFn: async ({ signal }) => {
+      await syncRecentReportSnapshots();
+      return apiClient.getAdvancedReport(requireValue(accessToken), signal);
+    },
+    queryKey: queryKeys.advancedReport(userId ?? 'anonymous'),
+    staleTime: 0,
+  });
+  useQueryErrorNotification(query.error);
+  return query;
+}
+
+export function useTeamWeeklyReportQuery(options: ReportQueryOptions = {}) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const proStatus = useAuthStore((state) => state.proStatus);
+  const userId = useAuthStore((state) => state.user?.id);
+
+  const query = useQuery({
+    enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),
+    queryFn: ({ signal }) => apiClient.getTeamWeeklyReport(requireValue(accessToken), signal),
+    queryKey: queryKeys.teamWeeklyReport(userId ?? 'anonymous'),
+  });
+  useQueryErrorNotification(query.error);
+  return query;
+}
+
+function requireValue<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined || value === '') throw new Error('请先登录。');
+  return value;
+}

@@ -8,7 +8,14 @@ import { PageHeader } from '../../../src/components/PageHeader';
 import { PageStack } from '../../../src/components/PageStack';
 import { Screen } from '../../../src/components/Screen';
 import { useAuthStore } from '../../../src/features/account/authStore';
-import { useTeamStore } from '../../../src/features/team/teamStore';
+import {
+  useCurrentTeamQuery,
+  useLeaveTeamMutation,
+  useRenameTeamMutation,
+  useTeamSnapshotsQuery,
+  useUpdateMyMemberStatusMutation,
+  useUpdateShareSettingsMutation,
+} from '../../../src/features/team/teamQueries';
 import { routes } from '../../../src/navigation/routes';
 import { useAppTheme } from '../../../src/theme/themeProvider';
 
@@ -16,22 +23,20 @@ export default function TeamSettingsScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const user = useAuthStore((state) => state.user);
-  const isMutating = useTeamStore((state) => state.isMutating);
-  const leaveTeam = useTeamStore((state) => state.leaveTeam);
-  const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
-  const renameTeam = useTeamStore((state) => state.renameTeam);
-  const snapshots = useTeamStore((state) => state.snapshots);
-  const team = useTeamStore((state) => state.team);
-  const updateMyMemberStatus = useTeamStore((state) => state.updateMyMemberStatus);
-  const updateShareSettings = useTeamStore((state) => state.updateShareSettings);
+  const teamQuery = useCurrentTeamQuery();
+  const team = teamQuery.data?.team;
+  const snapshotsQuery = useTeamSnapshotsQuery({ enabled: Boolean(team) });
+  const snapshots = snapshotsQuery.data;
+  const leaveTeam = useLeaveTeamMutation();
+  const renameTeam = useRenameTeamMutation();
+  const updateMyMemberStatus = useUpdateMyMemberStatusMutation();
+  const updateShareSettings = useUpdateShareSettingsMutation();
+  const isMutating =
+    leaveTeam.isPending || renameTeam.isPending || updateMyMemberStatus.isPending || updateShareSettings.isPending;
   const [teamName, setTeamName] = useState(team?.name ?? '');
   const myMember = useMemo(() => team?.members.find((member) => member.user.id === user?.id), [team, user?.id]);
   const mySnapshot = snapshots?.snapshots.find((snapshot) => snapshot.member.id === myMember?.id);
   const shareSettings = mySnapshot?.shareSettings;
-
-  useEffect(() => {
-    void loadCurrentTeam();
-  }, [loadCurrentTeam]);
 
   useEffect(() => {
     setTeamName(team?.name ?? '');
@@ -54,7 +59,7 @@ export default function TeamSettingsScreen() {
           />
           <AppButton
             disabled={!teamName.trim() || isMutating}
-            onPress={() => void renameTeam(teamName.trim())}
+            onPress={() => renameTeam.mutate(teamName.trim())}
             variant="secondary"
           >
             保存名称
@@ -66,31 +71,31 @@ export default function TeamSettingsScreen() {
             <Text style={styles.cardTitle}>我的共享</Text>
             <SettingSwitch
               description="关闭后，搭子暂时看不到你的今日状态。"
-              onValueChange={(value) => void updateMyMemberStatus(value ? 'paused' : 'active')}
+              onValueChange={(value) => updateMyMemberStatus.mutate(value ? 'paused' : 'active')}
               title="暂停共享"
               value={myMember?.status === 'paused' || shareSettings.paused}
             />
             <SettingSwitch
               description="只共享是否完成建议量。"
-              onValueChange={(value) => void updateShareSettings({ ...shareSettings, shareTraining: value })}
+              onValueChange={(value) => updateShareSettings.mutate({ ...shareSettings, shareTraining: value })}
               title="菊花抬状态"
               value={shareSettings.shareTraining}
             />
             <SettingSwitch
               description="只共享 0/4 到 4/4，不共享具体判断。"
-              onValueChange={(value) => void updateShareSettings({ ...shareSettings, shareHabitCompletion: value })}
+              onValueChange={(value) => updateShareSettings.mutate({ ...shareSettings, shareHabitCompletion: value })}
               title="小账本完成度"
               value={shareSettings.shareHabitCompletion}
             />
             <SettingSwitch
               description="只共享今天是否记过，不共享时长和感受。"
-              onValueChange={(value) => void updateShareSettings({ ...shareSettings, shareToiletRecorded: value })}
+              onValueChange={(value) => updateShareSettings.mutate({ ...shareSettings, shareToiletRecorded: value })}
               title="蹲会儿是否记过"
               value={shareSettings.shareToiletRecorded}
             />
             <SettingSwitch
               description="共享连续满格天数，给搭子一点节奏线索。"
-              onValueChange={(value) => void updateShareSettings({ ...shareSettings, shareStreak: value })}
+              onValueChange={(value) => updateShareSettings.mutate({ ...shareSettings, shareStreak: value })}
               title="连续天数"
               value={shareSettings.shareStreak}
             />
@@ -100,7 +105,7 @@ export default function TeamSettingsScreen() {
         <AppCard style={styles.card}>
           <Text style={styles.cardTitle}>离开小队</Text>
           <Text style={styles.description}>退出后，搭子不会再看到你的新状态。历史本地记录不会删除。</Text>
-          <AppButton disabled={isMutating} onPress={() => void leaveTeam()} variant="warning">
+          <AppButton disabled={isMutating} onPress={() => leaveTeam.mutate()} variant="warning">
             退出小队
           </AppButton>
         </AppCard>

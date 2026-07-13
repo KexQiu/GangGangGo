@@ -109,11 +109,12 @@ export const apiClient = {
       method: 'POST',
       token,
     }),
-  getAdvancedReport: (token: string) =>
-    request<AdvancedReportResponse>('/reports/advanced?range=90d', advancedReportResponseSchema, { token }),
+  getAdvancedReport: (token: string, signal?: AbortSignal) =>
+    request<AdvancedReportResponse>('/reports/advanced?range=90d', advancedReportResponseSchema, { signal, token }),
   getBuddyNudgeSettings: (token: string) =>
     request<BuddyNudgeSettingsResponse>('/buddy-nudge-settings', buddyNudgeSettingsResponseSchema, { token }),
-  getCurrentTeam: (token: string) => request<TeamResponse>('/teams/current', teamResponseSchema, { token }),
+  getCurrentTeam: (token: string, signal?: AbortSignal) =>
+    request<TeamResponse>('/teams/current', teamResponseSchema, { signal, token }),
   getCurrentUser: (token: string) => request<AuthResponse['user']>('/me', userProfileSchema, { token }),
   getEntitlements: (token: string) =>
     request<EntitlementsResponse>('/me/entitlements', entitlementsResponseSchema, { token }),
@@ -130,12 +131,17 @@ export const apiClient = {
       { signal, token },
     );
   },
-  getTeamInvitePreview: (token: string) =>
-    request<TeamInvitePreviewResponse>(`/team-invites/${encodeURIComponent(token)}`, teamInvitePreviewResponseSchema),
-  getTeamSnapshots: (token: string) =>
-    request<TeamSnapshotsResponse>('/teams/current/snapshots', teamSnapshotsResponseSchema, { token }),
-  getTeamWeeklyReport: (token: string) =>
-    request<TeamWeeklyReportResponse>('/teams/current/reports/weekly', teamWeeklyReportResponseSchema, { token }),
+  getTeamInvitePreview: (token: string, signal?: AbortSignal) =>
+    request<TeamInvitePreviewResponse>(`/team-invites/${encodeURIComponent(token)}`, teamInvitePreviewResponseSchema, {
+      signal,
+    }),
+  getTeamSnapshots: (token: string, signal?: AbortSignal) =>
+    request<TeamSnapshotsResponse>('/teams/current/snapshots', teamSnapshotsResponseSchema, { signal, token }),
+  getTeamWeeklyReport: (token: string, signal?: AbortSignal) =>
+    request<TeamWeeklyReportResponse>('/teams/current/reports/weekly', teamWeeklyReportResponseSchema, {
+      signal,
+      token,
+    }),
   leaveTeam: (token: string) =>
     request<TeamResponse>('/teams/current/leave', teamResponseSchema, { method: 'POST', token }),
   loginWithApple: (body: AppleLoginRequest) =>

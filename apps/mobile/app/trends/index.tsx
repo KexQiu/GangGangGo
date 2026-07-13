@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { type ComponentType, useEffect } from 'react';
+import { type ComponentType } from 'react';
 import { AlertTriangle, BookOpenCheck, ChartNoAxesColumnIncreasing, Hourglass } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -10,7 +10,7 @@ import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
 import { useHabitStore } from '../../src/features/habits/habitStore';
-import { useReportStore } from '../../src/features/reports/reportStore';
+import { useAdvancedReportQuery } from '../../src/features/reports/reportQueries';
 import { useToiletStore } from '../../src/features/toilet/toiletStore';
 import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { useTrainingStore } from '../../src/features/training/trainingStore';
@@ -29,8 +29,8 @@ export default function TrendsScreen() {
   const habitCheckIns = useHabitStore((state) => state.checkIns);
   const proStatus = useAuthStore((state) => state.proStatus);
   const user = useAuthStore((state) => state.user);
-  const advancedReport = useReportStore((state) => state.advancedReport);
-  const loadAdvancedReport = useReportStore((state) => state.loadAdvancedReport);
+  const isPro = isProStatus(proStatus);
+  const advancedReport = useAdvancedReportQuery({ enabled: isPro }).data;
   const toiletSessions = useToiletStore((state) => state.sessions);
   const trainingSessions = useTrainingStore((state) => state.sessions);
   const trendInput = {
@@ -43,13 +43,6 @@ export default function TrendsScreen() {
   const feedback = getTrendPositiveFeedback(sevenDayTrend);
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const isPro = isProStatus(proStatus);
-
-  useEffect(() => {
-    if (isPro) {
-      void loadAdvancedReport();
-    }
-  }, [isPro, loadAdvancedReport]);
 
   return (
     <Screen>

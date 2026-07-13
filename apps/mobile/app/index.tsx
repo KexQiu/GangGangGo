@@ -36,7 +36,7 @@ import {
   getToiletStatusLabel,
   getTrainingStatusLabel,
 } from '../src/features/today/todayFeedback';
-import { useTeamStore } from '../src/features/team/teamStore';
+import { useCurrentTeamQuery, useTeamSnapshotsQuery } from '../src/features/team/teamQueries';
 import { getTodayToiletSessionCount, useToiletStore } from '../src/features/toilet/toiletStore';
 import { FlowerLiftIcon } from '../src/features/training/FlowerLiftIcon';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../src/features/training/trainingStore';
@@ -55,11 +55,20 @@ export default function HomeScreen() {
   const reminderSettings = useReminderStore((state) => state.settings);
   const toiletSessions = useToiletStore((state) => state.sessions);
   const trainingSessions = useTrainingStore((state) => state.sessions);
-  const team = useTeamStore((state) => state.team);
-  const teamError = useTeamStore((state) => state.error);
-  const teamIsLoading = useTeamStore((state) => state.isLoading);
-  const teamSnapshots = useTeamStore((state) => state.snapshots);
-  const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
+  const {
+    data: teamData,
+    error: teamError,
+    isFetching: isFetchingTeam,
+    refetch: refetchTeam,
+  } = useCurrentTeamQuery({ enabled: Boolean(accessToken && user?.id) });
+  const team = teamData?.team ?? null;
+  const {
+    data: teamSnapshotsData,
+    error: teamSnapshotsError,
+    isFetching: isFetchingTeamSnapshots,
+    refetch: refetchTeamSnapshots,
+  } = useTeamSnapshotsQuery({ enabled: Boolean(team) });
+  const teamSnapshots = teamSnapshotsData ?? null;
   const { isAppActive, isFocused } = useForegroundFocus();
   const shouldPollNudgeThreads = shouldPollNudges({
     hasSession: Boolean(accessToken && user?.id),
@@ -102,22 +111,16 @@ export default function HomeScreen() {
   );
 
   const refreshTeamHomeCard = useCallback(() => {
-    if (!accessToken) {
-      void loadCurrentTeam();
-      return;
-    }
+    if (!accessToken || !userId) return;
 
-    if (!userId) {
-      return;
-    }
-
-    void loadCurrentTeam();
+    void refetchTeam();
+    if (team) void refetchTeamSnapshots();
     void refetchNudgeThreads();
 
     return () => {
       void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(userId) });
     };
-  }, [accessToken, loadCurrentTeam, refetchNudgeThreads, userId]);
+  }, [accessToken, refetchNudgeThreads, refetchTeam, refetchTeamSnapshots, team, userId]);
 
   useFocusEffect(refreshTeamHomeCard);
 
@@ -178,8 +181,8 @@ export default function HomeScreen() {
 
       {user ? (
         <TeamHomeCard
-          error={teamError ?? nudgeThreadsError?.message ?? null}
-          isLoading={teamIsLoading || isFetchingNudgeThreads}
+          error={teamError?.message ?? teamSnapshotsError?.message ?? nudgeThreadsError?.message ?? null}
+          isLoading={isFetchingTeam || isFetchingTeamSnapshots || isFetchingNudgeThreads}
           onPress={() => router.push(routes.team)}
           nudgeSummary={nudgeSummary}
           snapshots={teamSnapshots}

@@ -75,7 +75,7 @@
 
 - [ ] 将用户资料、Pro 权益、小队、邀请、提醒线程和报告改为直接由 TanStack Query 持有。
 - [ ] 从 Zustand 中移除云端状态副本及其手工刷新动作。
-  - 当前仍有副本：`authStore` 的 user/proStatus、`teamStore` 的 team/snapshots/invite、`reportStore` 的云端报告；提醒副本已移除。
+  - 当前仍有副本：`authStore` 的 user/proStatus；小队、邀请、共享快照、提醒和报告副本已移除。
 - [x] 删除移动端对 inbox/sent 双接口的依赖。
   - 证据：`getNudgeInbox`、`getNudgeSent`、`loadInbox`、`loadSent` 及对应 query key 已删除，移动端旧引用扫描为空。
 - [x] 统一改用 `GET /nudges/threads` 和线程游标接口。
@@ -169,7 +169,7 @@
 - [ ] SQLite：从 v0/v1 升级、失败回滚和数据无损。
 - [ ] 提醒：聚焦刷新、后台停刷、取消请求和游标分页。
   - 审计基线：移动端只有 Watch 协议 fixture 的 2 个测试。
-  - 进展：2026-07-13 已增加 API transport、同步协调器、报告构建、分页、迁移、提醒模型和轮询条件测试，移动端测试增至 25 项。
+  - 进展：2026-07-13 已增加 API transport、同步协调器、报告构建、分页、迁移、提醒模型、轮询条件和小队缓存测试，移动端测试增至 27 项。
 
 ### Watch
 

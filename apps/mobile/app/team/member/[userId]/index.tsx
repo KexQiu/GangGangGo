@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { BuddyNudgeDailyLimit, QuietRange } from '@xiaotidu/contracts';
 
@@ -11,7 +11,7 @@ import { PageStack } from '../../../../src/components/PageStack';
 import { Screen } from '../../../../src/components/Screen';
 import { useAuthStore } from '../../../../src/features/account/authStore';
 import { useNudgeSettingsQuery, useUpdateNudgeSettingsMutation } from '../../../../src/features/nudges/nudgeQueries';
-import { useTeamStore } from '../../../../src/features/team/teamStore';
+import { useCurrentTeamQuery, useRemoveTeamMemberMutation } from '../../../../src/features/team/teamQueries';
 import { routes } from '../../../../src/navigation/routes';
 import { useAppTheme } from '../../../../src/theme/themeProvider';
 
@@ -38,9 +38,9 @@ export default function TeamMemberScreen() {
   const currentUser = useAuthStore((state) => state.user);
   const nudgeSettingsQuery = useNudgeSettingsQuery();
   const updateSettings = useUpdateNudgeSettingsMutation();
-  const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
-  const removeMember = useTeamStore((state) => state.removeMember);
-  const team = useTeamStore((state) => state.team);
+  const teamQuery = useCurrentTeamQuery();
+  const removeMember = useRemoveTeamMemberMutation();
+  const team = teamQuery.data?.team;
   const member = team?.members.find((item) => item.user.id === userId);
   const me = team?.members.find((item) => item.user.id === currentUser?.id);
   const nudgeSetting = useMemo(
@@ -49,10 +49,6 @@ export default function TeamMemberScreen() {
   );
   const isMe = userId === currentUser?.id;
   const canManageMember = me?.role === 'owner' && !isMe && member?.role !== 'owner';
-
-  useEffect(() => {
-    void loadCurrentTeam();
-  }, [loadCurrentTeam]);
 
   return (
     <Screen>
@@ -127,11 +123,7 @@ export default function TeamMemberScreen() {
             <Text style={styles.description}>移除后，对方不能继续看到小队新状态。</Text>
             <AppButton
               onPress={() => {
-                void removeMember(member.id).then((didRemove) => {
-                  if (didRemove) {
-                    router.replace(routes.team);
-                  }
-                });
+                removeMember.mutate(member.id, { onSuccess: () => router.replace(routes.team) });
               }}
               variant="warning"
             >

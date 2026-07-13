@@ -1,5 +1,4 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { UsersRound } from 'lucide-react-native';
 
@@ -10,7 +9,7 @@ import { PageHeader } from '../../../../src/components/PageHeader';
 import { PageStack } from '../../../../src/components/PageStack';
 import { Screen } from '../../../../src/components/Screen';
 import { useAuthStore } from '../../../../src/features/account/authStore';
-import { useTeamStore } from '../../../../src/features/team/teamStore';
+import { useAcceptTeamInviteMutation, useTeamInvitePreviewQuery } from '../../../../src/features/team/teamQueries';
 import { routes } from '../../../../src/navigation/routes';
 import { useAppTheme } from '../../../../src/theme/themeProvider';
 
@@ -23,17 +22,11 @@ export default function JoinTeamScreen() {
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const authIsLoading = useAuthStore((state) => state.isLoading);
   const user = useAuthStore((state) => state.user);
-  const acceptInvite = useTeamStore((state) => state.acceptInvite);
-  const invitePreview = useTeamStore((state) => state.invitePreview);
-  const isLoading = useTeamStore((state) => state.isLoading);
-  const isMutating = useTeamStore((state) => state.isMutating);
-  const loadInvitePreview = useTeamStore((state) => state.loadInvitePreview);
-
-  useEffect(() => {
-    if (token) {
-      void loadInvitePreview(token);
-    }
-  }, [loadInvitePreview, token]);
+  const acceptInvite = useAcceptTeamInviteMutation();
+  const invitePreviewQuery = useTeamInvitePreviewQuery(token);
+  const invitePreview = invitePreviewQuery.data;
+  const isLoading = invitePreviewQuery.isFetching;
+  const isMutating = acceptInvite.isPending;
 
   const hasPreview = Boolean(invitePreview);
   const canAccept = Boolean(token && hasPreview && user && !isMutating);
@@ -80,18 +73,14 @@ export default function JoinTeamScreen() {
                   return;
                 }
 
-                void acceptInvite(token).then((didAccept) => {
-                  if (didAccept) {
-                    router.replace(routes.team);
-                  }
-                });
+                acceptInvite.mutate({ token }, { onSuccess: () => router.replace(routes.team) });
               }}
             >
               {isMutating ? '加入中...' : hasPreview ? '加入小队' : '邀请暂不可用'}
             </AppButton>
           )}
           {token && !invitePreview && !isLoading ? (
-            <AppButton disabled={isLoading} onPress={() => void loadInvitePreview(token)} variant="secondary">
+            <AppButton disabled={isLoading} onPress={() => void invitePreviewQuery.refetch()} variant="secondary">
               重新查看邀请
             </AppButton>
           ) : null}

@@ -38,7 +38,7 @@ import {
   useNudgeThreadsQuery,
   useSendNudgeMutation,
 } from '../../../src/features/nudges/nudgeQueries';
-import { useTeamStore } from '../../../src/features/team/teamStore';
+import { useCurrentTeamQuery } from '../../../src/features/team/teamQueries';
 import { routes } from '../../../src/navigation/routes';
 import { useForegroundFocus } from '../../../src/navigation/useForegroundFocus';
 import { useAppTheme } from '../../../src/theme/themeProvider';
@@ -83,9 +83,12 @@ export default function NudgeChatScreen() {
   const ackNudge = useAckNudgeMutation(buddyUserId);
   const sendNudge = useSendNudgeMutation(buddyUserId);
   const isMutating = ackNudge.isPending || sendNudge.isPending;
-  const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
-  const team = useTeamStore((state) => state.team);
-  const teamIsLoading = useTeamStore((state) => state.isLoading);
+  const {
+    data: teamData,
+    isFetching: isFetchingTeam,
+    refetch: refetchTeam,
+  } = useCurrentTeamQuery({ enabled: Boolean(accessToken && currentUser?.id) });
+  const team = teamData?.team;
   const member = team?.members.find((item) => item.user.id === buddyUserId);
   const messages = useMemo(
     () =>
@@ -100,7 +103,7 @@ export default function NudgeChatScreen() {
   const isPro = isProStatus(proStatus);
   const canSend = Boolean(buddyUserId && isPro && member?.status === 'active');
   const isThreadBootstrapping = Boolean(isPollingEnabled && isThreadPending);
-  const isSyncing = Boolean(teamIsLoading || isThreadBootstrapping);
+  const isSyncing = Boolean(isFetchingTeam || isThreadBootstrapping);
   const disabledSendReason = getDisabledSendReason({
     isPro,
     memberStatus: member?.status,
@@ -111,14 +114,14 @@ export default function NudgeChatScreen() {
     useCallback(() => {
       didInitialScrollRef.current = false;
       shouldStickToBottomRef.current = true;
-      if (accessToken) void loadCurrentTeam();
+      if (accessToken) void refetchTeam();
       return () => {
         if (currentUser?.id && buddyUserId) {
           void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThread(currentUser.id, buddyUserId) });
           void queryClient.cancelQueries({ queryKey: queryKeys.nudgeThreads(currentUser.id) });
         }
       };
-    }, [accessToken, buddyUserId, currentUser?.id, loadCurrentTeam]),
+    }, [accessToken, buddyUserId, currentUser?.id, refetchTeam]),
   );
 
   useEffect(() => {

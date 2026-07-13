@@ -11,7 +11,7 @@ import {
   UserPlus,
   UsersRound,
 } from 'lucide-react-native';
-import type { TeamMember, TeamSnapshot } from '@xiaotidu/contracts';
+import type { TeamMember, TeamSnapshot, TeamWeeklyReportResponse } from '@xiaotidu/contracts';
 
 import { queryClient } from '../../src/api/queryClient';
 import { queryKeys } from '../../src/api/queryKeys';
@@ -26,8 +26,8 @@ import { isProStatus, useAuthStore } from '../../src/features/account/authStore'
 import { getDisplayName, type NudgeThread } from '../../src/features/nudges/nudgeModel';
 import { nudgePollIntervalMs, shouldPollNudges } from '../../src/features/nudges/nudgePolling';
 import { useNudgeThreadsQuery } from '../../src/features/nudges/nudgeQueries';
-import { useReportStore } from '../../src/features/reports/reportStore';
-import { useTeamStore } from '../../src/features/team/teamStore';
+import { useTeamWeeklyReportQuery } from '../../src/features/reports/reportQueries';
+import { useCreateTeamMutation, useCurrentTeamQuery, useTeamSnapshotsQuery } from '../../src/features/team/teamQueries';
 import { routes } from '../../src/navigation/routes';
 import { useForegroundFocus } from '../../src/navigation/useForegroundFocus';
 import { useAppTheme } from '../../src/theme/themeProvider';
@@ -39,13 +39,22 @@ export default function TeamScreen() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const proStatus = useAuthStore((state) => state.proStatus);
   const user = useAuthStore((state) => state.user);
-  const createTeam = useTeamStore((state) => state.createTeam);
-  const isLoading = useTeamStore((state) => state.isLoading);
-  const isMutating = useTeamStore((state) => state.isMutating);
-  const loadCurrentTeam = useTeamStore((state) => state.loadCurrentTeam);
-  const snapshots = useTeamStore((state) => state.snapshots);
-  const team = useTeamStore((state) => state.team);
-  const teamError = useTeamStore((state) => state.error);
+  const isPro = isProStatus(proStatus);
+  const currentUserId = user?.id;
+  const { data: teamData, error: teamError, isFetching: isFetchingTeam, refetch: refetchTeam } = useCurrentTeamQuery();
+  const team = teamData?.team ?? null;
+  const {
+    data: snapshotsData,
+    error: snapshotsError,
+    isFetching: isFetchingSnapshots,
+    refetch: refetchSnapshots,
+  } = useTeamSnapshotsQuery({ enabled: Boolean(team) });
+  const snapshots = snapshotsData ?? null;
+  const createTeam = useCreateTeamMutation();
+  const { data: weeklyReportData, refetch: refetchWeeklyReport } = useTeamWeeklyReportQuery({
+    enabled: Boolean(team),
+  });
+  const teamWeeklyReport = weeklyReportData ?? null;
   const { isAppActive, isFocused } = useForegroundFocus();
   const shouldPollNudgeThreads = shouldPollNudges({
     hasSession: Boolean(accessToken && user?.id),
@@ -62,26 +71,20 @@ export default function TeamScreen() {
     refetchInterval: shouldPollNudgeThreads ? nudgePollIntervalMs : false,
   });
   const threads = useMemo(() => nudgeThreadsData?.threads ?? [], [nudgeThreadsData]);
-  const loadTeamWeeklyReport = useReportStore((state) => state.loadTeamWeeklyReport);
-  const teamWeeklyReport = useReportStore((state) => state.teamWeeklyReport);
-  const isPro = isProStatus(proStatus);
-  const currentUserId = user?.id;
   const activeMembers = team?.members.filter((member) => member.status !== 'removed') ?? [];
   const buddyMembers = activeMembers.filter((member) => member.user.id !== currentUserId);
   const threadByUserId = useMemo(() => new Map(threads.map((thread) => [thread.buddy.id, thread])), [threads]);
   const pendingCount = threads.reduce((total, thread) => total + thread.pendingCount, 0);
-  const isSyncing = isLoading || isFetchingNudgeThreads;
+  const isSyncing = isFetchingTeam || isFetchingSnapshots || isFetchingNudgeThreads;
 
   const refreshTeam = useCallback(() => {
-    if (!accessToken) {
-      void loadCurrentTeam();
-      return;
-    }
+    if (!accessToken) return;
 
-    void loadCurrentTeam();
-    void loadTeamWeeklyReport();
+    void refetchTeam();
+    if (team) void refetchSnapshots();
+    if (isPro) void refetchWeeklyReport();
     void refetchNudgeThreads();
-  }, [accessToken, loadCurrentTeam, loadTeamWeeklyReport, refetchNudgeThreads]);
+  }, [accessToken, isPro, refetchNudgeThreads, refetchSnapshots, refetchTeam, refetchWeeklyReport, team]);
 
   useFocusEffect(
     useCallback(() => {
@@ -100,10 +103,11 @@ export default function TeamScreen() {
   }, [currentUserId, isAppActive]);
 
   const handleRefresh = useCallback(() => {
-    void loadCurrentTeam();
-    void loadTeamWeeklyReport();
+    void refetchTeam();
+    if (team) void refetchSnapshots();
+    if (isPro) void refetchWeeklyReport();
     void refetchNudgeThreads();
-  }, [loadCurrentTeam, loadTeamWeeklyReport, refetchNudgeThreads]);
+  }, [isPro, refetchNudgeThreads, refetchSnapshots, refetchTeam, refetchWeeklyReport, team]);
 
   return (
     <Screen>
@@ -125,14 +129,14 @@ export default function TeamScreen() {
             <Text style={styles.emptyTitle}>还没有监督搭子</Text>
             <Text style={styles.emptyBody}>先拉一个信得过的人进来，之后提醒和回执都在这里来回。</Text>
             <AppButton
-              disabled={isMutating}
+              disabled={createTeam.isPending}
               onPress={() => {
                 if (!isPro) {
                   router.push(routes.pro);
                   return;
                 }
 
-                void createTeam('小提督小队');
+                createTeam.mutate('小提督小队');
               }}
             >
               {isPro ? '创建小队' : '了解 Pro'}
@@ -246,7 +250,8 @@ export default function TeamScreen() {
           </>
         ) : null}
 
-        {teamError ? <Text style={styles.errorText}>{teamError}</Text> : null}
+        {teamError ? <Text style={styles.errorText}>{teamError.message}</Text> : null}
+        {snapshotsError ? <Text style={styles.errorText}>{snapshotsError.message}</Text> : null}
         {nudgeThreadsError ? <Text style={styles.errorText}>{nudgeThreadsError.message}</Text> : null}
         {isSyncing ? <Text style={styles.loadingText}>监督搭子同步中...</Text> : null}
       </PageStack>
@@ -611,7 +616,7 @@ function formatThreadTime(value: string) {
   }).format(date);
 }
 
-function formatWeeklyReport(teamWeeklyReport: ReturnType<typeof useReportStore.getState>['teamWeeklyReport']) {
+function formatWeeklyReport(teamWeeklyReport: TeamWeeklyReportResponse | null) {
   if (!teamWeeklyReport) {
     return '等大家同步一点低敏摘要，小报告就会出现。';
   }

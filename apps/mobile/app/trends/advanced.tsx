@@ -28,7 +28,7 @@ import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { Screen } from '../../src/components/Screen';
 import { isProStatus, useAuthStore } from '../../src/features/account/authStore';
-import { useReportStore } from '../../src/features/reports/reportStore';
+import { useAdvancedReportQuery } from '../../src/features/reports/reportQueries';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -43,17 +43,21 @@ export default function AdvancedReportScreen() {
   const styles = createStyles(colors);
   const proStatus = useAuthStore((state) => state.proStatus);
   const user = useAuthStore((state) => state.user);
-  const advancedReport = useReportStore((state) => state.advancedReport);
-  const isLoading = useReportStore((state) => state.isLoading);
-  const loadAdvancedReport = useReportStore((state) => state.loadAdvancedReport);
   const isPro = isProStatus(proStatus);
+  const {
+    data: advancedReport,
+    isFetching: isLoading,
+    refetch: refetchAdvancedReport,
+  } = useAdvancedReportQuery({
+    enabled: isPro,
+  });
 
   useFocusEffect(
     useCallback(() => {
       if (isPro) {
-        void loadAdvancedReport();
+        void refetchAdvancedReport();
       }
-    }, [isPro, loadAdvancedReport]),
+    }, [isPro, refetchAdvancedReport]),
   );
 
   return (

@@ -10,22 +10,19 @@ import { AppTopBar } from '../../../src/components/AppTopBar';
 import { PageHeader } from '../../../src/components/PageHeader';
 import { PageStack } from '../../../src/components/PageStack';
 import { Screen } from '../../../src/components/Screen';
-import { useTeamStore } from '../../../src/features/team/teamStore';
+import { useCreateTeamInviteMutation } from '../../../src/features/team/teamQueries';
 import { routes } from '../../../src/navigation/routes';
 import { useAppTheme } from '../../../src/theme/themeProvider';
 
 export default function TeamInviteScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const createInvite = useTeamStore((state) => state.createInvite);
-  const error = useTeamStore((state) => state.error);
-  const invite = useTeamStore((state) => state.invite);
-  const isMutating = useTeamStore((state) => state.isMutating);
+  const { data: invite, error, isPending: isMutating, mutate: createInvite } = useCreateTeamInviteMutation();
   const [feedback, setFeedback] = useState<null | string>(null);
 
   useEffect(() => {
     if (!invite) {
-      void createInvite().catch(() => undefined);
+      createInvite();
     }
   }, [createInvite, invite]);
 
@@ -69,7 +66,7 @@ export default function TeamInviteScreen() {
 
   function generateNewInvite() {
     setFeedback(null);
-    void createInvite().catch(() => undefined);
+    createInvite();
   }
 
   return (
