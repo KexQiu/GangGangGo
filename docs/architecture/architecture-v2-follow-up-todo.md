@@ -47,12 +47,13 @@
 
 ### API 分层
 
-- [ ] 为 team 领域建立 repository，移出 service 中的 Drizzle 查询。
+- [x] 为 team 领域建立 repository，移出 service 中的 Drizzle 查询。
 - [ ] 为 nudge 领域建立 repository，移出 service 中的 Drizzle 查询。
-- [ ] 为 report 领域建立 repository，统一批量写入和范围读取。
+- [x] 为 report 领域建立 repository，统一批量写入和范围读取。
 - [ ] 将队伍容量、单用户单小队、提醒限额和回执修改规则整理为无数据库依赖的 policy。
 - [ ] 拆分约 550 行的 `teamService.ts` 和约 509 行的 `nudgeService.ts`。
   - 验收：route 只处理 HTTP；service 只编排用例和事务；repository 只负责查询；policy 可通过纯单元测试验证。
+  - 进展：report service 已拆为范围/聚合编排与 repository，批量去重只触发一次持久化调用；team service 已通过事务作用域 repository 移除 Drizzle 依赖，并为单用户单小队与四人容量边界增加纯 policy 测试。nudge 域及完整 policy 规则仍待完成。
 
 ### OpenAPI 单一来源
 

@@ -1,5 +1,3 @@
-import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm';
-
 import type {
   AdvancedReportResponse,
   DailyReportSnapshot,
@@ -9,14 +7,6 @@ import type {
 } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
-import {
-  dailyReportSnapshots,
-  dailyShareSnapshots,
-  shareSettings,
-  teamMembers,
-  teams,
-  users,
-} from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
 import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
@@ -26,8 +16,8 @@ import {
   defaultReportShareSettings,
   getAdvancedReportRange,
   getWeeklyRange,
-  toDailyReportSnapshot,
 } from './report.mapper.js';
+import { createDrizzleReportRepository, type ReportRepository } from './report.repository.js';
 
 export type ReportService = {
   getAdvancedReport: (currentUser: CurrentUser, range: '90d') => Promise<AdvancedReportResponse>;
@@ -44,104 +34,39 @@ export type ReportService = {
 
 export { createMockReportService } from './report.mock.js';
 
-export function createDrizzleReportService(db: Database): ReportService {
-  async function getCurrentTeam(currentUser: CurrentUser) {
-    const [team] = await db
-      .select({
-        id: teams.id,
-      })
-      .from(teamMembers)
-      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(and(eq(teamMembers.userId, currentUser.id), ne(teamMembers.status, 'removed'), isNull(teams.archivedAt)))
-      .limit(1);
+export function createReportService(repository: ReportRepository): ReportService {
+  async function getCurrentTeamId(currentUser: CurrentUser) {
+    const teamId = await repository.findCurrentTeamId(currentUser.id);
 
-    if (!team) {
+    if (!teamId) {
       throw new ApiError(404, 'not_found', '还没有小队。');
     }
 
-    return team;
-  }
-
-  async function upsertSnapshot(currentUser: CurrentUser, snapshot: DailyReportSnapshot) {
-    const [record] = await db
-      .insert(dailyReportSnapshots)
-      .values({
-        habitCompletion: snapshot.habitCompletion,
-        streakDays: snapshot.streakDays,
-        toiletLongMeeting: snapshot.toiletLongMeeting,
-        toiletRecorded: snapshot.toiletRecorded,
-        trainingDone: snapshot.trainingDone,
-        date: snapshot.date,
-        userId: currentUser.id,
-      })
-      .onConflictDoUpdate({
-        set: {
-          habitCompletion: snapshot.habitCompletion,
-          streakDays: snapshot.streakDays,
-          toiletLongMeeting: snapshot.toiletLongMeeting,
-          toiletRecorded: snapshot.toiletRecorded,
-          trainingDone: snapshot.trainingDone,
-          updatedAt: new Date(),
-        },
-        target: [dailyReportSnapshots.userId, dailyReportSnapshots.date],
-      })
-      .returning();
-
-    if (!record) {
-      throw new Error('Failed to upsert daily report snapshot.');
-    }
-
-    return toDailyReportSnapshot(record);
+    return teamId;
   }
 
   return {
     async getAdvancedReport(currentUser, range) {
       const { endedAt, startedAt } = getAdvancedReportRange(currentUser);
-      const snapshots = await db
-        .select()
-        .from(dailyReportSnapshots)
-        .where(
-          and(
-            eq(dailyReportSnapshots.userId, currentUser.id),
-            gte(dailyReportSnapshots.date, startedAt),
-            lte(dailyReportSnapshots.date, endedAt),
-          ),
-        )
-        .orderBy(asc(dailyReportSnapshots.date));
+      const snapshots = await repository.listDailyReportSnapshots(currentUser.id, startedAt, endedAt);
 
       return buildAdvancedReport({
         endedAt,
         range,
-        snapshots: snapshots.map(toDailyReportSnapshot),
+        snapshots,
         startedAt,
       });
     },
     async getTeamWeeklyReport(currentUser) {
       const { endedAt, startedAt } = getWeeklyRange();
-      const team = await getCurrentTeam(currentUser);
-      const members = await db
-        .select({
-          avatarUrl: users.avatarUrl,
-          displayName: teamMembers.displayName,
-          id: teamMembers.id,
-          nickname: users.nickname,
-          status: teamMembers.status,
-          userId: users.id,
-        })
-        .from(teamMembers)
-        .innerJoin(users, eq(teamMembers.userId, users.id))
-        .where(and(eq(teamMembers.teamId, team.id), isNull(users.deletedAt)));
+      const teamId = await getCurrentTeamId(currentUser);
+      const members = await repository.listTeamMembers(teamId);
       const activeMembers = members.filter((member) => member.status !== 'removed');
-      const settingsRows = await db
-        .select({
-          paused: shareSettings.paused,
-          shareHabitCompletion: shareSettings.shareHabitCompletion,
-          shareToiletRecorded: shareSettings.shareToiletRecorded,
-          shareTraining: shareSettings.shareTraining,
-          userId: shareSettings.userId,
-        })
-        .from(shareSettings)
-        .where(eq(shareSettings.teamId, team.id));
+      const activeMemberIds = activeMembers.map((member) => member.userId);
+      const [settingsRows, snapshots] = await Promise.all([
+        repository.listTeamShareSettings(teamId),
+        repository.listTeamShareSnapshots(activeMemberIds, startedAt, endedAt),
+      ]);
       const settingsByUserId = new Map(
         settingsRows.map((settings) => [
           settings.userId,
@@ -153,19 +78,6 @@ export function createDrizzleReportService(db: Database): ReportService {
           },
         ]),
       );
-      const snapshots = await db
-        .select()
-        .from(dailyShareSnapshots)
-        .where(
-          and(
-            inArray(
-              dailyShareSnapshots.userId,
-              activeMembers.map((member) => member.userId),
-            ),
-            gte(dailyShareSnapshots.date, startedAt),
-            lte(dailyShareSnapshots.date, endedAt),
-          ),
-        );
 
       return {
         endedAt,
@@ -201,30 +113,19 @@ export function createDrizzleReportService(db: Database): ReportService {
     },
     async upsertDailyReportSnapshot(currentUser, snapshot) {
       return {
-        snapshot: await upsertSnapshot(currentUser, snapshot),
+        snapshot: await repository.upsertDailyReportSnapshot(currentUser.id, snapshot),
       };
     },
     async upsertDailyReportSnapshots(currentUser, snapshots) {
       const deduped = dedupeSnapshotsByDate(snapshots);
-      const records = await db
-        .insert(dailyReportSnapshots)
-        .values(deduped.map((snapshot) => ({ ...snapshot, userId: currentUser.id })))
-        .onConflictDoUpdate({
-          set: {
-            habitCompletion: sql`excluded.habit_completion`,
-            streakDays: sql`excluded.streak_days`,
-            toiletLongMeeting: sql`excluded.toilet_long_meeting`,
-            toiletRecorded: sql`excluded.toilet_recorded`,
-            trainingDone: sql`excluded.training_done`,
-            updatedAt: new Date(),
-          },
-          target: [dailyReportSnapshots.userId, dailyReportSnapshots.date],
-        })
-        .returning();
 
       return {
-        snapshots: records.map(toDailyReportSnapshot).sort((left, right) => left.date.localeCompare(right.date)),
+        snapshots: await repository.upsertDailyReportSnapshots(currentUser.id, deduped),
       };
     },
   };
+}
+
+export function createDrizzleReportService(db: Database): ReportService {
+  return createReportService(createDrizzleReportRepository(db));
 }
