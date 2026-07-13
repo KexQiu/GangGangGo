@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { isoDateTimeSchema } from './common.js';
+import { isoDateTimeSchema, quietRangeSchema } from './common.js';
 import { teamMemberStatusSchema } from './teams.js';
 import { userSummarySchema } from './users.js';
 
@@ -40,10 +40,12 @@ export type BuddyNudge = z.infer<typeof buddyNudgeSchema>;
 
 export const createBuddyNudgeRequestSchema = z
   .object({ toUserId: z.string().uuid(), type: buddyNudgeTypeSchema })
+  .strict()
   .meta({ id: 'CreateBuddyNudgeRequest' });
 export type CreateBuddyNudgeRequest = z.infer<typeof createBuddyNudgeRequestSchema>;
 export const ackBuddyNudgeRequestSchema = z
   .object({ status: buddyNudgeAckStatusSchema })
+  .strict()
   .meta({ id: 'AckBuddyNudgeRequest' });
 export type AckBuddyNudgeRequest = z.infer<typeof ackBuddyNudgeRequestSchema>;
 export const buddyNudgeAckResponseSchema = z.object({ ack: buddyNudgeAckSchema }).meta({ id: 'BuddyNudgeAckResponse' });
@@ -80,14 +82,7 @@ export const buddyNudgeSettingsSchema = z
     buddyUserId: z.string().uuid(),
     dailyLimit: buddyNudgeDailyLimitSchema,
     enabled: z.boolean(),
-    quietRanges: z
-      .array(
-        z.object({
-          end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-          start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-        }),
-      )
-      .max(4),
+    quietRanges: z.array(quietRangeSchema).max(4),
     teamId: z.string().uuid(),
     userId: z.string().uuid(),
   })

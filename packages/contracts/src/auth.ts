@@ -9,6 +9,7 @@ export const appleLoginRequestSchema = z
     identityToken: z.string().min(1),
     nickname: z.string().optional(),
   })
+  .strict()
   .meta({ id: 'AppleLoginRequest' });
 export type AppleLoginRequest = z.infer<typeof appleLoginRequestSchema>;
 
@@ -31,10 +32,12 @@ export type AuthResponse = z.infer<typeof authResponseSchema>;
 
 export const refreshSessionRequestSchema = z
   .object({ refreshToken: z.string().min(1) })
+  .strict()
   .meta({ id: 'RefreshSessionRequest' });
 export type RefreshSessionRequest = z.infer<typeof refreshSessionRequestSchema>;
 
 export const logoutRequestSchema = z
   .object({ refreshToken: z.string().min(1).optional() })
+  .strict()
   .meta({ id: 'LogoutRequest' });
 export type LogoutRequest = z.infer<typeof logoutRequestSchema>;

@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-export const isoDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .meta({ id: 'IsoDate' });
+export const isoDateSchema = z.iso.date().meta({ id: 'IsoDate' });
 export const isoDateTimeSchema = z.string().datetime({ offset: true }).meta({ id: 'IsoDateTime' });
 
 export const proStatusSchema = z.enum(['free', 'pro_active', 'pro_grace_period', 'pro_expired']);
@@ -37,10 +34,14 @@ export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 
 export type ApiSuccessResponse<T> = { data: T };
 
-export const quietRangeSchema = z.object({
-  end: z.string(),
-  start: z.string(),
-});
+const localTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+export const quietRangeSchema = z
+  .object({
+    end: localTimeSchema,
+    start: localTimeSchema,
+  })
+  .strict();
 export type QuietRange = z.infer<typeof quietRangeSchema>;
 
 export const entitlementsResponseSchema = z.object({ proStatus: proStatusSchema }).meta({ id: 'EntitlementsResponse' });

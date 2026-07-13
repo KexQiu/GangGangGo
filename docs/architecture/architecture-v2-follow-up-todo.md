@@ -149,11 +149,11 @@
 
 ### Contracts
 
-- [ ] 为 common、auth、users、teams、nudges、reports、push、subscriptions 的每个 schema 增加合法输入测试。
-- [ ] 为长度、范围、枚举、日期、分页 cursor 和可选字段增加边界测试。
-- [ ] 为未知字段、错误类型和跨字段冲突增加非法输入测试。
-- [ ] 增加生成 OpenAPI 的快照测试。
-  - 当前状态：只有 5 个较宽泛的 contracts 测试。
+- [x] 为 common、auth、users、teams、nudges、reports、push、subscriptions 的每个 schema 增加合法输入测试。
+- [x] 为长度、范围、枚举、日期、分页 cursor 和可选字段增加边界测试。
+- [x] 为未知字段、错误类型和跨字段冲突增加非法输入测试。
+- [x] 增加生成 OpenAPI 的快照测试。
+  - 证据：contracts 已按 8 个领域扩展为 98 项测试，覆盖全部导出 schema、真实日历日期、长度/数量上下界、枚举、cursor、可选字段、严格请求对象及 APNs/iOS 跨字段约束。API 的完整 OpenAPI 快照已随 schema 更新，并由 `docs:check` 验证生成物无漂移。
 
 ### API 与真实 Postgres
 

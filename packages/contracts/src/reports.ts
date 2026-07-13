@@ -9,12 +9,14 @@ export const dailyReportSnapshotSchema = dailyShareSnapshotSchema
 export type DailyReportSnapshot = z.infer<typeof dailyReportSnapshotSchema>;
 export const upsertDailyReportSnapshotRequestSchema = z
   .object({ snapshot: dailyReportSnapshotSchema })
+  .strict()
   .meta({ id: 'UpsertDailyReportSnapshotRequest' });
 export type UpsertDailyReportSnapshotRequest = z.infer<typeof upsertDailyReportSnapshotRequestSchema>;
 export const upsertDailyReportSnapshotsBulkRequestSchema = z
   .object({
     snapshots: z.array(dailyReportSnapshotSchema).min(1).max(90),
   })
+  .strict()
   .meta({ id: 'UpsertDailyReportSnapshotsBulkRequest' });
 export type UpsertDailyReportSnapshotsBulkRequest = z.infer<typeof upsertDailyReportSnapshotsBulkRequestSchema>;
 export const dailyReportSnapshotResponseSchema = z

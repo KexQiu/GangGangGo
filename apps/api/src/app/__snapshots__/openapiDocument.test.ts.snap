@@ -38,6 +38,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "AckBuddyNudgeRequest": {
+        "additionalProperties": false,
         "properties": {
           "status": {
             "enum": [
@@ -221,6 +222,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "AppleLoginRequest": {
+        "additionalProperties": false,
         "properties": {
           "authorizationCode": {
             "type": "string",
@@ -502,6 +504,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           },
           "quietRanges": {
             "items": {
+              "additionalProperties": false,
               "properties": {
                 "end": {
                   "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
@@ -601,6 +604,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "CreateBuddyNudgeRequest": {
+        "additionalProperties": false,
         "properties": {
           "toUserId": {
             "format": "uuid",
@@ -803,7 +807,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "IsoDate": {
-        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "format": "date",
         "type": "string",
       },
       "IsoDateTime": {
@@ -874,6 +878,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "RefreshSessionRequest": {
+        "additionalProperties": false,
         "properties": {
           "refreshToken": {
             "minLength": 1,
@@ -1320,6 +1325,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           },
           "quietRanges": {
             "items": {
+              "additionalProperties": false,
               "properties": {
                 "end": {
                   "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
@@ -1348,6 +1354,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "UpdateTeamMemberStatusRequest": {
+        "additionalProperties": false,
         "properties": {
           "status": {
             "enum": [
@@ -1399,6 +1406,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "UpsertDailyReportSnapshotRequest": {
+        "additionalProperties": false,
         "properties": {
           "snapshot": {
             "$ref": "#/components/schemas/DailyReportSnapshot",
@@ -1410,6 +1418,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "UpsertDailyReportSnapshotsBulkRequest": {
+        "additionalProperties": false,
         "properties": {
           "snapshots": {
             "items": {
@@ -1426,6 +1435,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "type": "object",
       },
       "UpsertDailyShareSnapshotRequest": {
+        "additionalProperties": false,
         "properties": {
           "snapshot": {
             "$ref": "#/components/schemas/DailyShareSnapshot",

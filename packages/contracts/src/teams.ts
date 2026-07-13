@@ -18,6 +18,7 @@ export type DailyShareSnapshot = z.infer<typeof dailyShareSnapshotSchema>;
 
 export const upsertDailyShareSnapshotRequestSchema = z
   .object({ snapshot: dailyShareSnapshotSchema })
+  .strict()
   .meta({ id: 'UpsertDailyShareSnapshotRequest' });
 export type UpsertDailyShareSnapshotRequest = z.infer<typeof upsertDailyShareSnapshotRequestSchema>;
 export const dailyShareSnapshotResponseSchema = z
@@ -66,6 +67,7 @@ export const updateTeamRequestSchema = z
 export type UpdateTeamRequest = z.infer<typeof updateTeamRequestSchema>;
 export const updateTeamMemberStatusRequestSchema = z
   .object({ status: z.enum(['active', 'paused']) })
+  .strict()
   .meta({ id: 'UpdateTeamMemberStatusRequest' });
 export type UpdateTeamMemberStatusRequest = z.infer<typeof updateTeamMemberStatusRequestSchema>;
 

@@ -8,6 +8,10 @@ export const registerPushTokenRequestSchema = z
     token: z.string().min(1).max(300),
   })
   .strict()
+  .refine(({ platform, provider }) => provider !== 'apns' || platform === 'ios', {
+    message: 'APNs tokens require the iOS platform',
+    path: ['platform'],
+  })
   .meta({ id: 'RegisterPushTokenRequest' });
 export type RegisterPushTokenRequest = z.infer<typeof registerPushTokenRequestSchema>;
 export type PushPlatform = RegisterPushTokenRequest['platform'];
