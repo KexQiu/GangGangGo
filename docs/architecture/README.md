@@ -5,5 +5,6 @@
 - [认证会话](./auth-sessions.md)
 - [移动端同步](./mobile-sync.md)
 - [移动端图片资产审计](./mobile-assets.md)
+- [P1 验收记录（2026-07-14）](./p1-acceptance-2026-07-14.md)
 - [隐私与数据边界](./privacy-boundaries.md)
 - [Watch 协议](./watch-protocol.md)

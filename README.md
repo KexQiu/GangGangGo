@@ -26,6 +26,17 @@ pnpm mobile:dev-client
 pnpm check
 ```
 
+移动端双用户联调需要本地 API、Metro 和一个已启动的 iPhone 模拟器。先准备隔离的
+`mock-user-a/b/c` 服务端数据，再运行 XCUITest：
+
+```bash
+pnpm mobile:ui:prepare
+xcodebuild -workspace apps/mobile/ios/app.xcworkspace \
+  -scheme app -configuration Debug \
+  -destination 'id=<iPhone-simulator-UDID>' \
+  -only-testing:appUITests/GangGangGoUITests test
+```
+
 Watch 工程使用 `apps/mobile/ios/app.xcworkspace` 中的 `app`、`XiaoTiduWatchApp` 和
 `XiaoTiduWatchComplications` scheme。真实 Apple 登录、Push 和订阅需要 Apple Developer Program 配置。
 

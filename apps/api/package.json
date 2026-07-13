@@ -11,6 +11,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "test": "vitest run",
+    "test:ui:prepare": "tsx scripts/prepare-mobile-ui-test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

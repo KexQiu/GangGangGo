@@ -10,6 +10,7 @@
     "mobile:ios": "pnpm --filter @xiaotidu/mobile ios",
     "mobile:android": "pnpm --filter @xiaotidu/mobile android",
     "mobile:dev-client": "pnpm --filter @xiaotidu/mobile start:dev-client",
+    "mobile:ui:prepare": "pnpm --filter @xiaotidu/api test:ui:prepare",
     "api:typecheck": "pnpm --filter @xiaotidu/api typecheck",
     "contracts:typecheck": "pnpm --filter @xiaotidu/contracts typecheck",
     "typecheck": "pnpm -r --if-present typecheck",
@@ -19,7 +20,7 @@
     "hooks:install": "git config core.hooksPath .githooks",
     "test": "pnpm -r --if-present test",
     "docs:check": "pnpm --filter @xiaotidu/api docs:check",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check"
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check && pnpm --filter @xiaotidu/mobile bundle:check"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",

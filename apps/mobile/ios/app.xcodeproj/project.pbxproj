@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		045FF9E6A11DE75CF0FF5FFB /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C96063CA83CB50FBFC5446C /* ExpoModulesProvider.swift */; };
+		09F0E342BB1AEBE9DF460F24 /* GangGangGoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		85C4A0BB1B2FF4F0A722B4A0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */; };
@@ -52,6 +53,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = B50000000000000000000100;
 			remoteInfo = XiaoTiduWatchApp;
+		};
+		C29937DB6893D997C9BABD71 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 13B07F861A680F5B00A75B9A;
+			remoteInfo = app;
 		};
 		C60000000000000000000101 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -99,12 +107,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		04DB67958511EC65B657530A /* appUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = appUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1237EEB76090072E7D1A0659 /* Pods-XiaoTiduLiveActivities.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-XiaoTiduLiveActivities.debug.xcconfig"; path = "Target Support Files/Pods-XiaoTiduLiveActivities/Pods-XiaoTiduLiveActivities.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = app.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = app/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = app/Info.plist; sourceTree = "<group>"; };
 		52E6505BCF8CFA1159A3053E /* Pods-app.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-app.release.xcconfig"; path = "Target Support Files/Pods-app/Pods-app.release.xcconfig"; sourceTree = "<group>"; };
 		66DD28B0000739BAE455E166 /* libPods-XiaoTiduLiveActivities.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-XiaoTiduLiveActivities.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GangGangGoUITests.swift; sourceTree = "<group>"; };
 		9C96063CA83CB50FBFC5446C /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-app/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = app/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A20000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -155,6 +165,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				FD9D0180DCC435E108A6F730 /* libPods-XiaoTiduLiveActivities.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A87CEB23B197166E963AE276 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +235,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D44ECD00BBD95EEEA9FD9594 /* Pods */,
 				D7FA26599E3EF5C7BCD9B94A /* ExpoModulesProviders */,
+				9092CA136B35B9E5AB08DFA7 /* appUITests */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -231,8 +249,18 @@
 				A20000000000000000000006 /* XiaoTiduLiveActivities.appex */,
 				B20000000000000000000108 /* XiaoTiduWatchApp.app */,
 				C20000000000000000000102 /* XiaoTiduWatchComplications.appex */,
+				04DB67958511EC65B657530A /* appUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9092CA136B35B9E5AB08DFA7 /* appUITests */ = {
+			isa = PBXGroup;
+			children = (
+				78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */,
+			);
+			name = appUITests;
+			path = appUITests;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000001 /* XiaoTiduLiveActivities */ = {
@@ -342,6 +370,24 @@
 			productReference = 13B07F961A680F5B00A75B9A /* app.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3DC4022754F494665569DED1 /* appUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3FE06963E55C1D881B91EEE5 /* Build configuration list for PBXNativeTarget "appUITests" */;
+			buildPhases = (
+				CABB6285111D62A9BF9B5ADB /* Sources */,
+				A87CEB23B197166E963AE276 /* Frameworks */,
+				A6572F40DF7FF68D386DD0D2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59DF71A83954351189BDB00B /* PBXTargetDependency */,
+			);
+			name = appUITests;
+			productName = appUITests;
+			productReference = 04DB67958511EC65B657530A /* appUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		A50000000000000000000001 /* XiaoTiduLiveActivities */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "XiaoTiduLiveActivities" */;
@@ -436,6 +482,7 @@
 				A50000000000000000000001 /* XiaoTiduLiveActivities */,
 				B50000000000000000000100 /* XiaoTiduWatchApp */,
 				C50000000000000000000100 /* XiaoTiduWatchComplications */,
+				3DC4022754F494665569DED1 /* appUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -453,6 +500,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A30000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6572F40DF7FF68D386DD0D2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -670,9 +724,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CABB6285111D62A9BF9B5ADB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09F0E342BB1AEBE9DF460F24 /* GangGangGoUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		59DF71A83954351189BDB00B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = app;
+			target = 13B07F861A680F5B00A75B9A /* app */;
+			targetProxy = C29937DB6893D997C9BABD71 /* PBXContainerItemProxy */;
+		};
 		A60000000000000000000002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A50000000000000000000001 /* XiaoTiduLiveActivities */;
@@ -756,6 +824,26 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		74E03CB5A7E85F0F4D609185 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.appUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = app;
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -1050,6 +1138,25 @@
 			};
 			name = Release;
 		};
+		F137AF1E525A48C6E61D9A01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.appUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = app;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1058,6 +1165,15 @@
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
 				13B07F951A680F5B00A75B9A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3FE06963E55C1D881B91EEE5 /* Build configuration list for PBXNativeTarget "appUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				74E03CB5A7E85F0F4D609185 /* Release */,
+				F137AF1E525A48C6E61D9A01 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -219,11 +219,11 @@
 
 ### 人工清单
 
-- [ ] 完成移动端双用户联调清单并记录日期、设备、账号和结果。
+- [x] 完成移动端双用户联调清单并记录日期、设备、账号和结果。
 - [ ] 完成 Watch 手动清单，包括离线恢复、重复事件、haptic、Complication 和系统刷新节奏。
 - [ ] 在真机验证 Live Activity 签名、启动、更新、结束和 App 重启恢复。
 - [x] 复核 development、preview、production 三套 entitlement 与 Push capability。
-  - 证据：动态 Expo 配置只接受 `development` / `production` 两种 APNs entitlement；EAS `development` 显式映射 development，`preview` 与 `production` 映射 production。三套生成配置均已检查。远程 Push 证书、付费 Apple Developer Team 和通知收发仍属于 P2 产品化，不在本轮伪装为已验收。
+  - 证据：2026-07-14 在 iPhone 17 Pro 模拟器使用 `mock-user-a/b` 完成登录、小队创建、邀请加入、账号切换、缓存隔离、会话恢复和本地健康数据保留的自动化联调；详细结果见 [P1 验收记录](./p1-acceptance-2026-07-14.md)。Watch 离线队列、重复事件、ACK、阶段调度和刷新退避自动化通过，配对模拟器构建、启动及状态接收通过；真机触感、Complication 和 Live Activity 仍保持未完成。动态 Expo 配置只接受 `development` / `production` 两种 APNs entitlement；EAS `development` 显式映射 development，`preview` 与 `production` 映射 production。三套生成配置均已检查。远程 Push 证书、付费 Apple Developer Team 和通知收发仍属于 P2 产品化，不在本轮伪装为已验收。
 
 ## P2：上线前产品化
 
@@ -283,9 +283,7 @@
 
 ## 推荐执行顺序
 
-1. 先修复 P0 CI，得到可合并、可回归的稳定基线。
-2. 补齐 contracts、API、移动端和 Watch 的关键自动化测试。
-3. 完成 TanStack Query/Zustand 边界、SQLite 分页和同步事件化。
-4. 完成 API 分层、OpenAPI 单一来源和移动端页面拆分。
-5. 完成 Expo Modules/Watch 解耦、性能门禁和人工清单。
-6. 校准旧文档、优化图片资产，再进入 P2 生产化工作。
+1. 解锁并保持 Apple Watch 与配对 iPhone 靠近 Mac，完成 Watch 真机触感、三类 Complication 和前后台重连验收。
+2. 在可签名的 iPhone 真机完成 Live Activity 启动、更新、结束和 App 重启恢复验收。
+3. 运行最终 `pnpm check`、Expo dependency check 和三个 Xcode scheme，更新本验收记录。
+4. 合并 P1 后再进入 P2 生产化工作。
