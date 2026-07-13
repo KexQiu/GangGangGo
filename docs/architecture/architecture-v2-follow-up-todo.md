@@ -211,18 +211,19 @@
 
 ### 图片资产
 
-- [ ] 盘点重复 PNG 和未使用资源。
-- [ ] 对重复 PNG 进行无损压缩或去重。
-- [ ] 确认 iOS App Icon 与 Android adaptive icon 各自保留正确语义和尺寸。
-- [ ] 在 iOS 与 Android 构建中做视觉回归，确认不改变现有设计。
-  - 当前状态：Architecture v2 分支没有 PNG 优化改动。
+- [x] 盘点重复 PNG 和未使用资源。
+- [x] 对重复 PNG 进行无损压缩或去重。
+- [x] 确认 iOS App Icon 与 Android adaptive icon 各自保留正确语义和尺寸。
+- [x] 在 iOS 与 Android 构建中做视觉回归，确认不改变现有设计。
+  - 证据：已审计 22 个 PNG，未发现无引用资源；两组内容重复资源因 Expo 平台角色和 Xcode asset catalog scale 语义保留独立文件。全部 PNG 经 `pngcrush` 无损重编码并逐个比较解码像素，体积从 2,943,978 字节降至 2,333,017 字节。Android 临时 prebuild 的 Debug APK，以及 `app`、`XiaoTiduWatchApp`、`XiaoTiduWatchComplications` 三个 Xcode scheme 均构建通过；详细记录见 [移动端图片资产审计](./mobile-assets.md)。
 
 ### 人工清单
 
 - [ ] 完成移动端双用户联调清单并记录日期、设备、账号和结果。
 - [ ] 完成 Watch 手动清单，包括离线恢复、重复事件、haptic、Complication 和系统刷新节奏。
 - [ ] 在真机验证 Live Activity 签名、启动、更新、结束和 App 重启恢复。
-- [ ] 复核 development、preview、production 三套 entitlement 与 Push capability。
+- [x] 复核 development、preview、production 三套 entitlement 与 Push capability。
+  - 证据：动态 Expo 配置只接受 `development` / `production` 两种 APNs entitlement；EAS `development` 显式映射 development，`preview` 与 `production` 映射 production。三套生成配置均已检查。远程 Push 证书、付费 Apple Developer Team 和通知收发仍属于 P2 产品化，不在本轮伪装为已验收。
 
 ## P2：上线前产品化
 

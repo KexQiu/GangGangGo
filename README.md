@@ -8,7 +8,7 @@
 
 ## Mac 开发环境
 
-需要 Node.js 22+、pnpm 10+、Xcode 和 PostgreSQL。首次安装：
+需要 Node.js 22+、pnpm 10+、Xcode 和 PostgreSQL。Android 构建额外需要 Android Studio / SDK 36 与 OpenJDK 17。首次安装：
 
 ```bash
 pnpm install --frozen-lockfile

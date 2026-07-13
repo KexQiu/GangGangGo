@@ -85,8 +85,9 @@ pnpm mobile:ios
 
 当前暂缓原因：
 
-- [ ] 免费 Personal Team 不支持 `Sign in with Apple` 和 Push Notifications capability。
-- [ ] 当前已移除 `ios.usesAppleSignIn`、`com.apple.developer.applesignin` 和 `aps-environment`，方便继续模拟器构建。
+- 免费 Personal Team 不支持 `Sign in with Apple` 和 Push Notifications capability。
+- `ios.usesAppleSignIn` 与 `com.apple.developer.applesignin` 仍未恢复。
+- `aps-environment` 由动态 Expo 配置按 EAS profile 注入：development 使用 `development`，preview / production 使用 `production`；未指定构建 profile 的本地配置默认不注入。
 
 后续恢复测试时再执行：
 
@@ -328,4 +329,4 @@ psql xiaotidu -c "select user_id, provider, platform, enabled, last_seen_at from
 - [ ] 真实订阅购买和恢复尚未接入。
 - [ ] Mock 用户切换仅用于 development，preview / production 不显示该入口。
 - [ ] 真机 API 地址不能用 `localhost`，需要改成 Mac 局域网 IP 或远程地址。
-- [ ] Push 通知真机表现需要 development build 或正式构建验证。
+- [ ] Push 通知真机表现需要付费 Apple Developer Team 对应的 development build 或正式构建验证；配置映射通过不代表远程通知收发已通过。

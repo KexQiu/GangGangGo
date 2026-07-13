@@ -174,6 +174,9 @@ apps/mobile/assets/
     └── toilet-stop-20.wav
 ```
 
+PNG 的用途、重复关系、无损压缩与原生构建回归记录见
+[移动端图片资产审计](./architecture/mobile-assets.md)。
+
 ## 4. 后端结构
 
 后端位于 `apps/api`，当前是 Hono + Drizzle 的模块化单体 API 服务。

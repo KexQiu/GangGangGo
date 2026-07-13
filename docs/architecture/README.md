@@ -4,5 +4,6 @@
 - [API 分层与 OpenAPI 单一来源](./api-layering.md)
 - [认证会话](./auth-sessions.md)
 - [移动端同步](./mobile-sync.md)
+- [移动端图片资产审计](./mobile-assets.md)
 - [隐私与数据边界](./privacy-boundaries.md)
 - [Watch 协议](./watch-protocol.md)
