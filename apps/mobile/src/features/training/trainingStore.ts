@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { insertTrainingSession, listTrainingSessions } from '../../storage/repositories/trainingRepository';
+import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { type TrainingSession } from './trainingTypes';
 
 type TrainingState = {
@@ -45,6 +46,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
 
     try {
       await insertTrainingSession(session);
+      notifyLocalDataChanged();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '训练记录保存失败',

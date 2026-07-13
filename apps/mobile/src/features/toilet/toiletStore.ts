@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { insertToiletSession, listToiletSessions } from '../../storage/repositories/toiletRepository';
+import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { type ToiletSession } from './toiletTypes';
 
 type ToiletState = {
@@ -21,6 +22,7 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
 
     try {
       await insertToiletSession(session);
+      notifyLocalDataChanged();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '如厕记录保存失败',
