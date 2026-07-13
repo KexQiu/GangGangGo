@@ -1,5 +1,6 @@
 import { type ToiletFeeling, type ToiletSession } from '../../features/toilet/toiletTypes';
 import { initializeDatabase } from '../db';
+import { normalizePageSize, type Page } from '../pagination';
 
 type ToiletSessionRow = {
   bleeding: number;
@@ -12,6 +13,18 @@ type ToiletSessionRow = {
 };
 
 const toiletFeelings = new Set<ToiletFeeling>(['smooth', 'normal', 'difficult']);
+
+export type ToiletSessionCursor = {
+  endedAt: string;
+  id: string;
+};
+
+export type ToiletSessionPageOptions = {
+  cursor?: ToiletSessionCursor;
+  fromDateTime?: string;
+  limit?: number;
+  toDateTimeExclusive?: string;
+};
 
 export async function insertToiletSession(session: ToiletSession): Promise<void> {
   const db = await initializeDatabase();
@@ -48,8 +61,11 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
   );
 }
 
-export async function listToiletSessions(sinceDateTime?: string): Promise<ToiletSession[]> {
+export async function listToiletSessionsPage(
+  options: ToiletSessionPageOptions = {},
+): Promise<Page<ToiletSession, ToiletSessionCursor>> {
   const db = await initializeDatabase();
+  const limit = normalizePageSize(options.limit);
   const query = `
       SELECT
         id,
@@ -60,14 +76,36 @@ export async function listToiletSessions(sinceDateTime?: string): Promise<Toilet
         discomfort,
         bleeding
       FROM toilet_sessions
-      ${sinceDateTime ? 'WHERE ended_at >= $sinceDateTime' : ''}
-      ORDER BY ended_at DESC;
+      WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
+        AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)
+        AND (
+          $cursorEndedAt IS NULL
+          OR ended_at < $cursorEndedAt
+          OR (ended_at = $cursorEndedAt AND id < $cursorId)
+        )
+      ORDER BY ended_at DESC, id DESC
+      LIMIT $queryLimit;
     `;
-  const rows = sinceDateTime
-    ? await db.getAllAsync<ToiletSessionRow>(query, { $sinceDateTime: sinceDateTime })
-    : await db.getAllAsync<ToiletSessionRow>(query);
+  const rows = await db.getAllAsync<ToiletSessionRow>(query, {
+    $cursorEndedAt: options.cursor?.endedAt ?? null,
+    $cursorId: options.cursor?.id ?? null,
+    $fromDateTime: options.fromDateTime ?? null,
+    $queryLimit: limit + 1,
+    $toDateTimeExclusive: options.toDateTimeExclusive ?? null,
+  });
+  const pageRows = rows.slice(0, limit);
+  const lastRow = pageRows.at(-1);
 
-  return rows.map(rowToToiletSession).filter((session): session is ToiletSession => Boolean(session));
+  return {
+    items: pageRows.map(rowToToiletSession).filter((session): session is ToiletSession => Boolean(session)),
+    nextCursor:
+      rows.length > limit && lastRow
+        ? {
+            endedAt: lastRow.ended_at,
+            id: lastRow.id,
+          }
+        : null,
+  };
 }
 
 function rowToToiletSession(row: ToiletSessionRow): ToiletSession | null {

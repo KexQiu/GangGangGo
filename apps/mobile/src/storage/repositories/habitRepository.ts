@@ -1,6 +1,7 @@
 import { isHabitLevel } from '../../features/habits/habitLogic';
 import { type HabitCheckIn } from '../../features/habits/habitTypes';
 import { initializeDatabase } from '../db';
+import { normalizePageSize, type Page } from '../pagination';
 
 type HabitCheckInRow = {
   bowel: string | null;
@@ -9,6 +10,13 @@ type HabitCheckInRow = {
   movement: string | null;
   updated_at: string;
   water: string | null;
+};
+
+export type HabitCheckInPageOptions = {
+  cursor?: string;
+  fromDate?: string;
+  limit?: number;
+  toDateExclusive?: string;
 };
 
 export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
@@ -49,8 +57,11 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
   );
 }
 
-export async function listHabitCheckIns(sinceDate?: string): Promise<HabitCheckIn[]> {
+export async function listHabitCheckInsPage(
+  options: HabitCheckInPageOptions = {},
+): Promise<Page<HabitCheckIn, string>> {
   const db = await initializeDatabase();
+  const limit = normalizePageSize(options.limit);
   const query = `
       SELECT
         date,
@@ -60,14 +71,24 @@ export async function listHabitCheckIns(sinceDate?: string): Promise<HabitCheckI
         bowel,
         updated_at
       FROM habit_checkins
-      ${sinceDate ? 'WHERE date >= $sinceDate' : ''}
-      ORDER BY date DESC;
+      WHERE ($fromDate IS NULL OR date >= $fromDate)
+        AND ($toDateExclusive IS NULL OR date < $toDateExclusive)
+        AND ($cursorDate IS NULL OR date < $cursorDate)
+      ORDER BY date DESC
+      LIMIT $queryLimit;
     `;
-  const rows = sinceDate
-    ? await db.getAllAsync<HabitCheckInRow>(query, { $sinceDate: sinceDate })
-    : await db.getAllAsync<HabitCheckInRow>(query);
+  const rows = await db.getAllAsync<HabitCheckInRow>(query, {
+    $cursorDate: options.cursor ?? null,
+    $fromDate: options.fromDate ?? null,
+    $queryLimit: limit + 1,
+    $toDateExclusive: options.toDateExclusive ?? null,
+  });
+  const pageRows = rows.slice(0, limit);
 
-  return rows.map(rowToHabitCheckIn);
+  return {
+    items: pageRows.map(rowToHabitCheckIn),
+    nextCursor: rows.length > limit ? (pageRows.at(-1)?.date ?? null) : null,
+  };
 }
 
 function rowToHabitCheckIn(row: HabitCheckInRow): HabitCheckIn {

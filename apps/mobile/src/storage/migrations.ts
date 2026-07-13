@@ -1,6 +1,6 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
-const latestVersion = 2;
+const latestVersion = 3;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -65,6 +65,21 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       await db.execAsync('PRAGMA user_version = 2;');
     });
     version = 2;
+  }
+
+  if (version < 3) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        DROP INDEX IF EXISTS idx_training_sessions_ended_at;
+        DROP INDEX IF EXISTS idx_toilet_sessions_ended_at;
+        CREATE INDEX IF NOT EXISTS idx_training_sessions_ended_at_id
+          ON training_sessions (ended_at DESC, id DESC);
+        CREATE INDEX IF NOT EXISTS idx_toilet_sessions_ended_at_id
+          ON toilet_sessions (ended_at DESC, id DESC);
+        PRAGMA user_version = 3;
+      `);
+    });
+    version = 3;
   }
 
   if (version !== latestVersion) throw new Error(`Unsupported database version: ${version}`);

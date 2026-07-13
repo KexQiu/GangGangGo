@@ -1,6 +1,7 @@
 import { initializeDatabase } from '../db';
 import { isTrainingPresetId } from '../../features/training/presets';
 import { type TrainingSession } from '../../features/training/trainingTypes';
+import { normalizePageSize, type Page } from '../pagination';
 
 type TrainingSessionRow = {
   completed_repetitions: number;
@@ -11,6 +12,18 @@ type TrainingSessionRow = {
   is_completed: number;
   preset_id: string;
   started_at: string;
+};
+
+export type TrainingSessionCursor = {
+  endedAt: string;
+  id: string;
+};
+
+export type TrainingSessionPageOptions = {
+  cursor?: TrainingSessionCursor;
+  fromDateTime?: string;
+  limit?: number;
+  toDateTimeExclusive?: string;
 };
 
 export async function insertTrainingSession(session: TrainingSession): Promise<void> {
@@ -51,8 +64,11 @@ export async function insertTrainingSession(session: TrainingSession): Promise<v
   );
 }
 
-export async function listTrainingSessions(sinceDateTime?: string): Promise<TrainingSession[]> {
+export async function listTrainingSessionsPage(
+  options: TrainingSessionPageOptions = {},
+): Promise<Page<TrainingSession, TrainingSessionCursor>> {
   const db = await initializeDatabase();
+  const limit = normalizePageSize(options.limit);
   const query = `
       SELECT
         id,
@@ -64,14 +80,36 @@ export async function listTrainingSessions(sinceDateTime?: string): Promise<Trai
         is_completed,
         discomfort_reported
       FROM training_sessions
-      ${sinceDateTime ? 'WHERE ended_at >= $sinceDateTime' : ''}
-      ORDER BY ended_at DESC;
+      WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
+        AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)
+        AND (
+          $cursorEndedAt IS NULL
+          OR ended_at < $cursorEndedAt
+          OR (ended_at = $cursorEndedAt AND id < $cursorId)
+        )
+      ORDER BY ended_at DESC, id DESC
+      LIMIT $queryLimit;
     `;
-  const rows = sinceDateTime
-    ? await db.getAllAsync<TrainingSessionRow>(query, { $sinceDateTime: sinceDateTime })
-    : await db.getAllAsync<TrainingSessionRow>(query);
+  const rows = await db.getAllAsync<TrainingSessionRow>(query, {
+    $cursorEndedAt: options.cursor?.endedAt ?? null,
+    $cursorId: options.cursor?.id ?? null,
+    $fromDateTime: options.fromDateTime ?? null,
+    $queryLimit: limit + 1,
+    $toDateTimeExclusive: options.toDateTimeExclusive ?? null,
+  });
+  const pageRows = rows.slice(0, limit);
+  const lastRow = pageRows.at(-1);
 
-  return rows.map(rowToTrainingSession).filter((session): session is TrainingSession => Boolean(session));
+  return {
+    items: pageRows.map(rowToTrainingSession).filter((session): session is TrainingSession => Boolean(session)),
+    nextCursor:
+      rows.length > limit && lastRow
+        ? {
+            endedAt: lastRow.ended_at,
+            id: lastRow.id,
+          }
+        : null,
+  };
 }
 
 function rowToTrainingSession(row: TrainingSessionRow): TrainingSession | null {

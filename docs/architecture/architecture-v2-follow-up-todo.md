@@ -19,11 +19,12 @@
   - 现状：`apps/api/src/__tests__/app.test.ts` 中“数据库未配置”场景在 CI 已注入 Postgres 时仍期望 `503`，导致 `typescript` job 失败。
   - 验收：该场景显式隔离环境变量，既不影响其他数据库测试，也不依赖执行顺序。
   - 证据：2026-07-13 已在未设置和显式设置 `DATABASE_URL` 的两种环境下通过测试。
-- [ ] 重新运行并通过 Draft PR #1 的全部 GitHub Actions。
-  - 当前状态：`apple-builds` 已通过，`typescript` 失败。
+- [x] 重新运行并通过 Draft PR #1 的全部 GitHub Actions。
+  - 当前状态：`apple-builds` 与 `typescript` 均已通过。
   - 验收：Linux 类型检查、单元测试、Postgres 集成测试、OpenAPI 漂移检查和三个 Apple scheme 均为绿色。
-- [ ] 在合并前再次执行最终本地门禁。
+- [x] 在合并前再次执行最终本地门禁。
   - 验收：`pnpm check`、Expo dependency check、三个 Xcode scheme 全部通过，工作区没有意外生成物。
+  - 证据：2026-07-13 本地门禁通过，更新 Expo 补丁版本后远端三个 Apple scheme 再次通过。
 
 ## P1：代码结构
 
@@ -81,11 +82,12 @@
 
 ### SQLite 范围读取与分页
 
-- [ ] 为训练、蹲会儿和习惯记录 repository 增加真正的 LIMIT/cursor 分页，而不只是 `sinceDateTime` 过滤。
-- [ ] 移除启动时把最近 366 天记录整体装入 Zustand 的行为。
-- [ ] 首页、趋势、报告和同步分别声明自己的最小数据窗口。
-- [ ] 保持现有 `PRAGMA user_version` 迁移链可从旧版本无损升级。
+- [x] 为训练、蹲会儿和习惯记录 repository 增加真正的 LIMIT/cursor 分页，而不只是 `sinceDateTime` 过滤。
+- [x] 移除启动时把最近 366 天记录整体装入 Zustand 的行为。
+- [x] 首页、趋势、报告和同步分别声明自己的最小数据窗口。
+- [x] 保持现有 `PRAGMA user_version` 迁移链可从旧版本无损升级。
   - 验收：启动内存和查询量不随历史总量线性增长；90 天报告只读取 90 天；滚动加载不会重复或漏记录。
+  - 证据：启动窗口缩减为 30 天，报告独立分页读取 90 天；v3 迁移增加复合游标索引并覆盖 v0、v2 升级路径。
 
 ### SyncCoordinator 完整闭环
 
