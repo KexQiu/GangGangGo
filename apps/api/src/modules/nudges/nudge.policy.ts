@@ -1,4 +1,6 @@
 import type {
+  BuddyNudge,
+  BuddyNudgeAck,
   BuddyNudgeAckStatus,
   BuddyNudgeDailyLimit,
   BuddyNudgeSettings,
@@ -143,6 +145,26 @@ export function assertCanNudge(input: {
 
   if (input.todayCount >= input.settings.dailyLimit) {
     throw new ApiError(429, 'rate_limited', '今天已经轻轻戳够了，明天再来。');
+  }
+}
+
+export function assertCanAcknowledge(nudge: BuddyNudge, currentUser: CurrentUser) {
+  if (nudge.toUser.id !== currentUser.id) {
+    throw new ApiError(403, 'forbidden', '只能回复发给自己的提醒。');
+  }
+}
+
+export function assertDailyNudgeCountWithinLimit(count: number, dailyLimit: BuddyNudgeDailyLimit) {
+  if (count > dailyLimit) {
+    throw new ApiError(429, 'rate_limited', '今天已经轻轻戳够了，明天再来。');
+  }
+}
+
+export function assertAckCanBeRevised(ack: BuddyNudgeAck | null, now = new Date()) {
+  const createdAt = ack ? new Date(ack.createdAt) : null;
+
+  if (!ack || ack.revisionCount >= 1 || !createdAt || createdAt.getTime() <= now.getTime() - ackRevisionWindowMs) {
+    throw new ApiError(409, 'conflict', '这条回执已经不能修改了。');
   }
 }
 
