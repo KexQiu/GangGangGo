@@ -219,6 +219,8 @@
 
 ### 人工清单
 
+真机逐项执行与证据记录统一使用[真机验收总清单](./physical-device-acceptance-checklist.md)。
+
 - [x] 完成移动端双用户联调清单并记录日期、设备、账号和结果。
 - [ ] 完成 Watch 手动清单，包括离线恢复、重复事件、haptic、Complication 和系统刷新节奏。
 - [ ] 在真机验证 Live Activity 签名、启动、更新、结束和 App 重启恢复。

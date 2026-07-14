@@ -82,6 +82,8 @@ Xcode 输出的警告来自当前 Expo/React Native Pods，未出现项目源码
 
 ## 剩余 P1
 
+真机逐项执行、证据留痕和 P2 发布能力范围统一使用[真机验收总清单](./physical-device-acceptance-checklist.md)。
+
 1. 解锁 Apple Watch，并让配对 iPhone 与 Watch 靠近 Mac 后完成 Watch 真机清单。
 2. 连接并解锁 iPhone 真机，完成 Live Activity 真机清单。
 3. 真机项通过后运行最终全仓门禁并在本文追加最终结果。

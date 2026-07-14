@@ -16,6 +16,8 @@ packages/contracts   # 跨端 Zod schema 与 TypeScript 类型
 
 当前架构重构的实际剩余工作以 [Architecture v2 后续待办](./architecture/architecture-v2-follow-up-todo.md) 为准。
 
+所有需要真实 iPhone、Apple Watch、系统能力或发布签名验证的事项统一记录在[真机验收总清单](./architecture/physical-device-acceptance-checklist.md)。
+
 ## v0.1 当前完成版
 
 - [产品定位](./v0.1/product-positioning.md)
