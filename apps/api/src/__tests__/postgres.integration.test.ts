@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto';
+
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { DatabaseClient } from '../db/client.js';
 import { authSessions, teamInvites } from '../db/schema.js';
-import { createDrizzleAuthSessionService } from '../modules/auth/authSessionService.js';
+import { createDrizzleAuthSessionService, SessionUserUnavailableError } from '../modules/auth/authSessionService.js';
 import { createDrizzleTeamService } from '../modules/teams/teamService.js';
 import {
   cleanupIntegrationUsers,
@@ -59,6 +61,12 @@ describeWithDatabase('postgres auth and team integration', () => {
       code: 'unauthorized',
       statusCode: 401,
     });
+  });
+
+  it('reports a missing session user as retryable instead of leaking a foreign-key failure', async () => {
+    const service = createDrizzleAuthSessionService(client.db);
+
+    await expect(service.create(randomUUID())).rejects.toBeInstanceOf(SessionUserUnavailableError);
   });
 
   it('serializes concurrent team creation for one user', async () => {

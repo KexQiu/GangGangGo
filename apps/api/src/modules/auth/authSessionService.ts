@@ -5,7 +5,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { AuthSession } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
-import { authSessions } from '../../db/schema.js';
+import { authSessions, users } from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
 import { issueAccessToken } from './token.js';
 
@@ -18,6 +18,13 @@ type StoredSession = {
   revokedAt: Date | null;
   userId: string;
 };
+
+export class SessionUserUnavailableError extends Error {
+  constructor() {
+    super('The session user no longer exists.');
+    this.name = 'SessionUserUnavailableError';
+  }
+}
 
 export type AuthSessionService = {
   create: (userId: string) => Promise<AuthSession>;
@@ -80,15 +87,27 @@ export function createMockAuthSessionService(): AuthSessionService {
 export function createDrizzleAuthSessionService(db: Database): AuthSessionService {
   async function create(userId: string) {
     const refreshToken = createRefreshToken();
-    const [stored] = await db
-      .insert(authSessions)
-      .values({
-        expiresAt: new Date(Date.now() + refreshTokenLifetimeMs),
-        refreshTokenHash: hashRefreshToken(refreshToken),
-        userId,
-      })
-      .returning();
-    if (!stored) throw new Error('Failed to create auth session.');
+    const stored = await db.transaction(async (transaction) => {
+      // Prevent fixture cleanup from deleting the user between login upsert and session creation.
+      const [user] = await transaction
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, userId))
+        .for('key share')
+        .limit(1);
+      if (!user) throw new SessionUserUnavailableError();
+
+      const [created] = await transaction
+        .insert(authSessions)
+        .values({
+          expiresAt: new Date(Date.now() + refreshTokenLifetimeMs),
+          refreshTokenHash: hashRefreshToken(refreshToken),
+          userId,
+        })
+        .returning();
+      if (!created) throw new Error('Failed to create auth session.');
+      return created;
+    });
     return toAuthSession(stored, refreshToken);
   }
 

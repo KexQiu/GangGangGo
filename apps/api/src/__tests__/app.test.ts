@@ -6,7 +6,7 @@ import { createApiApp } from '../app.js';
 import { checkDatabaseHealth } from '../db/health.js';
 import { ApiError } from '../http/apiError.js';
 import { createLogger } from '../lib/logger.js';
-import type { AuthSessionService } from '../modules/auth/authSessionService.js';
+import { SessionUserUnavailableError, type AuthSessionService } from '../modules/auth/authSessionService.js';
 import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import type { PushNotificationPayload } from '../modules/push/pushNotificationService.js';
 import { createMockNudgeService } from '../modules/nudges/nudgeService.js';
@@ -158,10 +158,7 @@ describe('api app', () => {
       refreshToken: 'retried-refresh-token',
     };
     const upsertFromApple = vi.fn().mockResolvedValueOnce(staleUser).mockResolvedValueOnce(recreatedUser);
-    const create = vi
-      .fn()
-      .mockRejectedValueOnce({ cause: { code: '23503', constraint_name: 'auth_sessions_user_id_users_id_fk' } })
-      .mockResolvedValueOnce(session);
+    const create = vi.fn().mockRejectedValueOnce(new SessionUserUnavailableError()).mockResolvedValueOnce(session);
     const userRepository = {
       findById: async () => null,
       updateProfile: async () => recreatedUser,

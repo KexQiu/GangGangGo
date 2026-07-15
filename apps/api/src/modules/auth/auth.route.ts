@@ -13,7 +13,7 @@ import { apiResponses, bearerSecurity, createOpenApiRouter, jsonRequest } from '
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';
 import type { UserRepository } from '../users/userRepository.js';
-import type { AuthSessionService } from './authSessionService.js';
+import { SessionUserUnavailableError, type AuthSessionService } from './authSessionService.js';
 import type { AppleAuthService } from './appleAuthService.js';
 
 type CreateAuthRouteOptions = {
@@ -105,12 +105,16 @@ async function createAuthResponse(
         },
       };
     } catch (error) {
-      if (attempt === 0 && isSessionUserForeignKeyViolation(error)) continue;
+      if (attempt === 0 && isRetryableSessionUserError(error)) continue;
       throw error;
     }
   }
 
   throw new Error('Unable to create an auth session.');
+}
+
+function isRetryableSessionUserError(error: unknown): boolean {
+  return error instanceof SessionUserUnavailableError || isSessionUserForeignKeyViolation(error);
 }
 
 function isSessionUserForeignKeyViolation(error: unknown, depth = 0): boolean {
