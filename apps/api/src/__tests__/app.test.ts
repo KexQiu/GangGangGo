@@ -1,16 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import type { AdvancedReportSummary, DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
+import type { AdvancedReportSummary, AuthSession, DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { createApiApp } from '../app.js';
 import { checkDatabaseHealth } from '../db/health.js';
 import { ApiError } from '../http/apiError.js';
 import { createLogger } from '../lib/logger.js';
+import type { AuthSessionService } from '../modules/auth/authSessionService.js';
 import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import type { PushNotificationPayload } from '../modules/push/pushNotificationService.js';
 import { createMockNudgeService } from '../modules/nudges/nudgeService.js';
 import type { ReportService } from '../modules/reports/reportService.js';
 import { createMockTeamService } from '../modules/teams/teamService.js';
+import type { UserRepository } from '../modules/users/userRepository.js';
 
 const testLogger = createLogger({
   LOG_LEVEL: 'silent',
@@ -135,6 +137,58 @@ describe('api app', () => {
         },
       },
     });
+  });
+
+  it('re-upserts a user once when fixture cleanup removes it before session creation', async () => {
+    const staleUser = {
+      appleUserId: 'mock:concurrent-user',
+      avatarUrl: null,
+      id: '00000000-0000-4000-8000-000000000010',
+      nickname: '旧测试用户',
+      timezone: 'Asia/Shanghai',
+    };
+    const recreatedUser = {
+      ...staleUser,
+      id: '00000000-0000-4000-8000-000000000011',
+      nickname: '重建后的测试用户',
+    };
+    const session: AuthSession = {
+      accessToken: 'retried-access-token',
+      accessTokenExpiresAt: '2026-08-01T00:00:00.000Z',
+      refreshToken: 'retried-refresh-token',
+    };
+    const upsertFromApple = vi.fn().mockResolvedValueOnce(staleUser).mockResolvedValueOnce(recreatedUser);
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce({ cause: { code: '23503', constraint_name: 'auth_sessions_user_id_users_id_fk' } })
+      .mockResolvedValueOnce(session);
+    const userRepository = {
+      findById: async () => null,
+      updateProfile: async () => recreatedUser,
+      upsertFromApple,
+    } satisfies UserRepository;
+    const authSessionService = {
+      create,
+      isActive: async () => false,
+      revoke: async () => undefined,
+      rotate: async () => {
+        throw new Error('Not used by this test.');
+      },
+    } satisfies AuthSessionService;
+    const app = createApiApp({ authSessionService, logger: testLogger, userRepository });
+
+    const response = await app.request('/auth/apple', {
+      body: JSON.stringify({ identityToken: 'concurrent-user' }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data.user).toMatchObject({ id: recreatedUser.id, nickname: recreatedUser.nickname });
+    expect(upsertFromApple).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenNthCalledWith(1, staleUser.id);
+    expect(create).toHaveBeenNthCalledWith(2, recreatedUser.id);
   });
 
   it('rotates refresh sessions and revokes the active session on logout', async () => {

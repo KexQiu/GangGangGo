@@ -42,16 +42,7 @@ export function createAuthRoute(options: CreateAuthRouteOptions) {
     async (context) => {
       const request = context.req.valid('json');
       const appleUser = await options.appleAuthService.verifyLogin(request);
-      const user = await options.userRepository.upsertFromApple(appleUser);
-      const body: AuthResponse = {
-        session: await options.authSessionService.create(user.id),
-        user: {
-          avatarUrl: user.avatarUrl,
-          id: user.id,
-          nickname: user.nickname,
-          timezone: user.timezone,
-        },
-      };
+      const body = await createAuthResponse(options, appleUser);
 
       return context.json(toSuccessResponse(body), 200);
     },
@@ -94,4 +85,46 @@ export function createAuthRoute(options: CreateAuthRouteOptions) {
   );
 
   return route;
+}
+
+async function createAuthResponse(
+  options: Pick<CreateAuthRouteOptions, 'authSessionService' | 'userRepository'>,
+  appleUser: Awaited<ReturnType<AppleAuthService['verifyLogin']>>,
+): Promise<AuthResponse> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const user = await options.userRepository.upsertFromApple(appleUser);
+
+    try {
+      return {
+        session: await options.authSessionService.create(user.id),
+        user: {
+          avatarUrl: user.avatarUrl,
+          id: user.id,
+          nickname: user.nickname,
+          timezone: user.timezone,
+        },
+      };
+    } catch (error) {
+      if (attempt === 0 && isSessionUserForeignKeyViolation(error)) continue;
+      throw error;
+    }
+  }
+
+  throw new Error('Unable to create an auth session.');
+}
+
+function isSessionUserForeignKeyViolation(error: unknown, depth = 0): boolean {
+  if (!error || typeof error !== 'object' || depth > 1) return false;
+
+  const databaseError = error as {
+    cause?: unknown;
+    code?: unknown;
+    constraint_name?: unknown;
+  };
+
+  if (databaseError.code === '23503' && databaseError.constraint_name === 'auth_sessions_user_id_users_id_fk') {
+    return true;
+  }
+
+  return isSessionUserForeignKeyViolation(databaseError.cause, depth + 1);
 }
