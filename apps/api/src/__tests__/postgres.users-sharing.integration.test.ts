@@ -13,15 +13,17 @@ import {
   cleanupIntegrationUsers,
   createIntegrationDatabaseClient,
   createIntegrationUser,
+  createQueryCounter,
   describeWithDatabase,
 } from './postgresTestUtils.js';
 
 describeWithDatabase('postgres user, entitlement, and sharing integration', () => {
   let client: DatabaseClient;
   const createdUserIds: string[] = [];
+  const queryCounter = createQueryCounter();
 
   beforeAll(() => {
-    client = createIntegrationDatabaseClient();
+    client = createIntegrationDatabaseClient(queryCounter);
   });
 
   afterAll(async () => {
@@ -33,9 +35,14 @@ describeWithDatabase('postgres user, entitlement, and sharing integration', () =
     const appleUserId = `integration:user-upsert:${randomUUID()}`;
     const created = await repository.upsertFromApple({ appleUserId, nickname: '初始昵称' });
     createdUserIds.push(created.id);
+    queryCounter.reset();
     const upserted = await repository.upsertFromApple({ appleUserId, nickname: '更新昵称' });
 
     expect(upserted).toMatchObject({ id: created.id, nickname: '更新昵称' });
+    expect(queryCounter.queries()).toHaveLength(1);
+    expect(queryCounter.queries()[0]).toContain(
+      'on conflict ("apple_user_id") where "users"."deleted_at" is null do update',
+    );
 
     const updated = await repository.updateProfile(created.id, {
       avatarUrl: { background: 'mint', emoji: 'calm' },
