@@ -11,6 +11,12 @@ import type {
 import { defaultDailyLimit } from './nudge.policy.js';
 import type { NudgeRecord } from './nudge.types.js';
 
+const ackPreviewCopies: Record<BuddyNudgeAckStatus, string> = {
+  done: '已完成',
+  later: '等会儿',
+  received: '收到',
+};
+
 function toIsoString(value: Date | string) {
   return value instanceof Date ? value.toISOString() : value;
 }
@@ -89,7 +95,7 @@ export function toNudgeThreadSummaries(
     if (!thread.latestAt || latestAt > thread.latestAt) {
       thread.latestAt = latestAt;
       thread.latestPreview = nudge.ack
-        ? `${nudge.toUser.id === currentUserId ? '你' : (nudge.toUser.nickname ?? '搭子')}：${nudge.ack.status}`
+        ? `${nudge.toUser.id === currentUserId ? '你' : (nudge.toUser.nickname ?? '搭子')}：${ackPreviewCopies[nudge.ack.status]}`
         : `${nudge.fromUser.id === currentUserId ? '你' : (nudge.fromUser.nickname ?? '搭子')}：${nudge.messageTemplate}`;
     }
   }
