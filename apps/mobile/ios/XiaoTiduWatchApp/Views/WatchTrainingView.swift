@@ -258,32 +258,49 @@ private struct TrainingSessionContent: View {
     TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
       let snapshot = session.snapshot(at: context.date)
 
-      VStack(spacing: 10) {
-        Text(session.isPaused ? "已暂停" : snapshot.phase.title)
-          .font(.headline)
+      ScrollView(.vertical) {
+        VStack(spacing: 12) {
+          VStack(spacing: 10) {
+            Text(session.isPaused ? "已暂停" : snapshot.phase.title)
+              .font(.headline)
+              .frame(maxWidth: .infinity, minHeight: 20)
 
-        Text("\(snapshot.remainingSeconds)")
-          .font(.system(size: 44, weight: .bold, design: .rounded))
-          .monospacedDigit()
+            Text("\(snapshot.remainingSeconds)")
+              .font(.system(size: 44, weight: .bold, design: .rounded))
+              .monospacedDigit()
+              .frame(maxWidth: .infinity, minHeight: 52)
 
-        ProgressView(value: snapshot.progress)
-          .tint(.green)
+            ProgressView(value: snapshot.progress)
+              .tint(.green)
 
-        Text("第 \(snapshot.roundIndex + 1)/\(session.mode.rounds) 次 · \(session.mode.title)")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
+            Text("第 \(snapshot.roundIndex + 1)/\(session.mode.rounds) 次 · \(session.mode.title)")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
+              .frame(maxWidth: .infinity)
+          }
+          .frame(maxWidth: .infinity)
 
-        Button(session.isPaused ? "继续" : "暂停") {
-          onTogglePause()
+          HStack(spacing: 8) {
+            Button(session.isPaused ? "继续" : "暂停") {
+              onTogglePause()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .frame(maxWidth: .infinity, minHeight: 32)
+
+            Button("结束本组", role: .destructive) {
+              onCancel()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .frame(maxWidth: .infinity, minHeight: 32)
+          }
         }
-        .font(.caption)
-
-        Button("结束本组", role: .destructive) {
-          onCancel()
-        }
-        .font(.caption2)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
       }
-      .padding()
     }
   }
 }
