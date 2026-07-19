@@ -11,6 +11,7 @@ import { teamsApi } from '../../api/client';
 import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
 import { useCurrentUserQuery } from '../account/accountQueries';
 import { notifyUserError, useAuthStore } from '../account/authStore';
+import { getCurrentTeamOrEmpty } from './currentTeamQueryResult';
 import { invalidateTeamSnapshots, updateTeamQueryCache, type TeamCacheUpdateOptions } from './teamQueryCache';
 import { teamQueryKeys } from './teamQueryKeys';
 
@@ -30,7 +31,7 @@ export function useCurrentTeamQuery(options: QueryOptions = {}) {
 
   const query = useQuery({
     enabled: Boolean((options.enabled ?? true) && accessToken && userId),
-    queryFn: ({ signal }) => teamsApi.getCurrentTeam(requireValue(accessToken), signal),
+    queryFn: ({ signal }) => getCurrentTeamOrEmpty(() => teamsApi.getCurrentTeam(requireValue(accessToken), signal)),
     queryKey: teamQueryKeys.team(userId ?? 'anonymous'),
   });
   useQueryErrorNotification(query.error);

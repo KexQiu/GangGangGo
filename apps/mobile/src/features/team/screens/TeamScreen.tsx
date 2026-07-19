@@ -52,6 +52,7 @@ export default function TeamScreen() {
   const { isAppActive, isFocused } = useForegroundFocus();
   const shouldPollNudgeThreads = shouldPollNudges({
     hasSession: Boolean(accessToken && user?.id),
+    hasTarget: Boolean(team),
     isAppActive,
     isFocused,
   });
@@ -75,9 +76,11 @@ export default function TeamScreen() {
     if (!accessToken) return;
 
     void refetchTeam();
-    if (team) void refetchSnapshots();
-    if (isPro) void refetchWeeklyReport();
-    void refetchNudgeThreads();
+    if (team) {
+      void refetchSnapshots();
+      if (isPro) void refetchWeeklyReport();
+      void refetchNudgeThreads();
+    }
   }, [accessToken, isPro, refetchNudgeThreads, refetchSnapshots, refetchTeam, refetchWeeklyReport, team]);
 
   useFocusEffect(
@@ -98,9 +101,11 @@ export default function TeamScreen() {
 
   const handleRefresh = useCallback(() => {
     void refetchTeam();
-    if (team) void refetchSnapshots();
-    if (isPro) void refetchWeeklyReport();
-    void refetchNudgeThreads();
+    if (team) {
+      void refetchSnapshots();
+      if (isPro) void refetchWeeklyReport();
+      void refetchNudgeThreads();
+    }
   }, [isPro, refetchNudgeThreads, refetchSnapshots, refetchTeam, refetchWeeklyReport, team]);
 
   return (
@@ -245,8 +250,8 @@ export default function TeamScreen() {
         ) : null}
 
         {teamError ? <Text style={styles.errorText}>{teamError.message}</Text> : null}
-        {snapshotsError ? <Text style={styles.errorText}>{snapshotsError.message}</Text> : null}
-        {nudgeThreadsError ? <Text style={styles.errorText}>{nudgeThreadsError.message}</Text> : null}
+        {team && snapshotsError ? <Text style={styles.errorText}>{snapshotsError.message}</Text> : null}
+        {team && nudgeThreadsError ? <Text style={styles.errorText}>{nudgeThreadsError.message}</Text> : null}
         {isSyncing ? <Text style={styles.loadingText}>监督搭子同步中...</Text> : null}
       </PageStack>
     </Screen>

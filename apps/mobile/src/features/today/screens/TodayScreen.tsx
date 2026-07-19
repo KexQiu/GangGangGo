@@ -82,6 +82,7 @@ export default function HomeScreen() {
   const { isAppActive, isFocused } = useForegroundFocus();
   const shouldPollNudgeThreads = shouldPollNudges({
     hasSession: Boolean(accessToken && user?.id),
+    hasTarget: Boolean(team),
     isAppActive,
     isFocused,
   });
@@ -124,8 +125,10 @@ export default function HomeScreen() {
     if (!accessToken || !userId) return;
 
     void refetchTeam();
-    if (team) void refetchTeamSnapshots();
-    void refetchNudgeThreads();
+    if (team) {
+      void refetchTeamSnapshots();
+      void refetchNudgeThreads();
+    }
 
     return () => {
       void cancelNudgeQueries(queryClient, userId);
@@ -191,7 +194,9 @@ export default function HomeScreen() {
 
       {user ? (
         <TeamHomeCard
-          error={teamError?.message ?? teamSnapshotsError?.message ?? nudgeThreadsError?.message ?? null}
+          error={
+            teamError?.message ?? (team ? (teamSnapshotsError?.message ?? nudgeThreadsError?.message) : null) ?? null
+          }
           isLoading={isFetchingTeam || isFetchingTeamSnapshots || isFetchingNudgeThreads}
           onPress={() => router.push(routes.team)}
           nudgeSummary={nudgeSummary}
