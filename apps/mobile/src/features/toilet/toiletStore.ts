@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 
-import { insertToiletSession, listToiletSessions } from '../../storage/repositories/toiletRepository';
+import { buildLocalDateRange } from '../../storage/dateRange';
+import { collectAllPages } from '../../storage/pagination';
+import {
+  insertToiletSession,
+  listToiletSessionsPage,
+  type ToiletSessionCursor,
+} from '../../storage/repositories/toiletRepository';
+import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { type ToiletSession } from './toiletTypes';
 
 type ToiletState = {
@@ -21,6 +28,7 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
 
     try {
       await insertToiletSession(session);
+      notifyLocalDataChanged();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '如厕记录保存失败',
@@ -37,7 +45,15 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
     set({ error: null, isHydrating: true });
 
     try {
-      const sessions = await listToiletSessions();
+      const range = buildLocalDateRange(30);
+      const sessions = await collectAllPages<ToiletSession, ToiletSessionCursor>((cursor) =>
+        listToiletSessionsPage({
+          cursor,
+          fromDateTime: range.fromDateTime,
+          limit: 250,
+          toDateTimeExclusive: range.toDateTimeExclusive,
+        }),
+      );
       set({ hasHydrated: true, isHydrating: false, sessions });
     } catch (error) {
       set({

@@ -1,19 +1,13 @@
 import { and, eq } from 'drizzle-orm';
 
-import type {
-  RegisterPushTokenRequest,
-  RegisterPushTokenResponse,
-} from '@xiaotidu/contracts';
+import type { RegisterPushTokenRequest, RegisterPushTokenResponse } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
 import { pushTokens } from '../../db/schema.js';
 import type { CurrentUser } from '../users/userTypes.js';
 
 export type PushTokenService = {
-  registerToken: (
-    currentUser: CurrentUser,
-    input: RegisterPushTokenRequest,
-  ) => Promise<RegisterPushTokenResponse>;
+  registerToken: (currentUser: CurrentUser, input: RegisterPushTokenRequest) => Promise<RegisterPushTokenResponse>;
 };
 
 export function createMockPushTokenService(): PushTokenService {

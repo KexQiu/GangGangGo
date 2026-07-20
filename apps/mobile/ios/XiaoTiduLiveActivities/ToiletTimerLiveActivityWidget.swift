@@ -1,4 +1,5 @@
 import ActivityKit
+import GangGangGoLiveActivity
 import SwiftUI
 import WidgetKit
 

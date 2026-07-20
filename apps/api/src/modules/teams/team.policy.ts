@@ -35,11 +35,7 @@ export function createInviteExpiration(now = new Date()) {
   return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 }
 
-export function ensureInviteIsUsable(invite: {
-  acceptedAt: Date | null;
-  expiresAt: Date;
-  revokedAt: Date | null;
-}) {
+export function ensureInviteIsUsable(invite: { acceptedAt: Date | null; expiresAt: Date; revokedAt: Date | null }) {
   if (invite.revokedAt) {
     throw new ApiError(404, 'not_found', '这个邀请已经失效。');
   }
@@ -54,17 +50,30 @@ export function ensureInviteIsUsable(invite: {
 }
 
 export function ensureCanInvite(currentUser: CurrentUser, team: TeamRecord, memberCount: number) {
-  if (team.ownerUserId !== currentUser.id) {
-    throw new ApiError(403, 'forbidden', '只有小队创建者可以邀请搭子。');
-  }
+  ensureOwner(currentUser, team, '只有小队创建者可以邀请搭子。');
+  ensureTeamCapacity(memberCount);
+}
 
+export function ensureTeamCapacity(memberCount: number) {
   if (memberCount >= 4) {
     throw new ApiError(409, 'conflict', '小队已经满员了。');
   }
 }
 
-export function ensureOwner(currentUser: CurrentUser, team: TeamRecord) {
+export function ensureCanCreateTeam(hasCurrentMembership: boolean) {
+  if (hasCurrentMembership) {
+    throw new ApiError(409, 'conflict', '你已经有一个小队了。');
+  }
+}
+
+export function ensureCanJoinTeam(hasCurrentMembership: boolean) {
+  if (hasCurrentMembership) {
+    throw new ApiError(409, 'conflict', '你已经在一个小队里了。');
+  }
+}
+
+export function ensureOwner(currentUser: CurrentUser, team: TeamRecord, message = '只有小队创建者可以操作。') {
   if (team.ownerUserId !== currentUser.id) {
-    throw new ApiError(403, 'forbidden', '只有小队创建者可以操作。');
+    throw new ApiError(403, 'forbidden', message);
   }
 }

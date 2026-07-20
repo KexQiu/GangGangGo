@@ -1,5 +1,7 @@
 import { type ToiletFeeling, type ToiletSession } from '../../features/toilet/toiletTypes';
 import { initializeDatabase } from '../db';
+import { normalizePageSize, type Page } from '../pagination';
+import { toiletSessionPageSql } from './pageQueries';
 
 type ToiletSessionRow = {
   bleeding: number;
@@ -12,6 +14,18 @@ type ToiletSessionRow = {
 };
 
 const toiletFeelings = new Set<ToiletFeeling>(['smooth', 'normal', 'difficult']);
+
+export type ToiletSessionCursor = {
+  endedAt: string;
+  id: string;
+};
+
+export type ToiletSessionPageOptions = {
+  cursor?: ToiletSessionCursor;
+  fromDateTime?: string;
+  limit?: number;
+  toDateTimeExclusive?: string;
+};
 
 export async function insertToiletSession(session: ToiletSession): Promise<void> {
   const db = await initializeDatabase();
@@ -48,24 +62,31 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
   );
 }
 
-export async function listToiletSessions(): Promise<ToiletSession[]> {
+export async function listToiletSessionsPage(
+  options: ToiletSessionPageOptions = {},
+): Promise<Page<ToiletSession, ToiletSessionCursor>> {
   const db = await initializeDatabase();
-  const rows = await db.getAllAsync<ToiletSessionRow>(
-    `
-      SELECT
-        id,
-        started_at,
-        ended_at,
-        duration_seconds,
-        feeling,
-        discomfort,
-        bleeding
-      FROM toilet_sessions
-      ORDER BY ended_at DESC;
-    `,
-  );
+  const limit = normalizePageSize(options.limit);
+  const rows = await db.getAllAsync<ToiletSessionRow>(toiletSessionPageSql, {
+    $cursorEndedAt: options.cursor?.endedAt ?? null,
+    $cursorId: options.cursor?.id ?? null,
+    $fromDateTime: options.fromDateTime ?? null,
+    $queryLimit: limit + 1,
+    $toDateTimeExclusive: options.toDateTimeExclusive ?? null,
+  });
+  const pageRows = rows.slice(0, limit);
+  const lastRow = pageRows.at(-1);
 
-  return rows.map(rowToToiletSession).filter((session): session is ToiletSession => Boolean(session));
+  return {
+    items: pageRows.map(rowToToiletSession).filter((session): session is ToiletSession => Boolean(session)),
+    nextCursor:
+      rows.length > limit && lastRow
+        ? {
+            endedAt: lastRow.ended_at,
+            id: lastRow.id,
+          }
+        : null,
+  };
 }
 
 function rowToToiletSession(row: ToiletSessionRow): ToiletSession | null {

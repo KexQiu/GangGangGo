@@ -1,7 +1,12 @@
 import type { DailyShareSnapshot } from '@xiaotidu/contracts';
 
-import { apiClient } from '../../api/client';
-import { calculateHabitCompletion, calculateHabitStreak, createEmptyHabitCheckIn, getLocalDateKey } from '../habits/habitLogic';
+import { teamsApi } from '../../api/client';
+import {
+  calculateHabitCompletion,
+  calculateHabitStreak,
+  createEmptyHabitCheckIn,
+  getLocalDateKey,
+} from '../habits/habitLogic';
 import { getHabitCheckInForDate, useHabitStore } from '../habits/habitStore';
 import { useAuthStore } from '../account/authStore';
 import { getTodayToiletSessionCount, useToiletStore } from '../toilet/toiletStore';
@@ -17,7 +22,7 @@ export async function syncTodayShareSnapshot(): Promise<boolean> {
   }
 
   try {
-    await apiClient.upsertShareSnapshot(
+    await teamsApi.upsertShareSnapshot(
       {
         snapshot: buildTodayShareSnapshot(),
       },

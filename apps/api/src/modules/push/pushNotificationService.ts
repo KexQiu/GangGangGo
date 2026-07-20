@@ -37,11 +37,7 @@ type ExpoPushTicket = {
 };
 
 function isExpoPushResponse(input: unknown): input is { data: ExpoPushTicket[] } {
-  return (
-    typeof input === 'object' &&
-    input !== null &&
-    Array.isArray((input as { data?: unknown }).data)
-  );
+  return typeof input === 'object' && input !== null && Array.isArray((input as { data?: unknown }).data);
 }
 
 export function createNoopPushNotificationService(): PushNotificationService {
@@ -65,11 +61,7 @@ export function createExpoPushNotificationService(
         })
         .from(pushTokens)
         .where(
-          and(
-            eq(pushTokens.userId, payload.userId),
-            eq(pushTokens.enabled, true),
-            eq(pushTokens.provider, 'expo'),
-          ),
+          and(eq(pushTokens.userId, payload.userId), eq(pushTokens.enabled, true), eq(pushTokens.provider, 'expo')),
         );
 
       if (tokens.length === 0) {

@@ -8,17 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		045FF9E6A11DE75CF0FF5FFB /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C96063CA83CB50FBFC5446C /* ExpoModulesProvider.swift */; };
+		09F0E342BB1AEBE9DF460F24 /* GangGangGoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		85C4A0BB1B2FF4F0A722B4A0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */; };
-		A10000000000000000000001 /* ToiletTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ToiletTimerAttributes.swift */; };
-		A10000000000000000000002 /* ToiletTimerLiveActivityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ToiletTimerLiveActivityModule.swift */; };
-		A10000000000000000000003 /* ToiletTimerLiveActivityModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* ToiletTimerLiveActivityModule.m */; };
-		A10000000000000000000004 /* ToiletTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ToiletTimerAttributes.swift */; };
 		A10000000000000000000005 /* ToiletTimerLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */; };
 		A10000000000000000000006 /* XiaoTiduLiveActivities.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* XiaoTiduLiveActivities.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		A10000000000000000000007 /* WatchConnectivityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* WatchConnectivityModule.swift */; };
-		A10000000000000000000008 /* WatchConnectivityModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* WatchConnectivityModule.m */; };
 		AA87B636CC972064CCD11544 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */; };
 		B10000000000000000000101 /* WatchTodayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000101 /* WatchTodayState.swift */; };
 		B10000000000000000000102 /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000102 /* WatchSessionManager.swift */; };
@@ -29,12 +24,19 @@
 		B10000000000000000000107 /* WatchToiletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000107 /* WatchToiletView.swift */; };
 		B10000000000000000000108 /* XiaoTiduWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B20000000000000000000108 /* XiaoTiduWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B10000000000000000000109 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000109 /* Assets.xcassets */; };
+		B10000000000000000000111 /* WatchConnectivityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000111 /* WatchConnectivityClient.swift */; };
+		B10000000000000000000112 /* WatchOfflineEventQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000112 /* WatchOfflineEventQueue.swift */; };
+		B10000000000000000000113 /* WatchStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000113 /* WatchStateStore.swift */; };
+		B10000000000000000000114 /* WatchTrainingTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000114 /* WatchTrainingTimeline.swift */; };
+		B10000000000000000000115 /* WatchToiletHapticTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000115 /* WatchToiletHapticTimeline.swift */; };
+		B10000000000000000000116 /* WatchRefreshBackoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000116 /* WatchRefreshBackoff.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		C10000000000000000000101 /* XiaoTiduWatchComplications.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000101 /* XiaoTiduWatchComplications.swift */; };
 		C10000000000000000000102 /* XiaoTiduWatchComplications.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C20000000000000000000102 /* XiaoTiduWatchComplications.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C10000000000000000000103 /* WatchTodayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000101 /* WatchTodayState.swift */; };
 		CE28B4BFD6B09D0C178521D5 /* libPods-app.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D63DACC3DD23B8AFF08D75DA /* libPods-app.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		FD9D0180DCC435E108A6F730 /* libPods-XiaoTiduLiveActivities.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 66DD28B0000739BAE455E166 /* libPods-XiaoTiduLiveActivities.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +53,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = B50000000000000000000100;
 			remoteInfo = XiaoTiduWatchApp;
+		};
+		C29937DB6893D997C9BABD71 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 13B07F861A680F5B00A75B9A;
+			remoteInfo = app;
 		};
 		C60000000000000000000101 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -98,20 +107,19 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		04DB67958511EC65B657530A /* appUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = appUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1237EEB76090072E7D1A0659 /* Pods-XiaoTiduLiveActivities.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-XiaoTiduLiveActivities.debug.xcconfig"; path = "Target Support Files/Pods-XiaoTiduLiveActivities/Pods-XiaoTiduLiveActivities.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = app.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = app/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = app/Info.plist; sourceTree = "<group>"; };
 		52E6505BCF8CFA1159A3053E /* Pods-app.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-app.release.xcconfig"; path = "Target Support Files/Pods-app/Pods-app.release.xcconfig"; sourceTree = "<group>"; };
+		66DD28B0000739BAE455E166 /* libPods-XiaoTiduLiveActivities.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-XiaoTiduLiveActivities.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GangGangGoUITests.swift; sourceTree = "<group>"; };
 		9C96063CA83CB50FBFC5446C /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-app/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		A129762D2BD40EEA90803287 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = app/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		A20000000000000000000001 /* ToiletTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToiletTimerAttributes.swift; sourceTree = "<group>"; };
-		A20000000000000000000002 /* ToiletTimerLiveActivityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ToiletTimerLiveActivityModule.swift; path = app/ToiletTimerLiveActivityModule.swift; sourceTree = "<group>"; };
-		A20000000000000000000003 /* ToiletTimerLiveActivityModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = ToiletTimerLiveActivityModule.m; path = app/ToiletTimerLiveActivityModule.m; sourceTree = "<group>"; };
 		A20000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToiletTimerLiveActivityWidget.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* XiaoTiduLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = XiaoTiduLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000007 /* WatchConnectivityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WatchConnectivityModule.swift; path = app/WatchConnectivityModule.swift; sourceTree = "<group>"; };
-		A20000000000000000000008 /* WatchConnectivityModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = WatchConnectivityModule.m; path = app/WatchConnectivityModule.m; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = app/SplashScreen.storyboard; sourceTree = "<group>"; };
 		B20000000000000000000100 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B20000000000000000000101 /* WatchTodayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/WatchTodayState.swift; sourceTree = "<group>"; };
@@ -124,6 +132,12 @@
 		B20000000000000000000108 /* XiaoTiduWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XiaoTiduWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000109 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B20000000000000000000110 /* XiaoTiduWatchApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = XiaoTiduWatchApp.entitlements; sourceTree = "<group>"; };
+		B20000000000000000000111 /* WatchConnectivityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectivity/WatchConnectivityClient.swift; sourceTree = "<group>"; };
+		B20000000000000000000112 /* WatchOfflineEventQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectivity/WatchOfflineEventQueue.swift; sourceTree = "<group>"; };
+		B20000000000000000000113 /* WatchStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectivity/WatchStateStore.swift; sourceTree = "<group>"; };
+		B20000000000000000000114 /* WatchTrainingTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/WatchTrainingTimeline.swift; sourceTree = "<group>"; };
+		B20000000000000000000115 /* WatchToiletHapticTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/WatchToiletHapticTimeline.swift; sourceTree = "<group>"; };
+		B20000000000000000000116 /* WatchRefreshBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectivity/WatchRefreshBackoff.swift; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		C20000000000000000000100 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C20000000000000000000101 /* XiaoTiduWatchComplications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XiaoTiduWatchComplications.swift; sourceTree = "<group>"; };
@@ -132,6 +146,7 @@
 		CB136BA2DDF9C8CA546568EF /* Pods-app.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-app.debug.xcconfig"; path = "Target Support Files/Pods-app/Pods-app.debug.xcconfig"; sourceTree = "<group>"; };
 		D63DACC3DD23B8AFF08D75DA /* libPods-app.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-app.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F0B708CDE560FD11EBCF698E /* Pods-XiaoTiduLiveActivities.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-XiaoTiduLiveActivities.release.xcconfig"; path = "Target Support Files/Pods-XiaoTiduLiveActivities/Pods-XiaoTiduLiveActivities.release.xcconfig"; sourceTree = "<group>"; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = app/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* app-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "app-Bridging-Header.h"; path = "app/app-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -146,6 +161,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A30000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9D0180DCC435E108A6F730 /* libPods-XiaoTiduLiveActivities.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A87CEB23B197166E963AE276 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -174,10 +197,6 @@
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* app-Bridging-Header.h */,
-				A20000000000000000000002 /* ToiletTimerLiveActivityModule.swift */,
-				A20000000000000000000003 /* ToiletTimerLiveActivityModule.m */,
-				A20000000000000000000007 /* WatchConnectivityModule.swift */,
-				A20000000000000000000008 /* WatchConnectivityModule.m */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -192,6 +211,7 @@
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				D63DACC3DD23B8AFF08D75DA /* libPods-app.a */,
+				66DD28B0000739BAE455E166 /* libPods-XiaoTiduLiveActivities.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -215,6 +235,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D44ECD00BBD95EEEA9FD9594 /* Pods */,
 				D7FA26599E3EF5C7BCD9B94A /* ExpoModulesProviders */,
+				9092CA136B35B9E5AB08DFA7 /* appUITests */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -228,15 +249,24 @@
 				A20000000000000000000006 /* XiaoTiduLiveActivities.appex */,
 				B20000000000000000000108 /* XiaoTiduWatchApp.app */,
 				C20000000000000000000102 /* XiaoTiduWatchComplications.appex */,
+				04DB67958511EC65B657530A /* appUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9092CA136B35B9E5AB08DFA7 /* appUITests */ = {
+			isa = PBXGroup;
+			children = (
+				78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */,
+			);
+			name = appUITests;
+			path = appUITests;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000001 /* XiaoTiduLiveActivities */ = {
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000004 /* Info.plist */,
-				A20000000000000000000001 /* ToiletTimerAttributes.swift */,
 				A20000000000000000000005 /* ToiletTimerLiveActivityWidget.swift */,
 			);
 			path = XiaoTiduLiveActivities;
@@ -249,8 +279,14 @@
 				B20000000000000000000110 /* XiaoTiduWatchApp.entitlements */,
 				B20000000000000000000109 /* Assets.xcassets */,
 				B20000000000000000000103 /* XiaoTiduWatchApp.swift */,
+				B20000000000000000000111 /* WatchConnectivityClient.swift */,
+				B20000000000000000000112 /* WatchOfflineEventQueue.swift */,
+				B20000000000000000000116 /* WatchRefreshBackoff.swift */,
 				B20000000000000000000102 /* WatchSessionManager.swift */,
+				B20000000000000000000113 /* WatchStateStore.swift */,
 				B20000000000000000000101 /* WatchTodayState.swift */,
+				B20000000000000000000114 /* WatchTrainingTimeline.swift */,
+				B20000000000000000000115 /* WatchToiletHapticTimeline.swift */,
 				B20000000000000000000104 /* WatchHomeView.swift */,
 				B20000000000000000000105 /* WatchTrainingView.swift */,
 				B20000000000000000000106 /* WatchHabitsView.swift */,
@@ -283,6 +319,8 @@
 			children = (
 				CB136BA2DDF9C8CA546568EF /* Pods-app.debug.xcconfig */,
 				52E6505BCF8CFA1159A3053E /* Pods-app.release.xcconfig */,
+				1237EEB76090072E7D1A0659 /* Pods-XiaoTiduLiveActivities.debug.xcconfig */,
+				F0B708CDE560FD11EBCF698E /* Pods-XiaoTiduLiveActivities.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -332,10 +370,29 @@
 			productReference = 13B07F961A680F5B00A75B9A /* app.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3DC4022754F494665569DED1 /* appUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3FE06963E55C1D881B91EEE5 /* Build configuration list for PBXNativeTarget "appUITests" */;
+			buildPhases = (
+				CABB6285111D62A9BF9B5ADB /* Sources */,
+				A87CEB23B197166E963AE276 /* Frameworks */,
+				A6572F40DF7FF68D386DD0D2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59DF71A83954351189BDB00B /* PBXTargetDependency */,
+			);
+			name = appUITests;
+			productName = appUITests;
+			productReference = 04DB67958511EC65B657530A /* appUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		A50000000000000000000001 /* XiaoTiduLiveActivities */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A70000000000000000000003 /* Build configuration list for PBXNativeTarget "XiaoTiduLiveActivities" */;
 			buildPhases = (
+				CFA493B7AA96070114C0F6A8 /* [CP] Check Pods Manifest.lock */,
 				A30000000000000000000001 /* Sources */,
 				A30000000000000000000002 /* Frameworks */,
 				A30000000000000000000003 /* Resources */,
@@ -425,6 +482,7 @@
 				A50000000000000000000001 /* XiaoTiduLiveActivities */,
 				B50000000000000000000100 /* XiaoTiduWatchApp */,
 				C50000000000000000000100 /* XiaoTiduWatchComplications */,
+				3DC4022754F494665569DED1 /* appUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -442,6 +500,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A30000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6572F40DF7FF68D386DD0D2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -566,6 +631,28 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-app/expo-configure-project.sh\"\n";
 		};
+		CFA493B7AA96070114C0F6A8 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-XiaoTiduLiveActivities-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 		FDB6D97B94426920E239F0FB /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -595,11 +682,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000001 /* ToiletTimerAttributes.swift in Sources */,
-				A10000000000000000000002 /* ToiletTimerLiveActivityModule.swift in Sources */,
-				A10000000000000000000003 /* ToiletTimerLiveActivityModule.m in Sources */,
-				A10000000000000000000007 /* WatchConnectivityModule.swift in Sources */,
-				A10000000000000000000008 /* WatchConnectivityModule.m in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				045FF9E6A11DE75CF0FF5FFB /* ExpoModulesProvider.swift in Sources */,
 			);
@@ -609,7 +691,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000004 /* ToiletTimerAttributes.swift in Sources */,
 				A10000000000000000000005 /* ToiletTimerLiveActivityWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -619,8 +700,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				B10000000000000000000103 /* XiaoTiduWatchApp.swift in Sources */,
+				B10000000000000000000111 /* WatchConnectivityClient.swift in Sources */,
+				B10000000000000000000112 /* WatchOfflineEventQueue.swift in Sources */,
+				B10000000000000000000116 /* WatchRefreshBackoff.swift in Sources */,
 				B10000000000000000000102 /* WatchSessionManager.swift in Sources */,
+				B10000000000000000000113 /* WatchStateStore.swift in Sources */,
 				B10000000000000000000101 /* WatchTodayState.swift in Sources */,
+				B10000000000000000000114 /* WatchTrainingTimeline.swift in Sources */,
+				B10000000000000000000115 /* WatchToiletHapticTimeline.swift in Sources */,
 				B10000000000000000000104 /* WatchHomeView.swift in Sources */,
 				B10000000000000000000105 /* WatchTrainingView.swift in Sources */,
 				B10000000000000000000106 /* WatchHabitsView.swift in Sources */,
@@ -637,9 +724,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CABB6285111D62A9BF9B5ADB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09F0E342BB1AEBE9DF460F24 /* GangGangGoUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		59DF71A83954351189BDB00B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = app;
+			target = 13B07F861A680F5B00A75B9A /* app */;
+			targetProxy = C29937DB6893D997C9BABD71 /* PBXContainerItemProxy */;
+		};
 		A60000000000000000000002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A50000000000000000000001 /* XiaoTiduLiveActivities */;
@@ -678,7 +779,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -710,7 +811,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -723,6 +824,27 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		74E03CB5A7E85F0F4D609185 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 0.2.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.appUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = app;
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -846,6 +968,7 @@
 		};
 		A70000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1237EEB76090072E7D1A0659 /* Pods-XiaoTiduLiveActivities.debug.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_MODULES = YES;
@@ -860,7 +983,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.liveactivities;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -873,6 +996,7 @@
 		};
 		A70000000000000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F0B708CDE560FD11EBCF698E /* Pods-XiaoTiduLiveActivities.release.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_MODULES = YES;
@@ -887,7 +1011,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.liveactivities;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -913,7 +1037,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.watchapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -943,7 +1067,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.watchapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -972,7 +1096,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.watchapp.complications;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1002,7 +1126,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.watchapp.complications;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1015,6 +1139,26 @@
 			};
 			name = Release;
 		};
+		F137AF1E525A48C6E61D9A01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 0.2.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kex.xiaotidu.appUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = app;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1023,6 +1167,15 @@
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
 				13B07F951A680F5B00A75B9A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3FE06963E55C1D881B91EEE5 /* Build configuration list for PBXNativeTarget "appUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				74E03CB5A7E85F0F4D609185 /* Release */,
+				F137AF1E525A48C6E61D9A01 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

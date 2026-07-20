@@ -69,8 +69,8 @@ export function getToiletStageCopy(stage: ToiletTimerStage): {
 export function getToiletLiveActivitySnapshot(durationSeconds: number): ToiletLiveActivitySnapshot {
   const normalizedSeconds = Math.max(0, Math.floor(durationSeconds));
   const stageKey = getToiletTimerStage(normalizedSeconds);
-  const nextCueSeconds = TOILET_TIMER_CUE_SECONDS.find((cueSeconds) => cueSeconds > normalizedSeconds)
-    ?? TOILET_TIMER_TARGET_SECONDS;
+  const nextCueSeconds =
+    TOILET_TIMER_CUE_SECONDS.find((cueSeconds) => cueSeconds > normalizedSeconds) ?? TOILET_TIMER_TARGET_SECONDS;
 
   return {
     nextCueSeconds,

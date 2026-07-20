@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import type { OpenAPIHono } from '@hono/zod-openapi';
 
 import { createAuthRoute } from '../modules/auth/auth.route.js';
 import { createHealthRoute } from '../modules/health/health.route.js';
@@ -12,12 +12,13 @@ import { createTeamsRoute } from '../modules/teams/teams.route.js';
 import { createMeRoute } from '../modules/users/me.route.js';
 import type { ApiRouteDependencies } from './types.js';
 
-export function registerRoutes(app: Hono, dependencies: ApiRouteDependencies) {
+export function registerRoutes(app: OpenAPIHono, dependencies: ApiRouteDependencies) {
   app.route('/', createHealthRoute({ databaseHealthChecker: dependencies.databaseHealthChecker }));
   app.route(
     '/auth',
     createAuthRoute({
       appleAuthService: dependencies.appleAuthService,
+      authSessionService: dependencies.authSessionService,
       authMiddleware: dependencies.authMiddleware,
       userRepository: dependencies.userRepository,
     }),

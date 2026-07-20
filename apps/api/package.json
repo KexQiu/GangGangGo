@@ -6,13 +6,17 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "docs:generate": "node --import tsx scripts/generate-openapi.ts",
+    "docs:check": "node --import tsx scripts/generate-openapi.ts --check",
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "test": "vitest run",
+    "test:ui:prepare": "tsx scripts/prepare-mobile-ui-test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.3",
+    "@hono/zod-openapi": "^1.4.0",
     "@xiaotidu/contracts": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.21",

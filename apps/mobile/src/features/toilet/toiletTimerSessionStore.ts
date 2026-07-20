@@ -2,6 +2,8 @@ import AsyncStorage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { notifyLocalDataChanged } from '../sync/localDataEvents';
+
 export type ActiveToiletTimerSession = {
   baseElapsedSeconds: number;
   isPaused: boolean;
@@ -21,57 +23,70 @@ type ToiletTimerSessionState = {
 
 export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
   persist(
-    (set) => ({
-      clearSession: () => set({ session: null }),
-      pauseSession: (elapsedSeconds) => set((state) => {
-        if (!state.session) {
-          return state;
-        }
+    (set, get) => ({
+      clearSession: () => {
+        if (!get().session) return;
+        set({ session: null });
+        notifyLocalDataChanged();
+      },
+      pauseSession: (elapsedSeconds) => {
+        if (!get().session) return;
+        set((state) => {
+          if (!state.session) return state;
 
-        return {
-          session: {
-            ...state.session,
-            baseElapsedSeconds: Math.max(0, Math.floor(elapsedSeconds)),
-            isPaused: true,
-            lastResumedAt: null,
-          },
-        };
-      }),
-      resumeSession: () => set((state) => {
-        if (!state.session) {
-          return state;
-        }
+          return {
+            session: {
+              ...state.session,
+              baseElapsedSeconds: Math.max(0, Math.floor(elapsedSeconds)),
+              isPaused: true,
+              lastResumedAt: null,
+            },
+          };
+        });
+        notifyLocalDataChanged();
+      },
+      resumeSession: () => {
+        if (!get().session) return;
+        set((state) => {
+          if (!state.session) return state;
 
-        return {
-          session: {
-            ...state.session,
-            isPaused: false,
-            lastResumedAt: new Date().toISOString(),
-          },
-        };
-      }),
+          return {
+            session: {
+              ...state.session,
+              isPaused: false,
+              lastResumedAt: new Date().toISOString(),
+            },
+          };
+        });
+        notifyLocalDataChanged();
+      },
       session: null,
-      setLiveActivityId: (activityId) => set((state) => {
-        if (!state.session) {
-          return state;
-        }
+      setLiveActivityId: (activityId) => {
+        if (!get().session) return;
+        set((state) => {
+          if (!state.session) return state;
 
-        return {
+          return {
+            session: {
+              ...state.session,
+              liveActivityId: activityId,
+            },
+          };
+        });
+        notifyLocalDataChanged();
+      },
+      startSession: (startedAt) => {
+        set({
           session: {
-            ...state.session,
-            liveActivityId: activityId,
+            baseElapsedSeconds: 0,
+            isPaused: false,
+            lastResumedAt: startedAt,
+            liveActivityId: null,
+            startedAt,
           },
-        };
-      }),
-      startSession: (startedAt) => set({
-        session: {
-          baseElapsedSeconds: 0,
-          isPaused: false,
-          lastResumedAt: startedAt,
-          liveActivityId: null,
-          startedAt,
-        },
-      }),
+        });
+        notifyLocalDataChanged();
+      },
     }),
     {
       name: 'xiaotidu-active-toilet-timer',
@@ -83,10 +98,7 @@ export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
   ),
 );
 
-export function getActiveToiletTimerElapsedSeconds(
-  session: ActiveToiletTimerSession | null,
-  now = new Date(),
-): number {
+export function getActiveToiletTimerElapsedSeconds(session: ActiveToiletTimerSession | null, now = new Date()): number {
   if (!session) {
     return 0;
   }

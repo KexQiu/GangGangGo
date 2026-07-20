@@ -1,16 +1,8 @@
-import type {
-  DailyShareSnapshot,
-  ShareSettings,
-} from '@xiaotidu/contracts';
+import type { DailyShareSnapshot, ShareSettings } from '@xiaotidu/contracts';
 
 import { ApiError } from '../../http/apiError.js';
 import type { CurrentUser } from '../users/userTypes.js';
-import {
-  applyShareSettings,
-  defaultShareSettings,
-  normalizeShareSettings,
-  toTeam,
-} from './team.mapper.js';
+import { applyShareSettings, defaultShareSettings, normalizeShareSettings, toTeam } from './team.mapper.js';
 import {
   createInviteExpiration,
   createInviteToken,
@@ -42,15 +34,17 @@ export function createMockTeamService(): TeamService {
   const snapshotsByUserAndDate = new Map<string, DailyShareSnapshot>();
 
   function currentTeamResponse(currentUser?: CurrentUser) {
-    if (
-      currentUser &&
-      !members.some((member) => member.user.id === currentUser.id && member.status !== 'removed')
-    ) {
+    if (currentUser && !members.some((member) => member.user.id === currentUser.id && member.status !== 'removed')) {
       return { team: null };
     }
 
     return {
-      team: team ? toTeam(team, members.filter((member) => member.status !== 'removed')) : null,
+      team: team
+        ? toTeam(
+            team,
+            members.filter((member) => member.status !== 'removed'),
+          )
+        : null,
     };
   }
 

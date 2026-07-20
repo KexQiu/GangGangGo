@@ -7,8 +7,7 @@ struct WatchTrainingView: View {
   @State private var trainingSession: WatchTrainingSession?
   @State private var completedTraining: WatchTrainingCompletion?
   @State private var showingCancelConfirmation = false
-
-  private let checkpointTick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+  @State private var phaseBoundaryTask: Task<Void, Never>?
 
   var body: some View {
     Group {
@@ -45,24 +44,38 @@ struct WatchTrainingView: View {
     } message: {
       Text("这组还没完成，结束后不会记入今日菊花抬。")
     }
-    .onReceive(checkpointTick) { date in
-      checkTrainingCheckpoint(at: date)
+    .onAppear {
+      scheduleNextTrainingBoundary()
+    }
+    .onDisappear {
+      cancelTrainingBoundary()
+    }
+    .onChange(of: session.isApplicationActive) { _, isActive in
+      if isActive {
+        scheduleNextTrainingBoundary()
+      } else {
+        cancelTrainingBoundary()
+      }
     }
   }
 
   private func startTraining() {
     let mode = currentSelectedMode
     selectedModeId = mode.id
-    trainingSession = WatchTrainingSession(mode: mode)
+    let session = WatchTrainingSession(mode: mode)
+    trainingSession = session
     WKInterfaceDevice.current().play(.start)
+    scheduleNextTrainingBoundary(for: session)
   }
 
   private func cancelTraining() {
+    cancelTrainingBoundary()
     trainingSession = nil
     WKInterfaceDevice.current().play(.click)
   }
 
   private func resetTraining() {
+    cancelTrainingBoundary()
     completedTraining = nil
     trainingSession = nil
   }
@@ -82,29 +95,55 @@ struct WatchTrainingView: View {
     currentSession.togglePause(at: now)
     trainingSession = currentSession
     WKInterfaceDevice.current().play(.click)
+    scheduleNextTrainingBoundary(for: currentSession)
   }
 
-  private func checkTrainingCheckpoint(at date: Date) {
-    guard var currentSession = trainingSession else {
+  private func scheduleNextTrainingBoundary(for session: WatchTrainingSession? = nil) {
+    cancelTrainingBoundary()
+    let currentSession = session ?? trainingSession
+    guard self.session.isApplicationActive,
+          let currentSession,
+          let boundary = currentSession.nextBoundary(after: Date()) else {
       return
     }
 
-    let snapshot = currentSession.snapshot(at: date)
-    if snapshot.isFinished {
-      finishTraining(currentSession)
-      return
-    }
+    let expectedStartDate = currentSession.startedAt
+    let delay = max(boundary.date.timeIntervalSinceNow, 0)
+    phaseBoundaryTask = Task { @MainActor in
+      do {
+        try await Task.sleep(for: .seconds(delay))
+      } catch {
+        return
+      }
 
-    guard !currentSession.isPaused, snapshot.phaseKey != currentSession.lastNotifiedPhaseKey else {
-      return
-    }
+      guard var activeSession = trainingSession,
+            activeSession.startedAt == expectedStartDate,
+            !activeSession.isPaused else {
+        return
+      }
 
-    currentSession.lastNotifiedPhaseKey = snapshot.phaseKey
-    trainingSession = currentSession
-    WKInterfaceDevice.current().play(snapshot.phase == .hold ? .directionUp : .click)
+      if boundary.isFinished {
+        finishTraining(activeSession)
+        return
+      }
+
+      if activeSession.lastNotifiedBoundaryKey != boundary.key, let phase = boundary.phase {
+        activeSession.lastNotifiedBoundaryKey = boundary.key
+        trainingSession = activeSession
+        WKInterfaceDevice.current().play(phase == .hold ? .directionUp : .click)
+      }
+
+      scheduleNextTrainingBoundary(for: activeSession)
+    }
+  }
+
+  private func cancelTrainingBoundary() {
+    phaseBoundaryTask?.cancel()
+    phaseBoundaryTask = nil
   }
 
   private func finishTraining(_ currentSession: WatchTrainingSession) {
+    cancelTrainingBoundary()
     trainingSession = nil
     WKInterfaceDevice.current().play(.success)
     session.sendTrainingCompleted(
@@ -216,35 +255,52 @@ private struct TrainingSessionContent: View {
   var onTogglePause: () -> Void
 
   var body: some View {
-    TimelineView(.periodic(from: session.startedAt, by: 0.25)) { context in
+    TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
       let snapshot = session.snapshot(at: context.date)
 
-      VStack(spacing: 10) {
-        Text(session.isPaused ? "已暂停" : snapshot.phase.title)
-          .font(.headline)
+      ScrollView(.vertical) {
+        VStack(spacing: 12) {
+          VStack(spacing: 10) {
+            Text(session.isPaused ? "已暂停" : snapshot.phase.title)
+              .font(.headline)
+              .frame(maxWidth: .infinity, minHeight: 20)
 
-        Text("\(snapshot.remainingSeconds)")
-          .font(.system(size: 44, weight: .bold, design: .rounded))
-          .monospacedDigit()
+            Text("\(snapshot.remainingSeconds)")
+              .font(.system(size: 44, weight: .bold, design: .rounded))
+              .monospacedDigit()
+              .frame(maxWidth: .infinity, minHeight: 52)
 
-        ProgressView(value: snapshot.progress)
-          .tint(.green)
+            ProgressView(value: snapshot.progress)
+              .tint(.green)
 
-        Text("第 \(snapshot.roundIndex + 1)/\(session.mode.rounds) 次 · \(session.mode.title)")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
+            Text("第 \(snapshot.roundIndex + 1)/\(session.mode.rounds) 次 · \(session.mode.title)")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
+              .frame(maxWidth: .infinity)
+          }
+          .frame(maxWidth: .infinity)
 
-        Button(session.isPaused ? "继续" : "暂停") {
-          onTogglePause()
+          HStack(spacing: 8) {
+            Button(session.isPaused ? "继续" : "暂停") {
+              onTogglePause()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .frame(maxWidth: .infinity, minHeight: 32)
+
+            Button("结束本组", role: .destructive) {
+              onCancel()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .frame(maxWidth: .infinity, minHeight: 32)
+          }
         }
-        .font(.caption)
-
-        Button("结束本组", role: .destructive) {
-          onCancel()
-        }
-        .font(.caption2)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
       }
-      .padding()
     }
   }
 }
@@ -278,172 +334,6 @@ private struct TrainingCompletionContent: View {
     }
     .padding()
   }
-}
-
-private struct WatchTrainingMode: Identifiable {
-  static let standardId = "standard"
-  static let standard = WatchTrainingMode(config: .init(id: standardId, holdSeconds: 5, restSeconds: 5, rounds: 12))
-
-  var id: String
-  var holdSeconds: Int
-  var restSeconds: Int
-  var rounds: Int
-
-  init(config: WatchTodayState.TrainingModeConfig) {
-    id = config.id
-    holdSeconds = max(config.holdSeconds, 1)
-    restSeconds = max(config.restSeconds, 1)
-    rounds = max(config.rounds, 1)
-  }
-
-  var title: String {
-    switch id {
-    case "beginner":
-      return "新手"
-    case "standard":
-      return "标准"
-    case "quick":
-      return "快速"
-    default:
-      return "自定义"
-    }
-  }
-
-  var subtitle: String {
-    switch id {
-    case "beginner":
-      return "轻轻来，慢一点"
-    case "standard":
-      return "日常节奏"
-    case "quick":
-      return "短促收放"
-    default:
-      return "\(holdSeconds) 秒抬 · \(restSeconds) 秒放"
-    }
-  }
-
-  var totalDurationSeconds: Int {
-    (holdSeconds + restSeconds) * rounds
-  }
-
-  static func modes(from configs: [WatchTodayState.TrainingModeConfig]) -> [WatchTrainingMode] {
-    let modes = configs.map(WatchTrainingMode.init(config:))
-    return modes.isEmpty ? [.standard] : modes
-  }
-}
-
-private enum WatchTrainingPhase {
-  case hold
-  case rest
-
-  var title: String {
-    switch self {
-    case .hold:
-      return "轻轻抬"
-    case .rest:
-      return "放松"
-    }
-  }
-
-  var key: String {
-    switch self {
-    case .hold:
-      return "hold"
-    case .rest:
-      return "rest"
-    }
-  }
-}
-
-private struct WatchTrainingSession {
-  let mode: WatchTrainingMode
-  let startedAt: Date
-  var pausedAt: Date?
-  var accumulatedPausedDuration: TimeInterval = 0
-  var lastNotifiedPhaseKey: String
-
-  init(mode: WatchTrainingMode, startedAt: Date = Date()) {
-    self.mode = mode
-    self.startedAt = startedAt
-    lastNotifiedPhaseKey = Self.phaseKey(roundIndex: 0, phase: .hold)
-  }
-
-  var isPaused: Bool {
-    pausedAt != nil
-  }
-
-  mutating func togglePause(at date: Date) {
-    if let pausedAt {
-      accumulatedPausedDuration += max(date.timeIntervalSince(pausedAt), 0)
-      self.pausedAt = nil
-    } else {
-      pausedAt = date
-    }
-  }
-
-  func snapshot(at date: Date) -> WatchTrainingSnapshot {
-    let totalDurationSeconds = mode.totalDurationSeconds
-    let elapsedSeconds = min(
-      max(Int(activeElapsedDuration(at: date).rounded(.down)), 0),
-      totalDurationSeconds
-    )
-
-    if elapsedSeconds >= totalDurationSeconds {
-      return WatchTrainingSnapshot(
-        elapsedSeconds: totalDurationSeconds,
-        isFinished: true,
-        phase: .rest,
-        phaseKey: "finished",
-        progress: 1,
-        remainingSeconds: 0,
-        roundIndex: max(mode.rounds - 1, 0)
-      )
-    }
-
-    let cycleSeconds = mode.holdSeconds + mode.restSeconds
-    let roundIndex = min(elapsedSeconds / cycleSeconds, max(mode.rounds - 1, 0))
-    let cycleElapsedSeconds = elapsedSeconds % cycleSeconds
-
-    let phase: WatchTrainingPhase
-    let remainingSeconds: Int
-    if cycleElapsedSeconds < mode.holdSeconds {
-      phase = .hold
-      remainingSeconds = mode.holdSeconds - cycleElapsedSeconds
-    } else {
-      phase = .rest
-      remainingSeconds = cycleSeconds - cycleElapsedSeconds
-    }
-
-    return WatchTrainingSnapshot(
-      elapsedSeconds: elapsedSeconds,
-      isFinished: false,
-      phase: phase,
-      phaseKey: Self.phaseKey(roundIndex: roundIndex, phase: phase),
-      progress: min(Double(elapsedSeconds) / Double(totalDurationSeconds), 1),
-      remainingSeconds: remainingSeconds,
-      roundIndex: roundIndex
-    )
-  }
-
-  private func activeElapsedDuration(at date: Date) -> TimeInterval {
-    let referenceDate = pausedAt ?? date
-    let elapsed = referenceDate.timeIntervalSince(startedAt) - accumulatedPausedDuration
-    return min(max(elapsed, 0), TimeInterval(mode.totalDurationSeconds))
-  }
-
-  private static func phaseKey(roundIndex: Int, phase: WatchTrainingPhase) -> String {
-    "\(roundIndex)-\(phase.key)"
-  }
-}
-
-private struct WatchTrainingSnapshot {
-  var elapsedSeconds: Int
-  var isFinished: Bool
-  var phase: WatchTrainingPhase
-  var phaseKey: String
-  var progress: Double
-  var remainingSeconds: Int
-  var roundIndex: Int
 }
 
 private struct WatchTrainingCompletion {

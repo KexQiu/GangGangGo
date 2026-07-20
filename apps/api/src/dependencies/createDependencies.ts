@@ -2,6 +2,11 @@ import { env } from '../config/env.js';
 import { createDatabaseClient, isDatabaseConfigured, type DatabaseClient } from '../db/client.js';
 import { createAppleJwtAuthService, createMockAppleAuthService } from '../modules/auth/appleAuthService.js';
 import {
+  createDrizzleAuthSessionService,
+  createMockAuthSessionService,
+  type AuthSessionService,
+} from '../modules/auth/authSessionService.js';
+import {
   createDrizzleEntitlementsService,
   createMockEntitlementsService,
   type EntitlementsService,
@@ -26,11 +31,7 @@ import {
   createMockReportService,
   type ReportService,
 } from '../modules/reports/reportService.js';
-import {
-  createDrizzleTeamService,
-  createMockTeamService,
-  type TeamService,
-} from '../modules/teams/teamService.js';
+import { createDrizzleTeamService, createMockTeamService, type TeamService } from '../modules/teams/teamService.js';
 import {
   createDrizzleUserRepository,
   createMockUserRepository,
@@ -39,6 +40,7 @@ import {
 
 export type ApiDependencies = {
   close: () => Promise<void>;
+  authSessionService: AuthSessionService;
   databaseClient?: DatabaseClient;
   entitlementsService: EntitlementsService;
   nudgeService: NudgeService;
@@ -54,6 +56,7 @@ export function createApiDependencies(): ApiDependencies {
     const teamService = createMockTeamService();
 
     return {
+      authSessionService: createMockAuthSessionService(),
       close: async () => {},
       entitlementsService: createMockEntitlementsService(),
       nudgeService: createMockNudgeService({
@@ -74,6 +77,7 @@ export function createApiDependencies(): ApiDependencies {
   });
 
   return {
+    authSessionService: createDrizzleAuthSessionService(databaseClient.db),
     close: async () => {
       await databaseClient.close();
     },

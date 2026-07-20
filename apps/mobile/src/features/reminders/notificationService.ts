@@ -1,16 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import {
-  buildSedentaryReminderDates,
-  getKegelReminderTimesOutsideQuietHours,
-  getReminderCopy,
-} from './reminderLogic';
-import {
-  type NotificationPermissionState,
-  type ReminderKind,
-  type ReminderSettings,
-} from './reminderTypes';
+import { buildSedentaryReminderDates, getKegelReminderTimesOutsideQuietHours, getReminderCopy } from './reminderLogic';
+import { type NotificationPermissionState, type ReminderKind, type ReminderSettings } from './reminderTypes';
 
 const NOTIFICATION_APP_KEY = 'xiaotidu';
 const NOTIFICATION_CHANNEL_ID = 'health-reminders';
@@ -111,9 +103,7 @@ export async function cancelReminderNotifications(): Promise<void> {
   });
 
   await Promise.all(
-    appNotifications.map((notification) =>
-      Notifications.cancelScheduledNotificationAsync(notification.identifier),
-    ),
+    appNotifications.map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
   );
 }
 

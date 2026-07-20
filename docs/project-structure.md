@@ -1,22 +1,23 @@
 # 小提督项目结构说明
 
-日期：2026-05-22
-阶段：当前 monorepo 工程结构
+日期：2026-07-13
+阶段：Architecture v2 / P1 优化后的 monorepo 工程结构
 
 ## 1. 总体结构
 
-当前仓库采用轻量 monorepo。移动端、后端和共享契约放在同一个仓库中，便于 v0.2 开始接入好友监督、会员权益和 Apple Watch 联动时共享类型与接口定义。
+当前仓库采用 pnpm monorepo。移动端、后端和共享运行时契约位于同一仓库，统一执行类型、lint、格式、测试、OpenAPI 漂移和 Apple 原生构建门禁。
 
 ```text
 .
 ├── apps/
-│   ├── mobile/              # v0.1 Expo App，当前主要交付物
-│   └── api/                 # v0.2 后端服务骨架
+│   ├── mobile/              # Expo App、iOS / Watch target 与本地 Expo Modules
+│   └── api/                 # Hono + Postgres + Drizzle 模块化 API
 ├── packages/
-│   └── contracts/           # 前后端共享类型与接口契约
+│   └── contracts/           # 前后端共享 Zod schema 与推导类型
 ├── docs/
-│   ├── v0.1/                # 当前完成版文档
-│   └── v0.2/                # 下一版本规划文档
+│   ├── architecture/        # ADR 与结构优化待办
+│   ├── v0.1/                # v0.1 归档文档
+│   └── v0.2/                # v0.2 需求、实现和验收文档
 ├── package.json             # monorepo 根脚本
 ├── pnpm-workspace.yaml      # pnpm workspace 配置
 └── pnpm-lock.yaml
@@ -27,8 +28,8 @@
 | 路径 | 包名 | 说明 |
 | --- | --- | --- |
 | `apps/mobile` | `@xiaotidu/mobile` | Expo + React Native 移动端 App |
-| `apps/api` | `@xiaotidu/api` | v0.2 后端服务骨架 |
-| `packages/contracts` | `@xiaotidu/contracts` | 前后端共享类型 |
+| `apps/api` | `@xiaotidu/api` | Hono + Drizzle 模块化 API |
+| `packages/contracts` | `@xiaotidu/contracts` | Zod 运行时契约与推导类型 |
 
 ## 2. 根目录职责
 
@@ -52,7 +53,7 @@ pnpm mobile:android
 pnpm mobile:dev-client
 pnpm api:dev
 pnpm api:start
-pnpm run typecheck
+pnpm check
 ```
 
 依赖安装应在仓库根目录执行：
@@ -67,12 +68,13 @@ pnpm install
 
 ```text
 apps/mobile/
-├── app.json
+├── app.config.ts
 ├── eas.json
 ├── package.json
 ├── tsconfig.json
-├── app/                    # Expo Router 页面
+├── app/                    # 只负责参数、导航和 feature screen 挂载
 ├── src/                    # 移动端业务源码
+├── modules/                # Live Activity、WatchConnectivity、SQLite 保护 Expo Modules
 ├── assets/                 # 图标、启动图、音效
 └── ios/                    # iOS 原生工程与 Live Activity 扩展
 ```
@@ -104,7 +106,8 @@ apps/mobile/app/
 ```text
 apps/mobile/src/
 ├── components/             # 通用 UI 组件
-├── features/               # 按功能域组织业务逻辑
+├── api/client/             # auth/users/teams/nudges/reports/push 等领域 client
+├── features/               # screen、section、hook、Query 与本地领域逻辑
 ├── navigation/             # 路由常量
 ├── storage/                # SQLite 初始化、迁移和 repository
 └── theme/                  # 深浅色主题 token 和 provider
@@ -122,24 +125,27 @@ apps/mobile/src/
 | `features/trends` | 最近小报告 7 天与 30 天统计、90 天高级小报告同步与展示 |
 | `features/settings` | App 设置、灵动岛计时、阶段音效开关 |
 
+云端状态由 TanStack Query 持有；Zustand 只保存登录会话、本地健康领域状态和短期 UI 状态。SQLite repository 按日期范围与复合游标分页，`SyncCoordinator` 通过 revision/event 防抖并保证 single-flight 与一次尾随补跑。
+
 ### 3.3 iOS 原生工程
 
 ```text
-apps/mobile/ios/
-├── app/
-│   ├── AppDelegate.swift
-│   ├── Info.plist
-│   ├── ToiletTimerLiveActivityModule.swift
-│   └── ToiletTimerLiveActivityModule.m
-├── XiaoTiduLiveActivities/
-│   ├── Info.plist
-│   ├── ToiletTimerAttributes.swift
-│   └── ToiletTimerLiveActivityWidget.swift
-├── app.xcodeproj/
-└── app.xcworkspace/
+apps/mobile/
+├── modules/
+│   ├── live-activity/
+│   ├── watch-connectivity/
+│   └── storage-protection/
+└── ios/
+    ├── app/
+    ├── XiaoTiduLiveActivities/
+    ├── XiaoTiduWatchApp/
+    ├── XiaoTiduWatchComplications/
+    ├── Tests/
+    ├── app.xcodeproj/
+    └── app.xcworkspace/
 ```
 
-iOS 原生能力包括 ActivityKit + WidgetKit Extension，用于蹲会儿灵动岛 / 锁屏 Live Activity。
+iOS 原生能力包括 ActivityKit + WidgetKit Extension、Watch App、Complication 和三个本地 Expo Modules。Live Activity 与 WatchConnectivity 保持独立类型化接口，Watch 侧进一步拆分 ViewModel、Connectivity client、state store 与 actor 离线队列。
 
 注意：
 
@@ -167,6 +173,9 @@ apps/mobile/assets/
     ├── toilet-warning-15.wav
     └── toilet-stop-20.wav
 ```
+
+PNG 的用途、重复关系、无损压缩与原生构建回归记录见
+[移动端图片资产审计](./architecture/mobile-assets.md)。
 
 ## 4. 后端结构
 
@@ -198,14 +207,15 @@ apps/api/
 | `GET` | `/health` | 服务健康检查 |
 | `GET` | `/health/db` | 数据库连通性检查 |
 | `POST` | `/auth/apple` | Apple 登录 |
-| `POST` | `/auth/logout` | 登出占位 |
+| `POST` | `/auth/refresh` | refresh session 轮换 |
+| `POST` | `/auth/logout` | 撤销当前 session |
 | `GET/PATCH` | `/me` | 当前用户信息读取和更新 |
 | `GET` | `/me/entitlements` | 会员权益 |
 | `POST/GET/PATCH` | `/teams/*` | 小队、成员和邀请操作 |
 | `GET/POST` | `/team-invites/*` | 邀请预览和接受邀请 |
 | `PUT` | `/share-settings` | 共享设置 |
 | `PUT` | `/share-snapshots/today` | 每日低敏共享快照 |
-| `GET/POST` | `/nudges/*` | 搭子提醒和回执 |
+| `GET/POST` | `/nudges/*` | 提醒线程、游标详情、发送和回执 |
 | `POST` | `/push-tokens` | Push token 同步 |
 | `POST` | `/subscriptions/*` | 订阅校验和恢复入口 |
 | `GET/PUT` | `/reports/*`、`/report-snapshots/*` | 高级报告和报告快照 |
@@ -215,8 +225,9 @@ apps/api/
 - `server.ts` 只负责启动 Hono 服务和关闭依赖。
 - `src/app/` 负责 request id、请求日志、错误处理和路由注册。
 - `src/dependencies/` 负责选择 mock 或 Drizzle 实现，避免散落在入口文件。
-- `src/modules/` 采用 feature-first 结构，把 route、schema、service、repository、mapper、mock 放在同一业务域内。
+- `src/modules/` 采用 feature-first 结构，把 route、service、repository、policy、mapper 和 mock 放在同一业务域内。
 - 所有 Hono route 已归入对应模块，`app/registerRoutes.ts` 只负责挂载路径，不承载业务逻辑。
+- route 直接注册共享 Zod schema 并生成 OpenAPI；service 编排事务；repository 负责 Drizzle；policy 保存无数据库依赖的业务规则。
 - `src/db/schema.ts` 是 Drizzle schema 兼容出口，实际表定义拆在 `src/db/schema/` 下。
 - 结构迁移必须保持 API path、响应格式、Drizzle 表名 / 字段名 / enum 名和 `packages/contracts` 类型稳定。
 
@@ -273,14 +284,19 @@ pnpm --filter @xiaotidu/api test
 共享契约位于 `packages/contracts`。
 
 ```text
-packages/contracts/
-├── package.json
-├── tsconfig.json
-└── src/
-    └── index.ts
+packages/contracts/src/
+├── common.ts
+├── auth.ts
+├── users.ts
+├── teams.ts
+├── nudges.ts
+├── reports.ts
+├── push.ts
+├── subscriptions.ts
+└── index.ts               # 仅重导出
 ```
 
-当前包含：
+每个领域以 Zod schema 为单一来源并通过 `z.infer` 导出类型，API 和移动端在运行时解析请求或响应。当前包含：
 
 - 会员状态：`ProStatus`
 - 搭子提醒类型：`BuddyNudgeType`
@@ -300,27 +316,17 @@ packages/contracts/
 每轮结构或代码调整后执行：
 
 ```bash
-pnpm run typecheck
+pnpm check
 pnpm --filter @xiaotidu/mobile exec expo install --check
-pnpm peers check
-plutil -lint apps/mobile/ios/app/Info.plist apps/mobile/ios/XiaoTiduLiveActivities/Info.plist
 git diff --check
 ```
 
 说明：
 
-- `pnpm run typecheck` 会递归检查 `@xiaotidu/mobile`、`@xiaotidu/api`、`@xiaotidu/contracts`。
+- `pnpm check` 会执行全仓类型、ESLint、Prettier、单元/集成测试和 OpenAPI 漂移检查。
 - `expo install --check` 需要针对移动端包执行。
-- iOS plist 检查只验证 plist 格式，不等价于完整 Xcode 构建。
+- 三个 Xcode scheme 由 GitHub Actions 的 macOS job 构建，真机能力仍按手动清单验收。
 
 ## 7. Git 注意事项
 
-本次从单 Expo 项目改成 monorepo 后，Git 会显示大量根目录文件删除，以及 `apps/mobile` 下的大量新增文件。这是目录迁移的正常现象。
-
-提交时建议把这次改动作为一次结构性提交，提交信息示例：
-
-```text
-Refactor project into monorepo
-```
-
-后续移动端文件均应在 `apps/mobile` 下修改，不再向根目录新增 `app/`、`src/`、`ios/` 或 `assets/`。
+移动端文件均在 `apps/mobile` 下修改，不向根目录新增 `app/`、`src/`、`ios/` 或 `assets/`。OpenAPI 文件是生成物，不手工编辑；更新路由或 contracts 后运行生成命令并提交结果。

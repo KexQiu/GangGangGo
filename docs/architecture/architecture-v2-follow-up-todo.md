@@ -1,0 +1,292 @@
+# Architecture v2 后续待办
+
+更新日期：2026-07-13  
+审计基线：`codex/architecture-v2` / `b1030b2` / Draft PR #1
+
+本文是 Architecture v2 集中优化完成后的唯一后续执行清单。它以代码、测试、CI 和现有文档的实际状态为准；旧的 [v0.2 总待办](../v0.2/todo-checklist.md) 继续记录产品规划，但其中与当前实现不符的勾选状态不再作为架构进度依据。
+
+## 状态和优先级
+
+- `P0`：合并当前 PR 前必须完成。
+- `P1`：原 Architecture v2 计划尚未完成，合并后应优先偿还。
+- `P2`：上线前需要完成的产品化、运维和合规工作。
+- `P3`：已经明确不在当前版本范围内，只有重新排期后才实施。
+- 每项只有在实现、自动化验证和必要的人工验收都有证据时才能勾选。
+
+## P0：关闭当前重构分支
+
+- [x] 修复 API 测试对 `DATABASE_URL` 的环境依赖。
+  - 现状：`apps/api/src/__tests__/app.test.ts` 中“数据库未配置”场景在 CI 已注入 Postgres 时仍期望 `503`，导致 `typescript` job 失败。
+  - 验收：该场景显式隔离环境变量，既不影响其他数据库测试，也不依赖执行顺序。
+  - 证据：2026-07-13 已在未设置和显式设置 `DATABASE_URL` 的两种环境下通过测试。
+- [x] 重新运行并通过 Draft PR #1 的全部 GitHub Actions。
+  - 当前状态：`apple-builds` 与 `typescript` 均已通过。
+  - 验收：Linux 类型检查、单元测试、Postgres 集成测试、OpenAPI 漂移检查和三个 Apple scheme 均为绿色。
+- [x] 在合并前再次执行最终本地门禁。
+  - 验收：`pnpm check`、Expo dependency check、三个 Xcode scheme 全部通过，工作区没有意外生成物。
+  - 证据：2026-07-13 本地门禁通过，更新 Expo 补丁版本后远端三个 Apple scheme 再次通过。
+
+## P1：代码结构
+
+### 移动端页面分层
+
+路由文件尚未做到只负责参数解析和导航，以下页面仍是大型单体文件：
+
+- [x] 拆分 `apps/mobile/app/trends/advanced.tsx`（约 1035 行）。
+- [x] 拆分 `apps/mobile/app/reminders/index.tsx`（约 977 行）。
+- [x] 拆分 `apps/mobile/app/index.tsx`（约 738 行）。
+- [x] 拆分 `apps/mobile/app/nudges/[userId]/index.tsx`（约 718 行）。
+- [x] 拆分 `apps/mobile/app/trends/index.tsx`（约 622 行）。
+- [x] 拆分 `apps/mobile/app/habits/index.tsx`（约 614 行）。
+- [x] 拆分 `apps/mobile/app/team/index.tsx`（约 596 行）。
+- [x] 拆分 `apps/mobile/app/watch/index.tsx`（约 537 行）。
+- [x] 拆分 `apps/mobile/app/toilet/index.tsx`（约 492 行）。
+- [x] 拆分 `apps/mobile/app/me/profile/index.tsx`（约 312 行）。
+- [x] 为上述页面建立对应 feature 目录，将 screen、section、hook 和样式按职责分离。
+  - 验收：路由文件只保留路由参数、导航配置和 feature screen 挂载；业务逻辑可独立测试；原则上单文件不超过约 300 行。
+  - 证据：9 个静态路由均缩减为 3 行挂载入口，提醒会话动态路由为 10 行并显式解析 `userId`；页面实现迁入 account/habits/nudges/reminders/team/today/toilet/trends/watch feature。复杂计时与提醒逻辑分别进入 hook，高级报告日历、趋势、首页、小队和 Watch 展示进入 section，纯展示计算进入 presentation。拆分区域除 301 行的纯样式表外均不超过 300 行；移动端类型检查、ESLint、格式检查和 37 项测试通过。
+
+### API 分层
+
+- [x] 为 team 领域建立 repository，移出 service 中的 Drizzle 查询。
+- [x] 为 nudge 领域建立 repository，移出 service 中的 Drizzle 查询。
+- [x] 为 report 领域建立 repository，统一批量写入和范围读取。
+- [x] 将队伍容量、单用户单小队、提醒限额和回执修改规则整理为无数据库依赖的 policy。
+- [x] 拆分约 550 行的 `teamService.ts` 和约 509 行的 `nudgeService.ts`。
+  - 验收：route 只处理 HTTP；service 只编排用例和事务；repository 只负责查询；policy 可通过纯单元测试验证。
+  - 证据：report service 已拆为范围/聚合编排与 repository，批量去重只触发一次持久化调用；team 与 nudge service 均通过事务作用域 repository 移除 Drizzle 依赖并降至约 300 行内。纯 policy 测试覆盖单用户单小队、四人容量、提醒额度和回执 30 分钟内只修改一次；提醒设置改为固定一次批量查询。
+
+### OpenAPI 单一来源
+
+- [x] 用 Hono Zod OpenAPI 路由定义替代 `apps/api/scripts/generate-openapi.ts` 中手工维护的 operations 列表。
+- [x] 让请求、响应和错误 schema 直接来自 `packages/contracts`。
+- [x] 保留生成命令和 CI 漂移检查，但删除路由与生成脚本之间的重复接口登记。
+  - 验收：新增或修改路由只需改路由声明和共享 schema；生成的 `openapi.json` 无人工编辑；快照测试通过。
+  - 证据：33 个真实路径、35 个 operations 均由 `OpenAPIHono` 注册表生成，手工 operations/schema 清单已删除；此前遗漏的数据库健康检查、成员删除与成员状态接口已自动进入文档。contracts 使用 Zod `id` 元数据生成 52 个复用组件，完整 OpenAPI 文档已有 Vitest 快照和现有 CI 漂移检查双重保护。
+
+### 移动端模块拆分
+
+- [x] 按 auth、users、teams、nudges、reports、push 拆分约 319 行的 API client。
+- [x] 拆分约 567 行的 nudge store，并在完成服务端状态迁移后删除不再需要的 store action。
+  - 证据：提醒服务端状态已迁入 `nudgeQueries.ts`，纯展示模型迁入 `nudgeModel.ts`，原 `nudgeStore.ts` 已删除。
+- [x] 为 Query hooks、mutation hooks 和 query key 建立稳定的 feature 级出口。
+  - 验收：调用方不直接依赖一个全局大 client 或大 store；模块职责与 contracts 领域划分一致。
+  - 证据：全局 `apiClient` 已删除，transport 认证回调与 auth/users/teams/nudges/reports/push/health/subscriptions 请求分层；各调用方只依赖对应领域 client。account/team/nudges/reports 分别导出 Query hooks、mutation hooks 和领域 query key，并提供 feature barrel 入口。
+
+## P1：移动端状态、存储与同步
+
+### 服务端状态边界
+
+- [x] 将用户资料、Pro 权益、小队、邀请、提醒线程和报告改为直接由 TanStack Query 持有。
+- [x] 从 Zustand 中移除云端状态副本及其手工刷新动作。
+  - 证据：`authStore` 只保留安全会话、hydration 和开发账号选择；原 `teamStore`、`nudgeStore`、`reportStore` 已删除，云端 GET 调用仅存在于 Query options/hooks。
+- [x] 删除移动端对 inbox/sent 双接口的依赖。
+  - 证据：`getNudgeInbox`、`getNudgeSent`、`loadInbox`、`loadSent` 及对应 query key 已删除，移动端旧引用扫描为空。
+- [x] 统一改用 `GET /nudges/threads` 和线程游标接口。
+  - 证据：首页、小队页、成员设置和提醒聊天均直接使用 TanStack Query；聊天使用 30 条游标分页。
+  - 验收：Zustand 只保留本地领域状态、短期 UI 状态和登录会话；云端数据没有双份缓存和双重失效逻辑。
+
+### SQLite 范围读取与分页
+
+- [x] 为训练、蹲会儿和习惯记录 repository 增加真正的 LIMIT/cursor 分页，而不只是 `sinceDateTime` 过滤。
+- [x] 移除启动时把最近 366 天记录整体装入 Zustand 的行为。
+- [x] 首页、趋势、报告和同步分别声明自己的最小数据窗口。
+- [x] 保持现有 `PRAGMA user_version` 迁移链可从旧版本无损升级。
+  - 验收：启动内存和查询量不随历史总量线性增长；90 天报告只读取 90 天；滚动加载不会重复或漏记录。
+  - 证据：启动窗口缩减为 30 天，报告独立分页读取 90 天；v3 迁移增加复合游标索引并覆盖 v0、v2 升级路径。
+
+### SyncCoordinator 完整闭环
+
+- [x] 用 revision/event 通知协调器，避免订阅完整历史数组。
+- [x] 补齐 bootstrap、前后台切换、快速 mutation 风暴和尾随补跑行为。
+- [x] 明确共享快照、报告和 Push 的独立失败状态与重试入口。
+  - 验收：一次本地操作风暴最多产生一个运行中同步和一个尾随同步；任一子任务失败不阻塞其他子任务。
+  - 证据：调度核心为 Watch、权益、共享快照、报告和 Push 分别记录状态并提供单任务重试；5 项自动化测试覆盖防抖、single-flight、尾随补跑、前后台、失败隔离和定向重试。
+
+### 提醒会话刷新
+
+- [x] 验证提醒列表和聊天仅在页面聚焦且 App 位于前台时启用 15 秒刷新。
+  - 证据：首页、小队页和聊天统一使用 `useForegroundFocus` 与 `shouldPollNudges`；条件矩阵已有自动化测试。
+- [x] 页面失焦、进入后台和用户切换时取消未完成请求。
+- [x] 完成游标翻页、去重、顺序稳定和新消息回填。
+  - 验收：后台无提醒轮询；快速切换页面不会把旧用户或旧线程响应写入当前缓存。
+  - 证据：统一取消函数由首页、小队页和聊天失焦/后台路径调用；QueryClient 测试覆盖 AbortSignal、用户 key 隔离、cursor 传递、跨页去重排序和 refetch 新消息回填。
+
+## P1：iOS、Watch 与桥接
+
+### Expo Modules 迁移
+
+- [x] 将 `ToiletTimerLiveActivityModule` 从旧 React Native bridge 迁移为本地 Expo Module。
+- [x] 保持 Live Activity 与 WatchConnectivity 为两个独立、类型化的 TypeScript 接口。
+- [x] 清理 `NativeModules.ToiletTimerLiveActivityModule` 和旧 `.m` 导出层。
+  - 验收：Expo prebuild/Xcode 工程可重复生成；模块在开发、预览和生产配置下均能编译。
+  - 证据：Live Activity 与 WatchConnectivity 分别位于独立本地 Expo Module；ActivityKit attributes 由 App 与 Live Activity extension 通过 pod subspec 共享。`app`、`XiaoTiduWatchApp`、`XiaoTiduWatchComplications` 三个 scheme 已通过无签名模拟器构建。
+
+### WatchSessionManager 解耦
+
+- [x] 将约 612 行的 `WatchSessionManager.swift` 拆成主线程 ViewModel。
+- [x] 提取独立 Connectivity client。
+- [x] 提取持久化 state store。
+- [x] 使用 actor 隔离离线事件队列和 ACK 状态。
+- [x] 缩小 Watch Expo Module 原生文件的职责。
+  - 验收：UI 状态、WCSession 生命周期、磁盘状态和队列并发可分别测试；重复事件保持幂等。
+  - 证据：Watch 侧拆为 `@MainActor` ViewModel、WCSession client、state store、actor 离线队列和纯时间线/退避策略；iPhone Expo Module 仅保留 JS API 声明，WCSession client 已独立。Swift 自动化覆盖重启恢复、重复入队、in-flight 去重、失败重试、ACK 持久清理、24 小时过期和 25 条上限。
+
+### Watch 计时与刷新
+
+- [x] 用下一阶段边界的一次性调度替代训练和蹲会儿每秒检查阶段 haptic。
+- [x] 保留 1 Hz 显示刷新，但确保它不承担阶段业务判断。
+- [x] 验证 WCSession 推送优先、首次失败后 5 秒重试、指数退避至 30 秒和后台零轮询。
+  - 验收：每个阶段只触发一次 haptic；切换前后台不会遗留 timer；后台网络和连接轮询计数为零。
+  - 证据：训练使用 `TimelineView` 以 1 Hz 渲染，蹲会儿 1 Hz tick 只更新时间；两者业务 haptic 均使用可取消的一次性 Task。纯 Swift 测试断言阶段边界唯一、暂停后边界顺延、5/10/20/30 秒退避、30 秒封顶及后台返回零调度。
+
+### 隐私日志约束
+
+- [x] 为日志建立统一脱敏入口，禁止 token、健康记录明细和完整 Watch payload。
+- [x] 为错误日志和调试日志增加自动化检查或测试。
+  - 验收：测试 fixture 中的敏感值不会出现在日志输出；生产构建关闭仅供开发的 payload 日志。
+  - 证据：API logger 使用字段级 redact；Watch 调试日志只记录 schema、日期、事件类型和 ID，完整状态/ACK 仅在 `__DEV__` 内存调试状态中保留，生产记录入口为 no-op。API 与移动端测试均注入敏感值并断言输出不包含原值。
+
+## P1：自动化测试与性能验收
+
+### Contracts
+
+- [x] 为 common、auth、users、teams、nudges、reports、push、subscriptions 的每个 schema 增加合法输入测试。
+- [x] 为长度、范围、枚举、日期、分页 cursor 和可选字段增加边界测试。
+- [x] 为未知字段、错误类型和跨字段冲突增加非法输入测试。
+- [x] 增加生成 OpenAPI 的快照测试。
+  - 证据：contracts 已按 8 个领域扩展为 98 项测试，覆盖全部导出 schema、真实日历日期、长度/数量上下界、枚举、cursor、可选字段、严格请求对象及 APNs/iOS 跨字段约束。API 的完整 OpenAPI 快照已随 schema 更新，并由 `docs:check` 验证生成物无漂移。
+
+### API 与真实 Postgres
+
+- [x] 覆盖登录、refresh 轮换、旧 token 失效、logout 撤销和 session 过期。
+- [x] 覆盖并发建队和“单用户只能处于一个未移除小队”。
+- [x] 补齐并发接受邀请、重复接受、邀请失效和满员边界。
+- [x] 覆盖并发提醒每日额度，证明不会超发或产生 500。
+- [x] 覆盖回执并发创建、幂等重试和只允许一次修改。
+- [x] 覆盖 90 条报告 bulk upsert、覆盖写入和 7/30/90 天汇总读取。
+- [x] 覆盖用户 upsert、权益、共享权限和日期范围过滤。
+  - 证据：Draft PR #2 的 PostgreSQL 17 CI 已运行 11 项真实数据库用例，API 合计 61 项测试全部通过。覆盖 session 完整生命周期、用户级锁与部分唯一索引、并发邀请容量、原子提醒计数、条件回执写入、报告批量覆盖、用户/权益/共享和日期过滤；高级报告由服务端生成 7/30/90 天三档汇总，重复回执不消耗修改次数。
+
+### 移动端
+
+- [x] API client：10 秒超时、外部 AbortSignal、非 JSON、Zod 校验失败和错误分类。
+- [x] 认证：401 只刷新一次，并发 401 合并刷新，刷新失败只清会话不删健康数据。
+  - 证据：transport 测试覆盖并发 401 single-flight、单次重放和刷新失败 unauthorized handler；账户缓存测试使用真实 SQLite 断言会话清理后本地健康记录仍存在。
+- [x] 重试：GET/幂等 PUT 最多自动重试一次，创建类 POST 不隐式重试。
+- [x] 同步：防抖、single-flight、尾随补跑和子任务失败隔离。
+- [x] Mock 用户切换：清云端 Query cache，保留 SQLite 健康记录。
+  - 证据：登录切换统一调用 `resetCloudQueryCacheForUser`；测试断言旧用户、权益和小队缓存清空，新用户写入，同时真实 SQLite 记录不变。
+- [x] SQLite：从 v0/v1 升级、失败回滚和数据无损。
+  - 证据：Node 22 内存 SQLite 直接执行生产迁移 SQL，覆盖 v0 全链路、带健康记录的 v1 升级，以及 ALTER 后故障回滚；版本、schema 和既有记录均有断言。
+- [x] 提醒：聚焦刷新、后台停刷、取消请求和游标分页。
+  - 审计基线：移动端只有 Watch 协议 fixture 的 2 个测试。
+  - 进展：2026-07-13 已增加 API transport、同步协调器、报告构建、分页、真实 SQLite 迁移、提醒模型/轮询/取消/游标、小队缓存、账户缓存和认证偏好迁移测试，移动端测试增至 35 项。
+
+### Watch
+
+- [x] 覆盖 schema v2 兼容、隐私字段过滤和错误 ACK。
+- [x] 覆盖离线队列重启恢复、重复事件幂等和发送成功清理。
+- [x] 覆盖训练剩余时间推导、阶段边界和一次性 haptic 调度。
+- [x] 覆盖连接失败退避、恢复连接和后台无轮询。
+  - 证据：TypeScript fixture/解析测试覆盖 v2、未知版本拒绝、隐私键和 rejected ACK；Swift 测试覆盖 v1 默认值兼容、队列生命周期、训练/蹲会儿时间线、退避重置与后台零调度，并纳入 Apple CI。
+
+### 性能门禁
+
+- [x] 为提醒列表和线程详情增加数据库语句计数断言，证明返回条数增加时查询数保持固定。
+- [x] 断言 90 天上传最多执行一次 bulk upsert SQL。
+- [x] 为 SQLite 大历史量建立启动、分页和 90 天报告基准。
+- [x] 为同步风暴和 Watch 后台行为建立可重复的计数型测试。
+  - 证据：Drizzle 客户端支持注入仅测试使用的查询计数器；Postgres CI 断言空/5 条提醒时收件箱均固定 1 条 SQL、会话详情均固定 3 条 SQL，90 天 bulk upsert 固定 1 条 SQL。移动端以 10 年、约 1.46 万条本地健康记录建立真实迁移 schema 基准，断言 30 天启动窗口和游标分页命中复合索引、跨页无重复，90 天报告固定 3 次范围查询并生成 90 条摘要，单项采用 1 秒宽松上限防止明显性能回退。SyncCoordinator 测试统计一次运行中任务和一次尾随补跑；Watch 退避策略测试统计前台延迟序列并断言后台不产生调度。
+
+## P1：文档、资产与人工验收
+
+### 文档校准
+
+- [x] 更新 `docs/development-roadmap.md`，删除已完成的“M1 下一步”和过期阶段描述。
+- [x] 校准 `docs/v0.2/todo-checklist.md`，修正 mock 用户、认证会话、并发保护、Postgres 测试设施和 OpenAPI 等已完成项。
+- [x] 更新移动端联调清单，删除“固定 mock 用户”和“上传冗余滚动汇总”等过期步骤。
+- [x] 在 API 分层完成后更新相关 ADR 和项目结构文档。
+  - 证据：路线图与后端/Watch 开发计划改为代码主链路完成后的生产化顺序；总待办已区分代码完成与人工验收，Mock 用户、refresh session、真实 Postgres、并发保护和自动化门禁状态已校准。移动联调清单改为 `mock-user-a/b/c` 双用户流程，报告上传只包含日级低敏字段；新增 API 分层 ADR，项目结构同步 contracts、repository/policy、TanStack Query、SyncCoordinator 和本地 Expo Modules。
+
+### 图片资产
+
+- [x] 盘点重复 PNG 和未使用资源。
+- [x] 对重复 PNG 进行无损压缩或去重。
+- [x] 确认 iOS App Icon 与 Android adaptive icon 各自保留正确语义和尺寸。
+- [x] 在 iOS 与 Android 构建中做视觉回归，确认不改变现有设计。
+  - 证据：已审计 22 个 PNG，未发现无引用资源；两组内容重复资源因 Expo 平台角色和 Xcode asset catalog scale 语义保留独立文件。全部 PNG 经 `pngcrush` 无损重编码并逐个比较解码像素，体积从 2,943,978 字节降至 2,333,017 字节。Android 临时 prebuild 的 Debug APK，以及 `app`、`XiaoTiduWatchApp`、`XiaoTiduWatchComplications` 三个 Xcode scheme 均构建通过；详细记录见 [移动端图片资产审计](./mobile-assets.md)。
+
+### 人工清单
+
+真机逐项执行与证据记录统一使用[真机验收总清单](./physical-device-acceptance-checklist.md)。
+
+- [x] 完成移动端双用户联调清单并记录日期、设备、账号和结果。
+- [ ] 完成 Watch 手动清单，包括离线恢复、重复事件、haptic、Complication 和系统刷新节奏。
+- [ ] 在真机验证 Live Activity 签名、启动、更新、结束和 App 重启恢复。
+- [x] 复核 development、preview、production 三套 entitlement 与 Push capability。
+  - 证据：2026-07-14 在 iPhone 17 Pro 模拟器使用 `mock-user-a/b` 完成登录、小队创建、邀请加入、账号切换、缓存隔离、会话恢复和本地健康数据保留的自动化联调；详细结果见 [P1 验收记录](./p1-acceptance-2026-07-14.md)。Watch 离线队列、重复事件、ACK、阶段调度和刷新退避自动化通过，配对模拟器构建、启动及状态接收通过。Live Activity 已增加启动时原生活动枚举、重关联、重复/孤儿清理和竞态尾随恢复，并由 7 项测试及 iOS 编译验证；签名安装和重启后的真机视觉结果仍保持未完成。动态 Expo 配置只接受 `development` / `production` 两种 APNs entitlement；EAS `development` 显式映射 development，`preview` 与 `production` 映射 production。三套生成配置均已检查。远程 Push 证书、付费 Apple Developer Team 和通知收发仍属于 P2 产品化，不在本轮伪装为已验收。
+
+## P2：上线前产品化
+
+### 安全、隐私与账号
+
+- [ ] 增加通用 API rate limit、请求体大小限制和安全响应头。
+- [ ] 完成账号删除、数据导出和服务端数据保留策略。
+- [ ] 完成隐私政策、健康数据边界和审计留痕流程。
+- [ ] 建立密钥轮换、数据库备份恢复和最小权限访问流程。
+
+### 生产环境与运维
+
+- [ ] 部署生产 API 与 Postgres，配置独立环境变量和 secrets。
+- [ ] 建立健康检查、结构化日志、指标、告警和备份演练。
+- [ ] 验证迁移发布、回滚、连接池和超时参数。
+- [ ] 建立生产故障和数据恢复手册。
+
+### Apple 能力与商业化
+
+- [ ] 接入真实 StoreKit 购买、恢复购买和取消后的权益生命周期。
+- [ ] 接入 App Store Server API 校验和 Server Notifications。
+- [ ] 接入真实 Sign in with Apple，并完成 Apple Developer capability。
+- [ ] 接入远程 Push 发送、回执、失败重试队列和生产证书。
+- [ ] 完成 Live Activity 真机签名和发布配置。
+- [ ] 完成 Paywall、邀请分享、提醒设置和 onboarding 的产品验收。
+
+### 发布准备
+
+- [ ] 准备 App Store 隐私申报、订阅说明、截图和审核备注。
+- [ ] 明确非医疗用途边界和用户可见说明。
+- [ ] 完成生产双用户、Watch、Push、购买和账号生命周期回归。
+
+## P3：明确延期范围
+
+以下内容不是当前 Architecture v2 PR 的缺陷，保持延期，重新立项后再拆任务：
+
+- [ ] Android 完整适配与发布。
+- [ ] 社区功能。
+- [ ] 自由聊天。
+- [ ] AI 功能。
+- [ ] 当前 v0.2 范围之外的新健康领域和 UI 重设计。
+
+## 已完成基线
+
+以下事项已落地，不应再以“待开发”重复排期；只保留上文列出的补测或验收工作：
+
+- 工程版本统一为 `0.2.0`，pnpm lockfile、ESLint、Prettier、根检查脚本、提交前检查和 GitHub Actions 已建立。
+- Contracts 已按领域拆分，并由 Zod schema 推导 TypeScript 类型。
+- 15 分钟 access token、可轮换/撤销 refresh session、SecureStore 和 logout 撤销已实现。
+- 数据库单一基线迁移、session/counter 表、关键索引、连接池配置和核心并发保护已实现。
+- 提醒线程接口、联表查询、报告 bulk upsert 和读取时汇总已实现。
+- 移动端 API 超时/取消/校验基础、TanStack Query、SyncCoordinator、SQLite 版本迁移和 90 天范围报告已实现。
+- 开发环境 mock-user-a/b/c 切换已实现。
+- Watch schema v2、共享 fixture、WatchConnectivity Expo Module、文件保护、1 Hz 显示刷新和前台退避重试已实现。
+- Live Activity 启动恢复已实现原生枚举、重关联、孤儿清理、缺失重建和状态竞态尾随协调。
+- 根 README、四份 ADR、动态 Expo 配置和生成式 OpenAPI 文档已建立。
+- 三个 Xcode scheme 已在本地和当前 Apple CI 中通过。
+
+## 推荐执行顺序
+
+1. 解锁并保持 Apple Watch 与配对 iPhone 靠近 Mac，完成 Watch 真机触感、三类 Complication 和前后台重连验收。
+2. 在可签名的 iPhone 真机完成 Live Activity 启动、更新、结束和 App 重启恢复验收。
+3. 运行最终 `pnpm check`、Expo dependency check 和三个 Xcode scheme，更新本验收记录。
+4. 合并 P1 后再进入 P2 生产化工作。

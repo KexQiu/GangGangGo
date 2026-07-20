@@ -1,11 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, updatedAt } from './common.js';
 
@@ -22,6 +16,8 @@ export const users = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex('users_apple_user_id_active_unique').on(table.appleUserId).where(sql`${table.deletedAt} is null`),
+    uniqueIndex('users_apple_user_id_active_unique')
+      .on(table.appleUserId)
+      .where(sql`${table.deletedAt} is null`),
   ],
 );

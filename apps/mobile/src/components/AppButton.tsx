@@ -33,7 +33,12 @@ export function AppButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, disabled && styles.disabled, pressed && !disabled && styles.pressed, style]}
+      style={({ pressed }) => [
+        styles.button,
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed,
+        style,
+      ]}
     >
       <Text style={styles.text}>{children}</Text>
     </Pressable>

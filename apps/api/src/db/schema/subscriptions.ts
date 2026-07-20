@@ -1,19 +1,7 @@
-import {
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, updatedAt } from './common.js';
-import {
-  autoRenewStatusEnum,
-  subscriptionEnvironmentEnum,
-  subscriptionStatusEnum,
-} from './enums.js';
+import { autoRenewStatusEnum, subscriptionEnvironmentEnum, subscriptionStatusEnum } from './enums.js';
 import { users } from './users.js';
 
 export const subscriptions = pgTable(

@@ -1,9 +1,11 @@
 import { buildWatchTodayState } from './watchStateBuilder';
+import { refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
 import { addWatchConnectivityEventListener, replyToWatchMessage, sendWatchTodayState } from './watchConnectivity';
 import { useWatchDebugStore } from './watchDebugStore';
 import { handleWatchEvent } from './watchEventHandler';
-import { type WatchEvent, type WatchSyncResult, type WatchTodayState } from './watchTypes';
+import { createInvalidWatchPayloadAck, extractWatchEvent } from './watchMessageParser';
+import { type WatchSyncResult, type WatchTodayState } from './watchTypes';
 
 let eventListenerStarted = false;
 
@@ -23,7 +25,7 @@ export async function refreshEntitlementsAndSyncWatchTodayState(
   const auth = useAuthStore.getState();
 
   if (auth.accessToken) {
-    await auth.refreshEntitlements();
+    await refreshEntitlementsQuery(auth.accessToken);
   }
 
   return syncWatchTodayState(now, source);
@@ -68,11 +70,7 @@ async function handleIncomingWatchPayload(payload: unknown) {
   const event = extractWatchEvent(payload);
 
   if (!event) {
-    const ack = {
-      eventId: 'unknown',
-      message: '手表消息格式不对。',
-      status: 'rejected',
-    } as const;
+    const ack = createInvalidWatchPayloadAck();
     useWatchDebugStore.getState().recordAck(ack);
     await replyToWatchMessage(replyId, ack);
     return;
@@ -90,31 +88,6 @@ async function handleIncomingWatchPayload(payload: unknown) {
   useWatchDebugStore.getState().recordAck(ackWithState);
   await replyToWatchMessage(replyId, ackWithState);
   await sendWatchTodayState(state);
-}
-
-function extractWatchEvent(payload: unknown): WatchEvent | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const maybeWrapped = payload as { event?: unknown; type?: unknown };
-  const candidate = maybeWrapped.type === 'watch_event' ? maybeWrapped.event : payload;
-
-  if (!candidate || typeof candidate !== 'object') {
-    return null;
-  }
-
-  const event = candidate as Partial<WatchEvent>;
-
-  if (typeof event.id !== 'string' || typeof event.type !== 'string' || typeof event.createdAt !== 'string') {
-    return null;
-  }
-
-  if (event.type !== 'training_completed' && event.type !== 'habit_toggled' && event.type !== 'toilet_timer_action') {
-    return null;
-  }
-
-  return event as WatchEvent;
 }
 
 function isWatchStateRequest(payload: unknown): boolean {

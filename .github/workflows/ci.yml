@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: xiaotidu_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/xiaotidu_test
+      JWT_SECRET: ci-only-secret-at-least-16-characters
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @xiaotidu/api db:migrate
+      - run: pnpm check
+      - run: pnpm --filter @xiaotidu/mobile exec expo install --check
+
+  apple-builds:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pod install
+        working-directory: apps/mobile/ios
+      - name: Build iPhone app
+        run: xcodebuild -workspace app.xcworkspace -scheme app -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+        working-directory: apps/mobile/ios
+      - name: Build Watch app
+        run: xcodebuild -workspace app.xcworkspace -scheme XiaoTiduWatchApp -sdk watchsimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+        working-directory: apps/mobile/ios
+      - name: Build Watch complication
+        run: xcodebuild -workspace app.xcworkspace -scheme XiaoTiduWatchComplications -sdk watchsimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+        working-directory: apps/mobile/ios
+      - name: Validate shared Watch protocol fixture
+        run: |
+          xcrun swiftc \
+            -module-cache-path /tmp/gangganggo-swift-module-cache \
+            XiaoTiduWatchApp/Models/WatchTodayState.swift \
+            Tests/WatchProtocolFixtureMain.swift \
+            -o /tmp/watch-protocol-fixture-test
+          /tmp/watch-protocol-fixture-test ../fixtures/watch-today-state-v2.json
+        working-directory: apps/mobile/ios
+      - name: Test Watch queue and timelines
+        run: |
+          xcrun swiftc \
+            -module-cache-path /tmp/gangganggo-swift-module-cache \
+            XiaoTiduWatchApp/Models/WatchTodayState.swift \
+            XiaoTiduWatchApp/Models/WatchTrainingTimeline.swift \
+            XiaoTiduWatchApp/Models/WatchToiletHapticTimeline.swift \
+            XiaoTiduWatchApp/Connectivity/WatchOfflineEventQueue.swift \
+            XiaoTiduWatchApp/Connectivity/WatchRefreshBackoff.swift \
+            Tests/WatchCoreTestMain.swift \
+            -o /tmp/watch-core-test
+          /tmp/watch-core-test
+        working-directory: apps/mobile/ios

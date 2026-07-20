@@ -1,13 +1,10 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import type { UpdateUserProfileRequest } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
 import { users } from '../../db/schema.js';
-import {
-  deserializeAvatarConfig,
-  serializeAvatarConfig,
-} from './avatarConfig.js';
+import { deserializeAvatarConfig, serializeAvatarConfig } from './avatarConfig.js';
 import type { CurrentUser } from './userTypes.js';
 import { mockCurrentUser } from './userTypes.js';
 
@@ -36,10 +33,7 @@ export function createMockUserRepository(): UserRepository {
     const user: CurrentUser = {
       appleUserId: input.appleUserId,
       avatarUrl: null,
-      id:
-        index === 1
-          ? mockCurrentUser.id
-          : `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      id: index === 1 ? mockCurrentUser.id : `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
       nickname: input.nickname ?? (index === 1 ? mockCurrentUser.nickname : `小提督用户 ${index}`),
       timezone: 'Asia/Shanghai',
     };
@@ -127,38 +121,27 @@ export function createDrizzleUserRepository(db: Database): UserRepository {
       return toCurrentUser(updatedUser);
     },
     async upsertFromApple(input) {
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(and(eq(users.appleUserId, input.appleUserId), isNull(users.deletedAt)))
-        .limit(1);
-
-      if (existingUser) {
-        const [updatedUser] = await db
-          .update(users)
-          .set({
-            nickname: input.nickname ?? existingUser.nickname,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, existingUser.id))
-          .returning();
-
-        return toCurrentUser(updatedUser ?? existingUser);
-      }
-
-      const [createdUser] = await db
+      const [user] = await db
         .insert(users)
         .values({
           appleUserId: input.appleUserId,
           nickname: input.nickname,
         })
+        .onConflictDoUpdate({
+          set: {
+            nickname: input.nickname ?? sql`${users.nickname}`,
+            updatedAt: new Date(),
+          },
+          target: users.appleUserId,
+          targetWhere: sql`${users.deletedAt} is null`,
+        })
         .returning();
 
-      if (!createdUser) {
+      if (!user) {
         throw new Error('Failed to create user.');
       }
 
-      return toCurrentUser(createdUser);
+      return toCurrentUser(user);
     },
   };
 }

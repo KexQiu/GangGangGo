@@ -1,6 +1,8 @@
 import { isHabitLevel } from '../../features/habits/habitLogic';
 import { type HabitCheckIn } from '../../features/habits/habitTypes';
 import { initializeDatabase } from '../db';
+import { normalizePageSize, type Page } from '../pagination';
+import { habitCheckInPageSql } from './pageQueries';
 
 type HabitCheckInRow = {
   bowel: string | null;
@@ -9,6 +11,13 @@ type HabitCheckInRow = {
   movement: string | null;
   updated_at: string;
   water: string | null;
+};
+
+export type HabitCheckInPageOptions = {
+  cursor?: string;
+  fromDate?: string;
+  limit?: number;
+  toDateExclusive?: string;
 };
 
 export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
@@ -49,23 +58,23 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
   );
 }
 
-export async function listHabitCheckIns(): Promise<HabitCheckIn[]> {
+export async function listHabitCheckInsPage(
+  options: HabitCheckInPageOptions = {},
+): Promise<Page<HabitCheckIn, string>> {
   const db = await initializeDatabase();
-  const rows = await db.getAllAsync<HabitCheckInRow>(
-    `
-      SELECT
-        date,
-        water,
-        fiber,
-        movement,
-        bowel,
-        updated_at
-      FROM habit_checkins
-      ORDER BY date DESC;
-    `,
-  );
+  const limit = normalizePageSize(options.limit);
+  const rows = await db.getAllAsync<HabitCheckInRow>(habitCheckInPageSql, {
+    $cursorDate: options.cursor ?? null,
+    $fromDate: options.fromDate ?? null,
+    $queryLimit: limit + 1,
+    $toDateExclusive: options.toDateExclusive ?? null,
+  });
+  const pageRows = rows.slice(0, limit);
 
-  return rows.map(rowToHabitCheckIn);
+  return {
+    items: pageRows.map(rowToHabitCheckIn),
+    nextCursor: rows.length > limit ? (pageRows.at(-1)?.date ?? null) : null,
+  };
 }
 
 function rowToHabitCheckIn(row: HabitCheckInRow): HabitCheckIn {

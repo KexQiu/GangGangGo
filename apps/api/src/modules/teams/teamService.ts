@@ -1,5 +1,3 @@
-import { and, eq, gt, inArray, isNull, ne } from 'drizzle-orm';
-
 import type {
   AcceptTeamInviteRequest,
   AcceptTeamInviteResponse,
@@ -17,23 +15,12 @@ import type {
 } from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
-import {
-  dailyShareSnapshots,
-  shareSettings,
-  teamInvites,
-  teamMembers,
-  teams,
-  users,
-} from '../../db/schema.js';
 import { ApiError } from '../../http/apiError.js';
-import { deserializeAvatarConfig } from '../users/avatarConfig.js';
 import type { CurrentUser } from '../users/userTypes.js';
 import {
   applyShareSettings,
   defaultShareSettings,
   normalizeShareSettings,
-  toDailyShareSnapshot,
-  toShareSettings,
   toTeam,
   toTeamMember,
 } from './team.mapper.js';
@@ -41,12 +28,16 @@ import {
   createInviteExpiration,
   createInviteToken,
   createInviteUrl,
+  ensureCanCreateTeam,
   ensureCanInvite,
+  ensureCanJoinTeam,
   ensureInviteIsUsable,
   ensureOwner,
+  ensureTeamCapacity,
   hashInviteToken,
   normalizeTeamName,
 } from './team.policy.js';
+import { createDrizzleTeamRepository, type TeamRepository } from './team.repository.js';
 import type { MemberRecord } from './team.types.js';
 
 export type TeamService = {
@@ -66,10 +57,7 @@ export type TeamService = {
     currentUser: CurrentUser,
     status: Extract<TeamMemberStatus, 'active' | 'paused'>,
   ) => Promise<TeamResponse>;
-  updateShareSettings: (
-    currentUser: CurrentUser,
-    input: UpdateShareSettingsRequest,
-  ) => Promise<ShareSettingsResponse>;
+  updateShareSettings: (currentUser: CurrentUser, input: UpdateShareSettingsRequest) => Promise<ShareSettingsResponse>;
   updateTeam: (currentUser: CurrentUser, input: UpdateTeamRequest) => Promise<TeamResponse>;
   upsertDailyShareSnapshot: (
     currentUser: CurrentUser,
@@ -79,68 +67,16 @@ export type TeamService = {
 
 export { createMockTeamService } from './team.mock.js';
 
-export function createDrizzleTeamService(db: Database): TeamService {
-  async function findCurrentTeamRecord(currentUser: CurrentUser) {
-    const [row] = await db
-      .select({
-        archivedAt: teams.archivedAt,
-        id: teams.id,
-        name: teams.name,
-        ownerUserId: teams.ownerUserId,
-      })
-      .from(teamMembers)
-      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(
-        and(
-          eq(teamMembers.userId, currentUser.id),
-          ne(teamMembers.status, 'removed'),
-          isNull(teams.archivedAt),
-        ),
-      )
-      .limit(1);
-
-    return row ?? null;
-  }
-
-  async function listMembers(teamId: string): Promise<MemberRecord[]> {
-    const rows = await db
-      .select({
-        avatarUrl: users.avatarUrl,
-        displayName: teamMembers.displayName,
-        id: teamMembers.id,
-        joinedAt: teamMembers.joinedAt,
-        nickname: users.nickname,
-        role: teamMembers.role,
-        status: teamMembers.status,
-        userId: users.id,
-      })
-      .from(teamMembers)
-      .innerJoin(users, eq(teamMembers.userId, users.id))
-      .where(and(eq(teamMembers.teamId, teamId), ne(teamMembers.status, 'removed'), isNull(users.deletedAt)));
-
-    return rows.map((row) => ({
-      displayName: row.displayName,
-      id: row.id,
-      joinedAt: row.joinedAt,
-      role: row.role,
-      status: row.status,
-      user: {
-        avatarUrl: deserializeAvatarConfig(row.avatarUrl),
-        id: row.userId,
-        nickname: row.nickname,
-      },
-    }));
-  }
-
+export function createTeamService(repository: TeamRepository): TeamService {
   async function getRequiredTeam(currentUser: CurrentUser) {
-    const teamRecord = await findCurrentTeamRecord(currentUser);
+    const teamRecord = await repository.findCurrentTeam(currentUser.id);
 
     if (!teamRecord) {
       throw new ApiError(404, 'not_found', '还没有小队。');
     }
 
     return {
-      members: await listMembers(teamRecord.id),
+      members: await repository.listMembers(teamRecord.id),
       teamRecord,
     };
   }
@@ -156,111 +92,69 @@ export function createDrizzleTeamService(db: Database): TeamService {
   }
 
   async function findUsableInviteByToken(token: string) {
-    const tokenHash = hashInviteToken(token);
-    const [invite] = await db
-      .select({
-        acceptedAt: teamInvites.acceptedAt,
-        expiresAt: teamInvites.expiresAt,
-        id: teamInvites.id,
-        inviterNickname: users.nickname,
-        inviterUserId: teamInvites.inviterUserId,
-        revokedAt: teamInvites.revokedAt,
-        teamArchivedAt: teams.archivedAt,
-        teamId: teams.id,
-        teamName: teams.name,
-      })
-      .from(teamInvites)
-      .innerJoin(teams, eq(teamInvites.teamId, teams.id))
-      .innerJoin(users, eq(teamInvites.inviterUserId, users.id))
-      .where(and(eq(teamInvites.tokenHash, tokenHash), isNull(teams.archivedAt), isNull(users.deletedAt)))
-      .limit(1);
+    const invite = await repository.findInviteByTokenHash(hashInviteToken(token));
 
     if (!invite) {
       throw new ApiError(404, 'not_found', '没有找到这个邀请。');
     }
 
     ensureInviteIsUsable(invite);
-
     return invite;
+  }
+
+  async function getCurrentTeam(currentUser: CurrentUser): Promise<TeamResponse> {
+    const teamRecord = await repository.findCurrentTeam(currentUser.id);
+
+    if (!teamRecord) {
+      return { team: null };
+    }
+
+    return {
+      team: toTeam(teamRecord, await repository.listMembers(teamRecord.id)),
+    };
   }
 
   return {
     async acceptInvite(currentUser, token, input) {
       const invite = await findUsableInviteByToken(token);
-      const existingTeam = await findCurrentTeamRecord(currentUser);
+      ensureCanJoinTeam(Boolean(await repository.findCurrentTeam(currentUser.id)));
 
-      if (existingTeam) {
-        throw new ApiError(409, 'conflict', '你已经在一个小队里了。');
-      }
-
-      const currentMembers = await listMembers(invite.teamId);
-
-      if (currentMembers.length >= 4) {
-        throw new ApiError(409, 'conflict', '小队已经满员了。');
-      }
-
-      await db.transaction(async (transaction) => {
+      await repository.withTransaction(async (transaction) => {
         const now = new Date();
-        const [acceptedInvite] = await transaction
-          .update(teamInvites)
-          .set({
-            acceptedAt: now,
-            acceptedByUserId: currentUser.id,
-          })
-          .where(
-            and(
-              eq(teamInvites.id, invite.id),
-              isNull(teamInvites.acceptedAt),
-              isNull(teamInvites.revokedAt),
-              gt(teamInvites.expiresAt, now),
-            ),
-          )
-          .returning({
-            id: teamInvites.id,
-          });
+        await transaction.lockUser(currentUser.id);
+        await transaction.lockTeam(invite.teamId);
+        ensureCanJoinTeam(Boolean(await transaction.findCurrentMembershipId(currentUser.id)));
+        ensureTeamCapacity(await transaction.countCurrentMembers(invite.teamId));
 
-        if (!acceptedInvite) {
+        if (!(await transaction.acceptInvite(invite.id, currentUser.id, now))) {
           throw new ApiError(409, 'conflict', '这个邀请已经不能使用了。');
         }
 
-        await transaction.insert(teamMembers).values({
+        await transaction.insertMember({
           displayName: input.displayName ?? currentUser.nickname,
           role: 'buddy',
-          status: 'active',
           teamId: invite.teamId,
           userId: currentUser.id,
         });
-
-        await transaction.insert(shareSettings).values({
-          ...normalizeShareSettings(input.shareSettings),
-          teamId: invite.teamId,
-          userId: currentUser.id,
-        });
-
+        await transaction.insertShareSettings(
+          invite.teamId,
+          currentUser.id,
+          normalizeShareSettings(input.shareSettings),
+        );
       });
 
-      return this.getCurrentTeam(currentUser);
+      return getCurrentTeam(currentUser);
     },
     async createInvite(currentUser) {
       const { members, teamRecord } = await getRequiredTeam(currentUser);
-
       ensureCanInvite(currentUser, teamRecord, members.length);
-
       const token = createInviteToken();
-      const expiresAt = createInviteExpiration();
-      const [invite] = await db
-        .insert(teamInvites)
-        .values({
-          expiresAt,
-          inviterUserId: currentUser.id,
-          teamId: teamRecord.id,
-          tokenHash: hashInviteToken(token),
-        })
-        .returning();
-
-      if (!invite) {
-        throw new Error('Failed to create team invite.');
-      }
+      const invite = await repository.createInvite({
+        expiresAt: createInviteExpiration(),
+        inviterUserId: currentUser.id,
+        teamId: teamRecord.id,
+        tokenHash: hashInviteToken(token),
+      });
 
       return {
         expiresAt: invite.expiresAt.toISOString(),
@@ -270,74 +164,34 @@ export function createDrizzleTeamService(db: Database): TeamService {
       };
     },
     async createTeam(currentUser, input) {
-      const existingTeam = await findCurrentTeamRecord(currentUser);
-
-      if (existingTeam) {
-        throw new ApiError(409, 'conflict', '你已经有一个小队了。');
-      }
-
+      ensureCanCreateTeam(Boolean(await repository.findCurrentTeam(currentUser.id)));
       const teamName = normalizeTeamName(input.name);
 
-      await db.transaction(async (transaction) => {
-        const [createdTeam] = await transaction
-          .insert(teams)
-          .values({
-            name: teamName,
-            ownerUserId: currentUser.id,
-          })
-          .returning();
-
-        if (!createdTeam) {
-          throw new Error('Failed to create team.');
-        }
-
-        await transaction.insert(teamMembers).values({
+      await repository.withTransaction(async (transaction) => {
+        await transaction.lockUser(currentUser.id);
+        ensureCanCreateTeam(Boolean(await transaction.findCurrentMembershipId(currentUser.id)));
+        const createdTeam = await transaction.createTeam(currentUser.id, teamName);
+        await transaction.insertMember({
           displayName: currentUser.nickname,
           role: 'owner',
-          status: 'active',
           teamId: createdTeam.id,
           userId: currentUser.id,
         });
-
-        await transaction.insert(shareSettings).values({
-          teamId: createdTeam.id,
-          userId: currentUser.id,
-        });
+        await transaction.insertShareSettings(createdTeam.id, currentUser.id);
       });
 
-      return this.getCurrentTeam(currentUser);
+      return getCurrentTeam(currentUser);
     },
-    async getCurrentTeam(currentUser) {
-      const teamRecord = await findCurrentTeamRecord(currentUser);
-
-      if (!teamRecord) {
-        return { team: null };
-      }
-
-      return {
-        team: toTeam(teamRecord, await listMembers(teamRecord.id)),
-      };
-    },
+    getCurrentTeam,
     async getCurrentTeamSnapshots(currentUser, date) {
       const { members, teamRecord } = await getRequiredTeam(currentUser);
       const memberUserIds = members.map((member) => member.user.id);
-      const settingsRows = await db
-        .select()
-        .from(shareSettings)
-        .where(eq(shareSettings.teamId, teamRecord.id));
-      const snapshotRows = await db
-        .select()
-        .from(dailyShareSnapshots)
-        .where(
-          and(
-            eq(dailyShareSnapshots.date, date),
-            inArray(dailyShareSnapshots.userId, memberUserIds),
-          ),
-        );
-      const settingsByUserId = new Map(settingsRows.map((row) => [row.userId, toShareSettings(row)]));
-      const snapshotsByUserId = new Map(
-        snapshotRows.map((row) => [row.userId, toDailyShareSnapshot(row)]),
-      );
+      const [settingsRows, snapshotRows] = await Promise.all([
+        repository.listShareSettings(teamRecord.id),
+        repository.listDailyShareSnapshots(date, memberUserIds),
+      ]);
+      const settingsByUserId = new Map(settingsRows.map((row) => [row.userId, row.settings]));
+      const snapshotsByUserId = new Map(snapshotRows.map((row) => [row.userId, row.snapshot]));
 
       return {
         date,
@@ -358,47 +212,21 @@ export function createDrizzleTeamService(db: Database): TeamService {
       const currentMember = requireMember(members, currentUser);
       const now = new Date();
 
-      await db.transaction(async (transaction) => {
+      await repository.withTransaction(async (transaction) => {
         if (currentMember.role === 'owner') {
-          await transaction
-            .update(teams)
-            .set({
-              archivedAt: now,
-              updatedAt: now,
-            })
-            .where(eq(teams.id, teamRecord.id));
-
-          await transaction
-            .update(teamMembers)
-            .set({
-              removedAt: now,
-              status: 'removed',
-            })
-            .where(eq(teamMembers.teamId, teamRecord.id));
+          await transaction.archiveTeam(teamRecord.id, now);
+          await transaction.removeAllMembers(teamRecord.id, now);
         } else {
-          await transaction
-            .update(teamMembers)
-            .set({
-              removedAt: now,
-              status: 'removed',
-            })
-            .where(eq(teamMembers.id, currentMember.id));
+          await transaction.removeMember(currentMember.id, now);
         }
 
-        await transaction
-          .update(shareSettings)
-          .set({
-            paused: true,
-            updatedAt: now,
-          })
-          .where(and(eq(shareSettings.teamId, teamRecord.id), eq(shareSettings.userId, currentUser.id)));
+        await transaction.pauseShareSettings(teamRecord.id, currentUser.id, now);
       });
 
-      return this.getCurrentTeam(currentUser);
+      return getCurrentTeam(currentUser);
     },
     async previewInvite(token) {
       const invite = await findUsableInviteByToken(token);
-
       return {
         expiresAt: invite.expiresAt.toISOString(),
         inviterNickname: invite.inviterNickname,
@@ -407,9 +235,7 @@ export function createDrizzleTeamService(db: Database): TeamService {
     },
     async removeMember(currentUser, memberId) {
       const { members, teamRecord } = await getRequiredTeam(currentUser);
-
       ensureOwner(currentUser, teamRecord);
-
       const member = members.find((item) => item.id === memberId);
 
       if (!member) {
@@ -421,137 +247,45 @@ export function createDrizzleTeamService(db: Database): TeamService {
       }
 
       const now = new Date();
-
-      await db.transaction(async (transaction) => {
-        await transaction
-          .update(teamMembers)
-          .set({
-            removedAt: now,
-            status: 'removed',
-          })
-          .where(eq(teamMembers.id, member.id));
-
-        await transaction
-          .update(shareSettings)
-          .set({
-            paused: true,
-            updatedAt: now,
-          })
-          .where(and(eq(shareSettings.teamId, teamRecord.id), eq(shareSettings.userId, member.user.id)));
+      await repository.withTransaction(async (transaction) => {
+        await transaction.removeMember(member.id, now);
+        await transaction.pauseShareSettings(teamRecord.id, member.user.id, now);
       });
 
-      return this.getCurrentTeam(currentUser);
+      return getCurrentTeam(currentUser);
     },
     async setCurrentMemberStatus(currentUser, status) {
       const { members, teamRecord } = await getRequiredTeam(currentUser);
       const currentMember = requireMember(members, currentUser);
       const now = new Date();
-
-      await db.transaction(async (transaction) => {
-        await transaction
-          .update(teamMembers)
-          .set({
-            pausedAt: status === 'paused' ? now : null,
-            status,
-          })
-          .where(eq(teamMembers.id, currentMember.id));
-
-        await transaction
-          .insert(shareSettings)
-          .values({
-            paused: status === 'paused',
-            teamId: teamRecord.id,
-            userId: currentUser.id,
-          })
-          .onConflictDoUpdate({
-            set: {
-              paused: status === 'paused',
-              updatedAt: now,
-            },
-            target: [shareSettings.teamId, shareSettings.userId],
-          });
+      await repository.withTransaction(async (transaction) => {
+        await transaction.setMemberStatus(currentMember.id, status, now);
+        await transaction.upsertMemberSharePause(teamRecord.id, currentUser.id, status === 'paused', now);
       });
 
-      return this.getCurrentTeam(currentUser);
+      return getCurrentTeam(currentUser);
     },
     async updateShareSettings(currentUser, input) {
       const { teamRecord } = await getRequiredTeam(currentUser);
-      const [settings] = await db
-        .insert(shareSettings)
-        .values({
-          ...input,
-          teamId: teamRecord.id,
-          userId: currentUser.id,
-        })
-        .onConflictDoUpdate({
-          set: {
-            ...input,
-            updatedAt: new Date(),
-          },
-          target: [shareSettings.teamId, shareSettings.userId],
-        })
-        .returning();
-
-      if (!settings) {
-        throw new Error('Failed to update share settings.');
-      }
-
       return {
-        settings: toShareSettings(settings),
+        settings: await repository.upsertShareSettings(teamRecord.id, currentUser.id, input),
       };
     },
     async updateTeam(currentUser, input) {
       const { teamRecord } = await getRequiredTeam(currentUser);
-
       ensureOwner(currentUser, teamRecord);
-
-      const [updatedTeam] = await db
-        .update(teams)
-        .set({
-          name: normalizeTeamName(input.name),
-          updatedAt: new Date(),
-        })
-        .where(eq(teams.id, teamRecord.id))
-        .returning();
-
-      if (!updatedTeam) {
-        throw new Error('Failed to update team.');
-      }
-
-      return this.getCurrentTeam(currentUser);
+      await repository.updateTeamName(teamRecord.id, normalizeTeamName(input.name), new Date());
+      return getCurrentTeam(currentUser);
     },
     async upsertDailyShareSnapshot(currentUser, snapshot) {
       await getRequiredTeam(currentUser);
-
-      const [savedSnapshot] = await db
-        .insert(dailyShareSnapshots)
-        .values({
-          date: snapshot.date,
-          habitCompletion: snapshot.habitCompletion,
-          streakDays: snapshot.streakDays,
-          toiletRecorded: snapshot.toiletRecorded,
-          trainingDone: snapshot.trainingDone,
-          userId: currentUser.id,
-        })
-        .onConflictDoUpdate({
-          set: {
-            habitCompletion: snapshot.habitCompletion,
-            streakDays: snapshot.streakDays,
-            toiletRecorded: snapshot.toiletRecorded,
-            trainingDone: snapshot.trainingDone,
-            updatedAt: new Date(),
-          },
-          target: [dailyShareSnapshots.userId, dailyShareSnapshots.date],
-        })
-        .returning();
-
-      if (!savedSnapshot) {
-        throw new Error('Failed to save daily share snapshot.');
-      }
-
       return {
-        snapshot: toDailyShareSnapshot(savedSnapshot),
+        snapshot: await repository.upsertDailyShareSnapshot(currentUser.id, snapshot),
       };
     },
   };
+}
+
+export function createDrizzleTeamService(db: Database): TeamService {
+  return createTeamService(createDrizzleTeamRepository(db));
 }

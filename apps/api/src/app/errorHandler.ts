@@ -1,4 +1,5 @@
 import type { ErrorHandler, NotFoundHandler } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import type { Logger } from 'pino';
 import { ZodError } from 'zod';
 
@@ -6,7 +7,10 @@ import { ApiError, isApiError } from '../http/apiError.js';
 import { toErrorResponse } from '../http/responses.js';
 
 function isJsonParseError(error: unknown) {
-  return error instanceof SyntaxError && /JSON|Unexpected end/.test(error.message);
+  return (
+    (error instanceof SyntaxError && /JSON|Unexpected end/.test(error.message)) ||
+    (error instanceof HTTPException && error.status === 400 && error.message === 'Malformed JSON in request body')
+  );
 }
 
 export const notFoundHandler: NotFoundHandler = (context) => {

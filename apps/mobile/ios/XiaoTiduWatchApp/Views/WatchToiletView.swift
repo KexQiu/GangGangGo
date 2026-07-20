@@ -7,8 +7,9 @@ struct WatchToiletView: View {
   @State private var lastNotifiedStage: WatchToiletStage?
   @State private var now = Date()
   @State private var showingFinishConfirmation = false
+  @State private var stageHapticTask: Task<Void, Never>?
 
-  private let tick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+  private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
   var body: some View {
     ScrollView(.vertical) {
@@ -85,11 +86,23 @@ struct WatchToiletView: View {
     }
     .onReceive(tick) { date in
       now = date
-      notifyStageIfNeeded()
     }
-    .onChange(of: session.todayState.toilet.isRunning) { _, isRunning in
-      if !isRunning {
-        lastNotifiedStage = nil
+    .onAppear {
+      scheduleNextStageHaptic()
+    }
+    .onDisappear {
+      cancelStageHaptic()
+    }
+    .onChange(of: session.todayState) { _, _ in
+      now = Date()
+      scheduleNextStageHaptic()
+    }
+    .onChange(of: session.isApplicationActive) { _, isActive in
+      if isActive {
+        now = Date()
+        scheduleNextStageHaptic()
+      } else {
+        cancelStageHaptic()
       }
     }
   }
@@ -132,17 +145,54 @@ struct WatchToiletView: View {
     return "\(minutes):\(String(format: "%02d", seconds))"
   }
 
-  private func notifyStageIfNeeded() {
-    guard session.todayState.toilet.isRunning, !session.todayState.toilet.isPaused else {
+  private func scheduleNextStageHaptic() {
+    cancelStageHaptic()
+
+    guard session.isApplicationActive, session.todayState.toilet.isRunning else {
+      lastNotifiedStage = nil
       return
     }
 
-    guard let stage = session.todayState.currentToiletStage(now: now), stage != .normal, stage != lastNotifiedStage else {
+    guard !session.todayState.toilet.isPaused else {
+      return
+    }
+
+    let scheduleDate = Date()
+    let elapsed = session.todayState.currentToiletElapsedSeconds(now: scheduleDate)
+    if let currentStage = session.todayState.currentToiletStage(now: scheduleDate), currentStage != .normal {
+      playStageHapticIfNeeded(currentStage)
+    } else {
+      lastNotifiedStage = nil
+    }
+
+    guard let boundary = WatchToiletHapticTimeline.nextBoundary(after: elapsed) else {
+      return
+    }
+
+    let delay = TimeInterval(boundary.elapsedSeconds - elapsed)
+    stageHapticTask = Task { @MainActor in
+      do {
+        try await Task.sleep(for: .seconds(delay))
+      } catch {
+        return
+      }
+
+      guard session.todayState.toilet.isRunning, !session.todayState.toilet.isPaused else {
+        return
+      }
+
+      now = Date()
+      playStageHapticIfNeeded(boundary.stage)
+      scheduleNextStageHaptic()
+    }
+  }
+
+  private func playStageHapticIfNeeded(_ stage: WatchToiletStage) {
+    guard stage != .normal, stage != lastNotifiedStage else {
       return
     }
 
     lastNotifiedStage = stage
-
     switch stage {
     case .gentleWarning:
       WKInterfaceDevice.current().play(.click)
@@ -155,6 +205,11 @@ struct WatchToiletView: View {
     case .normal:
       break
     }
+  }
+
+  private func cancelStageHaptic() {
+    stageHapticTask?.cancel()
+    stageHapticTask = nil
   }
 
   private func stageColor(_ stage: WatchToiletStage) -> Color {

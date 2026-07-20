@@ -1,15 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  check,
-  date,
-  index,
-  integer,
-  pgTable,
-  smallint,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { boolean, check, date, index, integer, pgTable, smallint, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, updatedAt } from './common.js';
 import { teams } from './teams.js';

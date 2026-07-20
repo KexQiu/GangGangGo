@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
-import { listHabitCheckIns, upsertHabitCheckIn } from '../../storage/repositories/habitRepository';
+import { buildLocalDateRange } from '../../storage/dateRange';
+import { listHabitCheckInsPage, upsertHabitCheckIn } from '../../storage/repositories/habitRepository';
+import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { createEmptyHabitCheckIn, getLocalDateKey } from './habitLogic';
 import { type HabitCheckIn, type HabitKey, type HabitLevel } from './habitTypes';
 
@@ -33,6 +35,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
 
     try {
       await upsertHabitCheckIn(updated);
+      notifyLocalDataChanged();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '健康打卡保存失败',
@@ -49,8 +52,13 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     set({ error: null, isHydrating: true });
 
     try {
-      const checkIns = await listHabitCheckIns();
-      set({ checkIns, hasHydrated: true, isHydrating: false });
+      const range = buildLocalDateRange(30);
+      const page = await listHabitCheckInsPage({
+        fromDate: range.fromDate,
+        limit: 30,
+        toDateExclusive: range.toDateExclusive,
+      });
+      set({ checkIns: page.items, hasHydrated: true, isHydrating: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '健康打卡加载失败',
@@ -77,6 +85,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
 
     try {
       await upsertHabitCheckIn(updated);
+      notifyLocalDataChanged();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '健康打卡保存失败',

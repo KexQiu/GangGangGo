@@ -1,9 +1,4 @@
-import type {
-  AdvancedReportDay,
-  AdvancedReportResponse,
-  DailyReportSnapshot,
-  TeamMember,
-} from '@xiaotidu/contracts';
+import type { AdvancedReportDay, AdvancedReportResponse, DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { dailyReportSnapshots } from '../../db/schema.js';
 import type { CurrentUser } from '../users/userTypes.js';
@@ -72,7 +67,7 @@ function toAdvancedReportDay(date: string, snapshot?: DailyReportSnapshot): Adva
   return {
     date,
     habitCompletion: snapshot?.habitCompletion ?? 0,
-    habitFull: snapshot?.habitFull ?? false,
+    habitFull: (snapshot?.habitCompletion ?? 0) === 4,
     toiletLongMeeting: snapshot?.toiletLongMeeting ?? false,
     toiletRecorded: snapshot?.toiletRecorded ?? false,
     trainingDone: snapshot?.trainingDone ?? false,
@@ -81,6 +76,20 @@ function toAdvancedReportDay(date: string, snapshot?: DailyReportSnapshot): Adva
 
 function hasAnyAdvancedReportRecord(day: AdvancedReportDay) {
   return day.trainingDone || day.habitCompletion > 0 || day.toiletRecorded || day.toiletLongMeeting;
+}
+
+function summarizeAdvancedReportDays(days: AdvancedReportDay[], snapshots: DailyReportSnapshot[]) {
+  const latestSnapshot = snapshots.at(-1) ?? null;
+
+  return {
+    currentStreakDays: latestSnapshot?.streakDays ?? 0,
+    habitFullDays: days.filter((day) => day.habitFull).length,
+    hasAnyRecord: days.some(hasAnyAdvancedReportRecord),
+    recordDays: days.filter(hasAnyAdvancedReportRecord).length,
+    toiletLongMeetingCount: days.filter((day) => day.toiletLongMeeting).length,
+    toiletRecordDays: days.filter((day) => day.toiletRecorded).length,
+    trainingDays: days.filter((day) => day.trainingDone).length,
+  };
 }
 
 export function buildAdvancedReport(input: {
@@ -94,6 +103,14 @@ export function buildAdvancedReport(input: {
     toAdvancedReportDay(date, snapshotsByDate.get(date)),
   );
   const latestSnapshot = input.snapshots.at(-1) ?? null;
+  const summarizeLast = (dayCount: number) => {
+    const windowDays = days.slice(-dayCount);
+    const startedAt = windowDays[0]?.date;
+    const windowSnapshots = startedAt
+      ? input.snapshots.filter((snapshot) => snapshot.date >= startedAt)
+      : input.snapshots;
+    return summarizeAdvancedReportDays(windowDays, windowSnapshots);
+  };
 
   return {
     days,
@@ -101,14 +118,10 @@ export function buildAdvancedReport(input: {
     range: input.range,
     snapshot: latestSnapshot,
     startedAt: input.startedAt,
-    summary: {
-      currentStreakDays: latestSnapshot?.streakDays ?? 0,
-      habitFullDays: days.filter((day) => day.habitFull).length,
-      hasAnyRecord: days.some(hasAnyAdvancedReportRecord),
-      recordDays: days.filter(hasAnyAdvancedReportRecord).length,
-      toiletLongMeetingCount: latestSnapshot?.ninetyDayToiletLongMeetingCount ?? 0,
-      toiletRecordDays: days.filter((day) => day.toiletRecorded).length,
-      trainingDays: days.filter((day) => day.trainingDone).length,
+    summaries: {
+      '7d': summarizeLast(7),
+      '30d': summarizeLast(30),
+      '90d': summarizeLast(90),
     },
   };
 }
@@ -127,20 +140,10 @@ export function toDailyReportSnapshot(record: typeof dailyReportSnapshots.$infer
   return {
     date: record.date,
     habitCompletion: record.habitCompletion as DailyReportSnapshot['habitCompletion'],
-    habitFull: record.habitFull,
-    ninetyDayHabitFullDays: record.ninetyDayHabitFullDays,
-    ninetyDayToiletLongMeetingCount: record.ninetyDayToiletLongMeetingCount,
-    ninetyDayTrainingDays: record.ninetyDayTrainingDays,
     streakDays: record.streakDays,
-    thirtyDayHabitFullDays: record.thirtyDayHabitFullDays,
-    thirtyDayToiletLongMeetingCount: record.thirtyDayToiletLongMeetingCount,
-    thirtyDayTrainingDays: record.thirtyDayTrainingDays,
     toiletLongMeeting: record.toiletLongMeeting,
     toiletRecorded: record.toiletRecorded,
     trainingDone: record.trainingDone,
-    weeklyHabitFullDays: record.weeklyHabitFullDays as DailyReportSnapshot['weeklyHabitFullDays'],
-    weeklyToiletLongMeetingCount: record.weeklyToiletLongMeetingCount,
-    weeklyTrainingDays: record.weeklyTrainingDays as DailyReportSnapshot['weeklyTrainingDays'],
   };
 }
 

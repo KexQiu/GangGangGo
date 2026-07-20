@@ -12,6 +12,7 @@ export type WatchTrainingModeConfig = {
 };
 
 export type WatchTodayState = {
+  schemaVersion: 2;
   account: {
     isLoggedIn: boolean;
     nickname: null | string;
@@ -45,6 +46,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
+      schemaVersion?: 2;
       payload: {
         completedSets: number;
         durationSeconds: number;
@@ -55,6 +57,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
+      schemaVersion?: 2;
       payload: {
         habitKey: HabitKey;
         level: HabitLevel | null;
@@ -64,6 +67,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
+      schemaVersion?: 2;
       payload: {
         action: 'finish' | 'pause' | 'resume';
         elapsedSeconds: number;

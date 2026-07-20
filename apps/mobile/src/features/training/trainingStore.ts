@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 
-import { insertTrainingSession, listTrainingSessions } from '../../storage/repositories/trainingRepository';
+import { buildLocalDateRange } from '../../storage/dateRange';
+import { collectAllPages } from '../../storage/pagination';
+import {
+  insertTrainingSession,
+  listTrainingSessionsPage,
+  type TrainingSessionCursor,
+} from '../../storage/repositories/trainingRepository';
+import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { type TrainingSession } from './trainingTypes';
 
 type TrainingState = {
@@ -23,7 +30,15 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     set({ error: null, isHydrating: true });
 
     try {
-      const sessions = await listTrainingSessions();
+      const range = buildLocalDateRange(30);
+      const sessions = await collectAllPages<TrainingSession, TrainingSessionCursor>((cursor) =>
+        listTrainingSessionsPage({
+          cursor,
+          fromDateTime: range.fromDateTime,
+          limit: 250,
+          toDateTimeExclusive: range.toDateTimeExclusive,
+        }),
+      );
       set({ hasHydrated: true, isHydrating: false, sessions });
     } catch (error) {
       set({
@@ -43,6 +58,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
 
     try {
       await insertTrainingSession(session);
+      notifyLocalDataChanged();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '训练记录保存失败',

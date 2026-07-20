@@ -1,10 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import type {
-  AvatarBackgroundPresetKey,
-  AvatarConfig,
-  AvatarEmojiPresetKey,
-} from '@xiaotidu/contracts';
+import type { AvatarBackgroundPresetKey, AvatarConfig, AvatarEmojiPresetKey } from '@xiaotidu/contracts';
 import { isAvatarConfig } from '@xiaotidu/contracts';
 
 import { useAppTheme } from '../theme/themeProvider';
@@ -43,6 +39,14 @@ export const profileAvatarEmojiPresets = [
   { emoji: '😏', key: 'smirk', label: '得意' },
   { emoji: '😵‍💫', key: 'dizzy', label: '转圈' },
   { emoji: '🤠', key: 'cowboy', label: '牛仔' },
+  { emoji: '🫡', key: 'salute', label: '敬礼' },
+  { emoji: '🫣', key: 'shy', label: '躲猫猫' },
+  { emoji: '🥰', key: 'love', label: '甜甜' },
+  { emoji: '😛', key: 'tongue', label: '吐舌' },
+  { emoji: '😷', key: 'mask', label: '口罩' },
+  { emoji: '🧐', key: 'monocle', label: '研究' },
+  { emoji: '🤪', key: 'zany', label: '鬼脸' },
+  { emoji: '🥺', key: 'pleading', label: '拜托' },
   { emoji: '🐱', key: 'cat', label: '小猫' },
   { emoji: '🐶', key: 'dog', label: '小狗' },
   { emoji: '🦊', key: 'fox', label: '狐狸' },
@@ -63,11 +67,32 @@ export const profileAvatarEmojiPresets = [
   { emoji: '🦄', key: 'unicorn', label: '独角兽' },
   { emoji: '🐮', key: 'cow', label: '小牛' },
   { emoji: '🐙', key: 'octopus', label: '章鱼' },
+  { emoji: '🦥', key: 'sloth', label: '树懒' },
+  { emoji: '🦦', key: 'otter', label: '水獭' },
+  { emoji: '🦝', key: 'raccoon', label: '浣熊' },
+  { emoji: '🦭', key: 'seal', label: '海豹' },
+  { emoji: '🐳', key: 'whale', label: '鲸鱼' },
+  { emoji: '🦖', key: 'dino', label: '恐龙' },
+  { emoji: '🐝', key: 'bee', label: '蜜蜂' },
+  { emoji: '🐞', key: 'ladybug', label: '瓢虫' },
+  { emoji: '🍀', key: 'clover', label: '四叶草' },
+  { emoji: '🌻', key: 'sunflower', label: '向日葵' },
+  { emoji: '🌈', key: 'rainbow', label: '彩虹' },
+  { emoji: '🌙', key: 'moon', label: '月亮' },
+  { emoji: '⭐️', key: 'star', label: '星星' },
+  { emoji: '☁️', key: 'cloud', label: '云朵' },
+  { emoji: '🍑', key: 'peach_fruit', label: '蜜桃' },
+  { emoji: '🎧', key: 'headphones', label: '耳机' },
 ] as const satisfies readonly {
   emoji: string;
   key: AvatarEmojiPresetKey;
   label: string;
 }[];
+
+type Assert<T extends true> = T;
+type AllAvatarEmojiPresetsHaveVisuals =
+  Exclude<AvatarEmojiPresetKey, (typeof profileAvatarEmojiPresets)[number]['key']> extends never ? true : false;
+type _AvatarEmojiPresetCoverage = Assert<AllAvatarEmojiPresetsHaveVisuals>;
 
 export const profileAvatarEmojiOptions = [
   { emoji: null, key: null, label: '默认' },

@@ -1,0 +1,11 @@
+{
+  "name": "gangganggo-storage-protection",
+  "version": "0.2.0",
+  "main": "index.ts",
+  "private": true,
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

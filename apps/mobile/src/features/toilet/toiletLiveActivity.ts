@@ -1,27 +1,19 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
-import {
-  getToiletLiveActivitySnapshot,
-  type ToiletLiveActivitySnapshot,
-} from './toiletLogic';
+import liveActivityModule from '../../../modules/live-activity';
 
-type ToiletTimerLiveActivityNativeModule = {
-  end: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
-  isSupported: () => Promise<boolean>;
-  pause: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
-  resume: (activityId: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<void>;
-  start: (startedAtISO: string, elapsedSeconds: number, snapshot: ToiletLiveActivitySnapshot) => Promise<string | null>;
-  sync: (
-    activityId: string,
-    elapsedSeconds: number,
-    isPaused: boolean,
-    snapshot: ToiletLiveActivitySnapshot,
-  ) => Promise<void>;
+import { useAppSettingsStore } from '../settings/appSettingsStore';
+import { getToiletLiveActivitySnapshot } from './toiletLogic';
+import { recoverToiletLiveActivityState } from './toiletLiveActivityRecovery';
+import { getActiveToiletTimerElapsedSeconds, useToiletTimerSessionStore } from './toiletTimerSessionStore';
+
+const nativeModule = Platform.OS === 'ios' ? liveActivityModule : null;
+let launchRecoveryPromise: Promise<void> | null = null;
+
+type PersistHydrationApi<T> = {
+  hasHydrated: () => boolean;
+  onFinishHydration: (listener: (state: T) => void) => () => void;
 };
-
-const nativeModule = Platform.OS === 'ios'
-  ? (NativeModules.ToiletTimerLiveActivityModule as ToiletTimerLiveActivityNativeModule | undefined)
-  : undefined;
 
 export async function isToiletLiveActivitySupported(): Promise<boolean> {
   if (!nativeModule) {
@@ -37,7 +29,6 @@ export async function isToiletLiveActivitySupported(): Promise<boolean> {
 
 export async function startToiletLiveActivity(startedAtISO: string, elapsedSeconds: number): Promise<string | null> {
   if (!nativeModule) {
-    console.warn('[ToiletLiveActivity] native module is unavailable.');
     return null;
   }
 
@@ -47,10 +38,8 @@ export async function startToiletLiveActivity(startedAtISO: string, elapsedSecon
       elapsedSeconds,
       getToiletLiveActivitySnapshot(elapsedSeconds),
     );
-    console.log('[ToiletLiveActivity] started', activityId);
     return activityId;
-  } catch (error) {
-    console.warn('[ToiletLiveActivity] start failed', error);
+  } catch {
     return null;
   }
 }
@@ -89,12 +78,7 @@ export async function syncToiletLiveActivity(
   }
 
   try {
-    await nativeModule.sync(
-      activityId,
-      elapsedSeconds,
-      isPaused,
-      getToiletLiveActivitySnapshot(elapsedSeconds),
-    );
+    await nativeModule.sync(activityId, elapsedSeconds, isPaused, getToiletLiveActivitySnapshot(elapsedSeconds));
   } catch {
     // Native Live Activity failure should not block the in-app timer.
   }
@@ -110,4 +94,89 @@ export async function endToiletLiveActivity(activityId: string | null, elapsedSe
   } catch {
     // Native Live Activity failure should not block the in-app timer.
   }
+}
+
+export async function endAllToiletLiveActivities(): Promise<void> {
+  if (!nativeModule) {
+    return;
+  }
+
+  try {
+    await nativeModule.endAll();
+  } catch {
+    // Orphan cleanup is retried during the next launch recovery.
+  }
+}
+
+export async function reconcileToiletLiveActivity(
+  activityId: string | null,
+  startedAtISO: string,
+  elapsedSeconds: number,
+  isPaused: boolean,
+): Promise<string | null | undefined> {
+  if (!nativeModule) {
+    return undefined;
+  }
+
+  try {
+    return await nativeModule.reconcile(
+      activityId,
+      startedAtISO,
+      elapsedSeconds,
+      isPaused,
+      getToiletLiveActivitySnapshot(elapsedSeconds),
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+export function recoverToiletLiveActivityAfterLaunch(): Promise<void> {
+  if (!launchRecoveryPromise) {
+    launchRecoveryPromise = runLaunchRecovery().finally(() => {
+      launchRecoveryPromise = null;
+    });
+  }
+
+  return launchRecoveryPromise;
+}
+
+async function runLaunchRecovery(): Promise<void> {
+  if (!nativeModule) {
+    return;
+  }
+
+  await recoverToiletLiveActivityState({
+    endAll: endAllToiletLiveActivities,
+    getElapsedSeconds: getActiveToiletTimerElapsedSeconds,
+    readState: () => ({
+      isEnabled: useAppSettingsStore.getState().toiletLiveActivityEnabled,
+      session: useToiletTimerSessionStore.getState().session,
+    }),
+    reconcile: (session, elapsedSeconds) =>
+      reconcileToiletLiveActivity(session.liveActivityId, session.startedAt, elapsedSeconds, session.isPaused),
+    setActivityId: (activityId) => useToiletTimerSessionStore.getState().setLiveActivityId(activityId),
+    waitUntilHydrated: async () => {
+      await Promise.all([
+        waitForHydration(useAppSettingsStore.persist),
+        waitForHydration(useToiletTimerSessionStore.persist),
+      ]);
+    },
+  });
+}
+
+function waitForHydration<T>(persist: PersistHydrationApi<T>): Promise<void> {
+  if (persist.hasHydrated()) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    let unsubscribe: () => void = () => undefined;
+    const finish = () => {
+      unsubscribe();
+      resolve();
+    };
+    unsubscribe = persist.onFinishHydration(finish);
+    if (persist.hasHydrated()) finish();
+  });
 }

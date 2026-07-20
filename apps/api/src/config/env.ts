@@ -22,10 +22,7 @@ function parseDotEnv(content: string) {
     const key = trimmed.slice(0, separatorIndex).trim();
     let value = trimmed.slice(separatorIndex + 1).trim();
 
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
     }
 
@@ -55,6 +52,9 @@ const envSchema = z
     APPLE_BUNDLE_ID: z.string().min(1).optional(),
     APPLE_JWKS_URL: z.url().default('https://appleid.apple.com/auth/keys'),
     DATABASE_URL: z.url().optional(),
+    DB_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(10),
+    DB_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(20),
+    DB_POOL_MAX: z.coerce.number().int().positive().max(50).default(5),
     DB_SSL: z
       .enum(['0', '1', 'false', 'true', 'disable', 'require'])
       .default('false')

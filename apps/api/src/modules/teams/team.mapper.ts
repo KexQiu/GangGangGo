@@ -1,10 +1,4 @@
-import type {
-  DailyShareSnapshot,
-  ShareSettings,
-  Team,
-  TeamDailyShareSnapshot,
-  TeamMember,
-} from '@xiaotidu/contracts';
+import type { DailyShareSnapshot, ShareSettings, Team, TeamDailyShareSnapshot, TeamMember } from '@xiaotidu/contracts';
 
 import { dailyShareSnapshots, shareSettings } from '../../db/schema.js';
 import type { MemberRecord, TeamRecord } from './team.types.js';

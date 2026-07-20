@@ -1,21 +1,13 @@
+import { isProStatus } from '../account/accountModel';
+import { getCachedCurrentUser, getCachedProStatus } from '../account/accountQueryService';
+import { useAuthStore } from '../account/authStore';
 import { getLocalDateKey } from '../habits/habitLogic';
 import { useHabitStore } from '../habits/habitStore';
-import { isProStatus, useAuthStore } from '../account/authStore';
 import { useAppSettingsStore } from '../settings/appSettingsStore';
-import {
-  endToiletLiveActivity,
-  pauseToiletLiveActivity,
-  resumeToiletLiveActivity,
-} from '../toilet/toiletLiveActivity';
-import {
-  cancelToiletStageNotifications,
-  syncToiletStageNotifications,
-} from '../toilet/toiletStageNotificationService';
+import { endToiletLiveActivity, pauseToiletLiveActivity, resumeToiletLiveActivity } from '../toilet/toiletLiveActivity';
+import { cancelToiletStageNotifications, syncToiletStageNotifications } from '../toilet/toiletStageNotificationService';
 import { useToiletStore } from '../toilet/toiletStore';
-import {
-  getActiveToiletTimerElapsedSeconds,
-  useToiletTimerSessionStore,
-} from '../toilet/toiletTimerSessionStore';
+import { getActiveToiletTimerElapsedSeconds, useToiletTimerSessionStore } from '../toilet/toiletTimerSessionStore';
 import { useTrainingStore } from '../training/trainingStore';
 import { type WatchEvent, type WatchEventAck } from './watchTypes';
 
@@ -69,16 +61,18 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
 
 function getProActionRejectionMessage(): string | null {
   const auth = useAuthStore.getState();
+  const user = getCachedCurrentUser();
+  const proStatus = getCachedProStatus();
 
-  if (!auth.accessToken || !auth.user) {
+  if (!auth.accessToken || !user) {
     return '先在 iPhone 上登录小提督。';
   }
 
-  if (isProStatus(auth.proStatus)) {
+  if (isProStatus(proStatus)) {
     return null;
   }
 
-  if (auth.proStatus === 'pro_expired') {
+  if (proStatus === 'pro_expired') {
     return '小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。';
   }
 

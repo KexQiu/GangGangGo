@@ -1,6 +1,8 @@
 import { initializeDatabase } from '../db';
 import { isTrainingPresetId } from '../../features/training/presets';
 import { type TrainingSession } from '../../features/training/trainingTypes';
+import { normalizePageSize, type Page } from '../pagination';
+import { trainingSessionPageSql } from './pageQueries';
 
 type TrainingSessionRow = {
   completed_repetitions: number;
@@ -11,6 +13,18 @@ type TrainingSessionRow = {
   is_completed: number;
   preset_id: string;
   started_at: string;
+};
+
+export type TrainingSessionCursor = {
+  endedAt: string;
+  id: string;
+};
+
+export type TrainingSessionPageOptions = {
+  cursor?: TrainingSessionCursor;
+  fromDateTime?: string;
+  limit?: number;
+  toDateTimeExclusive?: string;
 };
 
 export async function insertTrainingSession(session: TrainingSession): Promise<void> {
@@ -51,25 +65,31 @@ export async function insertTrainingSession(session: TrainingSession): Promise<v
   );
 }
 
-export async function listTrainingSessions(): Promise<TrainingSession[]> {
+export async function listTrainingSessionsPage(
+  options: TrainingSessionPageOptions = {},
+): Promise<Page<TrainingSession, TrainingSessionCursor>> {
   const db = await initializeDatabase();
-  const rows = await db.getAllAsync<TrainingSessionRow>(
-    `
-      SELECT
-        id,
-        preset_id,
-        started_at,
-        ended_at,
-        duration_seconds,
-        completed_repetitions,
-        is_completed,
-        discomfort_reported
-      FROM training_sessions
-      ORDER BY ended_at DESC;
-    `,
-  );
+  const limit = normalizePageSize(options.limit);
+  const rows = await db.getAllAsync<TrainingSessionRow>(trainingSessionPageSql, {
+    $cursorEndedAt: options.cursor?.endedAt ?? null,
+    $cursorId: options.cursor?.id ?? null,
+    $fromDateTime: options.fromDateTime ?? null,
+    $queryLimit: limit + 1,
+    $toDateTimeExclusive: options.toDateTimeExclusive ?? null,
+  });
+  const pageRows = rows.slice(0, limit);
+  const lastRow = pageRows.at(-1);
 
-  return rows.map(rowToTrainingSession).filter((session): session is TrainingSession => Boolean(session));
+  return {
+    items: pageRows.map(rowToTrainingSession).filter((session): session is TrainingSession => Boolean(session)),
+    nextCursor:
+      rows.length > limit && lastRow
+        ? {
+            endedAt: lastRow.ended_at,
+            id: lastRow.id,
+          }
+        : null,
+  };
 }
 
 function rowToTrainingSession(row: TrainingSessionRow): TrainingSession | null {
