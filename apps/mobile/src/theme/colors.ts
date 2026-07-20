@@ -13,6 +13,8 @@ export type ThemeColors = {
   primarySoft: string;
   info: string;
   infoSoft: string;
+  navigationActive: string;
+  navigationInactive: string;
   privacy: string;
   warning: string;
   warningSoft: string;
@@ -34,6 +36,8 @@ export const themeColors: Record<ResolvedColorScheme, ThemeColors> = {
     primarySoft: '#DDF5E9',
     info: '#3C7DF0',
     infoSoft: '#E4EEFF',
+    navigationActive: '#197A54',
+    navigationInactive: '#65746B',
     privacy: '#8D6BE8',
     warning: '#F59E0B',
     warningSoft: '#FFF3D6',
@@ -53,6 +57,8 @@ export const themeColors: Record<ResolvedColorScheme, ThemeColors> = {
     primarySoft: '#173D2C',
     info: '#73A3FF',
     infoSoft: '#1B315C',
+    navigationActive: '#41D492',
+    navigationInactive: '#B9C8BF',
     privacy: '#B197FF',
     warning: '#FDBA3B',
     warningSoft: '#4A3513',

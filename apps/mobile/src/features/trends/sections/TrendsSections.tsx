@@ -169,6 +169,25 @@ export function SummaryTile({ label, tone, value }: SummaryTileProps) {
   );
 }
 
+type OverviewMetricProps = {
+  label: string;
+  status: string;
+  value: string;
+};
+
+export function OverviewMetric({ label, status, value }: OverviewMetricProps) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+
+  return (
+    <View style={styles.todayMetric}>
+      <Text style={styles.todayMetricValue}>{value}</Text>
+      <Text style={styles.todayMetricLabel}>{label}</Text>
+      <Text style={styles.todayMetricTag}>{status}</Text>
+    </View>
+  );
+}
+
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 function getBarColor(colors: ThemeColors, tone: BarTone): string {

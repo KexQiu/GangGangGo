@@ -39,7 +39,9 @@ function RootStack() {
           contentStyle: { backgroundColor: theme.colors.background },
           headerShown: false,
         }}
-      />
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
       <AppToastHost />
     </>
   );

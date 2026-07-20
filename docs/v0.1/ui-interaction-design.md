@@ -29,11 +29,14 @@ UI 方向：
 
 ## 3. 信息架构
 
-当前 App 使用 **单首页 + 右上角设置入口 + 二级流程页**，不使用底部 Tab。
+当前 App 使用 **底部 Tab + 二级流程页**。一级页面为首页、数据、好友和我的；设置保留在“我的”的二级入口中。
 
 ```mermaid
 flowchart TD
   Home["首页 / 今日行动中心"]
+  Trends["数据 / 今日总览与长期趋势"]
+  Team["好友 / 监督搭子"]
+  Me["我的 / 用户详情"]
   Settings["设置"]
   Training["菊花抬模式选择"]
   TrainingSession["菊花抬中"]
@@ -43,9 +46,7 @@ flowchart TD
   Habits["小账本详情"]
   Reminders["小暗号设置"]
   Safety["小花说明书"]
-  Trends["最近小报告"]
 
-  Home --> Settings
   Home --> Training
   Training --> TrainingSession
   TrainingSession --> TrainingComplete
@@ -56,8 +57,9 @@ flowchart TD
   ToiletComplete --> Safety
   Home --> Habits
   Home --> Reminders
-  Home --> Safety
-  Home --> Trends
+  Trends --> TrendsAdvanced["90 天回看"]
+  Team --> TeamInvite["邀请搭子"]
+  Me --> Settings
   Settings --> Reminders
   Settings --> Safety
 ```
@@ -66,7 +68,10 @@ flowchart TD
 
 | 路由 | 页面 | 主要职责 |
 | --- | --- | --- |
-| `/` | 首页 | 今日概览、正反馈、高频动作入口 |
+| `/` | 首页 | 菊花抬、蹲会儿、今日小账本、小暗号引导 |
+| `/trends` | 数据 | 今日总览、7 天、30 天和 90 天数据 |
+| `/team` | 好友 | 监督搭子、小队和互动提醒 |
+| `/me` | 我的 | 用户详情、账号能力和设置入口 |
 | `/settings` | 设置 | 外观、小暗号、小花说明书、灵动岛计时、蹲会儿声音与提醒 |
 | `/training` | 菊花抬 | 选择训练模式，查看今日训练进度 |
 | `/training/session` | 菊花抬中 | 倒计时训练、暂停、结束、放弃确认 |
@@ -76,11 +81,11 @@ flowchart TD
 | `/habits` | 小账本详情 | 按标准调整四项三档状态 |
 | `/reminders` | 小暗号设置 | 提醒开关、隐私、多段勿扰 |
 | `/safety` | 小花说明书 | 训练注意、停练条件、就医提示 |
-| `/trends` | 最近小报告 | 7 天小报告、30 天回看、小信号提示 |
+| `/trends/advanced` | 90 天回看 | Pro 高级小报告和 90 天节奏图 |
 
 导航原则：
 
-- 首页是唯一主入口。
+- 底部 Tab 承载首页、数据、好友和我的一级入口。
 - 二级页必须使用固定 `AppTopBar`。
 - 训练中和蹲会儿进行中使用关闭图标，退出时必须确认。
 - 结果页使用关闭图标，但不再二次确认。

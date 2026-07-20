@@ -84,7 +84,12 @@ apps/mobile/
 ```text
 apps/mobile/app/
 ├── _layout.tsx
-├── index.tsx
+├── (tabs)/
+│   ├── _layout.tsx
+│   ├── index.tsx
+│   ├── trends.tsx
+│   ├── team.tsx
+│   └── me.tsx
 ├── settings/index.tsx
 ├── training/
 │   ├── index.tsx
@@ -96,10 +101,10 @@ apps/mobile/app/
 ├── habits/index.tsx
 ├── reminders/index.tsx
 ├── safety/index.tsx
-└── trends/index.tsx
+└── trends/advanced.tsx
 ```
 
-当前导航是单首页结构，不使用底部 Tab。首页为 `apps/mobile/app/index.tsx`，二级页统一使用 `AppTopBar` 返回或关闭。
+当前导航使用底部 Tab。`apps/mobile/app/(tabs)` 承载首页、数据、好友和我的四个一级页面；训练、计时、设置、邀请等二级流程继续使用 `AppTopBar` 返回或关闭。
 
 ### 3.2 移动端源码
 

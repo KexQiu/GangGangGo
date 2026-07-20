@@ -8,8 +8,8 @@ import { Bell, MessageCircle, RefreshCw, Settings, UserPlus, UsersRound } from '
 import { queryClient } from '../../../api/queryClient';
 import { AppButton } from '../../../components/AppButton';
 import { AppCard } from '../../../components/AppCard';
-import { AppTopBar } from '../../../components/AppTopBar';
 import { PressableScale } from '../../../components/feedback/PressableScale';
+import { PageHeader } from '../../../components/PageHeader';
 import { PageSection, PageStack } from '../../../components/PageStack';
 import { ProfileAvatar } from '../../../components/ProfileAvatar';
 import { Screen } from '../../../components/Screen';
@@ -109,16 +109,16 @@ export default function TeamScreen() {
   }, [isPro, refetchNudgeThreads, refetchSnapshots, refetchTeam, refetchWeeklyReport, team]);
 
   return (
-    <Screen>
-      <AppTopBar fallbackHref={routes.me} title="监督搭子" />
-
-      <PageStack gap="regular">
+    <Screen contentStyle={!user ? styles.loggedOutContent : undefined}>
+      <PageHeader eyebrow="好友" subtitle="一起记住轻轻行动，也把提醒说得体面。" title="监督搭子" />
+      <PageStack gap="regular" style={!user ? styles.loggedOutStack : undefined}>
         {!user ? (
           <AppCard style={styles.emptyCard}>
             <UsersRound color={colors.privacy} size={28} strokeWidth={2.4} />
             <Text style={styles.emptyTitle}>先登录小提督</Text>
             <Text style={styles.emptyBody}>登录后才能加入小队、接收搭子提醒。</Text>
-            <AppButton onPress={() => router.push(routes.me)}>去我的页面登录</AppButton>
+            <Text style={styles.loggedOutBenefits}>轻提醒 · 每周回看 · 私密互助</Text>
+            <AppButton onPress={() => router.push(routes.me)}>登录后加入搭子</AppButton>
           </AppCard>
         ) : null}
 

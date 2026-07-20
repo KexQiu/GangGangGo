@@ -1,14 +1,14 @@
 import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
-import { ChartNoAxesColumnIncreasing, ChevronRight, Crown, UsersRound, Watch } from 'lucide-react-native';
+import { ChevronRight, Crown, Settings, Watch } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { ProStatus } from '@xiaotidu/contracts';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
-import { AppTopBar } from '../../src/components/AppTopBar';
 import { PressableScale } from '../../src/components/feedback/PressableScale';
+import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
@@ -18,24 +18,18 @@ import { mockUserIds, useAuthStore } from '../../src/features/account/authStore'
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
-const cloudLinks = [
+const accountLinks = [
+  {
+    description: '外观、提醒和蹲会儿相关设置',
+    href: routes.settings,
+    icon: Settings,
+    title: '设置',
+  },
   {
     description: '权益状态和订阅入口',
     href: routes.pro,
     icon: Crown,
     title: '小提督 Pro',
-  },
-  {
-    description: '和搭子互相提醒',
-    href: routes.team,
-    icon: UsersRound,
-    title: '监督搭子',
-  },
-  {
-    description: '查看更完整的趋势摘要',
-    href: routes.advancedReport,
-    icon: ChartNoAxesColumnIncreasing,
-    title: '高级小报告',
   },
   {
     description: '查看手表同步状态',
@@ -74,8 +68,7 @@ export default function MeScreen() {
 
   return (
     <Screen>
-      <AppTopBar fallbackHref={routes.home} title="我的" />
-
+      <PageHeader eyebrow="小提督" subtitle="账号、设置和已开通的能力都在这里。" title="我的" />
       <PageStack gap="loose">
         <AppCard style={styles.profileCard}>
           <View style={styles.profileTop}>
@@ -126,9 +119,9 @@ export default function MeScreen() {
           </PageSection>
         ) : null}
 
-        <PageSection title="云端能力">
+        <PageSection title="应用与账号">
           <AppCard style={styles.linkList}>
-            {cloudLinks.map((item, index) => {
+            {accountLinks.map((item, index) => {
               const Icon = item.icon;
 
               return (
@@ -136,7 +129,7 @@ export default function MeScreen() {
                   accessibilityLabel={item.title}
                   key={item.title}
                   onPress={() => router.push(item.href)}
-                  style={[styles.linkRow, index < cloudLinks.length - 1 ? styles.linkDivider : null]}
+                  style={[styles.linkRow, index < accountLinks.length - 1 ? styles.linkDivider : null]}
                 >
                   <View style={styles.linkIcon}>
                     <Icon color={colors.primaryPressed} size={20} strokeWidth={2.4} />

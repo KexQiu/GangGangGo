@@ -52,7 +52,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <AppTopBar fallbackHref={routes.home} title="设置" />
+      <AppTopBar fallbackHref={routes.me} title="设置" />
 
       <PageHeader eyebrow="应用配置" subtitle="外观、提醒和安全边界放这里。" title="设置" />
 

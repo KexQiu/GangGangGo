@@ -133,6 +133,20 @@ export function createStyles(colors: ThemeColors) {
       lineHeight: 19,
       textAlign: 'center',
     },
+    loggedOutBenefits: {
+      color: colors.primaryPressed,
+      fontSize: 12,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    loggedOutContent: {
+      flexGrow: 1,
+    },
+    loggedOutStack: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingBottom: 48,
+    },
     pendingBadge: {
       alignItems: 'center',
       backgroundColor: colors.warningSoft,

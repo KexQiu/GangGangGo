@@ -16,6 +16,24 @@ final class GangGangGoUITests: XCTestCase {
     )
   }
 
+  func testBottomTabsOpenAllPrimaryScreens() {
+    let app = launchApp()
+    waitForHome(in: app)
+
+    tapWhenHittable(app.tabBars.buttons["数据页"], in: app)
+    XCTAssertTrue(app.staticTexts["今天到长期的节奏"].waitForExistence(timeout: 10))
+
+    tapWhenHittable(app.tabBars.buttons["好友页"], in: app)
+    XCTAssertTrue(app.staticTexts["监督搭子"].waitForExistence(timeout: 10))
+
+    tapWhenHittable(app.tabBars.buttons["我的页"], in: app)
+    XCTAssertTrue(app.staticTexts["我的"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 10))
+
+    tapWhenHittable(app.tabBars.buttons["首页"], in: app)
+    waitForHome(in: app)
+  }
+
   func testMockUsersCanJoinTeamWithoutLeakingAccountCache() {
     let app = launchApp()
     waitForHome(in: app)
@@ -32,14 +50,14 @@ final class GangGangGoUITests: XCTestCase {
       app.swipeDown()
     }
 
-    app.buttons["打开我的"].tap()
+    tapWhenHittable(app.tabBars.buttons["我的页"], in: app)
     XCTAssertTrue(app.staticTexts["我的"].waitForExistence(timeout: 10))
 
     tapWhenHittable(app.buttons["A"], in: app)
     XCTAssertTrue(app.staticTexts["模拟搭子 A"].waitForExistence(timeout: 15))
     XCTAssertTrue(app.staticTexts["小提督 Pro"].waitForExistence(timeout: 10))
 
-    tapWhenHittable(app.buttons["监督搭子"], in: app)
+    tapWhenHittable(app.tabBars.buttons["好友页"], in: app)
     XCTAssertTrue(app.staticTexts["还没有监督搭子"].waitForExistence(timeout: 10))
     tapWhenHittable(app.buttons["创建小队"], in: app)
     XCTAssertTrue(app.staticTexts["小提督小队"].waitForExistence(timeout: 15))
@@ -60,7 +78,7 @@ final class GangGangGoUITests: XCTestCase {
 
     app.buttons["返回"].tap()
     XCTAssertTrue(app.staticTexts["小提督小队"].waitForExistence(timeout: 10))
-    app.buttons["返回"].tap()
+    tapWhenHittable(app.tabBars.buttons["我的页"], in: app)
     XCTAssertTrue(app.staticTexts["模拟搭子 A"].waitForExistence(timeout: 10))
 
     tapWhenHittable(app.buttons["B"], in: app)
@@ -81,13 +99,13 @@ final class GangGangGoUITests: XCTestCase {
     ).firstMatch
     XCTAssertTrue(restoredWaterCheckIn.waitForExistence(timeout: 10))
     XCTAssertEqual(restoredWaterCheckIn.label, persistedWaterState)
-    relaunchedApp.buttons["打开我的"].tap()
+    tapWhenHittable(relaunchedApp.tabBars.buttons["我的页"], in: relaunchedApp)
     XCTAssertTrue(relaunchedApp.staticTexts["模拟搭子 B"].waitForExistence(timeout: 10))
 
     tapWhenHittable(relaunchedApp.buttons["A"], in: relaunchedApp)
     XCTAssertTrue(relaunchedApp.staticTexts["模拟搭子 A"].waitForExistence(timeout: 15))
     XCTAssertFalse(relaunchedApp.staticTexts["模拟搭子 B"].exists)
-    tapWhenHittable(relaunchedApp.buttons["监督搭子"], in: relaunchedApp)
+    tapWhenHittable(relaunchedApp.tabBars.buttons["好友页"], in: relaunchedApp)
     XCTAssertTrue(relaunchedApp.staticTexts["2/4"].waitForExistence(timeout: 15))
     let buddyCard = relaunchedApp.buttons.matching(
       NSPredicate(format: "label BEGINSWITH %@", "模拟搭子 B，")
