@@ -50,7 +50,6 @@ export default function TrainingCompleteScreen() {
       <AppTopBar fallbackHref={routes.home} title="菊花抬结果" variant="close" />
 
       <PageHeader
-        eyebrow="菊花抬完成"
         subtitle={isCompleted ? '建议量会慢慢累积，休息和放松也算训练。' : '本次先收工，身体反馈比凑满次数更重要。'}
         title={isCompleted ? '抬得刚刚好' : '先收工'}
       />

@@ -73,7 +73,6 @@ export default function TeamInviteScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="邀请搭子" />
       <PageHeader
-        eyebrow="监督搭子"
         subtitle="发给一个信得过的人。对方加入后，只会看到你允许共享的低敏状态。"
         title="拉个搭子进小队"
       />

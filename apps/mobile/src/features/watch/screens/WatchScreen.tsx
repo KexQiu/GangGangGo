@@ -121,7 +121,6 @@ export default function WatchScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.me} title="Apple Watch" />
       <PageHeader
-        eyebrow="手腕小助手"
         subtitle="把今日低敏状态同步到手表，Pro 用户可在 Watch 上完成轻量操作。"
         title="Apple Watch 联动"
       />

@@ -68,7 +68,7 @@ export default function MeScreen() {
 
   return (
     <Screen>
-      <PageHeader eyebrow="小提督" subtitle="账号、设置和已开通的能力都在这里。" title="我的" />
+      <PageHeader subtitle="账号、设置和已开通的能力都在这里。" title="我的" />
       <PageStack gap="loose">
         <AppCard style={styles.profileCard}>
           <View style={styles.profileTop}>

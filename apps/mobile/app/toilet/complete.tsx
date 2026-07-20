@@ -84,7 +84,6 @@ export default function ToiletCompleteScreen() {
       <AppTopBar fallbackHref={routes.home} title="这趟记一下" variant="close" />
 
       <PageHeader
-        eyebrow="这趟记一下"
         subtitle="简单记一笔就行，不用写蹲会儿小作文。"
         title={`用时 ${formatToiletDuration(durationSeconds)}`}
       />

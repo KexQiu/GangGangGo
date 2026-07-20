@@ -15,7 +15,6 @@ type IconProps = {
 };
 
 type FeaturePlaceholderProps = {
-  eyebrow: string;
   icon: ComponentType<IconProps>;
   nextStep: string;
   primaryActionLabel?: string;
@@ -24,7 +23,6 @@ type FeaturePlaceholderProps = {
 };
 
 export function FeaturePlaceholder({
-  eyebrow,
   icon: Icon,
   nextStep,
   primaryActionLabel = '返回首页',
@@ -37,7 +35,7 @@ export function FeaturePlaceholder({
 
   return (
     <Screen>
-      <PageHeader eyebrow={eyebrow} subtitle={subtitle} title={title} />
+      <PageHeader subtitle={subtitle} title={title} />
 
       <AppCard muted style={styles.card}>
         <View style={styles.iconBadge}>

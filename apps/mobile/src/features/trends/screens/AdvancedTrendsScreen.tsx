@@ -42,7 +42,6 @@ export default function AdvancedReportScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.trends} title="90 天回看" />
       <PageHeader
-        eyebrow="Pro 高级小报告"
         subtitle="看更长周期的低敏趋势，不做排名，也不做健康评分。"
         title="90 天节奏慢慢看"
       />

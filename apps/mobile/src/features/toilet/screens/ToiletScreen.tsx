@@ -32,7 +32,7 @@ export default function ToiletScreen() {
     return (
       <Screen>
         <AppTopBar fallbackHref={routes.home} title="蹲会儿" />
-        <PageHeader eyebrow="蹲会儿" subtitle="开始后小花只负责计时和轻提醒。" title="蹲会儿" />
+        <PageHeader subtitle="开始后小花只负责计时和轻提醒。" title="蹲会儿" />
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
             <Armchair color={colors.info} size={38} strokeWidth={2.4} />
@@ -49,7 +49,7 @@ export default function ToiletScreen() {
     <Screen bottomSafeArea scroll={false} contentStyle={styles.screenContent}>
       <AppTopBar fallbackHref={routes.home} onBackPress={timer.confirmDiscardTimer} title="办正事中" variant="close" />
       <View>
-        <PageHeader eyebrow="蹲会儿" subtitle="小花值班中，办完就收工。" title="办正事中" />
+        <PageHeader subtitle="小花值班中，办完就收工。" title="办正事中" />
       </View>
       <AppCard style={styles.timerCard}>
         <View style={styles.timerRing}>

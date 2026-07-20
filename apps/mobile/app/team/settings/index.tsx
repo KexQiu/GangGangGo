@@ -45,7 +45,7 @@ export default function TeamSettingsScreen() {
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="小队设置" />
-      <PageHeader eyebrow="共享边界" subtitle="你可以随时暂停共享，也可以只共享某些低敏状态。" title="小队和共享" />
+      <PageHeader subtitle="你可以随时暂停共享，也可以只共享某些低敏状态。" title="小队和共享" />
 
       <PageStack gap="regular">
         <AppCard style={styles.card}>

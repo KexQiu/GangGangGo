@@ -90,7 +90,6 @@ export default function SafetyScreen() {
       <AppTopBar fallbackHref={routes.settings} title="小花说明书" />
 
       <PageHeader
-        eyebrow="小花说明书"
         subtitle="平时轻松点，身体亮灯就先暂停。这里不训话，只帮你少走弯路。"
         title="轻轻练，懂得停"
       />

@@ -20,18 +20,30 @@ final class GangGangGoUITests: XCTestCase {
     let app = launchApp()
     waitForHome(in: app)
 
-    tapWhenHittable(app.tabBars.buttons["数据页"], in: app)
+    tapWhenHittable(tabButton("tab-trends", in: app), in: app)
     XCTAssertTrue(app.staticTexts["今天到长期的节奏"].waitForExistence(timeout: 10))
 
-    tapWhenHittable(app.tabBars.buttons["好友页"], in: app)
+    tapWhenHittable(tabButton("tab-team", in: app), in: app)
     XCTAssertTrue(app.staticTexts["监督搭子"].waitForExistence(timeout: 10))
 
-    tapWhenHittable(app.tabBars.buttons["我的页"], in: app)
+    tapWhenHittable(tabButton("tab-me", in: app), in: app)
     XCTAssertTrue(app.staticTexts["我的"].waitForExistence(timeout: 10))
     XCTAssertTrue(app.buttons["设置"].waitForExistence(timeout: 10))
 
-    tapWhenHittable(app.tabBars.buttons["首页"], in: app)
+    tapWhenHittable(tabButton("tab-home", in: app), in: app)
     waitForHome(in: app)
+  }
+
+  func testHomeShowsToiletAndTrainingPriorityActions() {
+    let app = launchApp()
+    waitForHome(in: app)
+
+    XCTAssertTrue(app.buttons["蹲会儿，开始计时"].waitForExistence(timeout: 10))
+    XCTAssertTrue(
+      app.buttons.matching(
+        NSPredicate(format: "label BEGINSWITH %@", "菊花抬，今日")
+      ).firstMatch.waitForExistence(timeout: 10)
+    )
   }
 
   func testMockUsersCanJoinTeamWithoutLeakingAccountCache() {
@@ -50,14 +62,14 @@ final class GangGangGoUITests: XCTestCase {
       app.swipeDown()
     }
 
-    tapWhenHittable(app.tabBars.buttons["我的页"], in: app)
+    tapWhenHittable(tabButton("tab-me", in: app), in: app)
     XCTAssertTrue(app.staticTexts["我的"].waitForExistence(timeout: 10))
 
     tapWhenHittable(app.buttons["A"], in: app)
     XCTAssertTrue(app.staticTexts["模拟搭子 A"].waitForExistence(timeout: 15))
     XCTAssertTrue(app.staticTexts["小提督 Pro"].waitForExistence(timeout: 10))
 
-    tapWhenHittable(app.tabBars.buttons["好友页"], in: app)
+    tapWhenHittable(tabButton("tab-team", in: app), in: app)
     XCTAssertTrue(app.staticTexts["还没有监督搭子"].waitForExistence(timeout: 10))
     tapWhenHittable(app.buttons["创建小队"], in: app)
     XCTAssertTrue(app.staticTexts["小提督小队"].waitForExistence(timeout: 15))
@@ -78,7 +90,7 @@ final class GangGangGoUITests: XCTestCase {
 
     app.buttons["返回"].tap()
     XCTAssertTrue(app.staticTexts["小提督小队"].waitForExistence(timeout: 10))
-    tapWhenHittable(app.tabBars.buttons["我的页"], in: app)
+    tapWhenHittable(tabButton("tab-me", in: app), in: app)
     XCTAssertTrue(app.staticTexts["模拟搭子 A"].waitForExistence(timeout: 10))
 
     tapWhenHittable(app.buttons["B"], in: app)
@@ -99,13 +111,13 @@ final class GangGangGoUITests: XCTestCase {
     ).firstMatch
     XCTAssertTrue(restoredWaterCheckIn.waitForExistence(timeout: 10))
     XCTAssertEqual(restoredWaterCheckIn.label, persistedWaterState)
-    tapWhenHittable(relaunchedApp.tabBars.buttons["我的页"], in: relaunchedApp)
+    tapWhenHittable(tabButton("tab-me", in: relaunchedApp), in: relaunchedApp)
     XCTAssertTrue(relaunchedApp.staticTexts["模拟搭子 B"].waitForExistence(timeout: 10))
 
     tapWhenHittable(relaunchedApp.buttons["A"], in: relaunchedApp)
     XCTAssertTrue(relaunchedApp.staticTexts["模拟搭子 A"].waitForExistence(timeout: 15))
     XCTAssertFalse(relaunchedApp.staticTexts["模拟搭子 B"].exists)
-    tapWhenHittable(relaunchedApp.tabBars.buttons["好友页"], in: relaunchedApp)
+    tapWhenHittable(tabButton("tab-team", in: relaunchedApp), in: relaunchedApp)
     XCTAssertTrue(relaunchedApp.staticTexts["2/4"].waitForExistence(timeout: 15))
     let buddyCard = relaunchedApp.buttons.matching(
       NSPredicate(format: "label BEGINSWITH %@", "模拟搭子 B，")
@@ -125,6 +137,10 @@ final class GangGangGoUITests: XCTestCase {
       app.staticTexts["今天轻轻安排一下"].waitForExistence(timeout: 30),
       app.debugDescription
     )
+  }
+
+  private func tabButton(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
+    app.buttons[identifier]
   }
 
   private func waitForLabelChange(
@@ -174,6 +190,17 @@ final class GangGangGoUITests: XCTestCase {
     let openButton = localizedOpenButton.waitForExistence(timeout: 10) ? localizedOpenButton : englishOpenButton
     XCTAssertTrue(openButton.waitForExistence(timeout: 3), safari.debugDescription)
     openButton.tap()
+
+    if !app.wait(for: .runningForeground, timeout: 3) {
+      let confirmationOpenButton = safari.buttons["打开"]
+      let confirmationOpenButtonEnglish = safari.buttons["Open"]
+      let confirmationButton = confirmationOpenButton.waitForExistence(timeout: 3)
+        ? confirmationOpenButton
+        : confirmationOpenButtonEnglish
+
+      XCTAssertTrue(confirmationButton.waitForExistence(timeout: 3), safari.debugDescription)
+      confirmationButton.tap()
+    }
 
     XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
   }

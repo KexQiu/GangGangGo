@@ -110,7 +110,7 @@ export default function TeamScreen() {
 
   return (
     <Screen contentStyle={!user ? styles.loggedOutContent : undefined}>
-      <PageHeader eyebrow="好友" subtitle="一起记住轻轻行动，也把提醒说得体面。" title="监督搭子" />
+      <PageHeader subtitle="一起记住轻轻行动，也把提醒说得体面。" title="监督搭子" />
       <PageStack gap="regular" style={!user ? styles.loggedOutStack : undefined}>
         {!user ? (
           <AppCard style={styles.emptyCard}>

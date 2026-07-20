@@ -36,7 +36,7 @@ export default function JoinTeamScreen() {
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="加入小队" />
-      <PageHeader eyebrow="监督搭子" subtitle="加入后你可以随时暂停共享或退出小队。" title="确认加入小队" />
+      <PageHeader subtitle="加入后你可以随时暂停共享或退出小队。" title="确认加入小队" />
 
       <PageStack>
         <AppCard style={styles.card}>

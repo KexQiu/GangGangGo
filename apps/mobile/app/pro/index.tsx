@@ -43,7 +43,6 @@ export default function ProScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.me} title="小提督 Pro" />
       <PageHeader
-        eyebrow="Pro"
         subtitle="基础功能继续免费，Pro 解锁搭子监督、手表联动和更长周期的小报告。"
         title="多一点陪伴，不多一点压力"
       />

@@ -69,7 +69,6 @@ export default function TrendsScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="数据"
         subtitle="看节奏，不卷数字。蹲会儿长会只提醒，不算战绩。"
         title="今天到长期的节奏"
       />

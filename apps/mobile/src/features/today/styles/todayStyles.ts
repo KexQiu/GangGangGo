@@ -49,8 +49,9 @@ export function createStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '800',
     },
-    heroCard: {
-      borderRadius: 24,
+    toiletPriorityCard: {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
       marginBottom: 12,
       padding: 18,
     },
@@ -75,23 +76,23 @@ export function createStyles(colors: ThemeColors) {
       fontWeight: '500',
       lineHeight: 20,
     },
-    ringOuter: {
+    toiletRing: {
       alignItems: 'center',
-      backgroundColor: colors.primarySoft,
+      backgroundColor: colors.surface,
       borderRadius: 34,
       height: 68,
       justifyContent: 'center',
       width: 68,
     },
-    ringInner: {
+    toiletRingInner: {
       alignItems: 'center',
-      backgroundColor: colors.primarySoft,
+      backgroundColor: colors.surface,
       borderRadius: 27,
       height: 54,
       justifyContent: 'center',
       width: 54,
     },
-    actionRow: {
+    trainingQuickCard: {
       alignItems: 'center',
       backgroundColor: colors.surface,
       borderColor: colors.border,
@@ -99,25 +100,36 @@ export function createStyles(colors: ThemeColors) {
       borderWidth: 1,
       flexDirection: 'row',
       marginBottom: 12,
-      padding: 14,
+      minHeight: 86,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
     },
-    rowIcon: {
+    trainingIcon: {
       alignItems: 'center',
-      borderRadius: 19,
-      height: 38,
+      backgroundColor: colors.primarySoft,
+      borderRadius: 23,
+      height: 46,
       justifyContent: 'center',
       marginRight: 12,
-      width: 38,
+      width: 46,
     },
-    infoBadge: {
-      backgroundColor: colors.infoSoft,
+    trainingProgress: {
+      color: colors.primaryPressed,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    trainingDescription: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+      lineHeight: 20,
     },
     rowCopy: {
       flex: 1,
     },
     rowTitle: {
       color: colors.text,
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '800',
       marginBottom: 3,
     },

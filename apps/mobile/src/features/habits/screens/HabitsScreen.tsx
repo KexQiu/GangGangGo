@@ -63,7 +63,7 @@ export default function HabitsScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.home} title="小账本" />
 
-      <PageHeader eyebrow="健康习惯" subtitle="快速记今天的基础习惯，不写精确数字，也不写小作文。" title="今日小账本" />
+      <PageHeader subtitle="快速记今天的基础习惯，不写精确数字，也不写小作文。" title="今日小账本" />
 
       <AppCard muted style={styles.summaryCard}>
         <View style={styles.summaryIcon}>

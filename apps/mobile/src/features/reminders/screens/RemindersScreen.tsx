@@ -48,7 +48,7 @@ export default function RemindersScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.settings} title="提醒设置" />
 
-      <PageHeader eyebrow="小暗号" subtitle="通知栏尽量说人话、留面子，不把尴尬词写满屏。" title="提醒小秘书" />
+      <PageHeader subtitle="通知栏尽量说人话、留面子，不把尴尬词写满屏。" title="提醒小秘书" />
 
       <AppCard muted style={styles.summaryCard}>
         <View style={styles.summaryIcon}>

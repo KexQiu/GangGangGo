@@ -54,7 +54,6 @@ export default function TeamMemberScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.team} title="搭子详情" />
       <PageHeader
-        eyebrow="监督搭子"
         subtitle="提醒只用固定暗号，不开放自由文本。"
         title={member?.displayName ?? member?.user.nickname ?? '小提督搭子'}
       />
