@@ -44,7 +44,7 @@ import {
 
 describe('user contracts', () => {
   it.each([
-    ['avatarEmojiPresetKeySchema', avatarEmojiPresetKeySchema, 'smile'],
+    ['avatarEmojiPresetKeySchema', avatarEmojiPresetKeySchema, 'salute'],
     ['avatarBackgroundPresetKeySchema', avatarBackgroundPresetKeySchema, 'leaf'],
     ['avatarConfigSchema', avatarConfigSchema, avatarConfig],
     ['userSummarySchema', userSummarySchema, userSummary],

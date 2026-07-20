@@ -23,6 +23,8 @@ import { useCurrentUserQuery, useUpdateProfileMutation } from '../../../features
 import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
 
+const avatarOptionsPerRow = 7;
+
 export default function ProfileEditScreen() {
   const router = useRouter();
   const { colors, resolvedScheme } = useAppTheme();
@@ -34,7 +36,7 @@ export default function ProfileEditScreen() {
   const [isAvatarPickerVisible, setIsAvatarPickerVisible] = useState(false);
   const normalizedNickname = nicknameDraft.trim();
   const avatarDraftConfig = getAvatarConfig(avatarDraft);
-  const avatarPresetRows = chunkItems(profileAvatarEmojiOptions, 6);
+  const avatarPresetRows = chunkItems(profileAvatarEmojiOptions, avatarOptionsPerRow);
   const hasChanges = Boolean(
     user &&
     (normalizedNickname !== user.nickname ||
@@ -163,7 +165,7 @@ export default function ProfileEditScreen() {
                             </PressableScale>
                           );
                         })}
-                        {Array.from({ length: 6 - row.length }).map((_, placeholderIndex) => (
+                        {Array.from({ length: avatarOptionsPerRow - row.length }).map((_, placeholderIndex) => (
                           <View
                             key={`avatar-row-${rowIndex}-placeholder-${placeholderIndex}`}
                             style={styles.avatarPlaceholder}

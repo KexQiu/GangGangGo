@@ -9,7 +9,7 @@ export function createStyles(colors: ThemeColors) {
       flex: 1,
     },
     avatarGrid: {
-      gap: 7,
+      gap: 4,
     },
     avatarHeader: {
       alignItems: 'center',
@@ -32,7 +32,7 @@ export function createStyles(colors: ThemeColors) {
     },
     avatarRow: {
       flexDirection: 'row',
-      gap: 7,
+      gap: 4,
     },
     avatarSection: {
       gap: 10,
