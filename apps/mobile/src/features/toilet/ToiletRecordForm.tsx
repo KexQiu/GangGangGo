@@ -1,6 +1,6 @@
 import { AlertTriangle, CircleDot, Frown, Pencil, Plus, Smile, Trash2 } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
@@ -46,6 +46,11 @@ const feelingOptions: Array<{
   },
 ];
 
+const DURATION_WHEEL_ROW_HEIGHT = 48;
+const DURATION_WHEEL_SIDE_ROWS = 2;
+const BOTTOM_SHEET_ENTER_TRANSLATE_Y = 96;
+const durationSecondOptions = Array.from({ length: 60 }, (_, value) => value);
+
 type ToiletRecordFormProps = {
   initialValue: ToiletRecordDraft;
   onOpenSafety?: () => void;
@@ -57,11 +62,15 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const [durationSeconds, setDurationSeconds] = useState(initialValue.durationSeconds);
-  const [isEditingDuration, setIsEditingDuration] = useState(false);
-  const [durationMinutes, setDurationMinutes] = useState(() =>
-    Math.floor(initialValue.durationSeconds / 60).toString(),
+  const [isDurationPickerVisible, setIsDurationPickerVisible] = useState(false);
+  const [isDurationManuallyEdited, setIsDurationManuallyEdited] = useState(false);
+  const [durationPickerMinutes, setDurationPickerMinutes] = useState(() =>
+    Math.floor(Math.max(1, initialValue.durationSeconds) / 60),
   );
-  const [durationSecondPart, setDurationSecondPart] = useState(() => (initialValue.durationSeconds % 60).toString());
+  const [durationPickerSeconds, setDurationPickerSeconds] = useState(
+    () => Math.max(1, initialValue.durationSeconds) % 60,
+  );
+  const [durationPickerError, setDurationPickerError] = useState<string | null>(null);
   const [feeling, setFeeling] = useState<ToiletFeeling>(initialValue.feeling);
   const [discomfort, setDiscomfort] = useState(initialValue.discomfort);
   const [bleeding, setBleeding] = useState(initialValue.bleeding);
@@ -77,9 +86,8 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
   const [isSaving, setIsSaving] = useState(false);
   const [isDetailSheetVisible, setIsDetailSheetVisible] = useState(false);
   const availableSignals = useMemo(() => [...builtInToiletSignals, ...customSignals], [customSignals]);
-  const currentDuration = isEditingDuration
-    ? (toDurationSeconds(durationMinutes, durationSecondPart) ?? durationSeconds)
-    : durationSeconds;
+  const durationMinuteOptions = useMemo(() => createDurationMinuteOptions(durationSeconds), [durationSeconds]);
+  const currentDuration = durationSeconds;
   const hasRedFlag = bleeding || discomfort;
   const hasLongToilet = isLongToiletSession(currentDuration);
   const supplementalCount =
@@ -170,8 +178,31 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
     }
   }
 
+  function openDurationPicker() {
+    const nextDuration = Math.max(1, durationSeconds);
+    setDurationPickerMinutes(Math.floor(nextDuration / 60));
+    setDurationPickerSeconds(nextDuration % 60);
+    setDurationPickerError(null);
+    setIsDurationPickerVisible(true);
+  }
+
+  function confirmDurationPicker(minutes: number, seconds: number) {
+    const nextDuration = toDurationSeconds(minutes, seconds);
+    if (!nextDuration) {
+      setDurationPickerError('时长请至少设为 1 秒');
+      return;
+    }
+
+    setDurationPickerMinutes(minutes);
+    setDurationPickerSeconds(seconds);
+    setDurationSeconds(nextDuration);
+    setDurationPickerError(null);
+    setIsDurationManuallyEdited(true);
+    setIsDurationPickerVisible(false);
+  }
+
   async function submit() {
-    const nextDuration = isEditingDuration ? toDurationSeconds(durationMinutes, durationSecondPart) : durationSeconds;
+    const nextDuration = durationSeconds;
     if (!nextDuration) {
       setFormError('时长请填写为大于 0 的分钟和秒数');
       return;
@@ -190,7 +221,6 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
         stoolShape,
       });
       setDurationSeconds(nextDuration);
-      setIsEditingDuration(false);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : '记录保存失败');
     } finally {
@@ -204,25 +234,18 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
       <AppCard muted style={styles.durationCard}>
         <View>
           <Text style={styles.durationValue}>{formatToiletDuration(currentDuration)}</Text>
-          <Text style={styles.durationCaption}>{isEditingDuration ? '可修改分钟和秒数' : '已由计时器自动带入'}</Text>
+          <Text style={styles.durationCaption}>{isDurationManuallyEdited ? '已手动调整' : '已由计时器自动带入'}</Text>
         </View>
         <Pressable
-          accessibilityLabel={isEditingDuration ? '收起时长修改' : '修改时长'}
+          accessibilityLabel="修改时长"
           accessibilityRole="button"
-          onPress={() => setIsEditingDuration((current) => !current)}
+          onPress={openDurationPicker}
           style={({ pressed }) => [styles.durationEditButton, pressed ? styles.pressed : null]}
         >
           <Pencil color={colors.primaryPressed} size={16} strokeWidth={2.5} />
-          <Text style={styles.durationEditText}>{isEditingDuration ? '收起' : '修改'}</Text>
+          <Text style={styles.durationEditText}>修改</Text>
         </Pressable>
       </AppCard>
-
-      {isEditingDuration ? (
-        <View style={styles.durationInputs}>
-          <DurationInput label="分钟" onChangeText={setDurationMinutes} value={durationMinutes} />
-          <DurationInput label="秒" onChangeText={setDurationSecondPart} value={durationSecondPart} />
-        </View>
-      ) : null}
 
       <Text style={styles.groupTitle}>这趟感觉</Text>
       <View style={styles.feelingGrid}>
@@ -277,182 +300,189 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
         {isSaving ? '保存中…' : submitLabel}
       </AppButton>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsDetailSheetVisible(false)}
-        transparent
+      <DurationPickerSheet
+        error={durationPickerError}
+        minuteOptions={durationMinuteOptions}
+        minutes={durationPickerMinutes}
+        onClose={() => setIsDurationPickerVisible(false)}
+        onConfirm={confirmDurationPicker}
+        onMinutesChange={(value) => {
+          setDurationPickerMinutes(value);
+          setDurationPickerError(null);
+        }}
+        onSecondsChange={(value) => {
+          setDurationPickerSeconds(value);
+          setDurationPickerError(null);
+        }}
+        seconds={durationPickerSeconds}
+        visible={isDurationPickerVisible}
+      />
+
+      <BottomSheet
+        accessibilityLabel="关闭补充记录"
+        onClose={() => setIsDetailSheetVisible(false)}
         visible={isDetailSheetVisible}
       >
-        <View style={styles.sheetRoot}>
+        <View style={styles.sheetHandle} />
+        <View style={styles.sheetHeader}>
+          <View>
+            <Text style={styles.sheetTitle}>补充记录</Text>
+            <Text style={styles.sheetCaption}>只记录你想记住的细节。</Text>
+          </View>
           <Pressable
-            accessibilityLabel="关闭补充记录"
+            accessibilityLabel="完成补充记录"
             accessibilityRole="button"
             onPress={() => setIsDetailSheetVisible(false)}
-            style={styles.sheetBackdrop}
-          />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <View>
-                <Text style={styles.sheetTitle}>补充记录</Text>
-                <Text style={styles.sheetCaption}>只记录你想记住的细节。</Text>
-              </View>
+            style={({ pressed }) => [styles.sheetCloseButton, pressed ? styles.pressed : null]}
+          >
+            <Text style={styles.sheetCloseText}>完成</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          bounces={false}
+          contentContainerStyle={styles.sheetContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.sheetScroll}
+        >
+          <Text style={styles.sheetSectionTitle}>排便详情（可选）</Text>
+          <AppCard style={styles.detailCard}>
+            <OptionalChoiceRow
+              label="形状"
+              onChange={setStoolShape}
+              options={toiletStoolShapeOptions}
+              value={stoolShape}
+            />
+            <View style={styles.detailDivider} />
+            <OptionalChoiceRow
+              label="颜色"
+              onChange={setStoolColor}
+              options={toiletStoolColorOptions}
+              value={stoolColor}
+            />
+          </AppCard>
+
+          <View style={styles.signalHeader}>
+            <View style={styles.signalHeaderCopy}>
+              <Text style={styles.sheetSectionTitle}>需要留意的小信号（可选）</Text>
+              <Text style={styles.signalCaption}>仅帮你记住当下，不作健康判断。</Text>
+            </View>
+            {customSignals.length > 0 ? (
               <Pressable
-                accessibilityLabel="完成补充记录"
+                accessibilityLabel="管理常用小信号"
                 accessibilityRole="button"
-                onPress={() => setIsDetailSheetVisible(false)}
-                style={({ pressed }) => [styles.sheetCloseButton, pressed ? styles.pressed : null]}
+                onPress={() => setIsManagingSignals((current) => !current)}
+                style={({ pressed }) => [styles.manageButton, pressed ? styles.pressed : null]}
               >
-                <Text style={styles.sheetCloseText}>完成</Text>
+                <Text style={styles.manageButtonText}>{isManagingSignals ? '完成' : '管理常用'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <View style={styles.signalGrid}>
+            {availableSignals.map((signal) => (
+              <SignalChip
+                key={signal.id}
+                label={signal.label}
+                onPress={() => toggleSignal(signal)}
+                selected={signals.some((item) => item.id === signal.id)}
+              />
+            ))}
+            <Pressable
+              accessibilityLabel="自定义小信号"
+              accessibilityRole="button"
+              onPress={() => setIsAddingSignal((current) => !current)}
+              style={({ pressed }) => [styles.addSignalChip, pressed ? styles.pressed : null]}
+            >
+              <Plus color={colors.primaryPressed} size={16} strokeWidth={2.5} />
+              <Text style={styles.addSignalText}>自定义</Text>
+            </Pressable>
+          </View>
+          {isLoadingSignals ? <Text style={styles.helperText}>正在准备常用项…</Text> : null}
+
+          {isAddingSignal ? (
+            <View style={styles.customSignalEditor}>
+              <TextInput
+                accessibilityLabel="自定义小信号名称"
+                autoFocus
+                maxLength={12}
+                onChangeText={setCustomSignalLabel}
+                placeholder="例如：饮食变化"
+                placeholderTextColor={colors.textSubtle}
+                style={styles.customSignalInput}
+                value={customSignalLabel}
+              />
+              <Pressable
+                accessibilityLabel="添加并选中自定义小信号"
+                accessibilityRole="button"
+                onPress={() => void addCustomSignal()}
+                style={({ pressed }) => [styles.customSignalAddButton, pressed ? styles.pressed : null]}
+              >
+                <Text style={styles.customSignalAddText}>添加并选中</Text>
               </Pressable>
             </View>
+          ) : null}
 
-            <ScrollView
-              bounces={false}
-              contentContainerStyle={styles.sheetContent}
-              showsVerticalScrollIndicator={false}
-              style={styles.sheetScroll}
-            >
-              <Text style={styles.sheetSectionTitle}>排便详情（可选）</Text>
-              <AppCard style={styles.detailCard}>
-                <OptionalChoiceRow
-                  label="形状"
-                  onChange={setStoolShape}
-                  options={toiletStoolShapeOptions}
-                  value={stoolShape}
-                />
-                <View style={styles.detailDivider} />
-                <OptionalChoiceRow
-                  label="颜色"
-                  onChange={setStoolColor}
-                  options={toiletStoolColorOptions}
-                  value={stoolColor}
-                />
-              </AppCard>
-
-              <View style={styles.signalHeader}>
-                <View style={styles.signalHeaderCopy}>
-                  <Text style={styles.sheetSectionTitle}>需要留意的小信号（可选）</Text>
-                  <Text style={styles.signalCaption}>仅帮你记住当下，不作健康判断。</Text>
-                </View>
-                {customSignals.length > 0 ? (
+          {isManagingSignals ? (
+            <View style={styles.customSignalList}>
+              {customSignals.map((signal) => (
+                <View key={signal.id} style={styles.customSignalRow}>
+                  <Text style={styles.customSignalRowText}>{signal.label}</Text>
                   <Pressable
-                    accessibilityLabel="管理常用小信号"
+                    accessibilityLabel={`移除常用小信号 ${signal.label}`}
                     accessibilityRole="button"
-                    onPress={() => setIsManagingSignals((current) => !current)}
-                    style={({ pressed }) => [styles.manageButton, pressed ? styles.pressed : null]}
+                    onPress={() => confirmDeleteCustomSignal(signal)}
+                    style={({ pressed }) => [styles.removeSignalButton, pressed ? styles.pressed : null]}
                   >
-                    <Text style={styles.manageButtonText}>{isManagingSignals ? '完成' : '管理常用'}</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-              <View style={styles.signalGrid}>
-                {availableSignals.map((signal) => (
-                  <SignalChip
-                    key={signal.id}
-                    label={signal.label}
-                    onPress={() => toggleSignal(signal)}
-                    selected={signals.some((item) => item.id === signal.id)}
-                  />
-                ))}
-                <Pressable
-                  accessibilityLabel="自定义小信号"
-                  accessibilityRole="button"
-                  onPress={() => setIsAddingSignal((current) => !current)}
-                  style={({ pressed }) => [styles.addSignalChip, pressed ? styles.pressed : null]}
-                >
-                  <Plus color={colors.primaryPressed} size={16} strokeWidth={2.5} />
-                  <Text style={styles.addSignalText}>自定义</Text>
-                </Pressable>
-              </View>
-              {isLoadingSignals ? <Text style={styles.helperText}>正在准备常用项…</Text> : null}
-
-              {isAddingSignal ? (
-                <View style={styles.customSignalEditor}>
-                  <TextInput
-                    accessibilityLabel="自定义小信号名称"
-                    autoFocus
-                    maxLength={12}
-                    onChangeText={setCustomSignalLabel}
-                    placeholder="例如：饮食变化"
-                    placeholderTextColor={colors.textSubtle}
-                    style={styles.customSignalInput}
-                    value={customSignalLabel}
-                  />
-                  <Pressable
-                    accessibilityLabel="添加并选中自定义小信号"
-                    accessibilityRole="button"
-                    onPress={() => void addCustomSignal()}
-                    style={({ pressed }) => [styles.customSignalAddButton, pressed ? styles.pressed : null]}
-                  >
-                    <Text style={styles.customSignalAddText}>添加并选中</Text>
+                    <Trash2 color={colors.danger} size={16} strokeWidth={2.4} />
+                    <Text style={styles.removeSignalText}>移除</Text>
                   </Pressable>
                 </View>
-              ) : null}
-
-              {isManagingSignals ? (
-                <View style={styles.customSignalList}>
-                  {customSignals.map((signal) => (
-                    <View key={signal.id} style={styles.customSignalRow}>
-                      <Text style={styles.customSignalRowText}>{signal.label}</Text>
-                      <Pressable
-                        accessibilityLabel={`移除常用小信号 ${signal.label}`}
-                        accessibilityRole="button"
-                        onPress={() => confirmDeleteCustomSignal(signal)}
-                        style={({ pressed }) => [styles.removeSignalButton, pressed ? styles.pressed : null]}
-                      >
-                        <Trash2 color={colors.danger} size={16} strokeWidth={2.4} />
-                        <Text style={styles.removeSignalText}>移除</Text>
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              <Text style={styles.sheetSectionTitle}>需要优先留意</Text>
-              <View style={styles.priorityGrid}>
-                <PrioritySignalChoice
-                  description="不舒服就先让小花休息。"
-                  onPress={() => setDiscomfort((current) => !current)}
-                  selected={discomfort}
-                  title="明显不舒服"
-                />
-                <PrioritySignalChoice
-                  description="这类信号建议问医生。"
-                  onPress={() => setBleeding((current) => !current)}
-                  selected={bleeding}
-                  title="明显便血"
-                />
-              </View>
-
-              {hasRedFlag ? (
-                <SafetyCard
-                  buttonLabel="查看安全说明"
-                  onOpenSafety={onOpenSafety}
-                  text="这类信号别靠意志力硬扛。小提督不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。"
-                  tone="danger"
-                />
-              ) : hasLongToilet ? (
-                <SafetyCard
-                  buttonLabel="看看怎么少开长会"
-                  onOpenSafety={onOpenSafety}
-                  text="这趟坐得有点久。先收工，手机小剧场下次再播。"
-                  tone="warning"
-                />
-              ) : null}
-
-              {formError ? (
-                <Text accessibilityLiveRegion="polite" style={styles.formError}>
-                  {formError}
-                </Text>
-              ) : null}
-            </ScrollView>
-            <View style={styles.sheetFooter}>
-              <AppButton onPress={() => setIsDetailSheetVisible(false)}>完成补充</AppButton>
+              ))}
             </View>
+          ) : null}
+
+          <Text style={styles.sheetSectionTitle}>需要优先留意</Text>
+          <View style={styles.priorityGrid}>
+            <PrioritySignalChoice
+              description="不舒服就先让小花休息。"
+              onPress={() => setDiscomfort((current) => !current)}
+              selected={discomfort}
+              title="明显不舒服"
+            />
+            <PrioritySignalChoice
+              description="这类信号建议问医生。"
+              onPress={() => setBleeding((current) => !current)}
+              selected={bleeding}
+              title="明显便血"
+            />
           </View>
+
+          {hasRedFlag ? (
+            <SafetyCard
+              buttonLabel="查看安全说明"
+              onOpenSafety={onOpenSafety}
+              text="这类信号别靠意志力硬扛。小提督不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。"
+              tone="danger"
+            />
+          ) : hasLongToilet ? (
+            <SafetyCard
+              buttonLabel="看看怎么少开长会"
+              onOpenSafety={onOpenSafety}
+              text="这趟坐得有点久。先收工，手机小剧场下次再播。"
+              tone="warning"
+            />
+          ) : null}
+
+          {formError ? (
+            <Text accessibilityLiveRegion="polite" style={styles.formError}>
+              {formError}
+            </Text>
+          ) : null}
+        </ScrollView>
+        <View style={styles.sheetFooter}>
+          <AppButton onPress={() => setIsDetailSheetVisible(false)}>完成补充</AppButton>
         </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -526,28 +556,296 @@ function PrioritySignalChoice({
   );
 }
 
-function DurationInput({
-  label,
-  onChangeText,
-  value,
+function BottomSheet({
+  accessibilityLabel,
+  children,
+  onClose,
+  visible,
 }: {
-  label: string;
-  onChangeText: (value: string) => void;
-  value: string;
+  accessibilityLabel: string;
+  children: ReactNode;
+  onClose: () => void;
+  visible: boolean;
 }) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
+  const [isPresented, setIsPresented] = useState(visible);
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(BOTTOM_SHEET_ENTER_TRANSLATE_Y)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setIsPresented(true);
+      return;
+    }
+
+    if (!isPresented) return;
+
+    const closingAnimation = Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        duration: 150,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        duration: 160,
+        easing: Easing.in(Easing.cubic),
+        toValue: BOTTOM_SHEET_ENTER_TRANSLATE_Y,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    closingAnimation.start(({ finished }) => {
+      if (finished) setIsPresented(false);
+    });
+
+    return () => closingAnimation.stop();
+  }, [backdropOpacity, isPresented, sheetTranslateY, visible]);
+
+  useEffect(() => {
+    if (!visible || !isPresented) return;
+
+    backdropOpacity.setValue(0);
+    sheetTranslateY.setValue(BOTTOM_SHEET_ENTER_TRANSLATE_Y);
+    const openingAnimation = Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        duration: 170,
+        easing: Easing.out(Easing.cubic),
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sheetTranslateY, {
+        damping: 22,
+        mass: 0.8,
+        stiffness: 250,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+    ]);
+    const animationFrame = requestAnimationFrame(() => openingAnimation.start());
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      openingAnimation.stop();
+    };
+  }, [backdropOpacity, isPresented, sheetTranslateY, visible]);
 
   return (
-    <View style={styles.durationInputWrap}>
-      <TextInput
-        accessibilityLabel={`${label}数`}
-        keyboardType="number-pad"
-        onChangeText={onChangeText}
-        style={styles.durationInput}
-        value={value}
-      />
-      <Text style={styles.durationInputLabel}>{label}</Text>
+    <Modal animationType="none" onRequestClose={onClose} transparent visible={isPresented}>
+      <View style={styles.sheetRoot}>
+        <Animated.View pointerEvents="none" style={[styles.sheetOverlay, { opacity: backdropOpacity }]} />
+        <Pressable
+          accessibilityLabel={accessibilityLabel}
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.sheetBackdrop}
+        />
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
+          {children}
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+function DurationPickerSheet({
+  error,
+  minuteOptions,
+  minutes,
+  onClose,
+  onConfirm,
+  onMinutesChange,
+  onSecondsChange,
+  seconds,
+  visible,
+}: {
+  error: string | null;
+  minuteOptions: number[];
+  minutes: number;
+  onClose: () => void;
+  onConfirm: (minutes: number, seconds: number) => void;
+  onMinutesChange: (value: number) => void;
+  onSecondsChange: (value: number) => void;
+  seconds: number;
+  visible: boolean;
+}) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+  const [previewMinutes, setPreviewMinutes] = useState(minutes);
+  const [previewSeconds, setPreviewSeconds] = useState(seconds);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    setPreviewMinutes(minutes);
+    setPreviewSeconds(seconds);
+  }, [minutes, seconds, visible]);
+
+  return (
+    <BottomSheet accessibilityLabel="取消修改时长" onClose={onClose} visible={visible}>
+      <View style={styles.sheetHandle} />
+      <View style={styles.sheetHeader}>
+        <View>
+          <Text style={styles.sheetTitle}>调整时长</Text>
+          <Text style={styles.sheetCaption}>滑动滚轮，确认后才会更新记录。</Text>
+        </View>
+        <Pressable
+          accessibilityLabel="取消修改时长"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={({ pressed }) => [styles.sheetCloseButton, pressed ? styles.pressed : null]}
+        >
+          <Text style={styles.sheetCloseText}>取消</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.durationPickerReadout}>
+        <Text style={styles.durationPickerValue}>{formatToiletDuration(previewMinutes * 60 + previewSeconds)}</Text>
+        <Text style={styles.durationPickerCaption}>分钟和秒数可分别调整</Text>
+      </View>
+      <View style={styles.durationWheelRow}>
+        <DurationWheel
+          label="分钟"
+          onChange={onMinutesChange}
+          onPreviewChange={setPreviewMinutes}
+          options={minuteOptions}
+          value={minutes}
+          visible={visible}
+        />
+        <DurationWheel
+          label="秒"
+          onChange={onSecondsChange}
+          onPreviewChange={setPreviewSeconds}
+          options={durationSecondOptions}
+          value={seconds}
+          visible={visible}
+        />
+      </View>
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={styles.durationPickerError}>
+          {error}
+        </Text>
+      ) : null}
+      <View style={styles.sheetFooter}>
+        <AppButton onPress={() => onConfirm(previewMinutes, previewSeconds)}>确认时长</AppButton>
+      </View>
+    </BottomSheet>
+  );
+}
+
+function DurationWheel({
+  label,
+  onChange,
+  onPreviewChange,
+  options,
+  value,
+  visible,
+}: {
+  label: string;
+  onChange: (value: number) => void;
+  onPreviewChange: (value: number) => void;
+  options: number[];
+  value: number;
+  visible: boolean;
+}) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);
+  const scrollRef = useRef<ScrollView>(null);
+  const displayedValueRef = useRef(value);
+  const [displayedValue, setDisplayedValue] = useState(value);
+  const selectedIndex = Math.max(0, options.indexOf(value));
+
+  useEffect(() => {
+    if (!visible) return;
+
+    displayedValueRef.current = value;
+    setDisplayedValue(value);
+    const animationFrame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ animated: false, y: selectedIndex * DURATION_WHEEL_ROW_HEIGHT });
+    });
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [selectedIndex, value, visible]);
+
+  function getValueForOffset(offsetY: number): number {
+    const nextIndex = Math.min(options.length - 1, Math.max(0, Math.round(offsetY / DURATION_WHEEL_ROW_HEIGHT)));
+    return options[nextIndex];
+  }
+
+  function updatePreview(offsetY: number) {
+    const nextValue = getValueForOffset(offsetY);
+    if (nextValue === displayedValueRef.current) return;
+
+    displayedValueRef.current = nextValue;
+    setDisplayedValue(nextValue);
+    onPreviewChange(nextValue);
+  }
+
+  function settleValue(offsetY: number) {
+    const nextValue = getValueForOffset(offsetY);
+    updatePreview(offsetY);
+    if (nextValue !== value) onChange(nextValue);
+  }
+
+  function adjustBy(amount: number) {
+    const nextIndex = Math.min(options.length - 1, Math.max(0, selectedIndex + amount));
+    const nextValue = options[nextIndex];
+    displayedValueRef.current = nextValue;
+    setDisplayedValue(nextValue);
+    onPreviewChange(nextValue);
+    onChange(nextValue);
+  }
+
+  return (
+    <View style={styles.durationWheelColumn}>
+      <Text style={styles.durationWheelLabel}>{label}</Text>
+      <View
+        accessibilityActions={[
+          { label: `增加${label}`, name: 'increment' },
+          { label: `减少${label}`, name: 'decrement' },
+        ]}
+        accessibilityLabel={`${label}滚轮，当前 ${formatWheelValue(displayedValue)} ${label}`}
+        accessibilityRole="adjustable"
+        accessibilityValue={{
+          max: options.at(-1),
+          min: options[0],
+          now: displayedValue,
+          text: `${formatWheelValue(displayedValue)} ${label}`,
+        }}
+        onAccessibilityAction={({ nativeEvent }) => adjustBy(nativeEvent.actionName === 'increment' ? 1 : -1)}
+        style={styles.durationWheelViewport}
+      >
+        <View pointerEvents="none" style={styles.durationWheelSelection} />
+        <ScrollView
+          bounces={false}
+          contentContainerStyle={styles.durationWheelContent}
+          decelerationRate="fast"
+          onMomentumScrollEnd={({ nativeEvent }) => settleValue(nativeEvent.contentOffset.y)}
+          onScroll={({ nativeEvent }) => updatePreview(nativeEvent.contentOffset.y)}
+          onScrollEndDrag={({ nativeEvent }) => {
+            if (Math.abs(nativeEvent.velocity?.y ?? 0) < 0.01) settleValue(nativeEvent.contentOffset.y);
+          }}
+          overScrollMode="never"
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          snapToAlignment="center"
+          snapToInterval={DURATION_WHEEL_ROW_HEIGHT}
+          ref={scrollRef}
+        >
+          {options.map((option) => (
+            <View key={option} style={styles.durationWheelItem}>
+              <Text
+                style={[
+                  styles.durationWheelValue,
+                  option === displayedValue ? styles.durationWheelValueSelected : null,
+                ]}
+              >
+                {formatWheelValue(option)}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -647,17 +945,23 @@ function SafetyCard({
   );
 }
 
-function toDurationSeconds(minutesText: string, secondsText: string): number | null {
-  if (!/^\d+$/.test(minutesText) || !/^\d+$/.test(secondsText)) return null;
-
-  const minutes = Number(minutesText);
-  const seconds = Number(secondsText);
+function toDurationSeconds(minutes: number, seconds: number): number | null {
   if (!Number.isSafeInteger(minutes) || !Number.isSafeInteger(seconds) || minutes < 0 || seconds < 0 || seconds >= 60) {
     return null;
   }
 
   const duration = minutes * 60 + seconds;
   return Number.isSafeInteger(duration) && duration > 0 ? duration : null;
+}
+
+function createDurationMinuteOptions(durationSeconds: number): number[] {
+  const currentMinutes = Math.floor(Math.max(0, durationSeconds) / 60);
+  const maximumMinutes = Math.max(180, currentMinutes + 30);
+  return Array.from({ length: maximumMinutes + 1 }, (_, value) => value);
+}
+
+function formatWheelValue(value: number): string {
+  return value.toString().padStart(2, '0');
 }
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
@@ -800,32 +1104,83 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '800',
       marginLeft: 4,
     },
-    durationInput: {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 14,
-      borderWidth: 1,
-      color: colors.text,
-      fontSize: 18,
-      fontWeight: '800',
-      height: 48,
-      paddingHorizontal: 12,
-      textAlign: 'center',
-    },
-    durationInputLabel: {
+    durationPickerCaption: {
       color: colors.textMuted,
-      fontSize: 12,
+      fontSize: 13,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+    durationPickerError: {
+      color: colors.danger,
+      fontSize: 13,
       fontWeight: '700',
-      marginTop: 5,
+      marginHorizontal: 24,
+      marginTop: 12,
       textAlign: 'center',
     },
-    durationInputWrap: {
+    durationPickerReadout: {
+      alignItems: 'center',
+      backgroundColor: colors.primarySoft,
+      borderRadius: 18,
+      marginHorizontal: 24,
+      paddingVertical: 14,
+    },
+    durationPickerValue: {
+      color: colors.primaryPressed,
+      fontSize: 28,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '900',
+    },
+    durationWheelColumn: {
       flex: 1,
     },
-    durationInputs: {
+    durationWheelContent: {
+      paddingVertical: DURATION_WHEEL_ROW_HEIGHT * DURATION_WHEEL_SIDE_ROWS,
+    },
+    durationWheelItem: {
+      alignItems: 'center',
+      height: DURATION_WHEEL_ROW_HEIGHT,
+      justifyContent: 'center',
+    },
+    durationWheelLabel: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '800',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    durationWheelRow: {
       flexDirection: 'row',
-      gap: 12,
-      marginBottom: 18,
+      gap: 14,
+      paddingHorizontal: 24,
+      paddingTop: 20,
+    },
+    durationWheelSelection: {
+      borderBottomColor: colors.primary,
+      borderBottomWidth: 1,
+      borderTopColor: colors.primary,
+      borderTopWidth: 1,
+      height: DURATION_WHEEL_ROW_HEIGHT,
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: DURATION_WHEEL_ROW_HEIGHT * DURATION_WHEEL_SIDE_ROWS,
+      zIndex: 1,
+    },
+    durationWheelValue: {
+      color: colors.textSubtle,
+      fontSize: 20,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '700',
+    },
+    durationWheelValueSelected: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: '900',
+    },
+    durationWheelViewport: {
+      height: DURATION_WHEEL_ROW_HEIGHT * (DURATION_WHEEL_SIDE_ROWS * 2 + 1),
+      overflow: 'hidden',
     },
     durationValue: {
       color: colors.text,
@@ -1073,9 +1428,16 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 24,
     },
     sheetRoot: {
-      backgroundColor: 'rgba(15, 23, 19, 0.38)',
       flex: 1,
       justifyContent: 'flex-end',
+    },
+    sheetOverlay: {
+      backgroundColor: 'rgba(15, 23, 19, 0.38)',
+      bottom: 0,
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
     },
     sheetSectionTitle: {
       color: colors.text,
