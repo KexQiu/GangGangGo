@@ -152,6 +152,11 @@ export function createAdvancedCalendarStyles(colors: ThemeColors) {
     dayDetailRows: {
       gap: 8,
     },
+    dayDetailScroll: {
+      maxHeight: '78%',
+      maxWidth: 360,
+      width: '100%',
+    },
     dayDetailRowValue: {
       color: colors.textMuted,
       fontSize: 14,
@@ -188,6 +193,86 @@ export function createAdvancedCalendarStyles(colors: ThemeColors) {
       flexDirection: 'row',
       gap: 6,
       justifyContent: 'center',
+    },
+    toiletDetailCaption: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+      marginTop: -5,
+    },
+    toiletDetailEmpty: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 19,
+    },
+    toiletDetailSection: {
+      borderTopColor: colors.border,
+      borderTopWidth: 1,
+      gap: 8,
+      paddingTop: 16,
+    },
+    toiletDetailTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '900',
+      lineHeight: 21,
+    },
+    toiletSessionDuration: {
+      color: colors.primaryPressed,
+      fontSize: 15,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '900',
+      marginLeft: 10,
+    },
+    toiletSessionHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+    },
+    toiletSessionRow: {
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.border,
+      borderRadius: 14,
+      borderWidth: 1,
+      gap: 7,
+      padding: 12,
+    },
+    toiletSessionRowPressed: {
+      opacity: 0.78,
+      transform: [{ scale: 0.99 }],
+    },
+    toiletSessionSummary: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+    toiletSessionTime: {
+      color: colors.text,
+      flex: 1,
+      fontSize: 15,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '900',
+    },
+    toiletSignalChip: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+    },
+    toiletSignalGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    toiletSignalText: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '800',
+      lineHeight: 14,
     },
     weekdayRow: {
       flexDirection: 'row',

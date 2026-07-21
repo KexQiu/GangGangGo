@@ -47,6 +47,41 @@ describe('report snapshot builder', () => {
       trainingDone: false,
     });
   });
+
+  it('keeps detailed toilet fields out of the daily snapshot', () => {
+    const now = new Date(2026, 6, 13, 10, 30, 0);
+    const snapshot = buildTodayReportSnapshot(
+      {
+        habitCheckIns: [],
+        toiletSessions: [
+          {
+            bleeding: true,
+            discomfort: true,
+            durationSeconds: 427,
+            endedAt: now.toISOString(),
+            feeling: 'difficult',
+            id: 'sensitive-toilet-record',
+            signals: [{ id: 'custom-diet', label: '饮食变化' }],
+            startedAt: new Date(now.getTime() - 427_000).toISOString(),
+            stoolColor: 'attention',
+            stoolShape: 'hard',
+          },
+        ],
+        trainingSessions: [],
+      },
+      now,
+    );
+
+    expect(snapshot).toEqual({
+      date: getLocalDateKey(now),
+      habitCompletion: 0,
+      streakDays: 0,
+      toiletLongMeeting: false,
+      toiletRecorded: true,
+      trainingDone: false,
+    });
+    expect(JSON.stringify(snapshot)).not.toContain('饮食变化');
+  });
 });
 
 function completeHabit(date: string): HabitCheckIn {

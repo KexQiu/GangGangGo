@@ -1,4 +1,6 @@
 import type { AdvancedReportDay } from '@xiaotidu/contracts';
+import { useRouter } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
@@ -11,7 +13,12 @@ import {
   View,
 } from 'react-native';
 
+import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
+import { getLocalDateKey } from '../../habits/habitLogic';
+import { formatToiletDuration } from '../../toilet/toiletLogic';
+import { getToiletStoolColorLabel, getToiletStoolShapeLabel } from '../../toilet/toiletRecordLogic';
+import { type ToiletSession } from '../../toilet/toiletTypes';
 import {
   buildCalendarMonths,
   formatDateLabel,
@@ -30,13 +37,20 @@ import {
 } from '../advancedReportPresentation';
 import { createAdvancedCalendarStyles } from '../styles/advancedCalendarStyles';
 
-export function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
+export function ReportCalendarGrid({
+  days,
+  toiletSessions = [],
+}: {
+  days: AdvancedReportDay[];
+  toiletSessions?: ToiletSession[];
+}) {
   const { colors } = useAppTheme();
   const styles = createAdvancedCalendarStyles(colors);
   const scrollViewRef = useRef<ScrollView>(null);
   const months = useMemo(() => buildCalendarMonths(days), [days]);
   const todayDateKey = useMemo(() => getTodayDateKey(), []);
   const defaultMonthIndex = useMemo(() => getDefaultMonthIndex(months, todayDateKey), [months, todayDateKey]);
+  const sessionsByDate = useMemo(() => groupToiletSessionsByDate(toiletSessions), [toiletSessions]);
   const [calendarWidth, setCalendarWidth] = useState(0);
   const [selectedDay, setSelectedDay] = useState<AdvancedReportDay | null>(null);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(defaultMonthIndex);
@@ -122,7 +136,11 @@ export function ReportCalendarGrid({ days }: { days: AdvancedReportDay[] }) {
           ))}
         </View>
       ) : null}
-      <DayDetailModal day={selectedDay} onClose={() => setSelectedDay(null)} />
+      <DayDetailModal
+        day={selectedDay}
+        onClose={() => setSelectedDay(null)}
+        toiletSessions={selectedDay ? (sessionsByDate.get(selectedDay.date) ?? []) : []}
+      />
     </View>
   );
 }
@@ -146,7 +164,7 @@ function ReportCalendarDayCell({
   return (
     <Pressable
       accessibilityLabel={`${formatDateLabel(day.date)} ${formatDayAccessibility(day)}`}
-      accessibilityHint="查看当天低敏详情"
+      accessibilityHint="查看当天记录"
       accessibilityRole="button"
       accessible
       onPress={() => onPress(day)}
@@ -176,7 +194,16 @@ function ReportCalendarDayCell({
   );
 }
 
-function DayDetailModal({ day, onClose }: { day: AdvancedReportDay | null; onClose: () => void }) {
+function DayDetailModal({
+  day,
+  onClose,
+  toiletSessions,
+}: {
+  day: AdvancedReportDay | null;
+  onClose: () => void;
+  toiletSessions: ToiletSession[];
+}) {
+  const router = useRouter();
   const { colors } = useAppTheme();
   const styles = createAdvancedCalendarStyles(colors);
   if (!day) return null;
@@ -190,11 +217,16 @@ function DayDetailModal({ day, onClose }: { day: AdvancedReportDay | null; onClo
           onPress={onClose}
           style={styles.dayDetailBackdrop}
         />
-        <View accessibilityLabel={`${formatFullDateLabel(day.date)} 低敏记录详情`} style={styles.dayDetailCard}>
+        <ScrollView
+          bounces={false}
+          contentContainerStyle={styles.dayDetailCard}
+          showsVerticalScrollIndicator={false}
+          style={styles.dayDetailScroll}
+        >
           <View style={styles.dayDetailHeader}>
             <View>
               <Text style={styles.dayDetailTitle}>{formatFullDateLabel(day.date)}</Text>
-              <Text style={styles.dayDetailCaption}>当天低敏记录</Text>
+              <Text style={styles.dayDetailCaption}>当天低敏记录与本机明细</Text>
             </View>
             <Pressable
               accessibilityLabel="关闭"
@@ -210,7 +242,26 @@ function DayDetailModal({ day, onClose }: { day: AdvancedReportDay | null; onClo
             <DayDetailRow color={colors.info} label="小账本" value={formatHabitStatus(day)} />
             <DayDetailRow color={colors.warning} label="蹲会儿" value={formatToiletStatus(day)} />
           </View>
-        </View>
+
+          <View style={styles.toiletDetailSection}>
+            <Text style={styles.toiletDetailTitle}>蹲会儿明细</Text>
+            <Text style={styles.toiletDetailCaption}>以下内容仅保存在本机。</Text>
+            {toiletSessions.length > 0 ? (
+              toiletSessions.map((session) => (
+                <ToiletSessionRow
+                  key={session.id}
+                  onPress={() => {
+                    onClose();
+                    router.push(routes.toiletRecord(session.id));
+                  }}
+                  session={session}
+                />
+              ))
+            ) : (
+              <Text style={styles.toiletDetailEmpty}>当天没有可查看的蹲会儿明细。</Text>
+            )}
+          </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -226,4 +277,74 @@ function DayDetailRow({ color, label, value }: { color: string; label: string; v
       <Text style={styles.dayDetailRowValue}>{value}</Text>
     </View>
   );
+}
+
+function ToiletSessionRow({ onPress, session }: { onPress: () => void; session: ToiletSession }) {
+  const { colors } = useAppTheme();
+  const styles = createAdvancedCalendarStyles(colors);
+  const details = [
+    getToiletFeelingLabel(session.feeling),
+    getToiletStoolShapeLabel(session.stoolShape),
+    getToiletStoolColorLabel(session.stoolColor),
+  ].filter((value): value is string => Boolean(value));
+  const signalLabels = session.signals?.map((signal) => signal.label) ?? [];
+  if (session.discomfort) signalLabels.push('明显不舒服');
+  if (session.bleeding) signalLabels.push('明显便血');
+
+  return (
+    <Pressable
+      accessibilityHint="查看并编辑本次记录"
+      accessibilityLabel={`${formatToiletSessionTime(session.endedAt)}，用时 ${formatToiletDuration(session.durationSeconds)}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.toiletSessionRow, pressed ? styles.toiletSessionRowPressed : null]}
+    >
+      <View style={styles.toiletSessionHeader}>
+        <Text style={styles.toiletSessionTime}>{formatToiletSessionTime(session.endedAt)}</Text>
+        <Text style={styles.toiletSessionDuration}>{formatToiletDuration(session.durationSeconds)}</Text>
+        <ChevronRight color={colors.textSubtle} size={18} strokeWidth={2.4} />
+      </View>
+      <Text style={styles.toiletSessionSummary}>{details.length > 0 ? details.join(' · ') : '未填写排便详情'}</Text>
+      {signalLabels.length > 0 ? (
+        <View style={styles.toiletSignalGrid}>
+          {signalLabels.map((label) => (
+            <View key={label} style={styles.toiletSignalChip}>
+              <Text style={styles.toiletSignalText}>{label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function groupToiletSessionsByDate(toiletSessions: ToiletSession[]) {
+  const sessionsByDate = new Map<string, ToiletSession[]>();
+
+  for (const session of toiletSessions) {
+    const date = getLocalDateKey(new Date(session.endedAt));
+    const sessions = sessionsByDate.get(date) ?? [];
+    sessions.push(session);
+    sessionsByDate.set(date, sessions);
+  }
+
+  for (const sessions of sessionsByDate.values()) {
+    sessions.sort((left, right) => right.endedAt.localeCompare(left.endedAt));
+  }
+
+  return sessionsByDate;
+}
+
+function formatToiletSessionTime(value: string) {
+  const date = new Date(value);
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function getToiletFeelingLabel(feeling: ToiletSession['feeling']) {
+  const labels = {
+    difficult: '困难',
+    normal: '一般',
+    smooth: '顺畅',
+  };
+  return labels[feeling];
 }

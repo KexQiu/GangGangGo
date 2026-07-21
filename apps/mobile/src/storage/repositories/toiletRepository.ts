@@ -1,4 +1,11 @@
-import { type ToiletFeeling, type ToiletSession } from '../../features/toilet/toiletTypes';
+import {
+  isToiletStoolColor,
+  isToiletStoolShape,
+  MAX_CUSTOM_TOILET_SIGNAL_PRESETS,
+  normalizeToiletSignalLabel,
+  normalizeToiletSignals,
+} from '../../features/toilet/toiletRecordLogic';
+import { type ToiletFeeling, type ToiletSession, type ToiletSignalPreset } from '../../features/toilet/toiletTypes';
 import { initializeDatabase } from '../db';
 import { normalizePageSize, type Page } from '../pagination';
 import { toiletSessionPageSql } from './pageQueries';
@@ -10,7 +17,17 @@ type ToiletSessionRow = {
   ended_at: string;
   feeling: string;
   id: string;
+  signals_json: string | null;
   started_at: string;
+  stool_color: string | null;
+  stool_shape: string | null;
+};
+
+type ToiletSignalPresetRow = {
+  created_at: string;
+  id: string;
+  label: string;
+  updated_at: string;
 };
 
 const toiletFeelings = new Set<ToiletFeeling>(['smooth', 'normal', 'difficult']);
@@ -39,7 +56,10 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
         duration_seconds,
         feeling,
         discomfort,
-        bleeding
+        bleeding,
+        stool_shape,
+        stool_color,
+        signals_json
       ) VALUES (
         $id,
         $startedAt,
@@ -47,7 +67,10 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
         $durationSeconds,
         $feeling,
         $discomfort,
-        $bleeding
+        $bleeding,
+        $stoolShape,
+        $stoolColor,
+        $signalsJson
       );
     `,
     {
@@ -57,9 +80,133 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
       $endedAt: session.endedAt,
       $feeling: session.feeling,
       $id: session.id,
+      $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
       $startedAt: session.startedAt,
+      $stoolColor: session.stoolColor ?? null,
+      $stoolShape: session.stoolShape ?? null,
     },
   );
+}
+
+export async function updateToiletSession(session: ToiletSession): Promise<void> {
+  const db = await initializeDatabase();
+  const result = await db.runAsync(
+    `
+      UPDATE toilet_sessions
+      SET
+        duration_seconds = $durationSeconds,
+        feeling = $feeling,
+        discomfort = $discomfort,
+        bleeding = $bleeding,
+        stool_shape = $stoolShape,
+        stool_color = $stoolColor,
+        signals_json = $signalsJson
+      WHERE id = $id;
+    `,
+    {
+      $bleeding: session.bleeding ? 1 : 0,
+      $discomfort: session.discomfort ? 1 : 0,
+      $durationSeconds: session.durationSeconds,
+      $feeling: session.feeling,
+      $id: session.id,
+      $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
+      $stoolColor: session.stoolColor ?? null,
+      $stoolShape: session.stoolShape ?? null,
+    },
+  );
+
+  if (result.changes === 0) throw new Error('未找到需要更新的如厕记录');
+}
+
+export async function deleteToiletSession(id: string): Promise<void> {
+  const db = await initializeDatabase();
+  const result = await db.runAsync('DELETE FROM toilet_sessions WHERE id = $id;', { $id: id });
+  if (result.changes === 0) throw new Error('未找到需要删除的如厕记录');
+}
+
+export async function getToiletSession(id: string): Promise<ToiletSession | null> {
+  const db = await initializeDatabase();
+  const row = await db.getFirstAsync<ToiletSessionRow>(
+    `
+      SELECT
+        id,
+        started_at,
+        ended_at,
+        duration_seconds,
+        feeling,
+        discomfort,
+        bleeding,
+        stool_shape,
+        stool_color,
+        signals_json
+      FROM toilet_sessions
+      WHERE id = $id;
+    `,
+    { $id: id },
+  );
+
+  return row ? rowToToiletSession(row) : null;
+}
+
+export async function listToiletSignalPresets(): Promise<ToiletSignalPreset[]> {
+  const db = await initializeDatabase();
+  const rows = await db.getAllAsync<ToiletSignalPresetRow>(
+    `
+      SELECT id, label, created_at, updated_at
+      FROM toilet_signal_presets
+      ORDER BY updated_at DESC, created_at DESC;
+    `,
+  );
+
+  return rows.map(rowToToiletSignalPreset);
+}
+
+export async function createToiletSignalPreset(label: string): Promise<ToiletSignalPreset> {
+  const normalizedLabel = normalizeToiletSignalLabel(label);
+  if (!normalizedLabel) throw new Error('请输入自定义小信号');
+
+  const db = await initializeDatabase();
+  const existing = await db.getFirstAsync<ToiletSignalPresetRow>(
+    `
+      SELECT id, label, created_at, updated_at
+      FROM toilet_signal_presets
+      WHERE label = $label COLLATE NOCASE;
+    `,
+    { $label: normalizedLabel },
+  );
+  if (existing) return rowToToiletSignalPreset(existing);
+
+  const countRow = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM toilet_signal_presets;');
+  if ((countRow?.count ?? 0) >= MAX_CUSTOM_TOILET_SIGNAL_PRESETS) {
+    throw new Error(`最多保留 ${MAX_CUSTOM_TOILET_SIGNAL_PRESETS} 个自定义常用项`);
+  }
+
+  const now = new Date().toISOString();
+  const preset: ToiletSignalPreset = {
+    createdAt: now,
+    id: createToiletSignalPresetId(),
+    label: normalizedLabel,
+    updatedAt: now,
+  };
+  await db.runAsync(
+    `
+      INSERT INTO toilet_signal_presets (id, label, created_at, updated_at)
+      VALUES ($id, $label, $createdAt, $updatedAt);
+    `,
+    {
+      $createdAt: preset.createdAt,
+      $id: preset.id,
+      $label: preset.label,
+      $updatedAt: preset.updatedAt,
+    },
+  );
+
+  return preset;
+}
+
+export async function deleteToiletSignalPreset(id: string): Promise<void> {
+  const db = await initializeDatabase();
+  await db.runAsync('DELETE FROM toilet_signal_presets WHERE id = $id;', { $id: id });
 }
 
 export async function listToiletSessionsPage(
@@ -101,6 +248,32 @@ function rowToToiletSession(row: ToiletSessionRow): ToiletSession | null {
     endedAt: row.ended_at,
     feeling: row.feeling as ToiletFeeling,
     id: row.id,
+    signals: parseToiletSignals(row.signals_json),
     startedAt: row.started_at,
+    stoolColor: isToiletStoolColor(row.stool_color) ? row.stool_color : null,
+    stoolShape: isToiletStoolShape(row.stool_shape) ? row.stool_shape : null,
   };
+}
+
+function parseToiletSignals(value: string | null): ToiletSession['signals'] {
+  if (!value) return [];
+
+  try {
+    return normalizeToiletSignals(JSON.parse(value));
+  } catch {
+    return [];
+  }
+}
+
+function rowToToiletSignalPreset(row: ToiletSignalPresetRow): ToiletSignalPreset {
+  return {
+    createdAt: row.created_at,
+    id: row.id,
+    label: row.label,
+    updatedAt: row.updated_at,
+  };
+}
+
+function createToiletSignalPresetId(): string {
+  return `signal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

@@ -16,14 +16,18 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(3);
+    expect(getUserVersion(harness.database)).toBe(4);
     expect(getTableNames(harness.database)).toEqual([
       'habit_checkins',
       'reminder_settings',
       'toilet_sessions',
+      'toilet_signal_presets',
       'training_sessions',
     ]);
     expect(getColumnNames(harness.database, 'reminder_settings')).toContain('quiet_hours_ranges');
+    expect(getColumnNames(harness.database, 'toilet_sessions')).toEqual(
+      expect.arrayContaining(['signals_json', 'stool_color', 'stool_shape']),
+    );
     expect(getIndexNames(harness.database)).toEqual(
       expect.arrayContaining(['idx_toilet_sessions_ended_at_id', 'idx_training_sessions_ended_at_id']),
     );
@@ -35,8 +39,11 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(3);
+    expect(getUserVersion(harness.database)).toBe(4);
     expect(getColumnNames(harness.database, 'reminder_settings')).toContain('quiet_hours_ranges');
+    expect(getColumnNames(harness.database, 'toilet_sessions')).toEqual(
+      expect.arrayContaining(['signals_json', 'stool_color', 'stool_shape']),
+    );
     expect(getIds(harness.database, 'training_sessions')).toEqual(['training-existing']);
     expect(getIds(harness.database, 'toilet_sessions')).toEqual(['toilet-existing']);
   });

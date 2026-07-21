@@ -13,6 +13,7 @@ export const routes = {
   teamSettings: '/team/settings',
   toilet: '/toilet',
   toiletComplete: '/toilet/complete',
+  toiletRecord: (id: string) => `/toilet/records/${encodeURIComponent(id)}`,
   trends: '/trends',
   advancedReport: '/trends/advanced',
   training: '/training',

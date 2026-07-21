@@ -22,7 +22,10 @@ export const toiletSessionPageSql = `
     duration_seconds,
     feeling,
     discomfort,
-    bleeding
+    bleeding,
+    stool_shape,
+    stool_color,
+    signals_json
   FROM toilet_sessions
   WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
     AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)

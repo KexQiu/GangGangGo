@@ -1,6 +1,6 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
-const latestVersion = 3;
+const latestVersion = 4;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -80,6 +80,26 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       `);
     });
     version = 3;
+  }
+
+  if (version < 4) {
+    await db.withTransactionAsync(async () => {
+      await ensureColumn(db, 'toilet_sessions', 'stool_shape', 'TEXT');
+      await ensureColumn(db, 'toilet_sessions', 'stool_color', 'TEXT');
+      await ensureColumn(db, 'toilet_sessions', 'signals_json', "TEXT NOT NULL DEFAULT '[]'");
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS toilet_signal_presets (
+          id TEXT PRIMARY KEY NOT NULL,
+          label TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_toilet_signal_presets_label
+          ON toilet_signal_presets (label COLLATE NOCASE);
+        PRAGMA user_version = 4;
+      `);
+    });
+    version = 4;
   }
 
   if (version !== latestVersion) throw new Error(`Unsupported database version: ${version}`);
