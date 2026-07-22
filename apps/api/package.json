@@ -8,6 +8,7 @@
     "db:migrate": "drizzle-kit migrate",
     "docs:generate": "node --import tsx scripts/generate-openapi.ts",
     "docs:check": "node --import tsx scripts/generate-openapi.ts --check",
+    "data:purge-expired": "tsx scripts/purge-expired-data.ts",
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "test": "vitest run",

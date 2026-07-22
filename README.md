@@ -42,6 +42,12 @@ Watch 工程使用 `apps/mobile/ios/app.xcworkspace` 中的 `app`、`XiaoTiduWat
 
 ## 数据边界
 
-菊花抬、蹲会儿、小账本和基础报告保存在本地 SQLite，退出登录不会删除。云端只接收 Pro、小队和同步所需的低敏日级摘要；便血、不适、具体时长和排便感受不上传。
+菊花抬、蹲会儿、小账本和每日汇总采用本地优先存储。登录后，个人完整记录会同步到账号云端，包括训练次数、蹲会儿时长、排便细节和自定义小信号；服务端按用户鉴权隔离，不进入搭子共享。健康事实和每日汇总保留 90 天，仍在使用的小信号常用项持续保留。
+
+完整记录同步使用普通结构化字段，不做应用层端到端加密。搭子和 Watch 继续只使用单独的低敏共享快照。生产环境需要每天调度一次过期数据清理：
+
+```bash
+pnpm --filter @xiaotidu/api data:purge-expired
+```
 
 详细文档见 [docs/README.md](./docs/README.md) 和 [架构决策](./docs/architecture/README.md)。

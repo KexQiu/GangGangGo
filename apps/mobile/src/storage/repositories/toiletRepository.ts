@@ -6,6 +6,10 @@ import {
   normalizeToiletSignals,
 } from '../../features/toilet/toiletRecordLogic';
 import { type ToiletFeeling, type ToiletSession, type ToiletSignalPreset } from '../../features/toilet/toiletTypes';
+import { getLocalDateKey } from '../../features/habits/habitLogic';
+import { rebuildDailySummary } from '../../features/data/dailyData';
+import { enqueueDataMutation } from '../dataSyncOutbox';
+import { getActiveLocalProfileId } from '../localDataProfile';
 import { initializeDatabase } from '../db';
 import { normalizePageSize, type Page } from '../pagination';
 import { toiletSessionPageSql } from './pageQueries';
@@ -46,10 +50,14 @@ export type ToiletSessionPageOptions = {
 
 export async function insertToiletSession(session: ToiletSession): Promise<void> {
   const db = await initializeDatabase();
+  const profileId = await getActiveLocalProfileId();
+  const localDate = getLocalDateKey(new Date(session.endedAt));
+  const updatedAt = new Date().toISOString();
 
-  await db.runAsync(
-    `
-      INSERT OR REPLACE INTO toilet_sessions (
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `
+      INSERT INTO toilet_sessions (
         id,
         started_at,
         ended_at,
@@ -59,7 +67,10 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
         bleeding,
         stool_shape,
         stool_color,
-        signals_json
+        signals_json,
+        profile_id,
+        local_date,
+        updated_at
       ) VALUES (
         $id,
         $startedAt,
@@ -70,28 +81,49 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
         $bleeding,
         $stoolShape,
         $stoolColor,
-        $signalsJson
+        $signalsJson,
+        $profileId,
+        $localDate,
+        $updatedAt
       );
     `,
-    {
-      $bleeding: session.bleeding ? 1 : 0,
-      $discomfort: session.discomfort ? 1 : 0,
-      $durationSeconds: session.durationSeconds,
-      $endedAt: session.endedAt,
-      $feeling: session.feeling,
-      $id: session.id,
-      $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
-      $startedAt: session.startedAt,
-      $stoolColor: session.stoolColor ?? null,
-      $stoolShape: session.stoolShape ?? null,
-    },
-  );
+      {
+        $bleeding: session.bleeding ? 1 : 0,
+        $discomfort: session.discomfort ? 1 : 0,
+        $durationSeconds: session.durationSeconds,
+        $endedAt: session.endedAt,
+        $feeling: session.feeling,
+        $id: session.id,
+        $localDate: localDate,
+        $profileId: profileId,
+        $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
+        $startedAt: session.startedAt,
+        $stoolColor: session.stoolColor ?? null,
+        $stoolShape: session.stoolShape ?? null,
+        $updatedAt: updatedAt,
+      },
+    );
+    await enqueueDataMutation(
+      {
+        entityId: session.id,
+        entityType: 'toilet_session',
+        operation: 'upsert',
+        payload: toSyncPayload(session, localDate),
+      },
+      db,
+      profileId,
+    );
+  });
+  await rebuildDailySummary(localDate);
 }
 
 export async function updateToiletSession(session: ToiletSession): Promise<void> {
   const db = await initializeDatabase();
-  const result = await db.runAsync(
-    `
+  const profileId = await getActiveLocalProfileId();
+  const localDate = getLocalDateKey(new Date(session.endedAt));
+  await db.withTransactionAsync(async () => {
+    const result = await db.runAsync(
+      `
       UPDATE toilet_sessions
       SET
         duration_seconds = $durationSeconds,
@@ -100,32 +132,67 @@ export async function updateToiletSession(session: ToiletSession): Promise<void>
         bleeding = $bleeding,
         stool_shape = $stoolShape,
         stool_color = $stoolColor,
-        signals_json = $signalsJson
-      WHERE id = $id;
+        signals_json = $signalsJson,
+        local_date = $localDate,
+        updated_at = $updatedAt
+      WHERE id = $id AND profile_id = $profileId AND deleted_at IS NULL;
     `,
-    {
-      $bleeding: session.bleeding ? 1 : 0,
-      $discomfort: session.discomfort ? 1 : 0,
-      $durationSeconds: session.durationSeconds,
-      $feeling: session.feeling,
-      $id: session.id,
-      $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
-      $stoolColor: session.stoolColor ?? null,
-      $stoolShape: session.stoolShape ?? null,
-    },
-  );
-
-  if (result.changes === 0) throw new Error('未找到需要更新的如厕记录');
+      {
+        $bleeding: session.bleeding ? 1 : 0,
+        $discomfort: session.discomfort ? 1 : 0,
+        $durationSeconds: session.durationSeconds,
+        $feeling: session.feeling,
+        $id: session.id,
+        $localDate: localDate,
+        $profileId: profileId,
+        $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
+        $stoolColor: session.stoolColor ?? null,
+        $stoolShape: session.stoolShape ?? null,
+        $updatedAt: new Date().toISOString(),
+      },
+    );
+    if (result.changes === 0) throw new Error('未找到需要更新的如厕记录');
+    await enqueueDataMutation(
+      {
+        entityId: session.id,
+        entityType: 'toilet_session',
+        operation: 'upsert',
+        payload: toSyncPayload(session, localDate),
+      },
+      db,
+      profileId,
+    );
+  });
+  await rebuildDailySummary(localDate);
 }
 
 export async function deleteToiletSession(id: string): Promise<void> {
   const db = await initializeDatabase();
-  const result = await db.runAsync('DELETE FROM toilet_sessions WHERE id = $id;', { $id: id });
-  if (result.changes === 0) throw new Error('未找到需要删除的如厕记录');
+  const profileId = await getActiveLocalProfileId();
+  let localDate: string | null = null;
+  await db.withTransactionAsync(async () => {
+    const row = await db.getFirstAsync<{ local_date: string | null }>(
+      'SELECT local_date FROM toilet_sessions WHERE id = $id AND profile_id = $profileId;',
+      { $id: id, $profileId: profileId },
+    );
+    localDate = row?.local_date ?? null;
+    const result = await db.runAsync(
+      'UPDATE toilet_sessions SET deleted_at = $now, updated_at = $now WHERE id = $id AND profile_id = $profileId AND deleted_at IS NULL;',
+      { $id: id, $now: new Date().toISOString(), $profileId: profileId },
+    );
+    if (result.changes === 0) throw new Error('未找到需要删除的如厕记录');
+    await enqueueDataMutation(
+      { entityId: id, entityType: 'toilet_session', operation: 'delete', payload: null },
+      db,
+      profileId,
+    );
+  });
+  if (localDate) await rebuildDailySummary(localDate);
 }
 
 export async function getToiletSession(id: string): Promise<ToiletSession | null> {
   const db = await initializeDatabase();
+  const profileId = await getActiveLocalProfileId();
   const row = await db.getFirstAsync<ToiletSessionRow>(
     `
       SELECT
@@ -140,9 +207,9 @@ export async function getToiletSession(id: string): Promise<ToiletSession | null
         stool_color,
         signals_json
       FROM toilet_sessions
-      WHERE id = $id;
+      WHERE id = $id AND profile_id = $profileId AND deleted_at IS NULL;
     `,
-    { $id: id },
+    { $id: id, $profileId: profileId },
   );
 
   return row ? rowToToiletSession(row) : null;
@@ -150,12 +217,15 @@ export async function getToiletSession(id: string): Promise<ToiletSession | null
 
 export async function listToiletSignalPresets(): Promise<ToiletSignalPreset[]> {
   const db = await initializeDatabase();
+  const profileId = await getActiveLocalProfileId();
   const rows = await db.getAllAsync<ToiletSignalPresetRow>(
     `
       SELECT id, label, created_at, updated_at
       FROM toilet_signal_presets
+      WHERE profile_id = $profileId AND deleted_at IS NULL
       ORDER BY updated_at DESC, created_at DESC;
     `,
+    { $profileId: profileId },
   );
 
   return rows.map(rowToToiletSignalPreset);
@@ -166,17 +236,21 @@ export async function createToiletSignalPreset(label: string): Promise<ToiletSig
   if (!normalizedLabel) throw new Error('请输入自定义小信号');
 
   const db = await initializeDatabase();
+  const profileId = await getActiveLocalProfileId();
   const existing = await db.getFirstAsync<ToiletSignalPresetRow>(
     `
       SELECT id, label, created_at, updated_at
       FROM toilet_signal_presets
-      WHERE label = $label COLLATE NOCASE;
+      WHERE profile_id = $profileId AND label = $label COLLATE NOCASE AND deleted_at IS NULL;
     `,
-    { $label: normalizedLabel },
+    { $label: normalizedLabel, $profileId: profileId },
   );
   if (existing) return rowToToiletSignalPreset(existing);
 
-  const countRow = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM toilet_signal_presets;');
+  const countRow = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM toilet_signal_presets WHERE profile_id = $profileId AND deleted_at IS NULL;',
+    { $profileId: profileId },
+  );
   if ((countRow?.count ?? 0) >= MAX_CUSTOM_TOILET_SIGNAL_PRESETS) {
     throw new Error(`最多保留 ${MAX_CUSTOM_TOILET_SIGNAL_PRESETS} 个自定义常用项`);
   }
@@ -188,25 +262,50 @@ export async function createToiletSignalPreset(label: string): Promise<ToiletSig
     label: normalizedLabel,
     updatedAt: now,
   };
-  await db.runAsync(
-    `
-      INSERT INTO toilet_signal_presets (id, label, created_at, updated_at)
-      VALUES ($id, $label, $createdAt, $updatedAt);
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `
+      INSERT INTO toilet_signal_presets (profile_id, id, label, created_at, updated_at)
+      VALUES ($profileId, $id, $label, $createdAt, $updatedAt);
     `,
-    {
-      $createdAt: preset.createdAt,
-      $id: preset.id,
-      $label: preset.label,
-      $updatedAt: preset.updatedAt,
-    },
-  );
+      {
+        $createdAt: preset.createdAt,
+        $id: preset.id,
+        $label: preset.label,
+        $profileId: profileId,
+        $updatedAt: preset.updatedAt,
+      },
+    );
+    await enqueueDataMutation(
+      {
+        entityId: preset.id,
+        entityType: 'toilet_signal_preset',
+        operation: 'upsert',
+        payload: { createdAt: preset.createdAt, label: preset.label },
+      },
+      db,
+      profileId,
+    );
+  });
 
   return preset;
 }
 
 export async function deleteToiletSignalPreset(id: string): Promise<void> {
   const db = await initializeDatabase();
-  await db.runAsync('DELETE FROM toilet_signal_presets WHERE id = $id;', { $id: id });
+  const profileId = await getActiveLocalProfileId();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      'UPDATE toilet_signal_presets SET deleted_at = $now, updated_at = $now WHERE id = $id AND profile_id = $profileId;',
+      { $id: id, $now: now, $profileId: profileId },
+    );
+    await enqueueDataMutation(
+      { entityId: id, entityType: 'toilet_signal_preset', operation: 'delete', payload: null },
+      db,
+      profileId,
+    );
+  });
 }
 
 export async function listToiletSessionsPage(
@@ -276,4 +375,19 @@ function rowToToiletSignalPreset(row: ToiletSignalPresetRow): ToiletSignalPreset
 
 function createToiletSignalPresetId(): string {
   return `signal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toSyncPayload(session: ToiletSession, localDate: string) {
+  return {
+    bleeding: session.bleeding,
+    discomfort: session.discomfort,
+    durationSeconds: session.durationSeconds,
+    endedAt: session.endedAt,
+    feeling: session.feeling,
+    localDate,
+    signals: normalizeToiletSignals(session.signals),
+    startedAt: session.startedAt,
+    stoolColor: session.stoolColor ?? null,
+    stoolShape: session.stoolShape ?? null,
+  };
 }

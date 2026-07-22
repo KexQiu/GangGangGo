@@ -6,6 +6,7 @@ import { getCachedProStatus, refreshEntitlementsQuery } from '../account/account
 import { useAuthStore } from '../account/authStore';
 import { syncWatchTodayState } from '../watch/watchSyncService';
 import { subscribeToLocalDataChanges } from './localDataEvents';
+import { syncCompleteHealthData } from './fullDataSync';
 import { registerPushTokenIfAllowed } from './pushTokenSync';
 import { syncRecentReportSnapshots } from './reportSnapshotSync';
 import { syncTodayShareSnapshot } from './shareSnapshotSync';
@@ -25,6 +26,7 @@ export const syncCoordinator = new SyncCoordinator({
     };
   },
   registerPushToken: registerPushTokenIfAllowed,
+  syncData: syncCompleteHealthData,
   subscribeAppState: (listener) => {
     const subscription = AppState.addEventListener('change', (state) => listener(normalizeAppState(state)));
     return () => subscription.remove();
@@ -49,7 +51,10 @@ export const syncCoordinator = new SyncCoordinator({
       unsubscribeQuery();
     };
   },
-  subscribeLocalChanges: (listener) => subscribeToLocalDataChanges(listener),
+  subscribeLocalChanges: (listener) =>
+    subscribeToLocalDataChanges((_revision, source) => {
+      if (source === 'local') listener();
+    }),
   syncReports: syncRecentReportSnapshots,
   syncShareSnapshot: syncTodayShareSnapshot,
   syncWatch: syncWatchTodayState,

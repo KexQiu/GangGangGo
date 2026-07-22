@@ -13,6 +13,8 @@
 - `POST /auth/apple`：Apple 或开发 Mock 登录
 - `POST /auth/refresh`：轮换登录会话
 - `POST /auth/logout`：撤销当前会话
+- `PUT /data-sync/push`：上传完整记录变更
+- `GET /data-sync/pull`：增量拉取完整记录
 - `GET /me`：当前用户
 - `PATCH /me`：更新用户资料
 - `GET /me/entitlements`：会员权益

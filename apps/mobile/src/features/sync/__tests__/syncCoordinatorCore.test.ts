@@ -138,6 +138,7 @@ function createHarness(
   const localListeners = new Set<() => void>();
   const refreshEntitlements = vi.fn().mockResolvedValue(undefined);
   const registerPushToken = vi.fn().mockResolvedValue(undefined);
+  const syncData = vi.fn().mockResolvedValue(undefined);
   const syncReports = vi.fn().mockResolvedValue(undefined);
   const syncShareSnapshot = vi.fn().mockResolvedValue(undefined);
   const syncWatch = vi.fn(options.syncWatch ?? (async () => undefined));
@@ -158,6 +159,7 @@ function createHarness(
       localListeners.add(listener);
       return () => localListeners.delete(listener);
     },
+    syncData,
     syncReports,
     syncShareSnapshot,
     syncWatch,

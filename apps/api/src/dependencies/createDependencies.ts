@@ -12,6 +12,11 @@ import {
   type EntitlementsService,
 } from '../modules/entitlements/entitlementsService.js';
 import {
+  createDrizzleDataSyncService,
+  createMockDataSyncService,
+  type DataSyncService,
+} from '../modules/dataSync/dataSyncService.js';
+import {
   createDrizzleNudgeService,
   createMockNudgeService,
   type NudgeService,
@@ -41,6 +46,7 @@ import {
 export type ApiDependencies = {
   close: () => Promise<void>;
   authSessionService: AuthSessionService;
+  dataSyncService: DataSyncService;
   databaseClient?: DatabaseClient;
   entitlementsService: EntitlementsService;
   nudgeService: NudgeService;
@@ -58,6 +64,7 @@ export function createApiDependencies(): ApiDependencies {
     return {
       authSessionService: createMockAuthSessionService(),
       close: async () => {},
+      dataSyncService: createMockDataSyncService(),
       entitlementsService: createMockEntitlementsService(),
       nudgeService: createMockNudgeService({
         pushNotificationService: createNoopPushNotificationService(),
@@ -81,6 +88,7 @@ export function createApiDependencies(): ApiDependencies {
     close: async () => {
       await databaseClient.close();
     },
+    dataSyncService: createDrizzleDataSyncService(databaseClient.db),
     databaseClient,
     entitlementsService: createDrizzleEntitlementsService(databaseClient.db),
     nudgeService: createDrizzleNudgeService(databaseClient.db, { pushNotificationService }),

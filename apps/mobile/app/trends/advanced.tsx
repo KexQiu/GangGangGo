@@ -1,3 +1,7 @@
-import AdvancedTrendsScreen from '../../src/features/trends/screens/AdvancedTrendsScreen';
+import { Redirect } from 'expo-router';
 
-export default AdvancedTrendsScreen;
+import { routes } from '../../src/navigation/routes';
+
+export default function LegacyAdvancedTrendsRedirect() {
+  return <Redirect href={routes.trends} />;
+}

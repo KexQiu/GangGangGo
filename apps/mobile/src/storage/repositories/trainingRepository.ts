@@ -1,6 +1,10 @@
 import { initializeDatabase } from '../db';
 import { isTrainingPresetId } from '../../features/training/presets';
 import { type TrainingSession } from '../../features/training/trainingTypes';
+import { getLocalDateKey } from '../../features/habits/habitLogic';
+import { rebuildDailySummary } from '../../features/data/dailyData';
+import { enqueueDataMutation } from '../dataSyncOutbox';
+import { getActiveLocalProfileId } from '../localDataProfile';
 import { normalizePageSize, type Page } from '../pagination';
 import { trainingSessionPageSql } from './pageQueries';
 
@@ -29,10 +33,14 @@ export type TrainingSessionPageOptions = {
 
 export async function insertTrainingSession(session: TrainingSession): Promise<void> {
   const db = await initializeDatabase();
+  const profileId = await getActiveLocalProfileId();
+  const localDate = getLocalDateKey(new Date(session.endedAt));
+  const updatedAt = new Date().toISOString();
 
-  await db.runAsync(
-    `
-      INSERT OR REPLACE INTO training_sessions (
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `
+      INSERT INTO training_sessions (
         id,
         preset_id,
         started_at,
@@ -40,7 +48,10 @@ export async function insertTrainingSession(session: TrainingSession): Promise<v
         duration_seconds,
         completed_repetitions,
         is_completed,
-        discomfort_reported
+        discomfort_reported,
+        profile_id,
+        local_date,
+        updated_at
       ) VALUES (
         $id,
         $presetId,
@@ -49,20 +60,47 @@ export async function insertTrainingSession(session: TrainingSession): Promise<v
         $durationSeconds,
         $completedRepetitions,
         $isCompleted,
-        $discomfortReported
+        $discomfortReported,
+        $profileId,
+        $localDate,
+        $updatedAt
       );
     `,
-    {
-      $completedRepetitions: session.completedRepetitions,
-      $discomfortReported: session.discomfortReported ? 1 : 0,
-      $durationSeconds: session.durationSeconds,
-      $endedAt: session.endedAt,
-      $id: session.id,
-      $isCompleted: session.isCompleted ? 1 : 0,
-      $presetId: session.presetId,
-      $startedAt: session.startedAt,
-    },
-  );
+      {
+        $completedRepetitions: session.completedRepetitions,
+        $discomfortReported: session.discomfortReported ? 1 : 0,
+        $durationSeconds: session.durationSeconds,
+        $endedAt: session.endedAt,
+        $id: session.id,
+        $isCompleted: session.isCompleted ? 1 : 0,
+        $localDate: localDate,
+        $presetId: session.presetId,
+        $profileId: profileId,
+        $startedAt: session.startedAt,
+        $updatedAt: updatedAt,
+      },
+    );
+    await enqueueDataMutation(
+      {
+        entityId: session.id,
+        entityType: 'training_session',
+        operation: 'upsert',
+        payload: {
+          completedRepetitions: session.completedRepetitions,
+          discomfortReported: session.discomfortReported,
+          durationSeconds: session.durationSeconds,
+          endedAt: session.endedAt,
+          isCompleted: session.isCompleted,
+          localDate,
+          presetId: session.presetId,
+          startedAt: session.startedAt,
+        },
+      },
+      db,
+      profileId,
+    );
+  });
+  await rebuildDailySummary(localDate);
 }
 
 export async function listTrainingSessionsPage(

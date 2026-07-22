@@ -1,4 +1,5 @@
 export { authApi } from './client/auth';
+export { dataSyncApi } from './client/dataSync';
 export { setApiSessionRefreshHandler, setApiUnauthorizedHandler } from './client/core';
 export { healthApi } from './client/health';
 export { nudgesApi } from './client/nudges';

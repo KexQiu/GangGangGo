@@ -413,7 +413,7 @@ describe('api app', () => {
       body: JSON.stringify({
         avatarUrl: {
           background: 'leaf',
-          emoji: 'salute',
+          emoji: 'not_a_preset',
         },
       }),
       headers: {
@@ -476,6 +476,47 @@ describe('api app', () => {
       data: {
         proStatus: 'free',
       },
+    });
+  });
+
+  it('syncs complete records for free authenticated users and isolates unauthenticated access', async () => {
+    const app = createTestApp();
+    expect((await app.request('/data-sync/pull?cursor=0')).status).toBe(401);
+
+    const token = await login(app, { identityToken: 'full-data-sync-user' });
+    const mutation = {
+      changedAt: '2026-07-21T08:00:00.000Z',
+      entityId: '2026-07-21',
+      entityType: 'habit_checkin',
+      mutationId: 'mutation-route-1',
+      operation: 'upsert',
+      payload: {
+        bowel: 'good',
+        date: '2026-07-21',
+        fiber: 'medium',
+        movement: 'good',
+        water: 'low',
+      },
+    };
+    const pushResponse = await app.request('/data-sync/push', {
+      body: JSON.stringify({ mutations: [mutation], timeZone: 'Asia/Shanghai' }),
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      method: 'PUT',
+    });
+    const pullResponse = await app.request('/data-sync/pull?cursor=0', {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const pushed = await pushResponse.json();
+    const pulled = await pullResponse.json();
+
+    expect(pushResponse.status).toBe(200);
+    expect(pushed.data.acceptedMutationIds).toEqual(['mutation-route-1']);
+    expect(pullResponse.status).toBe(200);
+    expect(pulled.data.changes).toHaveLength(1);
+    expect(pulled.data.changes[0]).toMatchObject({
+      entityId: '2026-07-21',
+      entityType: 'habit_checkin',
+      operation: 'upsert',
     });
   });
 

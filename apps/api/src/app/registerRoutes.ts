@@ -1,6 +1,7 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 
 import { createAuthRoute } from '../modules/auth/auth.route.js';
+import { createDataSyncRoute } from '../modules/dataSync/dataSync.route.js';
 import { createHealthRoute } from '../modules/health/health.route.js';
 import { createBuddyNudgeSettingsRoute, createNudgesRoute } from '../modules/nudges/nudges.route.js';
 import { createPushTokensRoute } from '../modules/push/pushTokens.route.js';
@@ -23,6 +24,9 @@ export function registerRoutes(app: OpenAPIHono, dependencies: ApiRouteDependenc
       userRepository: dependencies.userRepository,
     }),
   );
+  app.use('/data-sync/*', dependencies.authMiddleware);
+  app.use('/data-sync', dependencies.authMiddleware);
+  app.route('/data-sync', createDataSyncRoute({ dataSyncService: dependencies.dataSyncService }));
   app.use('/me/*', dependencies.authMiddleware);
   app.use('/me', dependencies.authMiddleware);
   app.route(

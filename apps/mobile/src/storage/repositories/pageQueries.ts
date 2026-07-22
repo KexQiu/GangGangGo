@@ -7,7 +7,9 @@ export const habitCheckInPageSql = `
     bowel,
     updated_at
   FROM habit_checkins
-  WHERE ($fromDate IS NULL OR date >= $fromDate)
+  WHERE profile_id = (SELECT value FROM app_metadata WHERE key = 'active_profile_id')
+    AND deleted_at IS NULL
+    AND ($fromDate IS NULL OR date >= $fromDate)
     AND ($toDateExclusive IS NULL OR date < $toDateExclusive)
     AND ($cursorDate IS NULL OR date < $cursorDate)
   ORDER BY date DESC
@@ -27,7 +29,9 @@ export const toiletSessionPageSql = `
     stool_color,
     signals_json
   FROM toilet_sessions
-  WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
+  WHERE profile_id = (SELECT value FROM app_metadata WHERE key = 'active_profile_id')
+    AND deleted_at IS NULL
+    AND ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
     AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)
     AND (
       $cursorEndedAt IS NULL
@@ -49,7 +53,9 @@ export const trainingSessionPageSql = `
     is_completed,
     discomfort_reported
   FROM training_sessions
-  WHERE ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
+  WHERE profile_id = (SELECT value FROM app_metadata WHERE key = 'active_profile_id')
+    AND deleted_at IS NULL
+    AND ($fromDateTime IS NULL OR ended_at >= $fromDateTime)
     AND ($toDateTimeExclusive IS NULL OR ended_at < $toDateTimeExclusive)
     AND (
       $cursorEndedAt IS NULL

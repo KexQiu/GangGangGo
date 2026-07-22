@@ -6,6 +6,7 @@ import { createProMiddleware } from '../http/middleware/pro.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 import { createMockAppleAuthService } from '../modules/auth/appleAuthService.js';
 import { createMockAuthSessionService } from '../modules/auth/authSessionService.js';
+import { createMockDataSyncService } from '../modules/dataSync/dataSyncService.js';
 import { createMockEntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import { createMockNudgeService } from '../modules/nudges/nudgeService.js';
 import { createMockPushTokenService } from '../modules/push/pushTokenService.js';
@@ -21,6 +22,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const log = options.logger ?? defaultLogger;
   const appleAuthService = options.appleAuthService ?? createMockAppleAuthService();
   const authSessionService = options.authSessionService ?? createMockAuthSessionService();
+  const dataSyncService = options.dataSyncService ?? createMockDataSyncService();
   const entitlementsService = options.entitlementsService ?? createMockEntitlementsService();
   const teamService = options.teamService ?? createMockTeamService();
   const nudgeService = options.nudgeService ?? createMockNudgeService({ teamService });
@@ -38,6 +40,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
     appleAuthService,
     authSessionService,
     authMiddleware,
+    dataSyncService,
     databaseHealthChecker: options.databaseHealthChecker,
     entitlementsService,
     nudgeService,

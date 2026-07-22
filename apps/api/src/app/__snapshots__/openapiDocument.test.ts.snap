@@ -413,6 +413,14 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               "smirk",
               "dizzy",
               "cowboy",
+              "salute",
+              "shy",
+              "love",
+              "tongue",
+              "mask",
+              "monocle",
+              "zany",
+              "pleading",
               "cat",
               "dog",
               "fox",
@@ -433,6 +441,22 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               "unicorn",
               "cow",
               "octopus",
+              "sloth",
+              "otter",
+              "raccoon",
+              "seal",
+              "whale",
+              "dino",
+              "bee",
+              "ladybug",
+              "clover",
+              "sunflower",
+              "rainbow",
+              "moon",
+              "star",
+              "cloud",
+              "peach_fruit",
+              "headphones",
               null,
             ],
             "type": [
@@ -857,6 +881,924 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         },
         "required": [
           "snapshot",
+        ],
+        "type": "object",
+      },
+      "DataSyncPullResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "entityId": {
+                  "type": "string",
+                },
+                "entityType": {
+                  "enum": [
+                    "training_session",
+                    "habit_checkin",
+                    "toilet_session",
+                    "toilet_signal_preset",
+                  ],
+                  "type": "string",
+                },
+                "operation": {
+                  "enum": [
+                    "delete",
+                    "upsert",
+                  ],
+                  "type": "string",
+                },
+                "payload": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "completedRepetitions": {
+                          "minimum": 0,
+                          "type": "integer",
+                        },
+                        "discomfortReported": {
+                          "type": "boolean",
+                        },
+                        "durationSeconds": {
+                          "minimum": 0,
+                          "type": "integer",
+                        },
+                        "endedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "isCompleted": {
+                          "type": "boolean",
+                        },
+                        "localDate": {
+                          "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "presetId": {
+                          "enum": [
+                            "beginner",
+                            "standard",
+                            "quick",
+                          ],
+                          "type": "string",
+                        },
+                        "startedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                      },
+                      "required": [
+                        "completedRepetitions",
+                        "discomfortReported",
+                        "durationSeconds",
+                        "endedAt",
+                        "isCompleted",
+                        "localDate",
+                        "presetId",
+                        "startedAt",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bowel": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "date": {
+                          "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "fiber": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "movement": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "water": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "bowel",
+                        "date",
+                        "fiber",
+                        "movement",
+                        "water",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bleeding": {
+                          "type": "boolean",
+                        },
+                        "discomfort": {
+                          "type": "boolean",
+                        },
+                        "durationSeconds": {
+                          "minimum": 0,
+                          "type": "integer",
+                        },
+                        "endedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "feeling": {
+                          "enum": [
+                            "smooth",
+                            "normal",
+                            "difficult",
+                          ],
+                          "type": "string",
+                        },
+                        "localDate": {
+                          "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "signals": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "maxLength": 100,
+                                "minLength": 1,
+                                "type": "string",
+                              },
+                              "label": {
+                                "maxLength": 12,
+                                "minLength": 1,
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "id",
+                              "label",
+                            ],
+                            "type": "object",
+                          },
+                          "maxItems": 5,
+                          "type": "array",
+                        },
+                        "startedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "stoolColor": {
+                          "enum": [
+                            "normal",
+                            "attention",
+                            "other",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "stoolShape": {
+                          "enum": [
+                            "hard",
+                            "formed",
+                            "loose",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "bleeding",
+                        "discomfort",
+                        "durationSeconds",
+                        "endedAt",
+                        "feeling",
+                        "localDate",
+                        "signals",
+                        "startedAt",
+                        "stoolColor",
+                        "stoolShape",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "createdAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "label": {
+                          "maxLength": 12,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "createdAt",
+                        "label",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "type": "null",
+                    },
+                  ],
+                },
+                "serverUpdatedAt": {
+                  "$ref": "#/components/schemas/IsoDateTime",
+                },
+                "version": {
+                  "exclusiveMinimum": 0,
+                  "type": "integer",
+                },
+              },
+              "required": [
+                "entityId",
+                "entityType",
+                "operation",
+                "payload",
+                "serverUpdatedAt",
+                "version",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "hasMore": {
+            "type": "boolean",
+          },
+          "nextCursor": {
+            "type": "string",
+          },
+          "resetRequired": {
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "changes",
+          "hasMore",
+          "nextCursor",
+          "resetRequired",
+        ],
+        "type": "object",
+      },
+      "DataSyncPushRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mutations": {
+            "items": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "changedAt": {
+                      "$ref": "#/components/schemas/IsoDateTime",
+                    },
+                    "entityId": {
+                      "maxLength": 120,
+                      "minLength": 1,
+                      "type": "string",
+                    },
+                    "entityType": {
+                      "enum": [
+                        "training_session",
+                        "habit_checkin",
+                        "toilet_session",
+                        "toilet_signal_preset",
+                      ],
+                      "type": "string",
+                    },
+                    "mutationId": {
+                      "maxLength": 120,
+                      "minLength": 1,
+                      "type": "string",
+                    },
+                    "operation": {
+                      "enum": [
+                        "delete",
+                      ],
+                      "type": "string",
+                    },
+                    "payload": {
+                      "type": "null",
+                    },
+                  },
+                  "required": [
+                    "changedAt",
+                    "entityId",
+                    "entityType",
+                    "mutationId",
+                    "operation",
+                    "payload",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "changedAt": {
+                      "$ref": "#/components/schemas/IsoDateTime",
+                    },
+                    "entityId": {
+                      "maxLength": 120,
+                      "minLength": 1,
+                      "type": "string",
+                    },
+                    "entityType": {
+                      "enum": [
+                        "training_session",
+                        "habit_checkin",
+                        "toilet_session",
+                        "toilet_signal_preset",
+                      ],
+                      "type": "string",
+                    },
+                    "mutationId": {
+                      "maxLength": 120,
+                      "minLength": 1,
+                      "type": "string",
+                    },
+                    "operation": {
+                      "enum": [
+                        "upsert",
+                      ],
+                      "type": "string",
+                    },
+                    "payload": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "completedRepetitions": {
+                              "minimum": 0,
+                              "type": "integer",
+                            },
+                            "discomfortReported": {
+                              "type": "boolean",
+                            },
+                            "durationSeconds": {
+                              "minimum": 0,
+                              "type": "integer",
+                            },
+                            "endedAt": {
+                              "$ref": "#/components/schemas/IsoDateTime",
+                            },
+                            "isCompleted": {
+                              "type": "boolean",
+                            },
+                            "localDate": {
+                              "$ref": "#/components/schemas/IsoDate",
+                            },
+                            "presetId": {
+                              "enum": [
+                                "beginner",
+                                "standard",
+                                "quick",
+                              ],
+                              "type": "string",
+                            },
+                            "startedAt": {
+                              "$ref": "#/components/schemas/IsoDateTime",
+                            },
+                          },
+                          "required": [
+                            "completedRepetitions",
+                            "discomfortReported",
+                            "durationSeconds",
+                            "endedAt",
+                            "isCompleted",
+                            "localDate",
+                            "presetId",
+                            "startedAt",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "bowel": {
+                              "enum": [
+                                "low",
+                                "medium",
+                                "good",
+                                null,
+                              ],
+                              "type": [
+                                "string",
+                                "null",
+                              ],
+                            },
+                            "date": {
+                              "$ref": "#/components/schemas/IsoDate",
+                            },
+                            "fiber": {
+                              "enum": [
+                                "low",
+                                "medium",
+                                "good",
+                                null,
+                              ],
+                              "type": [
+                                "string",
+                                "null",
+                              ],
+                            },
+                            "movement": {
+                              "enum": [
+                                "low",
+                                "medium",
+                                "good",
+                                null,
+                              ],
+                              "type": [
+                                "string",
+                                "null",
+                              ],
+                            },
+                            "water": {
+                              "enum": [
+                                "low",
+                                "medium",
+                                "good",
+                                null,
+                              ],
+                              "type": [
+                                "string",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "bowel",
+                            "date",
+                            "fiber",
+                            "movement",
+                            "water",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "bleeding": {
+                              "type": "boolean",
+                            },
+                            "discomfort": {
+                              "type": "boolean",
+                            },
+                            "durationSeconds": {
+                              "minimum": 0,
+                              "type": "integer",
+                            },
+                            "endedAt": {
+                              "$ref": "#/components/schemas/IsoDateTime",
+                            },
+                            "feeling": {
+                              "enum": [
+                                "smooth",
+                                "normal",
+                                "difficult",
+                              ],
+                              "type": "string",
+                            },
+                            "localDate": {
+                              "$ref": "#/components/schemas/IsoDate",
+                            },
+                            "signals": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "id": {
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "type": "string",
+                                  },
+                                  "label": {
+                                    "maxLength": 12,
+                                    "minLength": 1,
+                                    "type": "string",
+                                  },
+                                },
+                                "required": [
+                                  "id",
+                                  "label",
+                                ],
+                                "type": "object",
+                              },
+                              "maxItems": 5,
+                              "type": "array",
+                            },
+                            "startedAt": {
+                              "$ref": "#/components/schemas/IsoDateTime",
+                            },
+                            "stoolColor": {
+                              "enum": [
+                                "normal",
+                                "attention",
+                                "other",
+                                null,
+                              ],
+                              "type": [
+                                "string",
+                                "null",
+                              ],
+                            },
+                            "stoolShape": {
+                              "enum": [
+                                "hard",
+                                "formed",
+                                "loose",
+                                null,
+                              ],
+                              "type": [
+                                "string",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "bleeding",
+                            "discomfort",
+                            "durationSeconds",
+                            "endedAt",
+                            "feeling",
+                            "localDate",
+                            "signals",
+                            "startedAt",
+                            "stoolColor",
+                            "stoolShape",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "createdAt": {
+                              "$ref": "#/components/schemas/IsoDateTime",
+                            },
+                            "label": {
+                              "maxLength": 12,
+                              "minLength": 1,
+                              "type": "string",
+                            },
+                          },
+                          "required": [
+                            "createdAt",
+                            "label",
+                          ],
+                          "type": "object",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "changedAt",
+                    "entityId",
+                    "entityType",
+                    "mutationId",
+                    "operation",
+                    "payload",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array",
+          },
+          "timeZone": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "mutations",
+          "timeZone",
+        ],
+        "type": "object",
+      },
+      "DataSyncPushResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptedMutationIds": {
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "changes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "entityId": {
+                  "type": "string",
+                },
+                "entityType": {
+                  "enum": [
+                    "training_session",
+                    "habit_checkin",
+                    "toilet_session",
+                    "toilet_signal_preset",
+                  ],
+                  "type": "string",
+                },
+                "operation": {
+                  "enum": [
+                    "delete",
+                    "upsert",
+                  ],
+                  "type": "string",
+                },
+                "payload": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "completedRepetitions": {
+                          "minimum": 0,
+                          "type": "integer",
+                        },
+                        "discomfortReported": {
+                          "type": "boolean",
+                        },
+                        "durationSeconds": {
+                          "minimum": 0,
+                          "type": "integer",
+                        },
+                        "endedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "isCompleted": {
+                          "type": "boolean",
+                        },
+                        "localDate": {
+                          "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "presetId": {
+                          "enum": [
+                            "beginner",
+                            "standard",
+                            "quick",
+                          ],
+                          "type": "string",
+                        },
+                        "startedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                      },
+                      "required": [
+                        "completedRepetitions",
+                        "discomfortReported",
+                        "durationSeconds",
+                        "endedAt",
+                        "isCompleted",
+                        "localDate",
+                        "presetId",
+                        "startedAt",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bowel": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "date": {
+                          "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "fiber": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "movement": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "water": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "good",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "bowel",
+                        "date",
+                        "fiber",
+                        "movement",
+                        "water",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bleeding": {
+                          "type": "boolean",
+                        },
+                        "discomfort": {
+                          "type": "boolean",
+                        },
+                        "durationSeconds": {
+                          "minimum": 0,
+                          "type": "integer",
+                        },
+                        "endedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "feeling": {
+                          "enum": [
+                            "smooth",
+                            "normal",
+                            "difficult",
+                          ],
+                          "type": "string",
+                        },
+                        "localDate": {
+                          "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "signals": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "maxLength": 100,
+                                "minLength": 1,
+                                "type": "string",
+                              },
+                              "label": {
+                                "maxLength": 12,
+                                "minLength": 1,
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "id",
+                              "label",
+                            ],
+                            "type": "object",
+                          },
+                          "maxItems": 5,
+                          "type": "array",
+                        },
+                        "startedAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "stoolColor": {
+                          "enum": [
+                            "normal",
+                            "attention",
+                            "other",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                        "stoolShape": {
+                          "enum": [
+                            "hard",
+                            "formed",
+                            "loose",
+                            null,
+                          ],
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "bleeding",
+                        "discomfort",
+                        "durationSeconds",
+                        "endedAt",
+                        "feeling",
+                        "localDate",
+                        "signals",
+                        "startedAt",
+                        "stoolColor",
+                        "stoolShape",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "createdAt": {
+                          "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "label": {
+                          "maxLength": 12,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "createdAt",
+                        "label",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "type": "null",
+                    },
+                  ],
+                },
+                "serverUpdatedAt": {
+                  "$ref": "#/components/schemas/IsoDateTime",
+                },
+                "version": {
+                  "exclusiveMinimum": 0,
+                  "type": "integer",
+                },
+              },
+              "required": [
+                "entityId",
+                "entityType",
+                "operation",
+                "payload",
+                "serverUpdatedAt",
+                "version",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "acceptedMutationIds",
+          "changes",
         ],
         "type": "object",
       },
@@ -2166,6 +3108,227 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           },
         ],
         "summary": "更新提醒设置",
+      },
+    },
+    "/data-sync/pull": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "0",
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DataSyncPullResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "增量拉取完整记录",
+      },
+    },
+    "/data-sync/push": {
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataSyncPushRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DataSyncPushResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "上传完整记录变更",
       },
     },
     "/health": {

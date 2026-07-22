@@ -1,5 +1,6 @@
 export * from './auth.js';
 export * from './common.js';
+export * from './dataSync.js';
 export * from './nudges.js';
 export * from './push.js';
 export * from './reports.js';

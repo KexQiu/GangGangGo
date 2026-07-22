@@ -2,7 +2,7 @@ export type SyncReason =
   'app_boot' | 'app_foreground' | 'auth_changed' | 'local_changed' | 'pro_changed' | 'task_retry';
 
 export type SyncAppState = 'active' | 'background' | 'inactive' | 'unknown';
-export const syncTaskNames = ['watch', 'entitlements', 'shareSnapshot', 'reports', 'push'] as const;
+export const syncTaskNames = ['watch', 'entitlements', 'data', 'shareSnapshot', 'reports', 'push'] as const;
 export type SyncTaskName = (typeof syncTaskNames)[number];
 export type SyncTaskStatus = {
   lastError: string | null;
@@ -28,6 +28,7 @@ export type SyncCoordinatorDependencies = {
   debounceMs?: number;
   getAppState: () => SyncAppState;
   getAuth: () => AuthSnapshot;
+  syncData: () => Promise<unknown>;
   registerPushToken: () => Promise<unknown>;
   subscribeAppState: (listener: (state: SyncAppState) => void) => Unsubscribe;
   subscribeAuthChanges: (listener: (change: AuthChange) => void) => Unsubscribe;
@@ -122,6 +123,7 @@ export class SyncCoordinator {
     const reason = [...reasons].join(',');
     const availableTasks: Record<SyncTaskName, SyncTask> = {
       entitlements: () => auth.refreshEntitlements(),
+      data: () => this.dependencies.syncData(),
       push: () => this.dependencies.registerPushToken(),
       reports: () => this.dependencies.syncReports(),
       shareSnapshot: () => this.dependencies.syncShareSnapshot(),
@@ -137,6 +139,7 @@ export class SyncCoordinator {
           tasks.set('entitlements', availableTasks.entitlements);
         }
         tasks.set('shareSnapshot', availableTasks.shareSnapshot);
+        tasks.set('data', availableTasks.data);
         tasks.set('reports', availableTasks.reports);
         tasks.set('push', availableTasks.push);
       }

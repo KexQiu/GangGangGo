@@ -8,10 +8,17 @@ import { useAppTheme } from '../theme/themeProvider';
 type ScreenProps = PropsWithChildren<{
   bottomSafeArea?: boolean;
   scroll?: boolean;
+  scrollEnabled?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }>;
 
-export function Screen({ bottomSafeArea = false, children, contentStyle, scroll = true }: ScreenProps) {
+export function Screen({
+  bottomSafeArea = false,
+  children,
+  contentStyle,
+  scroll = true,
+  scrollEnabled = true,
+}: ScreenProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors.background);
   const edges: Edge[] = bottomSafeArea ? ['top', 'right', 'bottom', 'left'] : ['top', 'right', 'left'];
@@ -29,7 +36,11 @@ export function Screen({ bottomSafeArea = false, children, contentStyle, scroll 
   return (
     <SafeAreaView edges={edges} style={styles.safeArea}>
       {fixedTopBar ? <View style={styles.fixedTopBar}>{fixedTopBar}</View> : null}
-      <ScrollView contentContainerStyle={[styles.content, contentStyle]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        scrollEnabled={scrollEnabled}
+        showsVerticalScrollIndicator={false}
+      >
         {scrollChildren}
       </ScrollView>
     </SafeAreaView>

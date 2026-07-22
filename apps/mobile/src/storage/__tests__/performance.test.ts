@@ -71,9 +71,13 @@ describe('SQLite large-history performance', () => {
     expect(value.toilets).toHaveLength(30);
     expect(value.trainings).toHaveLength(60);
     expect(durationMs).toBeLessThan(maximumBenchmarkDurationMs);
-    expect(queryPlan(database, habitCheckInPageSql, habitParams)).toContain('sqlite_autoindex_habit_checkins_1');
-    expect(queryPlan(database, toiletSessionPageSql, sessionParams)).toContain('idx_toilet_sessions_ended_at_id');
-    expect(queryPlan(database, trainingSessionPageSql, sessionParams)).toContain('idx_training_sessions_ended_at_id');
+    expect(queryPlan(database, habitCheckInPageSql, habitParams)).toContain('idx_habit_checkins_profile_date');
+    expect(queryPlan(database, toiletSessionPageSql, sessionParams)).toContain(
+      'idx_toilet_sessions_profile_ended_at_id',
+    );
+    expect(queryPlan(database, trainingSessionPageSql, sessionParams)).toContain(
+      'idx_training_sessions_profile_ended_at_id',
+    );
   });
 
   it('pages a large training history with a stable composite cursor', () => {
@@ -92,7 +96,9 @@ describe('SQLite large-history performance', () => {
     expect(new Set([...firstPage, ...secondPage].map((row) => row.id))).toHaveLength(200);
     expect(secondPage[0]?.ended_at <= (lastFirstRow?.ended_at ?? '')).toBe(true);
     expect(durationMs).toBeLessThan(maximumBenchmarkDurationMs);
-    expect(queryPlan(database, trainingSessionPageSql, secondParams)).toContain('idx_training_sessions_ended_at_id');
+    expect(queryPlan(database, trainingSessionPageSql, secondParams)).toContain(
+      'idx_training_sessions_profile_ended_at_id',
+    );
   });
 
   it('loads and builds a 90-day report with three bounded queries', () => {

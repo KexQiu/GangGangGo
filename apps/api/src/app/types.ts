@@ -5,6 +5,7 @@ import type { DatabaseHealthChecker } from '../db/health.js';
 import type { AuthVariables } from '../http/middleware/auth.js';
 import type { AppleAuthService } from '../modules/auth/appleAuthService.js';
 import type { AuthSessionService } from '../modules/auth/authSessionService.js';
+import type { DataSyncService } from '../modules/dataSync/dataSyncService.js';
 import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import type { NudgeService } from '../modules/nudges/nudgeService.js';
 import type { PushTokenService } from '../modules/push/pushTokenService.js';
@@ -18,6 +19,7 @@ export type ApiRouteDependencies = {
   appleAuthService: AppleAuthService;
   authSessionService: AuthSessionService;
   authMiddleware: ApiMiddleware;
+  dataSyncService: DataSyncService;
   databaseHealthChecker?: DatabaseHealthChecker;
   entitlementsService: EntitlementsService;
   nudgeService: NudgeService;
@@ -31,6 +33,7 @@ export type ApiRouteDependencies = {
 export type CreateApiAppOptions = {
   appleAuthService?: AppleAuthService;
   authSessionService?: AuthSessionService;
+  dataSyncService?: DataSyncService;
   databaseHealthChecker?: DatabaseHealthChecker;
   entitlementsService?: EntitlementsService;
   logger?: Logger;

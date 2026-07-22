@@ -6,6 +6,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '../src/api/queryClient';
 import { AppToastHost } from '../src/components/toast/AppToast';
+import { useAuthStore } from '../src/features/account/authStore';
+import { purgeExpiredLocalHealthData, rebuildRecentDailySummaries } from '../src/features/data/dailyData';
 import { useHabitStore } from '../src/features/habits/habitStore';
 import { configureNotificationHandler } from '../src/features/reminders/notificationService';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
@@ -18,18 +20,29 @@ import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
 
 function RootStack() {
   const theme = useAppTheme();
+  const authHasHydrated = useAuthStore((state) => state.hasHydrated);
 
   useEffect(() => {
     configureNotificationHandler();
     startWatchConnectivityEventListener();
     void recoverToiletLiveActivityAfterLaunch();
-    void Promise.all([
-      useTrainingStore.getState().hydrate(),
-      useToiletStore.getState().hydrate(),
-      useHabitStore.getState().hydrate(),
-      useReminderStore.getState().hydrate(),
-    ]).finally(() => syncCoordinator.start());
   }, []);
+
+  useEffect(() => {
+    if (!authHasHydrated) return;
+    void purgeExpiredLocalHealthData()
+      .then(() => rebuildRecentDailySummaries())
+      .then(() =>
+        Promise.all([
+          useTrainingStore.getState().hydrate(),
+          useToiletStore.getState().hydrate(),
+          useHabitStore.getState().hydrate(),
+          useReminderStore.getState().hydrate(),
+        ]),
+      )
+      .finally(() => syncCoordinator.start());
+    return () => syncCoordinator.stop();
+  }, [authHasHydrated]);
 
   return (
     <>

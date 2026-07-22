@@ -11,6 +11,11 @@ import { migrateAuthPreferences, type MockUserId } from './accountModel';
 import { clearCloudQueryCache, resetCloudQueryCacheForUser } from './accountQueryCache';
 import { refreshCurrentUserQuery, refreshEntitlementsQuery, seedCurrentUser } from './accountQueryService';
 import { clearSecureSession, loadSecureSession, saveSecureSession } from './sessionStorage';
+import { activateAnonymousLocalProfile, bindActiveLocalProfileToUser } from '../../storage/localDataProfile';
+import { rebuildRecentDailySummaries } from '../data/dailyData';
+import { useHabitStore } from '../habits/habitStore';
+import { useToiletStore } from '../toilet/toiletStore';
+import { useTrainingStore } from '../training/trainingStore';
 
 export { isProStatus, mockUserIds } from './accountModel';
 export type { MockUserId } from './accountModel';
@@ -56,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
         set({ error: null, isLoading: true });
         try {
           const response = await authApi.loginWithApple({ identityToken, ...(nickname ? { nickname } : {}) });
+          await activateLocalUserProfile(response.user.id);
           await persistResponseSession(response);
           set({
             ...sessionState(response),
@@ -98,9 +104,11 @@ export const useAuthStore = create<AuthState>()(
             accessToken: null,
             accessTokenExpiresAt: null,
             error: null,
-            isLoading: false,
+            isLoading: true,
             refreshToken: null,
           });
+          await activateLocalAnonymousProfile();
+          set({ isLoading: false });
         }
       },
       refreshSession: async () => {
@@ -122,6 +130,7 @@ export const useAuthStore = create<AuthState>()(
               accessTokenExpiresAt: null,
               refreshToken: null,
             });
+            await activateLocalAnonymousProfile();
             return null;
           } finally {
             refreshPromise = null;
@@ -133,14 +142,21 @@ export const useAuthStore = create<AuthState>()(
       restoreSecureSession: async () => {
         const session = await loadSecureSession();
         if (!session) {
+          await activateLocalAnonymousProfile(false);
           set({ hasHydrated: true });
           return;
         }
-        set({ ...session, hasHydrated: true });
-        await Promise.allSettled([
+        set(session);
+        const [userResult] = await Promise.allSettled([
           refreshCurrentUserQuery(session.accessToken),
           refreshEntitlementsQuery(session.accessToken),
         ]);
+        if (userResult.status === 'fulfilled') {
+          await activateLocalUserProfile(userResult.value.id, false);
+        } else if (!get().accessToken) {
+          await activateLocalAnonymousProfile(false);
+        }
+        set({ hasHydrated: true });
       },
       selectedMockUserId: 'mock-user-a',
     }),
@@ -185,4 +201,27 @@ setApiUnauthorizedHandler(() => {
     error: '登录状态过期，请重新登录。',
     refreshToken: null,
   });
+  void activateLocalAnonymousProfile();
 });
+
+async function activateLocalUserProfile(userId: string, reloadStores = true) {
+  await bindActiveLocalProfileToUser(userId);
+  if (reloadStores) await resetLocalHealthStores();
+}
+
+async function activateLocalAnonymousProfile(reloadStores = true) {
+  await activateAnonymousLocalProfile();
+  if (reloadStores) await resetLocalHealthStores();
+}
+
+async function resetLocalHealthStores() {
+  useTrainingStore.setState({ hasHydrated: false, sessions: [] });
+  useToiletStore.setState({ hasHydrated: false, sessions: [] });
+  useHabitStore.setState({ checkIns: [], hasHydrated: false });
+  await Promise.all([
+    useTrainingStore.getState().hydrate(),
+    useToiletStore.getState().hydrate(),
+    useHabitStore.getState().hydrate(),
+    rebuildRecentDailySummaries(),
+  ]);
+}

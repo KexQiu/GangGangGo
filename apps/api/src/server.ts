@@ -9,6 +9,7 @@ const dependencies = createApiDependencies();
 const app = createApiApp({
   appleAuthService: createDefaultAppleAuthService(),
   authSessionService: dependencies.authSessionService,
+  dataSyncService: dependencies.dataSyncService,
   entitlementsService: dependencies.entitlementsService,
   nudgeService: dependencies.nudgeService,
   pushTokenService: dependencies.pushTokenService,

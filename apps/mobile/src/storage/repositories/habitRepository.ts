@@ -1,5 +1,8 @@
 import { isHabitLevel } from '../../features/habits/habitLogic';
 import { type HabitCheckIn } from '../../features/habits/habitTypes';
+import { rebuildDailySummary } from '../../features/data/dailyData';
+import { enqueueDataMutation } from '../dataSyncOutbox';
+import { getActiveLocalProfileId } from '../localDataProfile';
 import { initializeDatabase } from '../db';
 import { normalizePageSize, type Page } from '../pagination';
 import { habitCheckInPageSql } from './pageQueries';
@@ -22,10 +25,13 @@ export type HabitCheckInPageOptions = {
 
 export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
   const db = await initializeDatabase();
+  const profileId = await getActiveLocalProfileId();
 
-  await db.runAsync(
-    `
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `
       INSERT INTO habit_checkins (
+        profile_id,
         date,
         water,
         fiber,
@@ -33,6 +39,7 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
         bowel,
         updated_at
       ) VALUES (
+        $profileId,
         $date,
         $water,
         $fiber,
@@ -40,22 +47,41 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
         $bowel,
         $updatedAt
       )
-      ON CONFLICT(date) DO UPDATE SET
+      ON CONFLICT(profile_id, date) DO UPDATE SET
         water = excluded.water,
         fiber = excluded.fiber,
         movement = excluded.movement,
         bowel = excluded.bowel,
         updated_at = excluded.updated_at;
     `,
-    {
-      $bowel: checkIn.bowel,
-      $date: checkIn.date,
-      $fiber: checkIn.fiber,
-      $movement: checkIn.movement,
-      $updatedAt: checkIn.updatedAt,
-      $water: checkIn.water,
-    },
-  );
+      {
+        $bowel: checkIn.bowel,
+        $date: checkIn.date,
+        $fiber: checkIn.fiber,
+        $movement: checkIn.movement,
+        $profileId: profileId,
+        $updatedAt: checkIn.updatedAt,
+        $water: checkIn.water,
+      },
+    );
+    await enqueueDataMutation(
+      {
+        entityId: checkIn.date,
+        entityType: 'habit_checkin',
+        operation: 'upsert',
+        payload: {
+          bowel: checkIn.bowel,
+          date: checkIn.date,
+          fiber: checkIn.fiber,
+          movement: checkIn.movement,
+          water: checkIn.water,
+        },
+      },
+      db,
+      profileId,
+    );
+  });
+  await rebuildDailySummary(checkIn.date);
 }
 
 export async function listHabitCheckInsPage(
