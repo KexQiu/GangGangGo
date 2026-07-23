@@ -1,4 +1,4 @@
-import type { AdvancedReportDay, AdvancedReportResponse, DailyReportSnapshot, TeamMember } from '@xiaotidu/contracts';
+import type { AdvancedReportDay, AdvancedReportResponse, DailyReportSnapshot } from '@xiaotidu/contracts';
 
 import { dailyReportSnapshots } from '../../db/schema.js';
 import type { CurrentUser } from '../users/userTypes.js';
@@ -39,13 +39,6 @@ function getTimezoneDateKey(timezone: string | null | undefined, now = new Date(
 export function getAdvancedReportRange(currentUser: CurrentUser, now = new Date()) {
   const endedAt = getTimezoneDateKey(currentUser.timezone, now);
   const startedAt = addDaysToDateKey(endedAt, -(advancedReportDayCount - 1));
-
-  return { endedAt, startedAt };
-}
-
-export function getWeeklyRange(now = new Date()) {
-  const endedAt = toDateString(now);
-  const startedAt = toDateString(addDays(now, -6));
 
   return { endedAt, startedAt };
 }
@@ -146,25 +139,3 @@ export function toDailyReportSnapshot(record: typeof dailyReportSnapshots.$infer
     trainingDone: record.trainingDone,
   };
 }
-
-export function toWeeklyMember(member: Pick<TeamMember, 'displayName' | 'id' | 'user'>) {
-  return {
-    displayName: member.displayName,
-    id: member.id,
-    user: member.user,
-  };
-}
-
-export type ReportShareSettings = {
-  paused: boolean;
-  shareHabitCompletion: boolean;
-  shareToiletRecorded: boolean;
-  shareTraining: boolean;
-};
-
-export const defaultReportShareSettings: ReportShareSettings = {
-  paused: false,
-  shareHabitCompletion: true,
-  shareToiletRecorded: true,
-  shareTraining: true,
-};

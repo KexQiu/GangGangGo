@@ -11,10 +11,9 @@ const app = createApiApp({
   authSessionService: dependencies.authSessionService,
   dataSyncService: dependencies.dataSyncService,
   entitlementsService: dependencies.entitlementsService,
-  nudgeService: dependencies.nudgeService,
+  friendService: dependencies.friendService,
   pushTokenService: dependencies.pushTokenService,
   reportService: dependencies.reportService,
-  teamService: dependencies.teamService,
   userRepository: dependencies.userRepository,
 });
 

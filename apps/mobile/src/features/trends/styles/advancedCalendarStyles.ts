@@ -75,56 +75,9 @@ export function createAdvancedCalendarStyles(colors: ThemeColors) {
       flexDirection: 'row',
       gap: calendarColumnGap,
     },
-    dayDetailBackdrop: {
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
-    dayDetailCaption: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 18,
-      marginTop: 3,
-    },
-    dayDetailCard: {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 20,
-      borderWidth: 1,
+    dayDetailContent: {
       gap: 16,
-      maxWidth: 360,
-      padding: 18,
-      width: '100%',
-    },
-    dayDetailCloseButton: {
-      backgroundColor: colors.surfaceMuted,
-      borderColor: colors.border,
-      borderRadius: 999,
-      borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-    },
-    dayDetailCloseText: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '800',
-      lineHeight: 17,
-    },
-    dayDetailHeader: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
-      gap: 12,
-      justifyContent: 'space-between',
-    },
-    dayDetailOverlay: {
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.52)',
-      flex: 1,
-      justifyContent: 'center',
-      padding: 24,
+      paddingBottom: 20,
     },
     dayDetailRow: {
       alignItems: 'center',
@@ -152,22 +105,11 @@ export function createAdvancedCalendarStyles(colors: ThemeColors) {
     dayDetailRows: {
       gap: 8,
     },
-    dayDetailScroll: {
-      maxHeight: '78%',
-      maxWidth: 360,
-      width: '100%',
-    },
     dayDetailRowValue: {
       color: colors.textMuted,
       fontSize: 14,
       fontWeight: '800',
       lineHeight: 18,
-    },
-    dayDetailTitle: {
-      color: colors.text,
-      fontSize: 22,
-      fontWeight: '900',
-      lineHeight: 27,
     },
     dayDot: {
       borderRadius: 3,

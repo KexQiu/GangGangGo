@@ -6,14 +6,12 @@ import {
   advancedReportResponseSchema,
   dailyReportSnapshotResponseSchema,
   dailyReportSnapshotsBulkResponseSchema,
-  teamWeeklyReportResponseSchema,
   upsertDailyReportSnapshotRequestSchema,
   upsertDailyReportSnapshotsBulkRequestSchema,
   type AdvancedReportResponse,
   type DailyReportSnapshotResponse,
   type DailyReportSnapshotsBulkResponse,
   type ProStatus,
-  type TeamWeeklyReportResponse,
 } from '@xiaotidu/contracts';
 
 import { ApiError } from '../../http/apiError.js';
@@ -56,22 +54,6 @@ export function createReportsRoute(options: CreateReportsRouteOptions) {
         currentUser,
         context.req.valid('query').range,
       );
-      return context.json(toSuccessResponse(body), 200);
-    },
-  );
-
-  route.openapi(
-    createRoute({
-      method: 'get',
-      path: '/teams/current/reports/weekly',
-      responses: apiResponses(teamWeeklyReportResponseSchema),
-      security: bearerSecurity,
-      summary: '小队周报',
-    }),
-    async (context) => {
-      const currentUser = context.get('currentUser');
-      await requirePro(options.entitlementsService, currentUser);
-      const body: TeamWeeklyReportResponse = await options.reportService.getTeamWeeklyReport(currentUser);
       return context.json(toSuccessResponse(body), 200);
     },
   );

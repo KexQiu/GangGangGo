@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { DataSyncMutation } from '@xiaotidu/contracts';
 
+import type { FriendService } from '../friends/friendService.js';
 import { mockCurrentUser } from '../users/userTypes.js';
 import { createMockDataSyncService, expirationForLocalDate } from './dataSyncService.js';
 
@@ -66,5 +67,40 @@ describe('data sync service', () => {
     expect(pulled.changes.map((change) => change.version)).toEqual([1, 2]);
     expect(pulled.changes.at(-1)?.payload).toMatchObject({ water: 'good' });
     expect(isolated.changes).toEqual([]);
+  });
+
+  it('replays the idempotent toilet hook so a failed post-commit event can recover', async () => {
+    const recordToiletFinished = vi.fn().mockResolvedValue(undefined);
+    const friendService = { recordToiletFinished } as unknown as FriendService;
+    const service = createMockDataSyncService({ friendService });
+    const toiletMutation: DataSyncMutation = {
+      changedAt: '2026-07-21T08:10:00.000Z',
+      entityId: 'toilet-1',
+      entityType: 'toilet_session',
+      mutationId: 'toilet-mutation-1',
+      operation: 'upsert',
+      payload: {
+        bleeding: false,
+        discomfort: false,
+        durationSeconds: 480,
+        endedAt: '2026-07-21T08:08:00.000Z',
+        feeling: 'normal',
+        localDate: '2026-07-21',
+        signals: [],
+        startedAt: '2026-07-21T08:00:00.000Z',
+        stoolColor: null,
+        stoolShape: null,
+      },
+    };
+
+    await service.push(mockCurrentUser, [toiletMutation], 'Asia/Shanghai');
+    await service.push(mockCurrentUser, [toiletMutation], 'Asia/Shanghai');
+
+    expect(recordToiletFinished).toHaveBeenCalledTimes(2);
+    expect(recordToiletFinished).toHaveBeenNthCalledWith(2, mockCurrentUser, {
+      durationSeconds: 480,
+      endedAt: '2026-07-21T08:08:00.000Z',
+      sourceEntityId: 'toilet-1',
+    });
   });
 });

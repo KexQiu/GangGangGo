@@ -31,7 +31,13 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ color, focused, size }) => (
-            <TabIcon Icon={House} color={color} focused={focused} focusBackgroundColor={colors.primarySoft} size={size} />
+            <TabIcon
+              Icon={House}
+              color={color}
+              focused={focused}
+              focusBackgroundColor={colors.primarySoft}
+              size={size}
+            />
           ),
           tabBarButtonTestID: 'tab-home',
           title: '首页',
@@ -54,12 +60,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="team"
+        name="friends"
         options={{
           tabBarIcon: ({ color, focused, size }) => (
-            <TabIcon Icon={UsersRound} color={color} focused={focused} focusBackgroundColor={colors.primarySoft} size={size} />
+            <TabIcon
+              Icon={UsersRound}
+              color={color}
+              focused={focused}
+              focusBackgroundColor={colors.primarySoft}
+              size={size}
+            />
           ),
-          tabBarButtonTestID: 'tab-team',
+          tabBarButtonTestID: 'tab-friends',
           title: '好友',
         }}
       />
@@ -67,7 +79,13 @@ export default function TabLayout() {
         name="me"
         options={{
           tabBarIcon: ({ color, focused, size }) => (
-            <TabIcon Icon={UserRound} color={color} focused={focused} focusBackgroundColor={colors.primarySoft} size={size} />
+            <TabIcon
+              Icon={UserRound}
+              color={color}
+              focused={focused}
+              focusBackgroundColor={colors.primarySoft}
+              size={size}
+            />
           ),
           tabBarButtonTestID: 'tab-me',
           title: '我的',

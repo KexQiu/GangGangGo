@@ -1,11 +1,10 @@
 export { authApi } from './client/auth';
 export { dataSyncApi } from './client/dataSync';
+export { friendsApi } from './client/friends';
 export { setApiSessionRefreshHandler, setApiUnauthorizedHandler } from './client/core';
 export { healthApi } from './client/health';
-export { nudgesApi } from './client/nudges';
 export { pushApi } from './client/push';
 export { reportsApi } from './client/reports';
 export { subscriptionsApi } from './client/subscriptions';
-export { teamsApi } from './client/teams';
 export { usersApi } from './client/users';
 export { ApiClientError } from './transport';

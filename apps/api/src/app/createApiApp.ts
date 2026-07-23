@@ -2,16 +2,14 @@ import { requestId } from 'hono/request-id';
 
 import { createOpenApiRouter } from '../http/openapi.js';
 import { createAuthMiddleware } from '../http/middleware/auth.js';
-import { createProMiddleware } from '../http/middleware/pro.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 import { createMockAppleAuthService } from '../modules/auth/appleAuthService.js';
 import { createMockAuthSessionService } from '../modules/auth/authSessionService.js';
 import { createMockDataSyncService } from '../modules/dataSync/dataSyncService.js';
 import { createMockEntitlementsService } from '../modules/entitlements/entitlementsService.js';
-import { createMockNudgeService } from '../modules/nudges/nudgeService.js';
+import { createMockFriendService } from '../modules/friends/friendService.js';
 import { createMockPushTokenService } from '../modules/push/pushTokenService.js';
 import { createMockReportService } from '../modules/reports/reportService.js';
-import { createMockTeamService } from '../modules/teams/teamService.js';
 import { createMockUserRepository } from '../modules/users/userRepository.js';
 import { createErrorHandler, notFoundHandler } from './errorHandler.js';
 import { registerRoutes } from './registerRoutes.js';
@@ -22,16 +20,14 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const log = options.logger ?? defaultLogger;
   const appleAuthService = options.appleAuthService ?? createMockAppleAuthService();
   const authSessionService = options.authSessionService ?? createMockAuthSessionService();
-  const dataSyncService = options.dataSyncService ?? createMockDataSyncService();
   const entitlementsService = options.entitlementsService ?? createMockEntitlementsService();
-  const teamService = options.teamService ?? createMockTeamService();
-  const nudgeService = options.nudgeService ?? createMockNudgeService({ teamService });
+  const friendService = options.friendService ?? createMockFriendService();
+  const dataSyncService = options.dataSyncService ?? createMockDataSyncService({ friendService });
   const pushTokenService = options.pushTokenService ?? createMockPushTokenService();
-  const reportService = options.reportService ?? createMockReportService({ teamService });
+  const reportService = options.reportService ?? createMockReportService();
   const userRepository = options.userRepository ?? createMockUserRepository();
   const app = createOpenApiRouter();
   const authMiddleware = createAuthMiddleware(userRepository, authSessionService);
-  const proMiddleware = createProMiddleware(entitlementsService);
 
   app.use('*', requestId());
   app.use('*', createRequestLogger(log));
@@ -43,11 +39,9 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
     dataSyncService,
     databaseHealthChecker: options.databaseHealthChecker,
     entitlementsService,
-    nudgeService,
-    proMiddleware,
+    friendService,
     pushTokenService,
     reportService,
-    teamService,
     userRepository,
   });
 

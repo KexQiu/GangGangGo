@@ -9,7 +9,6 @@ import { subscribeToLocalDataChanges } from './localDataEvents';
 import { syncCompleteHealthData } from './fullDataSync';
 import { registerPushTokenIfAllowed } from './pushTokenSync';
 import { syncRecentReportSnapshots } from './reportSnapshotSync';
-import { syncTodayShareSnapshot } from './shareSnapshotSync';
 import { SyncCoordinator, type SyncAppState } from './syncCoordinatorCore';
 
 function normalizeAppState(state: AppStateStatus): SyncAppState {
@@ -56,6 +55,5 @@ export const syncCoordinator = new SyncCoordinator({
       if (source === 'local') listener();
     }),
   syncReports: syncRecentReportSnapshots,
-  syncShareSnapshot: syncTodayShareSnapshot,
   syncWatch: syncWatchTodayState,
 });

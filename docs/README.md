@@ -30,6 +30,7 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 
 ## v0.2 规划版
 
+- [好友关系重构（当前社交模型）](./v0.2/friends-refactor.md)
 - [需求文档](./v0.2/prd.md)
 - [Apple Watch 需求文档](./v0.2/apple-watch-prd.md)
 - [Apple Watch 开发计划](./v0.2/apple-watch-development-plan.md)
@@ -42,10 +43,10 @@ v0.1 是当前 App 已实现和验收的单人本地健康习惯闭环，包括�
 - [产品总待办清单（历史规划）](./v0.2/todo-checklist.md)
 - [Apifox/OpenAPI 导入文件](./v0.2/openapi.json)
 
-v0.2 是小提督 Pro 的开发联调版，重点是好友监督、Apple Watch 联动、高级小报告和会员权益。
+v0.2 是开发联调版：好友能力对所有登录用户开放，Pro 聚焦 Apple Watch 联动、高级小报告和会员权益。
 
 当前数据页采用“今日总览 → 90 天日历 → 7/30/90 天分类折线”的单页结构。日历可点选日期查看训练次数、小账本细节和蹲会儿完整记录；90 天日历与 90 天折线由 Pro 权益控制，完整账号同步对所有登录用户开放。旧 `/trends/advanced` 地址会返回新的数据页。
 
-个人完整记录通过 `/data-sync/push` 和 `/data-sync/pull` 增量同步，使用 SQLite outbox、服务端幂等 mutation 和单调游标。健康事实与每日汇总保留 90 天，自定义小信号常用项持续保留；小队共享仍只使用独立的低敏日级快照。
+个人完整记录通过 `/data-sync/push` 和 `/data-sync/pull` 增量同步，使用 SQLite outbox、服务端幂等 mutation 和单调游标。健康事实与每日汇总保留 90 天，自定义小信号常用项持续保留；好友数据由服务端按关系权限从每日汇总中裁剪，不再上传独立共享快照。
 
 Apple Watch 联动代码已进入 Pro 用户闭环验收阶段：Watch App、WatchConnectivity、离线队列、Pro 权限、菊花抬、小账本、蹲会儿、Complication 共享低敏状态和 `/watch` 开发调试页均已接入。2026-06-16 已完成真机初步测试；仍需补齐表盘 Complication、haptic 手感、系统刷新节奏和完整手动清单留痕。

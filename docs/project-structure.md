@@ -216,11 +216,10 @@ apps/api/
 | `POST` | `/auth/logout` | 撤销当前 session |
 | `GET/PATCH` | `/me` | 当前用户信息读取和更新 |
 | `GET` | `/me/entitlements` | 会员权益 |
-| `POST/GET/PATCH` | `/teams/*` | 小队、成员和邀请操作 |
-| `GET/POST` | `/team-invites/*` | 邀请预览和接受邀请 |
-| `PUT` | `/share-settings` | 共享设置 |
-| `PUT` | `/share-snapshots/today` | 每日低敏共享快照 |
-| `GET/POST` | `/nudges/*` | 提醒线程、游标详情、发送和回执 |
+| `POST/GET` | `/friend-invites/*` | 创建、预览和接受一次性好友邀请 |
+| `GET/PATCH/DELETE` | `/friends/*` | 好友列表、详情、权限、授权数据和删除 |
+| `GET/POST` | `/friends/*/events`、`/friends/*/nudges` | 好友时间线和固定提醒 |
+| `POST` | `/friend-events/*/ack` | 好友提醒回执 |
 | `POST` | `/push-tokens` | Push token 同步 |
 | `POST` | `/subscriptions/*` | 订阅校验和恢复入口 |
 | `GET/PUT` | `/reports/*`、`/report-snapshots/*` | 高级报告和报告快照 |
@@ -293,8 +292,7 @@ packages/contracts/src/
 ├── common.ts
 ├── auth.ts
 ├── users.ts
-├── teams.ts
-├── nudges.ts
+├── friends.ts
 ├── reports.ts
 ├── push.ts
 ├── subscriptions.ts
@@ -304,10 +302,9 @@ packages/contracts/src/
 每个领域以 Zod schema 为单一来源并通过 `z.infer` 导出类型，API 和移动端在运行时解析请求或响应。当前包含：
 
 - 会员状态：`ProStatus`
-- 搭子提醒类型：`BuddyNudgeType`
-- 提醒回执：`BuddyNudgeAckStatus`
-- 每日共享快照：`DailyShareSnapshot`
-- 小队成员角色与状态
+- 好友数据权限：`FriendDataLevel`、`FriendHistoryDays`
+- 好友提醒与回执：`FriendNudgeType`、`FriendNudgeAckStatus`
+- 好友关系设置、授权数据投影和互动事件
 - API 响应类型：`ApiHealthResponse`、`EntitlementsResponse`
 
 原则：

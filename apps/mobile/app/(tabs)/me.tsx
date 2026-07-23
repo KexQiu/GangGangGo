@@ -93,7 +93,7 @@ export default function MeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.loginHint}>开发期可以先用 Mock 账号验证云端同步、搭子和 Pro 入口。</Text>
+              <Text style={styles.loginHint}>开发期可以先用 Mock 账号验证云端同步、好友和 Pro 入口。</Text>
               <AppButton disabled={isLoading} onPress={() => void loginWithMockApple()}>
                 开发 Mock 登录
               </AppButton>

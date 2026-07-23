@@ -23,6 +23,7 @@ import {
   syncedTrainingSessions,
 } from '../../db/schema.js';
 import type { CurrentUser } from '../users/userTypes.js';
+import type { FriendService, ToiletFinishedSyncEvent } from '../friends/friendService.js';
 
 const pullPageSize = 250;
 const retentionDays = 90;
@@ -32,7 +33,10 @@ export type DataSyncService = {
   push: (currentUser: CurrentUser, mutations: DataSyncMutation[], timeZone: string) => Promise<DataSyncPushResponse>;
 };
 
-export function createDrizzleDataSyncService(db: Database): DataSyncService {
+export function createDrizzleDataSyncService(
+  db: Database,
+  options: { friendService?: FriendService } = {},
+): DataSyncService {
   return {
     async pull(currentUser, cursor) {
       const parsedCursor = parseCursor(cursor);
@@ -59,7 +63,8 @@ export function createDrizzleDataSyncService(db: Database): DataSyncService {
       };
     },
     async push(currentUser, mutations, timeZone) {
-      return db.transaction(async (transaction) => {
+      const toiletEvents: ToiletFinishedSyncEvent[] = [];
+      const response = await db.transaction(async (transaction) => {
         const acceptedAt = new Date();
         const acceptedMutationIds: string[] = [];
         const changes: DataSyncChange[] = [];
@@ -102,6 +107,15 @@ export function createDrizzleDataSyncService(db: Database): DataSyncService {
             )[0];
           if (!changeRow) throw new Error('Failed to append data sync change.');
 
+          if (changeRow.entityType === 'toilet_session' && changeRow.operation === 'upsert') {
+            const payload = toiletSessionSyncPayloadSchema.parse(changeRow.payload);
+            toiletEvents.push({
+              durationSeconds: payload.durationSeconds,
+              endedAt: payload.endedAt,
+              sourceEntityId: changeRow.entityId,
+            });
+          }
+
           if (!insertedChange) {
             acceptedMutationIds.push(mutation.mutationId);
             changes.push(rowToChange(changeRow));
@@ -132,11 +146,15 @@ export function createDrizzleDataSyncService(db: Database): DataSyncService {
 
         return { acceptedMutationIds, changes };
       });
+      if (options.friendService && toiletEvents.length) {
+        await Promise.all(toiletEvents.map((event) => options.friendService!.recordToiletFinished(currentUser, event)));
+      }
+      return response;
     },
   };
 }
 
-export function createMockDataSyncService(): DataSyncService {
+export function createMockDataSyncService(options: { friendService?: FriendService } = {}): DataSyncService {
   const changesByUser = new Map<string, DataSyncChange[]>();
   const mutationChangesByUser = new Map<string, Map<string, DataSyncChange>>();
   let version = 0;
@@ -158,10 +176,19 @@ export function createMockDataSyncService(): DataSyncService {
       const accepted = mutationChangesByUser.get(currentUser.id) ?? new Map<string, DataSyncChange>();
       const userChanges = changesByUser.get(currentUser.id) ?? [];
       const responseChanges: DataSyncChange[] = [];
+      const toiletEvents: ToiletFinishedSyncEvent[] = [];
       for (const mutation of mutations) {
         const existing = accepted.get(mutation.mutationId);
         if (existing) {
           responseChanges.push(existing);
+          if (existing.entityType === 'toilet_session' && existing.operation === 'upsert') {
+            const payload = toiletSessionSyncPayloadSchema.parse(existing.payload);
+            toiletEvents.push({
+              durationSeconds: payload.durationSeconds,
+              endedAt: payload.endedAt,
+              sourceEntityId: existing.entityId,
+            });
+          }
           continue;
         }
         version += 1;
@@ -176,9 +203,20 @@ export function createMockDataSyncService(): DataSyncService {
         accepted.set(mutation.mutationId, change);
         userChanges.push(change);
         responseChanges.push(change);
+        if (mutation.entityType === 'toilet_session' && mutation.operation === 'upsert') {
+          const payload = toiletSessionSyncPayloadSchema.parse(mutation.payload);
+          toiletEvents.push({
+            durationSeconds: payload.durationSeconds,
+            endedAt: payload.endedAt,
+            sourceEntityId: mutation.entityId,
+          });
+        }
       }
       mutationChangesByUser.set(currentUser.id, accepted);
       changesByUser.set(currentUser.id, userChanges);
+      if (options.friendService) {
+        await Promise.all(toiletEvents.map((event) => options.friendService!.recordToiletFinished(currentUser, event)));
+      }
       return { acceptedMutationIds: mutations.map((mutation) => mutation.mutationId), changes: responseChanges };
     },
   };

@@ -1,11 +1,12 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
-import { Crown, Database, X } from 'lucide-react-native';
+import { Crown, Database } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, PanResponder, Pressable, ScrollView, Text, View } from 'react-native';
+import { PanResponder, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
+import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
 import { getToiletStoolColorLabel, getToiletStoolShapeLabel } from '../toilet/toiletRecordLogic';
 import type { ToiletSession } from '../toilet/toiletTypes';
@@ -26,8 +27,6 @@ import {
 import { createDataStyles } from './styles/dataStyles';
 
 export { DailyDataCalendar } from './DailyDataCalendar';
-
-const detailSheetEnterTranslateY = 96;
 
 export function TodayDataOverview({ summary }: { summary: DailyActivitySummary }) {
   const { colors } = useAppTheme();
@@ -428,128 +427,69 @@ export function DailyDataDetailModal({
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(detailSheetEnterTranslateY)).current;
-  const isClosingRef = useRef(false);
+  const lastPresentedDate = useRef(date);
+  if (date) lastPresentedDate.current = date;
+  const displayedDate = date ?? lastPresentedDate.current;
+
   useEffect(() => setExpandedId(null), [date]);
-  useEffect(() => {
-    if (!date) {
-      isClosingRef.current = false;
-      return;
-    }
 
-    backdropOpacity.setValue(0);
-    sheetTranslateY.setValue(detailSheetEnterTranslateY);
-    const openingAnimation = Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: 170,
-        easing: Easing.out(Easing.cubic),
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.spring(sheetTranslateY, {
-        damping: 22,
-        mass: 0.8,
-        stiffness: 250,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-    ]);
-    const frame = requestAnimationFrame(() => openingAnimation.start());
-
-    return () => {
-      cancelAnimationFrame(frame);
-      openingAnimation.stop();
-    };
-  }, [backdropOpacity, date, sheetTranslateY]);
-
-  const close = useCallback(() => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: 150,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-      Animated.timing(sheetTranslateY, {
-        duration: 160,
-        easing: Easing.in(Easing.cubic),
-        toValue: detailSheetEnterTranslateY,
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) onClose();
-    });
-  }, [backdropOpacity, onClose, sheetTranslateY]);
-
-  if (!date) return null;
+  if (!displayedDate) return null;
   return (
-    <Modal animationType="none" onRequestClose={close} transparent visible>
-      <View style={styles.modalRoot}>
-        <Animated.View pointerEvents="none" style={[styles.modalOverlay, { opacity: backdropOpacity }]} />
-        <Pressable accessibilityLabel="关闭日期详情" onPress={close} style={styles.modalBackdrop} />
-        <Animated.View style={[styles.modalSheet, { transform: [{ translateY: sheetTranslateY }] }]}>
-          <View style={styles.modalHandle} />
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{formatFullDate(date)}</Text>
-            <Pressable accessibilityLabel="关闭" onPress={close} style={styles.modalClose}>
-              <X color={colors.textMuted} size={17} />
-              <Text style={styles.modalCloseText}>关闭</Text>
-            </Pressable>
-          </View>
-          <ScrollView
-            bounces={false}
-            contentContainerStyle={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-            style={styles.modalScroll}
-          >
-            {details ? (
-              <>
-                <View style={styles.detailSummary}>
-                  <DetailSummaryMetric
-                    color={colors.primary}
-                    label="菊花抬"
-                    value={`${details.summary.training.completedSessionCount} 次`}
-                  />
-                  <DetailSummaryMetric
-                    color={colors.info}
-                    label="小账本"
-                    value={`${details.summary.habit.completionCount}/4 项`}
-                  />
-                  <DetailSummaryMetric
-                    color={colors.warning}
-                    label="蹲会儿"
-                    value={`${details.summary.toilet.sessionCount} 次`}
-                  />
-                </View>
-                <TrainingDetails details={details} />
-                <HabitDetails summary={details.summary} />
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailTitle}>蹲会儿明细</Text>
-                  {details.toiletSessions.length === 0 ? (
-                    <Text style={styles.emptyText}>当天没有蹲会儿记录</Text>
-                  ) : (
-                    details.toiletSessions.map((session) => (
-                      <ToiletDetailCard
-                        expanded={expandedId === session.id}
-                        key={session.id}
-                        onToggle={() => setExpandedId(expandedId === session.id ? null : session.id)}
-                        session={session}
-                      />
-                    ))
-                  )}
-                </View>
-              </>
-            ) : (
-              <View style={styles.modalLoading}>
-                <Text style={styles.emptyText}>正在读取当天记录…</Text>
+    <AppSheet
+      accessibilityLabel="关闭日期详情"
+      contentContainerStyle={styles.modalContent}
+      maxHeight="82%"
+      onClose={onClose}
+      title={formatFullDate(displayedDate)}
+      visible={Boolean(date)}
+    >
+      {date ? (
+        <>
+          {details ? (
+            <>
+              <View style={styles.detailSummary}>
+                <DetailSummaryMetric
+                  color={colors.primary}
+                  label="菊花抬"
+                  value={`${details.summary.training.completedSessionCount} 次`}
+                />
+                <DetailSummaryMetric
+                  color={colors.info}
+                  label="小账本"
+                  value={`${details.summary.habit.completionCount}/4 项`}
+                />
+                <DetailSummaryMetric
+                  color={colors.warning}
+                  label="蹲会儿"
+                  value={`${details.summary.toilet.sessionCount} 次`}
+                />
               </View>
-            )}
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
+              <TrainingDetails details={details} />
+              <HabitDetails summary={details.summary} />
+              <View style={styles.detailSection}>
+                <Text style={styles.detailTitle}>蹲会儿明细</Text>
+                {details.toiletSessions.length === 0 ? (
+                  <Text style={styles.emptyText}>当天没有蹲会儿记录</Text>
+                ) : (
+                  details.toiletSessions.map((session) => (
+                    <ToiletDetailCard
+                      expanded={expandedId === session.id}
+                      key={session.id}
+                      onToggle={() => setExpandedId(expandedId === session.id ? null : session.id)}
+                      session={session}
+                    />
+                  ))
+                )}
+              </View>
+            </>
+          ) : (
+            <View style={styles.modalLoading}>
+              <Text style={styles.emptyText}>正在读取当天记录…</Text>
+            </View>
+          )}
+        </>
+      ) : null}
+    </AppSheet>
   );
 }
 

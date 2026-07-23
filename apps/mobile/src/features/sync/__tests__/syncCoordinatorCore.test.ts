@@ -61,22 +61,16 @@ describe('SyncCoordinator', () => {
     vi.useFakeTimers();
     const harness = createHarness({ accessToken: 'access-token' });
     harness.refreshEntitlements.mockRejectedValueOnce(new Error('entitlements unavailable'));
-    harness.syncShareSnapshot.mockRejectedValueOnce(new Error('share unavailable'));
     const coordinator = new SyncCoordinator(harness.dependencies);
     coordinator.start();
 
     await vi.advanceTimersByTimeAsync(0);
     expect(harness.refreshEntitlements).toHaveBeenCalledTimes(1);
     expect(harness.syncWatch).toHaveBeenCalledTimes(1);
-    expect(harness.syncShareSnapshot).toHaveBeenCalledTimes(1);
     expect(harness.syncReports).toHaveBeenCalledTimes(1);
     expect(harness.registerPushToken).toHaveBeenCalledTimes(1);
     expect(coordinator.getTaskStatuses().entitlements).toMatchObject({
       lastError: 'entitlements unavailable',
-      phase: 'error',
-    });
-    expect(coordinator.getTaskStatuses().shareSnapshot).toMatchObject({
-      lastError: 'share unavailable',
       phase: 'error',
     });
     expect(coordinator.getTaskStatuses().reports.phase).toBe('success');
@@ -95,7 +89,6 @@ describe('SyncCoordinator', () => {
     harness.refreshEntitlements.mockClear();
     harness.registerPushToken.mockClear();
     harness.syncReports.mockClear();
-    harness.syncShareSnapshot.mockClear();
     harness.syncWatch.mockClear();
     coordinator.retryTask('reports');
     await vi.advanceTimersByTimeAsync(0);
@@ -103,7 +96,6 @@ describe('SyncCoordinator', () => {
     expect(harness.syncReports).toHaveBeenCalledTimes(1);
     expect(harness.refreshEntitlements).not.toHaveBeenCalled();
     expect(harness.registerPushToken).not.toHaveBeenCalled();
-    expect(harness.syncShareSnapshot).not.toHaveBeenCalled();
     expect(harness.syncWatch).not.toHaveBeenCalled();
     expect(coordinator.getTaskStatuses().reports).toMatchObject({ lastError: null, phase: 'success' });
     coordinator.stop();
@@ -140,7 +132,6 @@ function createHarness(
   const registerPushToken = vi.fn().mockResolvedValue(undefined);
   const syncData = vi.fn().mockResolvedValue(undefined);
   const syncReports = vi.fn().mockResolvedValue(undefined);
-  const syncShareSnapshot = vi.fn().mockResolvedValue(undefined);
   const syncWatch = vi.fn(options.syncWatch ?? (async () => undefined));
 
   const dependencies: SyncCoordinatorDependencies = {
@@ -161,7 +152,6 @@ function createHarness(
     },
     syncData,
     syncReports,
-    syncShareSnapshot,
     syncWatch,
   };
 
@@ -177,7 +167,6 @@ function createHarness(
     refreshEntitlements,
     registerPushToken,
     syncReports,
-    syncShareSnapshot,
     syncWatch,
   };
 }

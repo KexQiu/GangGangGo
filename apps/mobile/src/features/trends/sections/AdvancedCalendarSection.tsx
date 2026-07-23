@@ -4,7 +4,6 @@ import { ChevronRight } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
-  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 
 import { routes } from '../../../navigation/routes';
+import { AppSheet } from '../../../components/AppSheet';
 import { useAppTheme } from '../../../theme/themeProvider';
 import { getLocalDateKey } from '../../habits/habitLogic';
 import { formatToiletDuration } from '../../toilet/toiletLogic';
@@ -206,41 +206,32 @@ function DayDetailModal({
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = createAdvancedCalendarStyles(colors);
-  if (!day) return null;
+  const lastPresentedDay = useRef<AdvancedReportDay | null>(day);
+  if (day) lastPresentedDay.current = day;
+  const displayedDay = day ?? lastPresentedDay.current;
+
+  if (!displayedDay) return null;
 
   return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible>
-      <View style={styles.dayDetailOverlay}>
-        <Pressable
-          accessibilityLabel="关闭日期详情"
-          accessibilityRole="button"
-          onPress={onClose}
-          style={styles.dayDetailBackdrop}
-        />
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={styles.dayDetailCard}
-          showsVerticalScrollIndicator={false}
-          style={styles.dayDetailScroll}
-        >
-          <View style={styles.dayDetailHeader}>
-            <View>
-              <Text style={styles.dayDetailTitle}>{formatFullDateLabel(day.date)}</Text>
-              <Text style={styles.dayDetailCaption}>当天低敏记录与本机明细</Text>
-            </View>
-            <Pressable
-              accessibilityLabel="关闭"
-              accessibilityRole="button"
-              onPress={onClose}
-              style={styles.dayDetailCloseButton}
-            >
-              <Text style={styles.dayDetailCloseText}>关闭</Text>
-            </Pressable>
-          </View>
+    <AppSheet
+      accessibilityLabel="关闭日期详情"
+      contentContainerStyle={styles.dayDetailContent}
+      onClose={onClose}
+      presentation="dialog"
+      subtitle="当天低敏记录与本机明细"
+      title={formatFullDateLabel(displayedDay.date)}
+      visible={Boolean(day)}
+    >
+      {day ? (
+        <>
           <View style={styles.dayDetailRows}>
-            <DayDetailRow color={colors.primary} label="菊花抬" value={day.trainingDone ? '已完成' : '未完成'} />
-            <DayDetailRow color={colors.info} label="小账本" value={formatHabitStatus(day)} />
-            <DayDetailRow color={colors.warning} label="蹲会儿" value={formatToiletStatus(day)} />
+            <DayDetailRow
+              color={colors.primary}
+              label="菊花抬"
+              value={displayedDay.trainingDone ? '已完成' : '未完成'}
+            />
+            <DayDetailRow color={colors.info} label="小账本" value={formatHabitStatus(displayedDay)} />
+            <DayDetailRow color={colors.warning} label="蹲会儿" value={formatToiletStatus(displayedDay)} />
           </View>
 
           <View style={styles.toiletDetailSection}>
@@ -261,9 +252,9 @@ function DayDetailModal({
               <Text style={styles.toiletDetailEmpty}>当天没有可查看的蹲会儿明细。</Text>
             )}
           </View>
-        </ScrollView>
-      </View>
-    </Modal>
+        </>
+      ) : null}
+    </AppSheet>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Crown, FileChartColumnIncreasing, UsersRound, Watch } from 'lucide-react-native';
+import { Crown, FileChartColumnIncreasing, Sparkles, Watch } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
@@ -15,9 +15,9 @@ import { useAppTheme } from '../../src/theme/themeProvider';
 
 const benefits = [
   {
-    body: '邀请监督搭子，互相轻轻盯一下。',
-    icon: UsersRound,
-    title: '监督搭子',
+    body: '后续会持续增加更深入的个人洞察。好友功能始终免费。',
+    icon: Sparkles,
+    title: '更多个人洞察',
   },
   {
     body: '未来会把菊花抬和蹲会儿带到手表上。',
@@ -43,7 +43,7 @@ export default function ProScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.me} title="小提督 Pro" />
       <PageHeader
-        subtitle="基础功能继续免费，Pro 解锁搭子监督、手表联动和更长周期的小报告。"
+        subtitle="好友和基础功能继续免费，Pro 聚焦手表联动和更长周期的小报告。"
         title="多一点陪伴，不多一点压力"
       />
 
@@ -54,7 +54,7 @@ export default function ProScreen() {
           </View>
           <Text style={styles.heroTitle}>{isPro ? 'Pro 已经开张' : '小提督 Pro'}</Text>
           <Text style={styles.heroBody}>
-            {isPro ? '监督搭子和高级小报告已经可以使用。' : '真实订阅还在接入中，当前用于本地联调和权益展示。'}
+            {isPro ? '高级小报告已经可以使用。' : '真实订阅还在接入中，当前用于本地联调和权益展示。'}
           </Text>
         </AppCard>
 

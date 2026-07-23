@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
           }
         }
         set({ selectedMockUserId: mockUserId });
-        await get().loginWithApple(mockUserId, `模拟搭子 ${mockUserId.slice(-1).toUpperCase()}`);
+        await get().loginWithApple(mockUserId, `模拟用户 ${mockUserId.slice(-1).toUpperCase()}`);
       },
       logout: async () => {
         const { accessToken, refreshToken } = get();

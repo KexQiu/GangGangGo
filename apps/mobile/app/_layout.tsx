@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { AppToastHost } from '../src/components/toast/AppToast';
 import { useAuthStore } from '../src/features/account/authStore';
 import { purgeExpiredLocalHealthData, rebuildRecentDailySummaries } from '../src/features/data/dailyData';
 import { useHabitStore } from '../src/features/habits/habitStore';
+import { subscribeToFriendNotificationResponses } from '../src/features/friends/friendNotificationNavigation';
 import { configureNotificationHandler } from '../src/features/reminders/notificationService';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import { syncCoordinator } from '../src/features/sync/syncCoordinator';
@@ -16,9 +17,11 @@ import { recoverToiletLiveActivityAfterLaunch } from '../src/features/toilet/toi
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
 import { startWatchConnectivityEventListener } from '../src/features/watch/watchSyncService';
+import { routes } from '../src/navigation/routes';
 import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
 
 function RootStack() {
+  const router = useRouter();
   const theme = useAppTheme();
   const authHasHydrated = useAuthStore((state) => state.hasHydrated);
 
@@ -26,7 +29,10 @@ function RootStack() {
     configureNotificationHandler();
     startWatchConnectivityEventListener();
     void recoverToiletLiveActivityAfterLaunch();
-  }, []);
+    return subscribeToFriendNotificationResponses((friendUserId) => {
+      router.push(routes.friendEvents(friendUserId));
+    });
+  }, [router]);
 
   useEffect(() => {
     if (!authHasHydrated) return;

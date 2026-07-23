@@ -106,7 +106,7 @@ describe('ApiTransport', () => {
     transport.setSessionRefreshHandler(refreshHandler);
 
     const first = transport.request('/me', valueSchema, { token: 'expired-token' });
-    const second = transport.request('/team', valueSchema, { token: 'expired-token' });
+    const second = transport.request('/resource', valueSchema, { token: 'expired-token' });
     await vi.waitFor(() => expect(refreshHandler).toHaveBeenCalledTimes(1));
     releaseRefresh?.('fresh-token');
 

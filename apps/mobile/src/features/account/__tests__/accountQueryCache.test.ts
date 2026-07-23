@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { UserProfile } from '@xiaotidu/contracts';
 
-import { teamQueryKeys } from '../../team/teamQueryKeys';
+import { friendQueryKeys } from '../../friends/friendQueryKeys';
 import { clearCloudQueryCache, resetCloudQueryCacheForUser } from '../accountQueryCache';
 import { accountQueryKeys } from '../accountQueryKeys';
 
@@ -25,7 +25,7 @@ describe('account query cache', () => {
 
     expect(queryClient.getQueryData(accountQueryKeys.currentUser)).toEqual(newUser);
     expect(queryClient.getQueryData(accountQueryKeys.entitlements)).toBeUndefined();
-    expect(queryClient.getQueryData(teamQueryKeys.team(oldUser.id))).toBeUndefined();
+    expect(queryClient.getQueryData(friendQueryKeys.list(oldUser.id))).toBeUndefined();
     expect(getHealthRecordIds(database)).toEqual(['health-record-1']);
   });
 
@@ -45,7 +45,7 @@ function createPopulatedQueryClient() {
   const queryClient = new QueryClient();
   queryClient.setQueryData(accountQueryKeys.currentUser, oldUser);
   queryClient.setQueryData(accountQueryKeys.entitlements, { proStatus: 'pro_active' });
-  queryClient.setQueryData(teamQueryKeys.team(oldUser.id), { team: null });
+  queryClient.setQueryData(friendQueryKeys.list(oldUser.id), { friends: [] });
   return queryClient;
 }
 

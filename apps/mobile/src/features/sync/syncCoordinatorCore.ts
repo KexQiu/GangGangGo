@@ -2,7 +2,7 @@ export type SyncReason =
   'app_boot' | 'app_foreground' | 'auth_changed' | 'local_changed' | 'pro_changed' | 'task_retry';
 
 export type SyncAppState = 'active' | 'background' | 'inactive' | 'unknown';
-export const syncTaskNames = ['watch', 'entitlements', 'data', 'shareSnapshot', 'reports', 'push'] as const;
+export const syncTaskNames = ['watch', 'entitlements', 'data', 'reports', 'push'] as const;
 export type SyncTaskName = (typeof syncTaskNames)[number];
 export type SyncTaskStatus = {
   lastError: string | null;
@@ -34,7 +34,6 @@ export type SyncCoordinatorDependencies = {
   subscribeAuthChanges: (listener: (change: AuthChange) => void) => Unsubscribe;
   subscribeLocalChanges: (listener: () => void) => Unsubscribe;
   syncReports: () => Promise<unknown>;
-  syncShareSnapshot: () => Promise<unknown>;
   syncWatch: (now: Date, reason: string) => Promise<unknown>;
 };
 
@@ -126,7 +125,6 @@ export class SyncCoordinator {
       data: () => this.dependencies.syncData(),
       push: () => this.dependencies.registerPushToken(),
       reports: () => this.dependencies.syncReports(),
-      shareSnapshot: () => this.dependencies.syncShareSnapshot(),
       watch: () => this.dependencies.syncWatch(new Date(), reason),
     };
     const tasks = new Map<SyncTaskName, SyncTask>();
@@ -138,7 +136,6 @@ export class SyncCoordinator {
         if ([...reasons].some((item) => item !== 'local_changed' && item !== 'pro_changed')) {
           tasks.set('entitlements', availableTasks.entitlements);
         }
-        tasks.set('shareSnapshot', availableTasks.shareSnapshot);
         tasks.set('data', availableTasks.data);
         tasks.set('reports', availableTasks.reports);
         tasks.set('push', availableTasks.push);

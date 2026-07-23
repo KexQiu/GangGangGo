@@ -17,10 +17,10 @@ import {
   type DataSyncService,
 } from '../modules/dataSync/dataSyncService.js';
 import {
-  createDrizzleNudgeService,
-  createMockNudgeService,
-  type NudgeService,
-} from '../modules/nudges/nudgeService.js';
+  createDrizzleFriendService,
+  createMockFriendService,
+  type FriendService,
+} from '../modules/friends/friendService.js';
 import {
   createExpoPushNotificationService,
   createNoopPushNotificationService,
@@ -36,7 +36,6 @@ import {
   createMockReportService,
   type ReportService,
 } from '../modules/reports/reportService.js';
-import { createDrizzleTeamService, createMockTeamService, type TeamService } from '../modules/teams/teamService.js';
 import {
   createDrizzleUserRepository,
   createMockUserRepository,
@@ -49,31 +48,27 @@ export type ApiDependencies = {
   dataSyncService: DataSyncService;
   databaseClient?: DatabaseClient;
   entitlementsService: EntitlementsService;
-  nudgeService: NudgeService;
+  friendService: FriendService;
   pushNotificationService: PushNotificationService;
   pushTokenService: PushTokenService;
   reportService: ReportService;
-  teamService: TeamService;
   userRepository: UserRepository;
 };
 
 export function createApiDependencies(): ApiDependencies {
   if (!isDatabaseConfigured()) {
-    const teamService = createMockTeamService();
+    const pushNotificationService = createNoopPushNotificationService();
+    const friendService = createMockFriendService({ pushNotificationService });
 
     return {
       authSessionService: createMockAuthSessionService(),
       close: async () => {},
-      dataSyncService: createMockDataSyncService(),
+      dataSyncService: createMockDataSyncService({ friendService }),
       entitlementsService: createMockEntitlementsService(),
-      nudgeService: createMockNudgeService({
-        pushNotificationService: createNoopPushNotificationService(),
-        teamService,
-      }),
-      pushNotificationService: createNoopPushNotificationService(),
+      friendService,
+      pushNotificationService,
       pushTokenService: createMockPushTokenService(),
-      reportService: createMockReportService({ teamService }),
-      teamService,
+      reportService: createMockReportService(),
       userRepository: createMockUserRepository(),
     };
   }
@@ -82,20 +77,20 @@ export function createApiDependencies(): ApiDependencies {
   const pushNotificationService = createExpoPushNotificationService(databaseClient.db, {
     accessToken: env.EXPO_PUSH_ACCESS_TOKEN,
   });
+  const friendService = createDrizzleFriendService(databaseClient.db, { pushNotificationService });
 
   return {
     authSessionService: createDrizzleAuthSessionService(databaseClient.db),
     close: async () => {
       await databaseClient.close();
     },
-    dataSyncService: createDrizzleDataSyncService(databaseClient.db),
+    dataSyncService: createDrizzleDataSyncService(databaseClient.db, { friendService }),
     databaseClient,
     entitlementsService: createDrizzleEntitlementsService(databaseClient.db),
-    nudgeService: createDrizzleNudgeService(databaseClient.db, { pushNotificationService }),
+    friendService,
     pushNotificationService,
     pushTokenService: createDrizzlePushTokenService(databaseClient.db),
     reportService: createDrizzleReportService(databaseClient.db),
-    teamService: createDrizzleTeamService(databaseClient.db),
     userRepository: createDrizzleUserRepository(databaseClient.db),
   };
 }

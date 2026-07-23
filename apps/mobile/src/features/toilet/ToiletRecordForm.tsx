@@ -1,9 +1,10 @@
 import { AlertTriangle, CircleDot, Frown, Pencil, Plus, Smile, Trash2 } from 'lucide-react-native';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
+import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
 import { isLongToiletSession, formatToiletDuration } from './toiletLogic';
 import {
@@ -48,7 +49,6 @@ const feelingOptions: Array<{
 
 const DURATION_WHEEL_ROW_HEIGHT = 48;
 const DURATION_WHEEL_SIDE_ROWS = 2;
-const BOTTOM_SHEET_ENTER_TRANSLATE_Y = 96;
 const durationSecondOptions = Array.from({ length: 60 }, (_, value) => value);
 
 type ToiletRecordFormProps = {
@@ -318,171 +318,151 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
         visible={isDurationPickerVisible}
       />
 
-      <BottomSheet
+      <AppSheet
         accessibilityLabel="关闭补充记录"
+        closeLabel="完成"
+        contentContainerStyle={styles.sheetContent}
+        footer={<AppButton onPress={() => setIsDetailSheetVisible(false)}>完成补充</AppButton>}
+        maxHeight="88%"
         onClose={() => setIsDetailSheetVisible(false)}
+        subtitle="只记录你想记住的细节。"
+        title="补充记录"
         visible={isDetailSheetVisible}
       >
-        <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}>
-          <View>
-            <Text style={styles.sheetTitle}>补充记录</Text>
-            <Text style={styles.sheetCaption}>只记录你想记住的细节。</Text>
+        <Text style={styles.sheetSectionTitle}>排便详情（可选）</Text>
+        <AppCard style={styles.detailCard}>
+          <OptionalChoiceRow
+            label="形状"
+            onChange={setStoolShape}
+            options={toiletStoolShapeOptions}
+            value={stoolShape}
+          />
+          <View style={styles.detailDivider} />
+          <OptionalChoiceRow
+            label="颜色"
+            onChange={setStoolColor}
+            options={toiletStoolColorOptions}
+            value={stoolColor}
+          />
+        </AppCard>
+
+        <View style={styles.signalHeader}>
+          <View style={styles.signalHeaderCopy}>
+            <Text style={styles.sheetSectionTitle}>需要留意的小信号（可选）</Text>
+            <Text style={styles.signalCaption}>仅帮你记住当下，不作健康判断。</Text>
           </View>
+          {customSignals.length > 0 ? (
+            <Pressable
+              accessibilityLabel="管理常用小信号"
+              accessibilityRole="button"
+              onPress={() => setIsManagingSignals((current) => !current)}
+              style={({ pressed }) => [styles.manageButton, pressed ? styles.pressed : null]}
+            >
+              <Text style={styles.manageButtonText}>{isManagingSignals ? '完成' : '管理常用'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={styles.signalGrid}>
+          {availableSignals.map((signal) => (
+            <SignalChip
+              key={signal.id}
+              label={signal.label}
+              onPress={() => toggleSignal(signal)}
+              selected={signals.some((item) => item.id === signal.id)}
+            />
+          ))}
           <Pressable
-            accessibilityLabel="完成补充记录"
+            accessibilityLabel="自定义小信号"
             accessibilityRole="button"
-            onPress={() => setIsDetailSheetVisible(false)}
-            style={({ pressed }) => [styles.sheetCloseButton, pressed ? styles.pressed : null]}
+            onPress={() => setIsAddingSignal((current) => !current)}
+            style={({ pressed }) => [styles.addSignalChip, pressed ? styles.pressed : null]}
           >
-            <Text style={styles.sheetCloseText}>完成</Text>
+            <Plus color={colors.primaryPressed} size={16} strokeWidth={2.5} />
+            <Text style={styles.addSignalText}>自定义</Text>
           </Pressable>
         </View>
+        {isLoadingSignals ? <Text style={styles.helperText}>正在准备常用项…</Text> : null}
 
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={styles.sheetContent}
-          showsVerticalScrollIndicator={false}
-          style={styles.sheetScroll}
-        >
-          <Text style={styles.sheetSectionTitle}>排便详情（可选）</Text>
-          <AppCard style={styles.detailCard}>
-            <OptionalChoiceRow
-              label="形状"
-              onChange={setStoolShape}
-              options={toiletStoolShapeOptions}
-              value={stoolShape}
+        {isAddingSignal ? (
+          <View style={styles.customSignalEditor}>
+            <TextInput
+              accessibilityLabel="自定义小信号名称"
+              autoFocus
+              maxLength={12}
+              onChangeText={setCustomSignalLabel}
+              placeholder="例如：饮食变化"
+              placeholderTextColor={colors.textSubtle}
+              style={styles.customSignalInput}
+              value={customSignalLabel}
             />
-            <View style={styles.detailDivider} />
-            <OptionalChoiceRow
-              label="颜色"
-              onChange={setStoolColor}
-              options={toiletStoolColorOptions}
-              value={stoolColor}
-            />
-          </AppCard>
-
-          <View style={styles.signalHeader}>
-            <View style={styles.signalHeaderCopy}>
-              <Text style={styles.sheetSectionTitle}>需要留意的小信号（可选）</Text>
-              <Text style={styles.signalCaption}>仅帮你记住当下，不作健康判断。</Text>
-            </View>
-            {customSignals.length > 0 ? (
-              <Pressable
-                accessibilityLabel="管理常用小信号"
-                accessibilityRole="button"
-                onPress={() => setIsManagingSignals((current) => !current)}
-                style={({ pressed }) => [styles.manageButton, pressed ? styles.pressed : null]}
-              >
-                <Text style={styles.manageButtonText}>{isManagingSignals ? '完成' : '管理常用'}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <View style={styles.signalGrid}>
-            {availableSignals.map((signal) => (
-              <SignalChip
-                key={signal.id}
-                label={signal.label}
-                onPress={() => toggleSignal(signal)}
-                selected={signals.some((item) => item.id === signal.id)}
-              />
-            ))}
             <Pressable
-              accessibilityLabel="自定义小信号"
+              accessibilityLabel="添加并选中自定义小信号"
               accessibilityRole="button"
-              onPress={() => setIsAddingSignal((current) => !current)}
-              style={({ pressed }) => [styles.addSignalChip, pressed ? styles.pressed : null]}
+              onPress={() => void addCustomSignal()}
+              style={({ pressed }) => [styles.customSignalAddButton, pressed ? styles.pressed : null]}
             >
-              <Plus color={colors.primaryPressed} size={16} strokeWidth={2.5} />
-              <Text style={styles.addSignalText}>自定义</Text>
+              <Text style={styles.customSignalAddText}>添加并选中</Text>
             </Pressable>
           </View>
-          {isLoadingSignals ? <Text style={styles.helperText}>正在准备常用项…</Text> : null}
+        ) : null}
 
-          {isAddingSignal ? (
-            <View style={styles.customSignalEditor}>
-              <TextInput
-                accessibilityLabel="自定义小信号名称"
-                autoFocus
-                maxLength={12}
-                onChangeText={setCustomSignalLabel}
-                placeholder="例如：饮食变化"
-                placeholderTextColor={colors.textSubtle}
-                style={styles.customSignalInput}
-                value={customSignalLabel}
-              />
-              <Pressable
-                accessibilityLabel="添加并选中自定义小信号"
-                accessibilityRole="button"
-                onPress={() => void addCustomSignal()}
-                style={({ pressed }) => [styles.customSignalAddButton, pressed ? styles.pressed : null]}
-              >
-                <Text style={styles.customSignalAddText}>添加并选中</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {isManagingSignals ? (
-            <View style={styles.customSignalList}>
-              {customSignals.map((signal) => (
-                <View key={signal.id} style={styles.customSignalRow}>
-                  <Text style={styles.customSignalRowText}>{signal.label}</Text>
-                  <Pressable
-                    accessibilityLabel={`移除常用小信号 ${signal.label}`}
-                    accessibilityRole="button"
-                    onPress={() => confirmDeleteCustomSignal(signal)}
-                    style={({ pressed }) => [styles.removeSignalButton, pressed ? styles.pressed : null]}
-                  >
-                    <Trash2 color={colors.danger} size={16} strokeWidth={2.4} />
-                    <Text style={styles.removeSignalText}>移除</Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          <Text style={styles.sheetSectionTitle}>需要优先留意</Text>
-          <View style={styles.priorityGrid}>
-            <PrioritySignalChoice
-              description="不舒服就先让小花休息。"
-              onPress={() => setDiscomfort((current) => !current)}
-              selected={discomfort}
-              title="明显不舒服"
-            />
-            <PrioritySignalChoice
-              description="这类信号建议问医生。"
-              onPress={() => setBleeding((current) => !current)}
-              selected={bleeding}
-              title="明显便血"
-            />
+        {isManagingSignals ? (
+          <View style={styles.customSignalList}>
+            {customSignals.map((signal) => (
+              <View key={signal.id} style={styles.customSignalRow}>
+                <Text style={styles.customSignalRowText}>{signal.label}</Text>
+                <Pressable
+                  accessibilityLabel={`移除常用小信号 ${signal.label}`}
+                  accessibilityRole="button"
+                  onPress={() => confirmDeleteCustomSignal(signal)}
+                  style={({ pressed }) => [styles.removeSignalButton, pressed ? styles.pressed : null]}
+                >
+                  <Trash2 color={colors.danger} size={16} strokeWidth={2.4} />
+                  <Text style={styles.removeSignalText}>移除</Text>
+                </Pressable>
+              </View>
+            ))}
           </View>
+        ) : null}
 
-          {hasRedFlag ? (
-            <SafetyCard
-              buttonLabel="查看安全说明"
-              onOpenSafety={onOpenSafety}
-              text="这类信号别靠意志力硬扛。小提督不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。"
-              tone="danger"
-            />
-          ) : hasLongToilet ? (
-            <SafetyCard
-              buttonLabel="看看怎么少开长会"
-              onOpenSafety={onOpenSafety}
-              text="这趟坐得有点久。先收工，手机小剧场下次再播。"
-              tone="warning"
-            />
-          ) : null}
-
-          {formError ? (
-            <Text accessibilityLiveRegion="polite" style={styles.formError}>
-              {formError}
-            </Text>
-          ) : null}
-        </ScrollView>
-        <View style={styles.sheetFooter}>
-          <AppButton onPress={() => setIsDetailSheetVisible(false)}>完成补充</AppButton>
+        <Text style={styles.sheetSectionTitle}>需要优先留意</Text>
+        <View style={styles.priorityGrid}>
+          <PrioritySignalChoice
+            description="不舒服就先让小花休息。"
+            onPress={() => setDiscomfort((current) => !current)}
+            selected={discomfort}
+            title="明显不舒服"
+          />
+          <PrioritySignalChoice
+            description="这类信号建议问医生。"
+            onPress={() => setBleeding((current) => !current)}
+            selected={bleeding}
+            title="明显便血"
+          />
         </View>
-      </BottomSheet>
+
+        {hasRedFlag ? (
+          <SafetyCard
+            buttonLabel="查看安全说明"
+            onOpenSafety={onOpenSafety}
+            text="这类信号别靠意志力硬扛。小提督不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。"
+            tone="danger"
+          />
+        ) : hasLongToilet ? (
+          <SafetyCard
+            buttonLabel="看看怎么少开长会"
+            onOpenSafety={onOpenSafety}
+            text="这趟坐得有点久。先收工，手机小剧场下次再播。"
+            tone="warning"
+          />
+        ) : null}
+
+        {formError ? (
+          <Text accessibilityLiveRegion="polite" style={styles.formError}>
+            {formError}
+          </Text>
+        ) : null}
+      </AppSheet>
     </View>
   );
 }
@@ -556,98 +536,6 @@ function PrioritySignalChoice({
   );
 }
 
-function BottomSheet({
-  accessibilityLabel,
-  children,
-  onClose,
-  visible,
-}: {
-  accessibilityLabel: string;
-  children: ReactNode;
-  onClose: () => void;
-  visible: boolean;
-}) {
-  const { colors } = useAppTheme();
-  const styles = createStyles(colors);
-  const [isPresented, setIsPresented] = useState(visible);
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(BOTTOM_SHEET_ENTER_TRANSLATE_Y)).current;
-
-  useEffect(() => {
-    if (visible) {
-      setIsPresented(true);
-      return;
-    }
-
-    if (!isPresented) return;
-
-    const closingAnimation = Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: 150,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-      Animated.timing(sheetTranslateY, {
-        duration: 160,
-        easing: Easing.in(Easing.cubic),
-        toValue: BOTTOM_SHEET_ENTER_TRANSLATE_Y,
-        useNativeDriver: true,
-      }),
-    ]);
-
-    closingAnimation.start(({ finished }) => {
-      if (finished) setIsPresented(false);
-    });
-
-    return () => closingAnimation.stop();
-  }, [backdropOpacity, isPresented, sheetTranslateY, visible]);
-
-  useEffect(() => {
-    if (!visible || !isPresented) return;
-
-    backdropOpacity.setValue(0);
-    sheetTranslateY.setValue(BOTTOM_SHEET_ENTER_TRANSLATE_Y);
-    const openingAnimation = Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: 170,
-        easing: Easing.out(Easing.cubic),
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.spring(sheetTranslateY, {
-        damping: 22,
-        mass: 0.8,
-        stiffness: 250,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-    ]);
-    const animationFrame = requestAnimationFrame(() => openingAnimation.start());
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      openingAnimation.stop();
-    };
-  }, [backdropOpacity, isPresented, sheetTranslateY, visible]);
-
-  return (
-    <Modal animationType="none" onRequestClose={onClose} transparent visible={isPresented}>
-      <View style={styles.sheetRoot}>
-        <Animated.View pointerEvents="none" style={[styles.sheetOverlay, { opacity: backdropOpacity }]} />
-        <Pressable
-          accessibilityLabel={accessibilityLabel}
-          accessibilityRole="button"
-          onPress={onClose}
-          style={styles.sheetBackdrop}
-        />
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
-          {children}
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-}
-
 function DurationPickerSheet({
   error,
   minuteOptions,
@@ -682,23 +570,17 @@ function DurationPickerSheet({
   }, [minutes, seconds, visible]);
 
   return (
-    <BottomSheet accessibilityLabel="取消修改时长" onClose={onClose} visible={visible}>
-      <View style={styles.sheetHandle} />
-      <View style={styles.sheetHeader}>
-        <View>
-          <Text style={styles.sheetTitle}>调整时长</Text>
-          <Text style={styles.sheetCaption}>滑动滚轮，确认后才会更新记录。</Text>
-        </View>
-        <Pressable
-          accessibilityLabel="取消修改时长"
-          accessibilityRole="button"
-          onPress={onClose}
-          style={({ pressed }) => [styles.sheetCloseButton, pressed ? styles.pressed : null]}
-        >
-          <Text style={styles.sheetCloseText}>取消</Text>
-        </Pressable>
-      </View>
-
+    <AppSheet
+      accessibilityLabel="取消修改时长"
+      closeLabel="取消"
+      contentContainerStyle={styles.durationSheetContent}
+      footer={<AppButton onPress={() => onConfirm(previewMinutes, previewSeconds)}>确认时长</AppButton>}
+      onClose={onClose}
+      scroll={false}
+      subtitle="滑动滚轮，确认后才会更新记录。"
+      title="调整时长"
+      visible={visible}
+    >
       <View style={styles.durationPickerReadout}>
         <Text style={styles.durationPickerValue}>{formatToiletDuration(previewMinutes * 60 + previewSeconds)}</Text>
         <Text style={styles.durationPickerCaption}>分钟和秒数可分别调整</Text>
@@ -726,10 +608,7 @@ function DurationPickerSheet({
           {error}
         </Text>
       ) : null}
-      <View style={styles.sheetFooter}>
-        <AppButton onPress={() => onConfirm(previewMinutes, previewSeconds)}>确认时长</AppButton>
-      </View>
-    </BottomSheet>
+    </AppSheet>
   );
 }
 
@@ -1125,6 +1004,10 @@ function createStyles(colors: ThemeColors) {
       marginHorizontal: 24,
       paddingVertical: 14,
     },
+    durationSheetContent: {
+      gap: 0,
+      paddingHorizontal: 0,
+    },
     durationPickerValue: {
       color: colors.primaryPressed,
       fontSize: 28,
@@ -1364,94 +1247,16 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       paddingRight: 12,
     },
-    sheet: {
-      backgroundColor: colors.background,
-      borderColor: colors.border,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      borderTopWidth: 1,
-      maxHeight: '88%',
-      overflow: 'hidden',
-    },
-    sheetBackdrop: {
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
-    sheetCaption: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '600',
-      marginTop: 3,
-    },
-    sheetCloseButton: {
-      alignItems: 'center',
-      backgroundColor: colors.primarySoft,
-      borderRadius: 14,
-      justifyContent: 'center',
-      minHeight: 36,
-      paddingHorizontal: 11,
-    },
-    sheetCloseText: {
-      color: colors.primaryPressed,
-      fontSize: 13,
-      fontWeight: '800',
-    },
     sheetContent: {
+      gap: 0,
       paddingBottom: 8,
       paddingHorizontal: 24,
-    },
-    sheetFooter: {
-      backgroundColor: colors.background,
-      borderTopColor: colors.border,
-      borderTopWidth: 1,
-      paddingBottom: 26,
-      paddingHorizontal: 24,
-      paddingTop: 14,
-    },
-    sheetHandle: {
-      alignSelf: 'center',
-      backgroundColor: colors.border,
-      borderRadius: 99,
-      height: 4,
-      marginBottom: 12,
-      marginTop: 10,
-      width: 38,
-    },
-    sheetHeader: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingBottom: 16,
-      paddingHorizontal: 24,
-    },
-    sheetRoot: {
-      flex: 1,
-      justifyContent: 'flex-end',
-    },
-    sheetOverlay: {
-      backgroundColor: 'rgba(15, 23, 19, 0.38)',
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
     },
     sheetSectionTitle: {
       color: colors.text,
       fontSize: 16,
       fontWeight: '800',
       marginBottom: 10,
-    },
-    sheetScroll: {
-      flexShrink: 1,
-    },
-    sheetTitle: {
-      color: colors.text,
-      fontSize: 20,
-      fontWeight: '900',
     },
     supplementAction: {
       color: colors.primaryPressed,

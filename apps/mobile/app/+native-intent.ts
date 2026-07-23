@@ -14,12 +14,12 @@ export function redirectSystemPath({ path }: RedirectEvent): string | null {
 function normalizeInvitePath(path: string) {
   const segments = getPathSegments(path);
 
-  if (segments[0] === 'team-invites' && segments[1]) {
-    return `/team/join/${segments[1]}`;
+  if (segments[0] === 'friend-invites' && segments[1]) {
+    return `/friend/join/${segments[1]}`;
   }
 
-  if (segments[0] === 'team' && segments[1] === 'join' && segments[2]) {
-    return `/team/join/${segments[2]}`;
+  if (segments[0] === 'friend' && segments[1] === 'join' && segments[2]) {
+    return `/friend/join/${segments[2]}`;
   }
 
   return null;
