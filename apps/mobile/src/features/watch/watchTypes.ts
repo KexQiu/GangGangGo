@@ -12,11 +12,12 @@ export type WatchTrainingModeConfig = {
 };
 
 export type WatchTodayState = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   account: {
     isLoggedIn: boolean;
     nickname: null | string;
   };
+  canUseActions: boolean;
   date: string;
   generatedAt: string;
   habits: {

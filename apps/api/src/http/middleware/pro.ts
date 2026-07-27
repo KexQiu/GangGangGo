@@ -9,8 +9,9 @@ export function createProMiddleware(entitlementsService: EntitlementsService) {
     const currentUser = context.get('currentUser');
     const entitlements = await entitlementsService.getEntitlements(currentUser);
 
-    if (entitlements.proStatus !== 'pro_active' && entitlements.proStatus !== 'pro_grace_period') {
-      throw new ApiError(403, 'forbidden', '这是小提督 Pro 功能。');
+    const paidAccess = entitlements.proStatus === 'pro_active' || entitlements.proStatus === 'pro_grace_period';
+    if (entitlements.commercialMode === 'paid' && !paidAccess) {
+      throw new ApiError(403, 'forbidden', '当前账号暂不能使用此功能。');
     }
 
     await next();

@@ -2,7 +2,7 @@ import type { AuthResponse, EntitlementsResponse, UserProfile } from '@xiaotidu/
 
 import { queryClient } from '../../api/queryClient';
 import { accountQueryKeys } from './accountQueryKeys';
-import { defaultProStatus } from './accountModel';
+import { canAccessFeature, defaultProStatus, type FeatureAccessKey } from './accountModel';
 import { setCurrentUserQueryData } from './accountQueryCache';
 import { currentUserQueryOptions, entitlementsQueryOptions } from './accountQueryOptions';
 
@@ -16,6 +16,10 @@ export function getCachedEntitlements(): EntitlementsResponse | null {
 
 export function getCachedProStatus() {
   return getCachedEntitlements()?.proStatus ?? defaultProStatus;
+}
+
+export function getCachedFeatureAccess(feature: FeatureAccessKey) {
+  return canAccessFeature(getCachedEntitlements(), feature);
 }
 
 export async function refreshCurrentUserQuery(accessToken: string) {

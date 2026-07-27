@@ -11,8 +11,8 @@ struct WatchTrainingView: View {
 
   var body: some View {
     Group {
-      if !session.todayState.isPro {
-        WatchProLockedContent()
+      if !session.todayState.canUseActions {
+        WatchActionLockedContent()
       } else if let completedTraining {
         TrainingCompletionContent(
           completion: completedTraining,

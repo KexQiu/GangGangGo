@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '../src/api/queryClient';
@@ -12,10 +13,16 @@ import { useHabitStore } from '../src/features/habits/habitStore';
 import { subscribeToFriendNotificationResponses } from '../src/features/friends/friendNotificationNavigation';
 import { configureNotificationHandler } from '../src/features/reminders/notificationService';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
+import { subscribeToLocalDataChanges } from '../src/features/sync/localDataEvents';
 import { syncCoordinator } from '../src/features/sync/syncCoordinator';
 import { recoverToiletLiveActivityAfterLaunch } from '../src/features/toilet/toiletLiveActivity';
 import { useToiletStore } from '../src/features/toilet/toiletStore';
 import { useTrainingStore } from '../src/features/training/trainingStore';
+import {
+  flushGrowthEvents,
+  trackActivationCompleted,
+  trackGrowthEvent,
+} from '../src/features/growth/growthEventTracker';
 import { startWatchConnectivityEventListener } from '../src/features/watch/watchSyncService';
 import { routes } from '../src/navigation/routes';
 import { AppThemeProvider, useAppTheme } from '../src/theme/themeProvider';
@@ -24,6 +31,25 @@ function RootStack() {
   const router = useRouter();
   const theme = useAppTheme();
   const authHasHydrated = useAuthStore((state) => state.hasHydrated);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void flushGrowthEvents();
+    });
+    const unsubscribeDataChanges = subscribeToLocalDataChanges((_revision, source) => {
+      if (source === 'local') trackActivationCompleted();
+    });
+    return () => {
+      subscription.remove();
+      unsubscribeDataChanges();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authHasHydrated) return;
+    trackGrowthEvent('app_opened', { source: 'app_open' });
+    void flushGrowthEvents();
+  }, [authHasHydrated]);
 
   useEffect(() => {
     configureNotificationHandler();

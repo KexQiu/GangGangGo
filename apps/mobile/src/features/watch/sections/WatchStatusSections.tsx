@@ -1,6 +1,5 @@
 import { Text, View } from 'react-native';
 
-import { isProStatus } from '../../account/accountModel';
 import type { WatchConnectivityStatus, WatchSyncResult, WatchTodayState } from '../watchTypes';
 import { useAppTheme } from '../../../theme/themeProvider';
 import { createStyles } from '../styles/watchStyles';
@@ -65,25 +64,11 @@ export function formatSyncResultMessage(result: WatchSyncResult, isDevelopment: 
 export function formatToiletState(state: WatchTodayState): string {
   const sessionCountText = `${state.toilet.sessionCount} 次`;
 
-  if (!isProStatus(state.proStatus) || !state.toilet.isRunning) {
+  if (!state.canUseActions || !state.toilet.isRunning) {
     return sessionCountText;
   }
 
   return state.toilet.isPaused ? `${sessionCountText} · 已暂停` : `${sessionCountText} · 进行中`;
-}
-
-export function formatProStatus(status: WatchTodayState['proStatus']) {
-  switch (status) {
-    case 'pro_active':
-      return 'Pro 已开启';
-    case 'pro_grace_period':
-      return 'Pro 宽限期';
-    case 'pro_expired':
-      return 'Pro 已过期';
-    case 'free':
-    default:
-      return '免费版';
-  }
 }
 
 export function formatBoolean(value: boolean | undefined): string {

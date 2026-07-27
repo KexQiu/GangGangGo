@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { reportsApi } from '../../api/client';
 import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
-import { defaultProStatus, isProStatus } from '../account/accountModel';
+import { canAccessFeature } from '../account/accountModel';
 import { useCurrentUserQuery, useEntitlementsQuery } from '../account/accountQueries';
 import { useAuthStore } from '../account/authStore';
 import { syncRecentReportSnapshots } from '../sync/reportSnapshotSync';
@@ -12,11 +12,13 @@ type ReportQueryOptions = { enabled?: boolean };
 
 export function useAdvancedReportQuery(options: ReportQueryOptions = {}) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
+  const entitlements = useEntitlementsQuery().data;
   const userId = useCurrentUserQuery().data?.id;
 
   const query = useQuery({
-    enabled: Boolean((options.enabled ?? true) && accessToken && userId && isProStatus(proStatus)),
+    enabled: Boolean(
+      (options.enabled ?? true) && accessToken && userId && canAccessFeature(entitlements, 'advancedReport'),
+    ),
     queryFn: async ({ signal }) => {
       await syncRecentReportSnapshots();
       return reportsApi.getAdvancedReport(requireValue(accessToken), signal);

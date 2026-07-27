@@ -6,6 +6,18 @@ export const isoDateTimeSchema = z.string().datetime({ offset: true }).meta({ id
 export const proStatusSchema = z.enum(['free', 'pro_active', 'pro_grace_period', 'pro_expired']);
 export type ProStatus = z.infer<typeof proStatusSchema>;
 
+export const commercialModeSchema = z.enum(['growth_free', 'paid']);
+export type CommercialMode = z.infer<typeof commercialModeSchema>;
+
+export const featureAccessSchema = z
+  .object({
+    advancedReport: z.boolean(),
+    reportSnapshotSync: z.boolean(),
+    watchActions: z.boolean(),
+  })
+  .strict();
+export type FeatureAccess = z.infer<typeof featureAccessSchema>;
+
 export const apiErrorCodeSchema = z.enum([
   'bad_request',
   'conflict',
@@ -44,7 +56,17 @@ export const quietRangeSchema = z
   .strict();
 export type QuietRange = z.infer<typeof quietRangeSchema>;
 
-export const entitlementsResponseSchema = z.object({ proStatus: proStatusSchema }).meta({ id: 'EntitlementsResponse' });
+export const entitlementsResponseSchema = z
+  .object({
+    commercialMode: commercialModeSchema.default('growth_free'),
+    features: featureAccessSchema.default({
+      advancedReport: true,
+      reportSnapshotSync: true,
+      watchActions: true,
+    }),
+    proStatus: proStatusSchema,
+  })
+  .meta({ id: 'EntitlementsResponse' });
 export type EntitlementsResponse = z.infer<typeof entitlementsResponseSchema>;
 
 export const apiHealthResponseSchema = z

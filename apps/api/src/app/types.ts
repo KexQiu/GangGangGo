@@ -8,6 +8,7 @@ import type { AuthSessionService } from '../modules/auth/authSessionService.js';
 import type { DataSyncService } from '../modules/dataSync/dataSyncService.js';
 import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import type { FriendService } from '../modules/friends/friendService.js';
+import type { GrowthEventService } from '../modules/growth/growthEventService.js';
 import type { PushTokenService } from '../modules/push/pushTokenService.js';
 import type { ReportService } from '../modules/reports/reportService.js';
 import type { UserRepository } from '../modules/users/userRepository.js';
@@ -22,6 +23,7 @@ export type ApiRouteDependencies = {
   databaseHealthChecker?: DatabaseHealthChecker;
   entitlementsService: EntitlementsService;
   friendService: FriendService;
+  growthEventService: GrowthEventService;
   pushTokenService: PushTokenService;
   reportService: ReportService;
   userRepository: UserRepository;
@@ -34,6 +36,7 @@ export type CreateApiAppOptions = {
   databaseHealthChecker?: DatabaseHealthChecker;
   entitlementsService?: EntitlementsService;
   friendService?: FriendService;
+  growthEventService?: GrowthEventService;
   logger?: Logger;
   pushTokenService?: PushTokenService;
   reportService?: ReportService;

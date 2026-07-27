@@ -17,7 +17,9 @@
 - `GET /data-sync/pull`：增量拉取完整记录
 - `GET /me`：当前用户
 - `PATCH /me`：更新用户资料
-- `GET /me/entitlements`：会员权益
+- `GET /me/entitlements`：账号能力与商业模式
+- `POST /me/growth-events`：提交登录用户增长事件
+- `POST /growth-events`：提交匿名增长事件
 - `POST /friend-invites`：创建好友邀请
 - `GET /friend-invites/{token}`：预览好友邀请
 - `POST /friend-invites/{token}/accept`：接受好友邀请

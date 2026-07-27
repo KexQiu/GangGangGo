@@ -51,6 +51,7 @@ const envSchema = z
     APPLE_AUTH_MODE: z.enum(['mock', 'real']).optional(),
     APPLE_BUNDLE_ID: z.string().min(1).optional(),
     APPLE_JWKS_URL: z.url().default('https://appleid.apple.com/auth/keys'),
+    COMMERCIAL_MODE: z.enum(['growth_free', 'paid']).default('growth_free'),
     DATABASE_URL: z.url().optional(),
     DB_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(10),
     DB_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(20),

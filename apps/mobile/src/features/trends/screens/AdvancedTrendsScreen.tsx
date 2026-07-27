@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { BookOpenCheck, ChartNoAxesColumnIncreasing, Crown, Hourglass, RefreshCw } from 'lucide-react-native';
+import { BookOpenCheck, ChartNoAxesColumnIncreasing, Hourglass, RefreshCw } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -11,7 +11,7 @@ import { PageSection, PageStack } from '../../../components/PageStack';
 import { Screen } from '../../../components/Screen';
 import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
-import { defaultProStatus, isProStatus } from '../../account/accountModel';
+import { canAccessFeature } from '../../account/accountModel';
 import { useCurrentUserQuery, useEntitlementsQuery } from '../../account/accountQueries';
 import { useAdvancedReportQuery } from '../../reports/reportQueries';
 import { listRecentToiletHistory } from '../../toilet/toiletHistory';
@@ -24,19 +24,21 @@ import { formatReportRange } from '../advancedReportPresentation';
 import { ReportCalendarGrid } from '../sections/AdvancedCalendarSection';
 import { InsightCard, LegendDot, SummaryTile } from '../sections/AdvancedSummarySections';
 import { createStyles } from '../styles/advancedTrendsStyles';
+import { trackGrowthEvent } from '../../growth/growthEventTracker';
 
 export default function AdvancedReportScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
+  const entitlementsQuery = useEntitlementsQuery();
+  const entitlements = entitlementsQuery.data;
   const user = useCurrentUserQuery().data;
-  const isPro = isProStatus(proStatus);
+  const canViewAdvancedReport = canAccessFeature(entitlements, 'advancedReport');
   const {
     data: advancedReport,
     isFetching: isLoading,
     refetch: refetchAdvancedReport,
-  } = useAdvancedReportQuery({ enabled: isPro });
+  } = useAdvancedReportQuery({ enabled: canViewAdvancedReport });
   const [toiletHistory, setToiletHistory] = useState<ToiletSession[]>([]);
   const [isToiletHistoryLoading, setIsToiletHistoryLoading] = useState(false);
   const calendarDays = useMemo(() => {
@@ -47,13 +49,18 @@ export default function AdvancedReportScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!isPro) {
+      if (!user || !canViewAdvancedReport) {
         setToiletHistory([]);
         setIsToiletHistoryLoading(false);
         return;
       }
 
       let active = true;
+      trackGrowthEvent('advanced_report_viewed', {
+        domain: 'report',
+        feature: 'advanced_report',
+        source: 'trends',
+      });
       setIsToiletHistoryLoading(true);
       void refetchAdvancedReport();
       void listRecentToiletHistory()
@@ -70,7 +77,7 @@ export default function AdvancedReportScreen() {
       return () => {
         active = false;
       };
-    }, [isPro, refetchAdvancedReport]),
+    }, [canViewAdvancedReport, refetchAdvancedReport, user]),
   );
 
   return (
@@ -81,29 +88,36 @@ export default function AdvancedReportScreen() {
       <PageStack gap="regular">
         {!user ? (
           <AppCard style={styles.noticeCard}>
-            <Crown color={colors.primaryPressed} size={28} strokeWidth={2.4} />
+            <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={28} strokeWidth={2.4} />
             <Text style={styles.noticeTitle}>先登录小提督</Text>
-            <Text style={styles.noticeBody}>登录后才能刷新云端摘要和查看 Pro 高级小报告。</Text>
+            <Text style={styles.noticeBody}>登录后可以同步最近 90 天的低敏摘要，并在不同设备间继续回看。</Text>
             <AppButton onPress={() => router.push(routes.me)}>去登录</AppButton>
           </AppCard>
         ) : null}
 
-        {user && !isPro ? (
+        {user && !entitlements && entitlementsQuery.isFetching ? (
           <AppCard style={styles.noticeCard}>
-            <Crown color={colors.primaryPressed} size={28} strokeWidth={2.4} />
-            <Text style={styles.noticeTitle}>90 天回看在 Pro 里</Text>
-            <Text style={styles.noticeBody}>基础小报告继续免费。Pro 会补上更长周期，但仍只使用低敏摘要。</Text>
-            <AppButton onPress={() => router.push(routes.pro)}>了解 Pro</AppButton>
+            <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={28} strokeWidth={2.4} />
+            <Text style={styles.noticeTitle}>正在读取账号能力</Text>
+            <Text style={styles.noticeBody}>很快就会继续加载 90 天低敏摘要。</Text>
           </AppCard>
         ) : null}
 
-        {user && isPro ? (
+        {user && entitlements && !canViewAdvancedReport ? (
+          <AppCard style={styles.noticeCard}>
+            <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={28} strokeWidth={2.4} />
+            <Text style={styles.noticeTitle}>90 天回看暂不可用</Text>
+            <Text style={styles.noticeBody}>请稍后刷新账号状态；本机数据仍可在数据页正常查看。</Text>
+          </AppCard>
+        ) : null}
+
+        {user && entitlements && canViewAdvancedReport ? (
           <>
             <AppCard muted style={styles.headerCard}>
               <View style={styles.headerTopRow}>
                 <View style={styles.headerBadge}>
                   <ChartNoAxesColumnIncreasing color={colors.primaryPressed} size={15} strokeWidth={2.5} />
-                  <Text style={styles.headerBadgeText}>Pro 90 天</Text>
+                  <Text style={styles.headerBadgeText}>90 天回看</Text>
                 </View>
                 <View style={styles.headerStatus}>
                   <RefreshCw

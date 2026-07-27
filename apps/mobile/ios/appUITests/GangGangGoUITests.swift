@@ -67,7 +67,8 @@ final class GangGangGoUITests: XCTestCase {
 
     tapWhenHittable(app.buttons["A"], in: app)
     XCTAssertTrue(app.staticTexts["模拟搭子 A"].waitForExistence(timeout: 15))
-    XCTAssertTrue(app.staticTexts["小提督 Pro"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts["云端同步已连接"].waitForExistence(timeout: 10))
+    XCTAssertFalse(app.staticTexts["小提督 Pro"].exists)
 
     tapWhenHittable(tabButton("tab-team", in: app), in: app)
     XCTAssertTrue(app.staticTexts["还没有监督搭子"].waitForExistence(timeout: 10))

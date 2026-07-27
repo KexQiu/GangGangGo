@@ -2,13 +2,10 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text } from 'react-native';
 
-import { AppButton } from '../../../src/components/AppButton';
 import { AppCard } from '../../../src/components/AppCard';
 import { AppTopBar } from '../../../src/components/AppTopBar';
 import { PageHeader } from '../../../src/components/PageHeader';
 import { Screen } from '../../../src/components/Screen';
-import { defaultProStatus, isProStatus } from '../../../src/features/account/accountModel';
-import { useCurrentUserQuery, useEntitlementsQuery } from '../../../src/features/account/accountQueries';
 import { ToiletRecordForm } from '../../../src/features/toilet/ToiletRecordForm';
 import { createToiletRecordDraft } from '../../../src/features/toilet/toiletRecordLogic';
 import { useToiletStore } from '../../../src/features/toilet/toiletStore';
@@ -21,9 +18,6 @@ export default function ToiletRecordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const recordId = typeof params.id === 'string' ? params.id : '';
-  const user = useCurrentUserQuery().data;
-  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
-  const canViewHistory = Boolean(user) && isProStatus(proStatus);
   const updateSession = useToiletStore((state) => state.updateSession);
   const deleteSession = useToiletStore((state) => state.deleteSession);
   const { colors } = useAppTheme();
@@ -34,12 +28,6 @@ export default function ToiletRecordScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!canViewHistory) {
-        setSession(null);
-        setIsLoading(false);
-        return;
-      }
-
       let active = true;
       setIsLoading(true);
       setError(null);
@@ -58,7 +46,7 @@ export default function ToiletRecordScreen() {
       return () => {
         active = false;
       };
-    }, [canViewHistory, recordId]),
+    }, [recordId]),
   );
 
   async function saveSession(draft: ReturnType<typeof createToiletRecordDraft>) {
@@ -98,7 +86,7 @@ export default function ToiletRecordScreen() {
       <AppTopBar
         fallbackHref={routes.trends}
         right={
-          canViewHistory && session ? (
+          session ? (
             <Pressable
               accessibilityLabel="删除本次记录"
               accessibilityRole="button"
@@ -111,30 +99,20 @@ export default function ToiletRecordScreen() {
         }
         title="本次记录"
       />
-      {!canViewHistory ? (
-        <AppCard style={styles.statusCard}>
-          <Text style={styles.statusTitle}>90 天明细在 Pro 里</Text>
-          <Text style={styles.statusBody}>时长、排便详情和小信号只在本机展示，不会同步到云端。</Text>
-          <AppButton onPress={() => router.push(user ? routes.pro : routes.me)} style={styles.statusButton}>
-            {user ? '了解 Pro' : '去登录'}
-          </AppButton>
-        </AppCard>
-      ) : null}
-
-      {canViewHistory && isLoading ? (
+      {isLoading ? (
         <AppCard muted style={styles.statusCard}>
           <Text style={styles.statusTitle}>正在读取本次记录…</Text>
         </AppCard>
       ) : null}
 
-      {canViewHistory && !isLoading && !session ? (
+      {!isLoading && !session ? (
         <AppCard style={styles.statusCard}>
           <Text style={styles.statusTitle}>这条记录已不在本机</Text>
           <Text style={styles.statusBody}>{error ?? '可能已在其他页面删除。'}</Text>
         </AppCard>
       ) : null}
 
-      {canViewHistory && session ? (
+      {session ? (
         <>
           <PageHeader subtitle={`${formatSessionDate(session.endedAt)} · 开始时间不支持修改`} title="把这趟记清楚" />
           <ToiletRecordForm

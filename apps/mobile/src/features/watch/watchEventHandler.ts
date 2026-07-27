@@ -1,5 +1,4 @@
-import { isProStatus } from '../account/accountModel';
-import { getCachedCurrentUser, getCachedProStatus } from '../account/accountQueryService';
+import { getCachedCurrentUser, getCachedFeatureAccess } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
 import { getLocalDateKey } from '../habits/habitLogic';
 import { useHabitStore } from '../habits/habitStore';
@@ -10,11 +9,12 @@ import { useToiletStore } from '../toilet/toiletStore';
 import { getActiveToiletTimerElapsedSeconds, useToiletTimerSessionStore } from '../toilet/toiletTimerSessionStore';
 import { useTrainingStore } from '../training/trainingStore';
 import { type WatchEvent, type WatchEventAck } from './watchTypes';
+import { trackGrowthEvent } from '../growth/growthEventTracker';
 
 const handledEventIds = new Set<string>();
 
 export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck> {
-  const rejectionMessage = getProActionRejectionMessage();
+  const rejectionMessage = getWatchActionRejectionMessage();
 
   if (rejectionMessage) {
     return {
@@ -52,6 +52,11 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
   }
 
   handledEventIds.add(event.id);
+  trackGrowthEvent('watch_action_completed', {
+    action: event.type === 'training_completed' ? 'training' : event.type === 'habit_toggled' ? 'habit' : 'toilet',
+    domain: 'watch',
+    source: 'watch',
+  });
 
   return {
     eventId: event.id,
@@ -59,24 +64,19 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
   };
 }
 
-function getProActionRejectionMessage(): string | null {
+function getWatchActionRejectionMessage(): string | null {
   const auth = useAuthStore.getState();
   const user = getCachedCurrentUser();
-  const proStatus = getCachedProStatus();
 
   if (!auth.accessToken || !user) {
     return '先在 iPhone 上登录小提督。';
   }
 
-  if (isProStatus(proStatus)) {
+  if (getCachedFeatureAccess('watchActions')) {
     return null;
   }
 
-  if (proStatus === 'pro_expired') {
-    return '小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。';
-  }
-
-  return 'Apple Watch 联动属于小提督 Pro。';
+  return '当前账号暂不能使用 Apple Watch 操作，请在 iPhone 上刷新后再试。';
 }
 
 async function handleTrainingCompleted(event: Extract<WatchEvent, { type: 'training_completed' }>) {

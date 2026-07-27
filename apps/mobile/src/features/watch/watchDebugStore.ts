@@ -133,7 +133,7 @@ export function summarizeWatchPayloadForDebug(payload: unknown): string {
 }
 
 export function summarizeWatchStateForDebug(state: WatchTodayState): string {
-  return `schema=${state.schemaVersion} · date=${safeIdentifier(state.date)} · pro=${safeIdentifier(state.proStatus)}`;
+  return `schema=${state.schemaVersion} · date=${safeIdentifier(state.date)} · actions=${state.canUseActions ? 'on' : 'off'}`;
 }
 
 function safeIdentifier(value: unknown): string {

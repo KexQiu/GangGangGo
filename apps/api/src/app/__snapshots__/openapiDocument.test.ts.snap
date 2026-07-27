@@ -1491,6 +1491,39 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
       },
       "EntitlementsResponse": {
         "properties": {
+          "commercialMode": {
+            "default": "growth_free",
+            "enum": [
+              "growth_free",
+              "paid",
+            ],
+            "type": "string",
+          },
+          "features": {
+            "additionalProperties": false,
+            "default": {
+              "advancedReport": true,
+              "reportSnapshotSync": true,
+              "watchActions": true,
+            },
+            "properties": {
+              "advancedReport": {
+                "type": "boolean",
+              },
+              "reportSnapshotSync": {
+                "type": "boolean",
+              },
+              "watchActions": {
+                "type": "boolean",
+              },
+            },
+            "required": [
+              "advancedReport",
+              "reportSnapshotSync",
+              "watchActions",
+            ],
+            "type": "object",
+          },
           "proStatus": {
             "enum": [
               "free",
@@ -2261,6 +2294,128 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         },
         "required": [
           "friends",
+        ],
+        "type": "object",
+      },
+      "GrowthEventsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "appVersion": {
+                  "maxLength": 32,
+                  "minLength": 1,
+                  "type": "string",
+                },
+                "eventId": {
+                  "maxLength": 80,
+                  "minLength": 1,
+                  "type": "string",
+                },
+                "installationId": {
+                  "pattern": "^[a-zA-Z0-9_-]{16,80}$",
+                  "type": "string",
+                },
+                "name": {
+                  "enum": [
+                    "app_opened",
+                    "activation_completed",
+                    "login_completed",
+                    "friend_invite_sent",
+                    "friend_invite_accepted",
+                    "advanced_report_viewed",
+                    "watch_opened",
+                    "watch_action_completed",
+                    "sync_failed",
+                    "feature_interest_submitted",
+                  ],
+                  "type": "string",
+                },
+                "occurredAt": {
+                  "$ref": "#/components/schemas/IsoDateTime",
+                },
+                "platform": {
+                  "enum": [
+                    "ios",
+                    "android",
+                  ],
+                  "type": "string",
+                },
+                "properties": {
+                  "additionalProperties": false,
+                  "default": {},
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "training",
+                        "habit",
+                        "toilet",
+                      ],
+                      "type": "string",
+                    },
+                    "domain": {
+                      "enum": [
+                        "full_data",
+                        "report",
+                        "watch",
+                      ],
+                      "type": "string",
+                    },
+                    "feature": {
+                      "enum": [
+                        "advanced_report",
+                        "watch",
+                        "long_history",
+                        "insights",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "app_open",
+                        "trends",
+                        "watch",
+                        "friend",
+                        "settings",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "required": [
+                "appVersion",
+                "eventId",
+                "installationId",
+                "name",
+                "occurredAt",
+                "platform",
+              ],
+              "type": "object",
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array",
+          },
+        },
+        "required": [
+          "events",
+        ],
+        "type": "object",
+      },
+      "GrowthEventsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "minimum": 0,
+            "type": "integer",
+          },
+        },
+        "required": [
+          "accepted",
         ],
         "type": "object",
       },
@@ -4531,6 +4686,111 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         "summary": "更新好友权限与提醒设置",
       },
     },
+    "/growth-events": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowthEventsRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GrowthEventsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "summary": "提交匿名增长事件",
+      },
+    },
     "/health": {
       "get": {
         "responses": {
@@ -5026,7 +5286,117 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             "bearerAuth": [],
           },
         ],
-        "summary": "会员权益",
+        "summary": "账号能力与商业模式",
+      },
+    },
+    "/me/growth-events": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowthEventsRequest",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GrowthEventsResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "提交登录用户增长事件",
       },
     },
     "/push-tokens": {

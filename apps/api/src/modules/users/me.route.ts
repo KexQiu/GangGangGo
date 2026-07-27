@@ -60,7 +60,7 @@ export function createMeRoute(options: CreateMeRouteOptions) {
       path: '/entitlements',
       responses: apiResponses(entitlementsResponseSchema),
       security: bearerSecurity,
-      summary: '会员权益',
+      summary: '账号能力与商业模式',
     }),
     async (context) => {
       const body: EntitlementsResponse = await options.entitlementsService.getEntitlements(context.get('currentUser'));

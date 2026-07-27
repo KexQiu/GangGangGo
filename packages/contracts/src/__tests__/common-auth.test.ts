@@ -7,8 +7,12 @@ import {
   appleLoginRequestSchema,
   authResponseSchema,
   authSessionSchema,
+  commercialModeSchema,
   databaseHealthResponseSchema,
   entitlementsResponseSchema,
+  featureAccessSchema,
+  growthEventSchema,
+  growthEventsRequestSchema,
   isoDateSchema,
   isoDateTimeSchema,
   logoutRequestSchema,
@@ -29,6 +33,12 @@ describe('common contracts', () => {
     ['isoDateSchema', isoDateSchema, '2024-02-29'],
     ['isoDateTimeSchema', isoDateTimeSchema, NOW],
     ['proStatusSchema', proStatusSchema, 'pro_active'],
+    ['commercialModeSchema', commercialModeSchema, 'growth_free'],
+    [
+      'featureAccessSchema',
+      featureAccessSchema,
+      { advancedReport: true, reportSnapshotSync: true, watchActions: true },
+    ],
     ['apiErrorCodeSchema', apiErrorCodeSchema, 'validation_error'],
     [
       'apiErrorResponseSchema',
@@ -53,10 +63,41 @@ describe('common contracts', () => {
 
   it('rejects invalid enums, types, and malformed quiet ranges', () => {
     expect(proStatusSchema.safeParse('premium').success).toBe(false);
+    expect(commercialModeSchema.safeParse('free_trial').success).toBe(false);
+    expect(featureAccessSchema.safeParse({ advancedReport: true, watchActions: true }).success).toBe(false);
     expect(apiErrorCodeSchema.safeParse(401).success).toBe(false);
     expect(quietRangeSchema.safeParse({ end: '24:00', start: '23:00' }).success).toBe(false);
     expect(quietRangeSchema.safeParse({ end: '00:00', start: '00:00' }).success).toBe(true);
     expect(quietRangeSchema.safeParse({ end: '07:00', extra: true, start: '23:00' }).success).toBe(false);
+  });
+
+  it('accepts allowlisted growth events and rejects unexpected properties', () => {
+    expect(
+      growthEventSchema.safeParse({
+        appVersion: '0.2.0',
+        eventId: 'event-1234567890123456',
+        installationId: 'install-123456789012',
+        name: 'watch_action_completed',
+        occurredAt: NOW,
+        platform: 'ios',
+        properties: { action: 'training' },
+      }).success,
+    ).toBe(true);
+    expect(
+      growthEventsRequestSchema.safeParse({
+        events: [
+          {
+            appVersion: '0.2.0',
+            eventId: 'event-1234567890123456',
+            installationId: 'install-123456789012',
+            name: 'app_opened',
+            occurredAt: NOW,
+            platform: 'ios',
+            properties: { healthDetail: 'forbidden' },
+          },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });
 

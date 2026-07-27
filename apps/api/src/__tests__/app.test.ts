@@ -22,7 +22,11 @@ function createTestApp() {
 
 const proEntitlementsService: EntitlementsService = {
   async getEntitlements() {
-    return { proStatus: 'pro_active' };
+    return {
+      commercialMode: 'paid',
+      features: { advancedReport: true, reportSnapshotSync: true, watchActions: true },
+      proStatus: 'pro_active',
+    };
   },
 };
 
@@ -461,9 +465,58 @@ describe('api app', () => {
     expect(authorizedResponse.status).toBe(200);
     expect(body).toEqual({
       data: {
+        commercialMode: 'growth_free',
+        features: {
+          advancedReport: true,
+          reportSnapshotSync: true,
+          watchActions: true,
+        },
         proStatus: 'free',
       },
     });
+  });
+
+  it('accepts allowlisted growth events anonymously and associates authenticated uploads', async () => {
+    const app = createTestApp();
+    const anonymousEvent = {
+      appVersion: '0.2.0',
+      eventId: 'evt-anonymous-growth-1',
+      installationId: 'installation-growth-1',
+      name: 'app_opened',
+      occurredAt: '2026-07-27T03:00:00.000Z',
+      platform: 'ios',
+      properties: { source: 'app_open' },
+    };
+    const anonymousResponse = await app.request('/growth-events', {
+      body: JSON.stringify({ events: [anonymousEvent] }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+    const duplicateResponse = await app.request('/growth-events', {
+      body: JSON.stringify({ events: [anonymousEvent] }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(anonymousResponse.status).toBe(200);
+    expect(await anonymousResponse.json()).toEqual({ data: { accepted: 1 } });
+    expect(await duplicateResponse.json()).toEqual({ data: { accepted: 0 } });
+    expect((await app.request('/me/growth-events', { method: 'POST' })).status).toBe(401);
+
+    const token = await login(app, { identityToken: 'growth-event-user' });
+    const authenticatedResponse = await app.request('/me/growth-events', {
+      body: JSON.stringify({
+        events: [{ ...anonymousEvent, eventId: 'evt-authenticated-growth-1', name: 'login_completed' }],
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+
+    expect(authenticatedResponse.status).toBe(200);
+    expect(await authenticatedResponse.json()).toEqual({ data: { accepted: 1 } });
   });
 
   it('syncs complete records for free authenticated users and isolates unauthenticated access', async () => {
@@ -577,11 +630,13 @@ describe('api app', () => {
     });
   });
 
-  it('protects Pro report routes and returns advanced report data for Pro users', async () => {
-    const proEntitlementsService: EntitlementsService = {
+  it('opens reports in growth mode and preserves paid-mode entitlement gates', async () => {
+    const paidFreeEntitlementsService: EntitlementsService = {
       async getEntitlements() {
         return {
-          proStatus: 'pro_active',
+          commercialMode: 'paid',
+          features: { advancedReport: false, reportSnapshotSync: false, watchActions: false },
+          proStatus: 'free',
         };
       },
     };
@@ -629,17 +684,28 @@ describe('api app', () => {
         };
       },
     };
-    const freeApp = createTestApp();
-    const freeToken = await login(freeApp);
-    const freeResponse = await freeApp.request('/reports/advanced?range=90d', {
+    const growthApp = createApiApp({ logger: testLogger, reportService });
+    const growthToken = await login(growthApp);
+    const growthResponse = await growthApp.request('/reports/advanced?range=90d', {
       headers: {
-        authorization: `Bearer ${freeToken}`,
+        authorization: `Bearer ${growthToken}`,
       },
     });
-    const freeBody = await freeResponse.json();
+    expect(growthResponse.status).toBe(200);
 
-    expect(freeResponse.status).toBe(403);
-    expect(freeBody.error.code).toBe('forbidden');
+    const paidFreeApp = createApiApp({
+      entitlementsService: paidFreeEntitlementsService,
+      logger: testLogger,
+      reportService,
+    });
+    const paidFreeToken = await login(paidFreeApp, { identityToken: 'paid-free-report-token' });
+    const paidFreeResponse = await paidFreeApp.request('/reports/advanced?range=90d', {
+      headers: { authorization: `Bearer ${paidFreeToken}` },
+    });
+    const paidFreeBody = await paidFreeResponse.json();
+
+    expect(paidFreeResponse.status).toBe(403);
+    expect(paidFreeBody.error.code).toBe('forbidden');
 
     const proApp = createApiApp({
       entitlementsService: proEntitlementsService,
@@ -673,13 +739,6 @@ describe('api app', () => {
   });
 
   it('upserts a Pro daily report snapshot and reads it back', async () => {
-    const proEntitlementsService: EntitlementsService = {
-      async getEntitlements() {
-        return {
-          proStatus: 'pro_active',
-        };
-      },
-    };
     const app = createApiApp({
       entitlementsService: proEntitlementsService,
       logger: testLogger,
@@ -727,7 +786,7 @@ describe('api app', () => {
     });
   });
 
-  it('bulk upserts Pro report snapshots with 90-day validation and duplicate date handling', async () => {
+  it('bulk upserts report snapshots with 90-day validation and duplicate date handling', async () => {
     const snapshotDate = getTestDateKey();
     const previousDate = addDaysToDateKey(snapshotDate, -1);
     const freeApp = createTestApp();
@@ -745,7 +804,31 @@ describe('api app', () => {
       method: 'PUT',
     });
 
-    expect(freeResponse.status).toBe(403);
+    expect(freeResponse.status).toBe(200);
+
+    const paidFreeApp = createApiApp({
+      entitlementsService: {
+        async getEntitlements() {
+          return {
+            commercialMode: 'paid',
+            features: { advancedReport: false, reportSnapshotSync: false, watchActions: false },
+            proStatus: 'free',
+          };
+        },
+      },
+      logger: testLogger,
+    });
+    const paidFreeToken = await login(paidFreeApp, { identityToken: 'bulk-report-paid-free-token' });
+    const paidFreeResponse = await paidFreeApp.request('/report-snapshots/bulk', {
+      body: JSON.stringify({ snapshots: [createDailyReportSnapshot({ date: snapshotDate })] }),
+      headers: {
+        authorization: `Bearer ${paidFreeToken}`,
+        'content-type': 'application/json',
+      },
+      method: 'PUT',
+    });
+
+    expect(paidFreeResponse.status).toBe(403);
 
     const app = createApiApp({
       entitlementsService: proEntitlementsService,
@@ -847,6 +930,12 @@ describe('api app', () => {
     expect(verifyResponse.status).toBe(200);
     expect(verifyBody.data).toEqual({
       entitlements: {
+        commercialMode: 'growth_free',
+        features: {
+          advancedReport: true,
+          reportSnapshotSync: true,
+          watchActions: true,
+        },
         proStatus: 'free',
       },
       status: 'pending_verification',

@@ -1,5 +1,5 @@
 export type SyncReason =
-  'app_boot' | 'app_foreground' | 'auth_changed' | 'local_changed' | 'pro_changed' | 'task_retry';
+  'app_boot' | 'app_foreground' | 'auth_changed' | 'entitlements_changed' | 'local_changed' | 'task_retry';
 
 export type SyncAppState = 'active' | 'background' | 'inactive' | 'unknown';
 export const syncTaskNames = ['watch', 'entitlements', 'data', 'reports', 'push'] as const;
@@ -18,7 +18,7 @@ type AuthSnapshot = {
 
 type AuthChange = {
   accessTokenChanged: boolean;
-  proStatusChanged: boolean;
+  entitlementsChanged: boolean;
 };
 
 type Unsubscribe = () => void;
@@ -61,7 +61,7 @@ export class SyncCoordinator {
     this.unsubscribers.push(
       this.dependencies.subscribeAuthChanges((change) => {
         if (change.accessTokenChanged) this.schedule('auth_changed', true);
-        if (change.proStatusChanged) this.schedule('pro_changed');
+        if (change.entitlementsChanged) this.schedule('entitlements_changed');
       }),
       this.dependencies.subscribeLocalChanges(() => this.schedule('local_changed')),
       this.dependencies.subscribeAppState((nextState) => {
@@ -133,7 +133,7 @@ export class SyncCoordinator {
     if (shouldRunRegularSync) {
       tasks.set('watch', availableTasks.watch);
       if (auth.accessToken) {
-        if ([...reasons].some((item) => item !== 'local_changed' && item !== 'pro_changed')) {
+        if ([...reasons].some((item) => item !== 'local_changed' && item !== 'entitlements_changed')) {
           tasks.set('entitlements', availableTasks.entitlements);
         }
         tasks.set('data', availableTasks.data);

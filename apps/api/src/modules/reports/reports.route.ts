@@ -11,7 +11,6 @@ import {
   type AdvancedReportResponse,
   type DailyReportSnapshotResponse,
   type DailyReportSnapshotsBulkResponse,
-  type ProStatus,
 } from '@xiaotidu/contracts';
 
 import { ApiError } from '../../http/apiError.js';
@@ -26,12 +25,15 @@ type CreateReportsRouteOptions = {
   reportService: ReportService;
 };
 
-async function requirePro(entitlementsService: EntitlementsService, currentUser: AuthVariables['currentUser']) {
+async function requireReportFeature(
+  entitlementsService: EntitlementsService,
+  currentUser: AuthVariables['currentUser'],
+  feature: 'advancedReport' | 'reportSnapshotSync',
+) {
   const entitlements = await entitlementsService.getEntitlements(currentUser);
-  const allowedStatuses: ProStatus[] = ['pro_active', 'pro_grace_period'];
 
-  if (!allowedStatuses.includes(entitlements.proStatus)) {
-    throw new ApiError(403, 'forbidden', '这是小提督 Pro 功能。');
+  if (!entitlements.features[feature]) {
+    throw new ApiError(403, 'forbidden', '当前账号暂不可使用此功能。');
   }
 }
 
@@ -49,7 +51,7 @@ export function createReportsRoute(options: CreateReportsRouteOptions) {
     }),
     async (context) => {
       const currentUser = context.get('currentUser');
-      await requirePro(options.entitlementsService, currentUser);
+      await requireReportFeature(options.entitlementsService, currentUser, 'advancedReport');
       const body: AdvancedReportResponse = await options.reportService.getAdvancedReport(
         currentUser,
         context.req.valid('query').range,
@@ -69,7 +71,7 @@ export function createReportsRoute(options: CreateReportsRouteOptions) {
     }),
     async (context) => {
       const currentUser = context.get('currentUser');
-      await requirePro(options.entitlementsService, currentUser);
+      await requireReportFeature(options.entitlementsService, currentUser, 'reportSnapshotSync');
       const body: DailyReportSnapshotResponse = await options.reportService.upsertDailyReportSnapshot(
         currentUser,
         context.req.valid('json').snapshot,
@@ -89,7 +91,7 @@ export function createReportsRoute(options: CreateReportsRouteOptions) {
     }),
     async (context) => {
       const currentUser = context.get('currentUser');
-      await requirePro(options.entitlementsService, currentUser);
+      await requireReportFeature(options.entitlementsService, currentUser, 'reportSnapshotSync');
       const body: DailyReportSnapshotsBulkResponse = await options.reportService.upsertDailyReportSnapshots(
         currentUser,
         context.req.valid('json').snapshots,

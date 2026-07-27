@@ -18,12 +18,13 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(6);
+    expect(getUserVersion(harness.database)).toBe(7);
     expect(getTableNames(harness.database)).toEqual([
       'app_metadata',
       'daily_activity_summaries',
       'data_sync_outbox',
       'data_sync_state',
+      'growth_event_outbox',
       'habit_checkins',
       'local_data_profiles',
       'reminder_settings',
@@ -39,6 +40,9 @@ describe('SQLite migrations', () => {
       expect.arrayContaining(['deleted_at', 'profile_id', 'sync_version']),
     );
     expect(getColumnNames(harness.database, 'daily_activity_summaries')).toContain('toilet_max_duration_seconds');
+    expect(getColumnNames(harness.database, 'growth_event_outbox')).toEqual(
+      expect.arrayContaining(['event_id', 'installation_id', 'event_name', 'occurred_at', 'properties_json']),
+    );
     expect(getIndexNames(harness.database)).toEqual(
       expect.arrayContaining(['idx_toilet_sessions_profile_ended_at_id', 'idx_training_sessions_profile_ended_at_id']),
     );
@@ -50,7 +54,7 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(6);
+    expect(getUserVersion(harness.database)).toBe(7);
     expect(getColumnNames(harness.database, 'reminder_settings')).toContain('quiet_hours_ranges');
     expect(getColumnNames(harness.database, 'toilet_sessions')).toEqual(
       expect.arrayContaining(['deleted_at', 'local_date', 'profile_id', 'signals_json', 'stool_color', 'stool_shape']),
@@ -77,7 +81,7 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(6);
+    expect(getUserVersion(harness.database)).toBe(7);
     expect(getColumnNames(harness.database, 'daily_activity_summaries')).toContain('toilet_max_duration_seconds');
     expect(
       harness.database

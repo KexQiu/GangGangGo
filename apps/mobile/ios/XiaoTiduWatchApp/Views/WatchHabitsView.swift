@@ -13,8 +13,8 @@ struct WatchHabitsView: View {
 
   var body: some View {
     Group {
-      if !session.todayState.isPro {
-        WatchProLockedContent()
+      if !session.todayState.canUseActions {
+        WatchActionLockedContent()
       } else {
         List(items) { item in
           let isDone = item.isDone(in: session.todayState)

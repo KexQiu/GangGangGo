@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import fixture from '../../../../fixtures/watch-today-state-v2.json';
+import fixture from '../../../../fixtures/watch-today-state-v3.json';
 import { summarizeWatchPayloadForDebug, summarizeWatchStateForDebug } from '../watchDebugStore';
 import { createInvalidWatchPayloadAck, extractWatchEvent } from '../watchMessageParser';
 import type { WatchTodayState } from '../watchTypes';
@@ -16,9 +16,10 @@ const forbiddenKeys = new Set([
   'token',
 ]);
 
-describe('Watch protocol v2 fixture', () => {
+describe('Watch protocol v3 fixture', () => {
   it('matches the TypeScript payload contract', () => {
-    expect(fixture.schemaVersion).toBe(2);
+    expect(fixture.schemaVersion).toBe(3);
+    expect(fixture.canUseActions).toBe(true);
     expect(fixture.habits.completion).toBeGreaterThanOrEqual(0);
     expect(fixture.habits.completion).toBeLessThanOrEqual(4);
     expect(fixture.trainingModes).not.toHaveLength(0);
@@ -52,7 +53,8 @@ describe('Watch protocol v2 fixture', () => {
     expect(payloadSummary).toBe('habit_toggled · eventId=event-1');
     expect(payloadSummary).not.toContain(sensitiveValue);
     expect(summarizeWatchPayloadForDebug(sensitiveValue)).toBe('type=invalid');
-    expect(stateSummary).toContain('schema=2');
+    expect(stateSummary).toContain('schema=3');
+    expect(stateSummary).toContain('actions=on');
     expect(stateSummary).not.toContain(JSON.stringify(fixture.toilet));
   });
 

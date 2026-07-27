@@ -14,6 +14,7 @@ import { useQueryErrorNotification } from '../../api/useQueryErrorNotification';
 import { useCurrentUserQuery } from '../account/accountQueries';
 import { notifyUserError, useAuthStore } from '../account/authStore';
 import { friendQueryKeys } from './friendQueryKeys';
+import { trackGrowthEvent } from '../growth/growthEventTracker';
 
 type QueryOptions = { enabled?: boolean; refetchInterval?: false | number };
 
@@ -91,6 +92,7 @@ export function useCreateFriendInviteMutation() {
   return useMutation({
     mutationFn: () => friendsApi.createInvite(requireValue(accessToken)),
     onError: notifyUserError,
+    onSuccess: () => trackGrowthEvent('friend_invite_sent', { source: 'friend' }),
   });
 }
 
@@ -101,7 +103,10 @@ export function useAcceptFriendInviteMutation() {
   return useMutation({
     mutationFn: (token: string) => friendsApi.acceptInvite(token, requireValue(accessToken)),
     onError: notifyUserError,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: friendQueryKeys.list(userId ?? 'anonymous') }),
+    onSuccess: async () => {
+      trackGrowthEvent('friend_invite_accepted', { source: 'friend' });
+      await queryClient.invalidateQueries({ queryKey: friendQueryKeys.list(userId ?? 'anonymous') });
+    },
   });
 }
 

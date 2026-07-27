@@ -1,9 +1,7 @@
 import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Crown, Settings, Watch } from 'lucide-react-native';
+import { ChevronRight, Settings, Watch } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
-
-import type { ProStatus } from '@xiaotidu/contracts';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
@@ -12,11 +10,11 @@ import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
-import { defaultProStatus } from '../../src/features/account/accountModel';
-import { useCurrentUserQuery, useEntitlementsQuery } from '../../src/features/account/accountQueries';
+import { useCurrentUserQuery } from '../../src/features/account/accountQueries';
 import { mockUserIds, useAuthStore } from '../../src/features/account/authStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
+import { trackGrowthEvent } from '../../src/features/growth/growthEventTracker';
 
 const accountLinks = [
   {
@@ -24,12 +22,6 @@ const accountLinks = [
     href: routes.settings,
     icon: Settings,
     title: '设置',
-  },
-  {
-    description: '权益状态和订阅入口',
-    href: routes.pro,
-    icon: Crown,
-    title: '小提督 Pro',
   },
   {
     description: '查看手表同步状态',
@@ -40,7 +32,7 @@ const accountLinks = [
 ] satisfies readonly {
   description: string;
   href: Href;
-  icon: typeof Crown;
+  icon: typeof Settings;
   title: string;
 }[];
 
@@ -53,17 +45,15 @@ export default function MeScreen() {
   const logout = useAuthStore((state) => state.logout);
   const selectedMockUserId = useAuthStore((state) => state.selectedMockUserId);
   const { data: user, isFetching: isFetchingUser, refetch: refetchCurrentUser } = useCurrentUserQuery();
-  const {
-    data: entitlements,
-    isFetching: isFetchingEntitlements,
-    refetch: refetchEntitlements,
-  } = useEntitlementsQuery();
-  const proStatus = entitlements?.proStatus ?? defaultProStatus;
-  const isLoading = authIsLoading || isFetchingUser || isFetchingEntitlements;
+  const isLoading = authIsLoading || isFetchingUser;
 
   function handleRefresh() {
     void refetchCurrentUser();
-    void refetchEntitlements();
+  }
+
+  async function handleLogin(mockUserId?: (typeof mockUserIds)[number]) {
+    await loginWithMockApple(mockUserId);
+    if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'settings' });
   }
 
   return (
@@ -77,7 +67,7 @@ export default function MeScreen() {
               <Text numberOfLines={1} style={styles.profileName}>
                 {user?.nickname ?? '还没登录小提督'}
               </Text>
-              <Text style={styles.profileStatus}>{user ? formatProStatus(proStatus) : '登录后同步云端能力'}</Text>
+              <Text style={styles.profileStatus}>{user ? '云端同步已连接' : '登录后同步云端能力'}</Text>
             </View>
           </View>
 
@@ -93,8 +83,8 @@ export default function MeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.loginHint}>开发期可以先用 Mock 账号验证云端同步、好友和 Pro 入口。</Text>
-              <AppButton disabled={isLoading} onPress={() => void loginWithMockApple()}>
+              <Text style={styles.loginHint}>开发期可以先用 Mock 账号验证云端同步、好友和手表联动。</Text>
+              <AppButton disabled={isLoading} onPress={() => void handleLogin()}>
                 开发 Mock 登录
               </AppButton>
             </>
@@ -108,7 +98,7 @@ export default function MeScreen() {
                 <AppButton
                   disabled={isLoading}
                   key={mockUserId}
-                  onPress={() => void loginWithMockApple(mockUserId)}
+                  onPress={() => void handleLogin(mockUserId)}
                   style={styles.mockUserButton}
                   variant={selectedMockUserId === mockUserId && user ? 'primary' : 'secondary'}
                 >
@@ -167,20 +157,6 @@ export default function MeScreen() {
       </PageStack>
     </Screen>
   );
-}
-
-function formatProStatus(proStatus: ProStatus) {
-  switch (proStatus) {
-    case 'pro_active':
-      return '小提督 Pro';
-    case 'pro_grace_period':
-      return 'Pro 宽限期';
-    case 'pro_expired':
-      return 'Pro 已过期';
-    case 'free':
-    default:
-      return '免费版';
-  }
 }
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];

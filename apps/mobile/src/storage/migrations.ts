@@ -1,6 +1,6 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
-const latestVersion = 6;
+const latestVersion = 7;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -273,6 +273,27 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       await db.execAsync('PRAGMA user_version = 6;');
     });
     version = 6;
+  }
+
+  if (version < 7) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS growth_event_outbox (
+          sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_id TEXT NOT NULL UNIQUE,
+          installation_id TEXT NOT NULL,
+          event_name TEXT NOT NULL,
+          occurred_at TEXT NOT NULL,
+          platform TEXT NOT NULL,
+          app_version TEXT NOT NULL,
+          properties_json TEXT NOT NULL DEFAULT '{}'
+        );
+        CREATE INDEX IF NOT EXISTS idx_growth_event_outbox_sequence
+          ON growth_event_outbox (sequence);
+        PRAGMA user_version = 7;
+      `);
+    });
+    version = 7;
   }
 
   if (version !== latestVersion) throw new Error(`Unsupported database version: ${version}`);

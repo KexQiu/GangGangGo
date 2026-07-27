@@ -88,7 +88,7 @@
 - [ ] Xcode 将 `app`、`XiaoTiduWatchApp` 和 `XiaoTiduWatchComplications` 安装到真实配对设备。
 - [ ] iPhone `/watch` 显示支持、已配对和 Watch App 安装状态正确。
 - [ ] Watch App 可启动且不显示底层英文错误；开发构建才显示连接诊断，生产构建不显示 JSON、ACK 或底层字段。
-- [ ] Pro、Pro 宽限期、免费、已过期和未登录状态下，Watch 权限分别符合预期。
+- [ ] `growth_free`、`paid` 免费、`paid` 已订阅和未登录状态下，Watch 权限分别符合预期；状态以 `canUseActions` 为准。
 - [ ] Watch 始终只展示低敏状态，不展示便血、不适、排便感受或具体风险详情。
 
 结果与证据：待填写。
@@ -102,7 +102,7 @@
 - [ ] Watch 完成菊花抬后，iPhone 训练记录和 Watch 首页状态同步更新。
 - [ ] Watch 训练模式时长与 iPhone 下发配置一致；短暂卡顿后计时追上真实时间且不累计漂移。
 - [ ] 同一离线事件重复发送时，不产生重复训练、小账本或蹲会儿记录；Watch 显示可理解的成功或重复反馈。
-- [ ] 非法、过期或无 Pro 权限事件被 iPhone 拒绝时，Watch 显示中文错误且不写入新记录。
+- [ ] 非法、过期或无操作能力事件被 iPhone 拒绝时，Watch 显示中文错误且不写入新记录。
 
 结果与证据：待填写。
 
@@ -131,8 +131,8 @@
 - [ ] 将 Complication 添加到真实表盘的 circular、rectangular 和 inline 三种 family。
 - [ ] 普通状态显示低敏小账本完成度或菊花抬状态，内容清晰且不泄露敏感详情。
 - [ ] 状态过期或尚未同步时显示“打开同步”提示。
-- [ ] Pro 用户蹲会儿进行中时，Complication 显示计时状态并深链到 Watch 蹲会儿页。
-- [ ] 非 Pro、过期和未登录状态显示锁定态，点击不进入可操作页面。
+- [ ] 具备 `canUseActions` 的账号蹲会儿进行中时，Complication 显示计时状态并深链到 Watch 蹲会儿页。
+- [ ] 不具备 `canUseActions` 或未登录状态显示锁定态，点击不进入可操作页面。
 - [ ] 从表盘点击普通状态能进入 Watch 首页。
 - [ ] Watch 状态变化后，Complication 以系统允许的刷新节奏更新；记录实际延迟与系统限制。
 

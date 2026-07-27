@@ -16,6 +16,7 @@ import {
 } from '../../storage/dataSyncOutbox';
 import { getActiveLocalProfileId, getActiveProfileUserId } from '../../storage/localDataProfile';
 import { rebuildDailySummary } from '../data/dailyData';
+import { trackGrowthEvent } from '../growth/growthEventTracker';
 import { useHabitStore } from '../habits/habitStore';
 import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
@@ -23,6 +24,15 @@ import { useAuthStore } from '../account/authStore';
 import { notifyLocalDataChanged } from './localDataEvents';
 
 export async function syncCompleteHealthData() {
+  try {
+    return await performCompleteHealthDataSync();
+  } catch (error) {
+    trackGrowthEvent('sync_failed', { domain: 'full_data' });
+    throw error;
+  }
+}
+
+async function performCompleteHealthDataSync() {
   const token = useAuthStore.getState().accessToken;
   if (!token) return false;
   const profileId = await getActiveLocalProfileId();

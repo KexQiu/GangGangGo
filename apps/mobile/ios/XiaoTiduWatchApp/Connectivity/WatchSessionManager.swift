@@ -58,7 +58,7 @@ final class WatchSessionManager: ObservableObject {
   }
 
   func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) {
-    guard ensureProActionAllowed() else {
+    guard ensureActionAllowed() else {
       return
     }
 
@@ -72,7 +72,7 @@ final class WatchSessionManager: ObservableObject {
   }
 
   func sendHabitToggle(habitKey: String, level: String?) {
-    guard ensureProActionAllowed() else {
+    guard ensureActionAllowed() else {
       return
     }
 
@@ -81,7 +81,7 @@ final class WatchSessionManager: ObservableObject {
   }
 
   func sendToiletAction(_ action: String, elapsedSeconds: Int) {
-    guard ensureProActionAllowed() else {
+    guard ensureActionAllowed() else {
       return
     }
 
@@ -188,7 +188,7 @@ final class WatchSessionManager: ObservableObject {
       return
     }
 
-    let allowDelivery = todayState.account.isLoggedIn && todayState.isPro
+    let allowDelivery = todayState.account.isLoggedIn && todayState.canUseActions
     Task { [weak self, eventQueue] in
       let batch = await eventQueue.beginReplay(allowDelivery: allowDelivery)
       guard let self else {
@@ -198,7 +198,7 @@ final class WatchSessionManager: ObservableObject {
       applyPendingSnapshot(batch.snapshot)
       if batch.removedUnauthorizedCount > 0 {
         lastAckMessage = nil
-        lastError = "Pro 状态暂停，未继续同步 \(batch.removedUnauthorizedCount) 条手表操作。"
+        lastError = "账号状态暂不可用，未继续同步 \(batch.removedUnauthorizedCount) 条手表操作。"
       }
 
       for event in batch.events {
@@ -229,7 +229,7 @@ final class WatchSessionManager: ObservableObject {
   }
 
   private func prunePendingEventsForCurrentState() {
-    let allowDelivery = todayState.account.isLoggedIn && todayState.isPro
+    let allowDelivery = todayState.account.isLoggedIn && todayState.canUseActions
     Task { [weak self, eventQueue] in
       let (snapshot, removedCount) = await eventQueue.pruneForAuthorization(allowDelivery: allowDelivery)
       guard let self else {
@@ -239,7 +239,7 @@ final class WatchSessionManager: ObservableObject {
       applyPendingSnapshot(snapshot)
       if removedCount > 0 {
         lastAckMessage = nil
-        lastError = "Pro 状态暂停，未继续同步 \(removedCount) 条手表操作。"
+        lastError = "账号状态暂不可用，未继续同步 \(removedCount) 条手表操作。"
       }
     }
   }
@@ -410,28 +410,20 @@ final class WatchSessionManager: ObservableObject {
     return message
   }
 
-  private func ensureProActionAllowed() -> Bool {
+  private func ensureActionAllowed() -> Bool {
     guard todayState.account.isLoggedIn else {
       lastAckMessage = nil
       lastError = "先在 iPhone 上登录小提督。"
       return false
     }
 
-    guard todayState.isPro else {
+    guard todayState.canUseActions else {
       lastAckMessage = nil
-      lastError = proLockedMessage
+      lastError = todayState.actionLockedBody
       return false
     }
 
     return true
-  }
-
-  private var proLockedMessage: String {
-    if todayState.proStatus == "pro_expired" {
-      return "小提督 Pro 已暂停，请在 iPhone 上恢复后再使用手表联动。"
-    }
-
-    return "Apple Watch 联动属于小提督 Pro。"
   }
 
   private func applyHabitToggle(habitKey: String, isDone: Bool) {

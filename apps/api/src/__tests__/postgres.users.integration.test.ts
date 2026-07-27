@@ -60,7 +60,7 @@ describeWithDatabase('postgres user and entitlement integration', () => {
     const user = await createIntegrationUser(client, createdUserIds, 'entitlement-user');
     const service = createDrizzleEntitlementsService(client.db);
 
-    expect(await service.getEntitlements(user)).toEqual({ proStatus: 'free' });
+    expect(await service.getEntitlements(user)).toEqual(growthEntitlements('free'));
 
     const [subscription] = await client.db
       .insert(subscriptions)
@@ -72,12 +72,24 @@ describeWithDatabase('postgres user and entitlement integration', () => {
         userId: user.id,
       })
       .returning({ id: subscriptions.id });
-    expect(await service.getEntitlements(user)).toEqual({ proStatus: 'pro_active' });
+    expect(await service.getEntitlements(user)).toEqual(growthEntitlements('pro_active'));
 
     await client.db
       .update(subscriptions)
       .set({ expiresAt: new Date(Date.now() - 1_000) })
       .where(eq(subscriptions.id, subscription!.id));
-    expect(await service.getEntitlements(user)).toEqual({ proStatus: 'pro_expired' });
+    expect(await service.getEntitlements(user)).toEqual(growthEntitlements('pro_expired'));
   });
 });
+
+function growthEntitlements(proStatus: 'free' | 'pro_active' | 'pro_expired') {
+  return {
+    commercialMode: 'growth_free',
+    features: {
+      advancedReport: true,
+      reportSnapshotSync: true,
+      watchActions: true,
+    },
+    proStatus,
+  } as const;
+}

@@ -1,19 +1,15 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { PageHeader } from '../../../components/PageHeader';
 import { Screen } from '../../../components/Screen';
-import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
-import { defaultProStatus, isProStatus } from '../../account/accountModel';
-import { useCurrentUserQuery, useEntitlementsQuery } from '../../account/accountQueries';
 import {
   DailyDataCalendar,
   DailyDataDetailModal,
   DataTrendChart,
-  ProDataGate,
   TodayDataOverview,
 } from '../../data/DataDashboardSections';
 import {
@@ -27,10 +23,6 @@ import { getLocalDateKey } from '../../habits/habitLogic';
 import { createDataStyles } from '../../data/styles/dataStyles';
 
 export default function TrendsScreen() {
-  const router = useRouter();
-  const user = useCurrentUserQuery().data;
-  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
-  const isPro = isProStatus(proStatus);
   const [summaries, setSummaries] = useState<DailyActivitySummary[]>(createInitialSummaries);
   const [activeDate, setActiveDate] = useState(getLocalDateKey);
   const [detailDate, setDetailDate] = useState<string | null>(null);
@@ -60,7 +52,6 @@ export default function TrendsScreen() {
     }, []),
   );
 
-  const requestPro = () => router.push(user ? routes.pro : routes.me);
   const openDateDetails = (date: string) => {
     const requestId = detailRequestRef.current + 1;
     detailRequestRef.current = requestId;
@@ -92,11 +83,7 @@ export default function TrendsScreen() {
           <Text style={styles.privacyPillText}>保留 90 天</Text>
         </View>
       </View>
-      {isPro ? (
-        <DailyDataCalendar onSelectDate={openDateDetails} selectedDate={activeDate} summaries={summaries} />
-      ) : (
-        <ProDataGate onPress={requestPro} />
-      )}
+      <DailyDataCalendar onSelectDate={openDateDetails} selectedDate={activeDate} summaries={summaries} />
 
       <View style={styles.sectionHeader}>
         <View style={styles.sectionCopy}>
@@ -105,10 +92,8 @@ export default function TrendsScreen() {
         </View>
       </View>
       <DataTrendChart
-        isPro={isPro}
         onGestureActiveChange={setTrendGestureActive}
         onOpenDate={openDateDetails}
-        onRequestPro={requestPro}
         onSelectDate={setActiveDate}
         selectedDate={activeDate}
         summaries={summaries}

@@ -1254,6 +1254,39 @@
       "EntitlementsResponse": {
         "type": "object",
         "properties": {
+          "commercialMode": {
+            "type": "string",
+            "enum": [
+              "growth_free",
+              "paid"
+            ],
+            "default": "growth_free"
+          },
+          "features": {
+            "type": "object",
+            "properties": {
+              "advancedReport": {
+                "type": "boolean"
+              },
+              "reportSnapshotSync": {
+                "type": "boolean"
+              },
+              "watchActions": {
+                "type": "boolean"
+              }
+            },
+            "default": {
+              "advancedReport": true,
+              "reportSnapshotSync": true,
+              "watchActions": true
+            },
+            "required": [
+              "advancedReport",
+              "reportSnapshotSync",
+              "watchActions"
+            ],
+            "additionalProperties": false
+          },
           "proStatus": {
             "type": "string",
             "enum": [
@@ -1267,6 +1300,128 @@
         "required": [
           "proStatus"
         ]
+      },
+      "GrowthEventsResponse": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "additionalProperties": false
+      },
+      "GrowthEventsRequest": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "appVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "eventId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "installationId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{16,80}$"
+                },
+                "name": {
+                  "type": "string",
+                  "enum": [
+                    "app_opened",
+                    "activation_completed",
+                    "login_completed",
+                    "friend_invite_sent",
+                    "friend_invite_accepted",
+                    "advanced_report_viewed",
+                    "watch_opened",
+                    "watch_action_completed",
+                    "sync_failed",
+                    "feature_interest_submitted"
+                  ]
+                },
+                "occurredAt": {
+                  "$ref": "#/components/schemas/IsoDateTime"
+                },
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "ios",
+                    "android"
+                  ]
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "training",
+                        "habit",
+                        "toilet"
+                      ]
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": [
+                        "full_data",
+                        "report",
+                        "watch"
+                      ]
+                    },
+                    "feature": {
+                      "type": "string",
+                      "enum": [
+                        "advanced_report",
+                        "watch",
+                        "long_history",
+                        "insights"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "app_open",
+                        "trends",
+                        "watch",
+                        "friend",
+                        "settings"
+                      ]
+                    }
+                  },
+                  "default": {},
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "appVersion",
+                "eventId",
+                "installationId",
+                "name",
+                "occurredAt",
+                "platform"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "additionalProperties": false
       },
       "CreateFriendInviteResponse": {
         "type": "object",
@@ -3681,7 +3836,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "会员权益",
+        "summary": "账号能力与商业模式",
         "responses": {
           "200": {
             "description": "成功",
@@ -3692,6 +3847,221 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/EntitlementsResponse"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或会话失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "没有操作权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "请求超过限制",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/growth-events": {
+      "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "提交登录用户增长事件",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowthEventsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GrowthEventsResponse"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或会话失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "没有操作权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "请求超过限制",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/growth-events": {
+      "post": {
+        "summary": "提交匿名增长事件",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowthEventsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GrowthEventsResponse"
                     }
                   },
                   "required": [

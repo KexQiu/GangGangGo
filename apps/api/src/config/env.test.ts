@@ -10,6 +10,17 @@ describe('api env', () => {
     });
 
     expect(env.APPLE_AUTH_MODE).toBe('mock');
+    expect(env.COMMERCIAL_MODE).toBe('growth_free');
+  });
+
+  it('accepts paid commercial mode', () => {
+    const env = loadEnv({
+      COMMERCIAL_MODE: 'paid',
+      JWT_SECRET: 'test-secret-with-length',
+      NODE_ENV: 'development',
+    });
+
+    expect(env.COMMERCIAL_MODE).toBe('paid');
   });
 
   it('defaults Apple auth to real in production', () => {

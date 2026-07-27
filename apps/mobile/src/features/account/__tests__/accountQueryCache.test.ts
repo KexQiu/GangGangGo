@@ -7,6 +7,7 @@ import type { UserProfile } from '@xiaotidu/contracts';
 import { friendQueryKeys } from '../../friends/friendQueryKeys';
 import { clearCloudQueryCache, resetCloudQueryCacheForUser } from '../accountQueryCache';
 import { accountQueryKeys } from '../accountQueryKeys';
+import { defaultEntitlements } from '../accountModel';
 
 const databases: DatabaseSync[] = [];
 const oldUser = createUser('00000000-0000-4000-8000-000000000001', '旧用户');
@@ -44,7 +45,7 @@ describe('account query cache', () => {
 function createPopulatedQueryClient() {
   const queryClient = new QueryClient();
   queryClient.setQueryData(accountQueryKeys.currentUser, oldUser);
-  queryClient.setQueryData(accountQueryKeys.entitlements, { proStatus: 'pro_active' });
+  queryClient.setQueryData(accountQueryKeys.entitlements, { ...defaultEntitlements, proStatus: 'pro_active' });
   queryClient.setQueryData(friendQueryKeys.list(oldUser.id), { friends: [] });
   return queryClient;
 }

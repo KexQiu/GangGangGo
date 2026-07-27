@@ -126,7 +126,7 @@ function createHarness(
 ) {
   let appState = options.appState ?? 'active';
   const appStateListeners = new Set<(state: SyncAppState) => void>();
-  const authListeners = new Set<(change: { accessTokenChanged: boolean; proStatusChanged: boolean }) => void>();
+  const authListeners = new Set<(change: { accessTokenChanged: boolean; entitlementsChanged: boolean }) => void>();
   const localListeners = new Set<() => void>();
   const refreshEntitlements = vi.fn().mockResolvedValue(undefined);
   const registerPushToken = vi.fn().mockResolvedValue(undefined);

@@ -8,7 +8,6 @@ export const routes = {
   friends: '/friends',
   me: '/me',
   meProfile: '/me/profile',
-  pro: '/pro',
   reminders: '/reminders',
   safety: '/safety',
   settings: '/settings',

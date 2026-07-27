@@ -1,6 +1,12 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
-import type { EntitlementsResponse, ProStatus, SubscriptionStatus } from '@xiaotidu/contracts';
+import type {
+  CommercialMode,
+  EntitlementsResponse,
+  FeatureAccess,
+  ProStatus,
+  SubscriptionStatus,
+} from '@xiaotidu/contracts';
 
 import type { Database } from '../../db/client.js';
 import { subscriptions } from '../../db/schema.js';
@@ -10,12 +16,35 @@ export type EntitlementsService = {
   getEntitlements: (user: CurrentUser) => Promise<EntitlementsResponse>;
 };
 
-export function createMockEntitlementsService(): EntitlementsService {
+type EntitlementsServiceOptions = {
+  commercialMode?: CommercialMode;
+};
+
+export function resolveFeatureAccess(commercialMode: CommercialMode, proStatus: ProStatus): FeatureAccess {
+  const hasPaidAccess = proStatus === 'pro_active' || proStatus === 'pro_grace_period';
+  const enabled = commercialMode === 'growth_free' || hasPaidAccess;
+
+  return {
+    advancedReport: enabled,
+    reportSnapshotSync: enabled,
+    watchActions: enabled,
+  };
+}
+
+function toEntitlementsResponse(commercialMode: CommercialMode, proStatus: ProStatus): EntitlementsResponse {
+  return {
+    commercialMode,
+    features: resolveFeatureAccess(commercialMode, proStatus),
+    proStatus,
+  };
+}
+
+export function createMockEntitlementsService(options: EntitlementsServiceOptions = {}): EntitlementsService {
+  const commercialMode = options.commercialMode ?? 'growth_free';
+
   return {
     async getEntitlements() {
-      return {
-        proStatus: 'free',
-      };
+      return toEntitlementsResponse(commercialMode, 'free');
     },
   };
 }
@@ -49,7 +78,12 @@ export function resolveProStatus(subscription: EntitlementSubscriptionState | nu
   return 'pro_expired';
 }
 
-export function createDrizzleEntitlementsService(db: Database): EntitlementsService {
+export function createDrizzleEntitlementsService(
+  db: Database,
+  options: EntitlementsServiceOptions = {},
+): EntitlementsService {
+  const commercialMode = options.commercialMode ?? 'growth_free';
+
   return {
     async getEntitlements(user) {
       const [subscription] = await db
@@ -62,9 +96,7 @@ export function createDrizzleEntitlementsService(db: Database): EntitlementsServ
         .orderBy(desc(subscriptions.updatedAt))
         .limit(1);
 
-      return {
-        proStatus: resolveProStatus(subscription),
-      };
+      return toEntitlementsResponse(commercialMode, resolveProStatus(subscription));
     },
   };
 }

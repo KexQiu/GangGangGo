@@ -2,7 +2,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { queryClient } from '../../api/queryClient';
 import { accountQueryKeys } from '../account/accountQueryKeys';
-import { getCachedProStatus, refreshEntitlementsQuery } from '../account/accountQueryService';
+import { getCachedEntitlements, refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
 import { syncWatchTodayState } from '../watch/watchSyncService';
 import { subscribeToLocalDataChanges } from './localDataEvents';
@@ -31,19 +31,19 @@ export const syncCoordinator = new SyncCoordinator({
     return () => subscription.remove();
   },
   subscribeAuthChanges: (listener) => {
-    let previousProStatus = getCachedProStatus();
+    let previousEntitlements = entitlementsFingerprint();
     const unsubscribeAuth = useAuthStore.subscribe((state, previous) =>
       listener({
         accessTokenChanged: state.accessToken !== previous.accessToken,
-        proStatusChanged: false,
+        entitlementsChanged: false,
       }),
     );
     const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
       if (event.query.queryKey[0] !== accountQueryKeys.entitlements[0]) return;
-      const nextProStatus = getCachedProStatus();
-      if (nextProStatus === previousProStatus) return;
-      previousProStatus = nextProStatus;
-      listener({ accessTokenChanged: false, proStatusChanged: true });
+      const nextEntitlements = entitlementsFingerprint();
+      if (nextEntitlements === previousEntitlements) return;
+      previousEntitlements = nextEntitlements;
+      listener({ accessTokenChanged: false, entitlementsChanged: true });
     });
     return () => {
       unsubscribeAuth();
@@ -57,3 +57,8 @@ export const syncCoordinator = new SyncCoordinator({
   syncReports: syncRecentReportSnapshots,
   syncWatch: syncWatchTodayState,
 });
+
+function entitlementsFingerprint() {
+  const entitlements = getCachedEntitlements();
+  return entitlements ? JSON.stringify(entitlements) : 'missing';
+}

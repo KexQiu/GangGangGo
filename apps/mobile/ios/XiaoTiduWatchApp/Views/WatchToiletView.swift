@@ -14,7 +14,7 @@ struct WatchToiletView: View {
   var body: some View {
     ScrollView(.vertical) {
       Group {
-        if !session.todayState.isPro {
+        if !session.todayState.canUseActions {
           VStack(spacing: 10) {
             Text("蹲会儿")
               .font(.headline)
@@ -23,7 +23,7 @@ struct WatchToiletView: View {
               .font(.system(size: 38, weight: .bold, design: .rounded))
               .monospacedDigit()
 
-            Text(session.todayState.proLockedBody)
+            Text(session.todayState.actionLockedBody)
               .font(.caption)
               .foregroundStyle(.secondary)
               .multilineTextAlignment(.center)

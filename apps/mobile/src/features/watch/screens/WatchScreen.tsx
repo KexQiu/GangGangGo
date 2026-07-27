@@ -4,7 +4,6 @@ import {
   formatBoolean,
   formatBundleList,
   formatDebugTime,
-  formatProStatus,
   formatSyncResultMessage,
   formatToiletState,
   formatUnsupportedWatchMessage,
@@ -22,7 +21,7 @@ import { AppTopBar } from '../../../components/AppTopBar';
 import { PageHeader } from '../../../components/PageHeader';
 import { PageSection, PageStack } from '../../../components/PageStack';
 import { Screen } from '../../../components/Screen';
-import { defaultProStatus, isProStatus } from '../../../features/account/accountModel';
+import { canAccessFeature } from '../../../features/account/accountModel';
 import { useCurrentUserQuery, useEntitlementsQuery } from '../../../features/account/accountQueries';
 import { getWatchConnectivityDebugInfo, getWatchConnectivityStatus } from '../../../features/watch/watchConnectivity';
 import { useWatchDebugStore } from '../../../features/watch/watchDebugStore';
@@ -37,6 +36,7 @@ import {
 } from '../../../features/watch/watchTypes';
 import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
+import { trackGrowthEvent } from '../../growth/growthEventTracker';
 
 export default function WatchScreen() {
   const router = useRouter();
@@ -44,8 +44,9 @@ export default function WatchScreen() {
   const styles = createStyles(colors);
   const isDevelopment = __DEV__;
   const user = useCurrentUserQuery().data;
-  const proStatus = useEntitlementsQuery().data?.proStatus ?? defaultProStatus;
-  const isPro = isProStatus(proStatus);
+  const entitlementsQuery = useEntitlementsQuery();
+  const entitlements = entitlementsQuery.data;
+  const canUseActions = Boolean(user) && canAccessFeature(entitlements, 'watchActions');
   const [status, setStatus] = useState<WatchConnectivityStatus | null>(null);
   const [debugInfo, setDebugInfo] = useState<WatchConnectivityDebugInfo | null>(null);
   const [todayState, setTodayState] = useState<WatchTodayState>(() => getCurrentWatchTodayState());
@@ -87,6 +88,7 @@ export default function WatchScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      trackGrowthEvent('watch_opened', { feature: 'watch', source: 'watch' });
       void refresh();
     }, [refresh]),
   );
@@ -120,10 +122,7 @@ export default function WatchScreen() {
   return (
     <Screen>
       <AppTopBar fallbackHref={routes.me} title="Apple Watch" />
-      <PageHeader
-        subtitle="把今日低敏状态同步到手表，Pro 用户可在 Watch 上完成轻量操作。"
-        title="Apple Watch 联动"
-      />
+      <PageHeader subtitle="把今日低敏状态同步到手表，也可以直接在手腕上完成轻量操作。" title="Apple Watch 联动" />
 
       <PageStack gap="regular">
         <AppCard muted style={styles.heroCard}>
@@ -137,16 +136,15 @@ export default function WatchScreen() {
         {!user ? (
           <AppCard style={styles.noticeCard}>
             <Text style={styles.noticeTitle}>先登录小提督</Text>
-            <Text style={styles.noticeBody}>Apple Watch 联动需要账号和 Pro 权益。v0.1 本地功能不受影响。</Text>
+            <Text style={styles.noticeBody}>登录后就能同步今日状态，并在手表上完成训练、打卡和计时操作。</Text>
             <AppButton onPress={() => router.push(routes.me)}>去我的页面登录</AppButton>
           </AppCard>
         ) : null}
 
-        {user && !isPro ? (
+        {user && entitlements && !canUseActions ? (
           <AppCard style={styles.noticeCard}>
-            <Text style={styles.noticeTitle}>手腕小助手在 Pro 里</Text>
-            <Text style={styles.noticeBody}>Apple Watch 联动属于小提督 Pro。当前仍可查看低敏只读状态。</Text>
-            <AppButton onPress={() => router.push(routes.pro)}>了解 Pro</AppButton>
+            <Text style={styles.noticeTitle}>手表操作暂不可用</Text>
+            <Text style={styles.noticeBody}>请刷新账号状态后重试；今日低敏状态仍可正常同步。</Text>
           </AppCard>
         ) : null}
 
@@ -165,7 +163,18 @@ export default function WatchScreen() {
             <View style={styles.divider} />
             <StatusRow label="蹲会儿" value={formatToiletState(todayState)} />
             <View style={styles.divider} />
-            <StatusRow label="权益" value={formatProStatus(todayState.proStatus)} />
+            <StatusRow
+              label="手表操作"
+              value={
+                user && !entitlements && entitlementsQuery.isFetching
+                  ? '读取中'
+                  : todayState.canUseActions
+                    ? '已启用'
+                    : user
+                      ? '暂不可用'
+                      : '登录后可用'
+              }
+            />
           </AppCard>
         </PageSection>
 
@@ -174,7 +183,7 @@ export default function WatchScreen() {
             <RefreshCw color={colors.info} size={22} strokeWidth={2.4} />
             <View style={styles.copy}>
               <Text style={styles.actionTitle}>同步到手表</Text>
-              <Text style={styles.actionBody}>会先刷新 Pro 权益，再把低敏今日状态发送给手表。</Text>
+              <Text style={styles.actionBody}>会先刷新账号能力，再把低敏今日状态发送给手表。</Text>
             </View>
           </View>
           {message ? <Text style={styles.message}>{message}</Text> : null}

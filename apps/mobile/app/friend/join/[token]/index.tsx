@@ -15,6 +15,7 @@ import {
   useAcceptFriendInviteMutation,
   useFriendInvitePreviewQuery,
 } from '../../../../src/features/friends/friendQueries';
+import { trackGrowthEvent } from '../../../../src/features/growth/growthEventTracker';
 import { routes } from '../../../../src/navigation/routes';
 import { useAppTheme } from '../../../../src/theme/themeProvider';
 
@@ -30,6 +31,11 @@ export default function JoinFriendScreen() {
   const previewQuery = useFriendInvitePreviewQuery(token);
   const acceptInvite = useAcceptFriendInviteMutation();
   const preview = previewQuery.data;
+
+  async function handleLogin() {
+    await loginWithMockApple();
+    if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'friend' });
+  }
 
   return (
     <Screen>
@@ -54,7 +60,7 @@ export default function JoinFriendScreen() {
             <Text style={styles.description}>三类数据查看权限、我收工时通知 TA、允许接收 TA 的收工通知。</Text>
           </View>
           {!user && preview ? (
-            <AppButton disabled={authIsLoading} onPress={() => void loginWithMockApple()}>
+            <AppButton disabled={authIsLoading} onPress={() => void handleLogin()}>
               {authIsLoading ? '登录中...' : '先登录小提督'}
             </AppButton>
           ) : (

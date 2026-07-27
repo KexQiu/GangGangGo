@@ -22,6 +22,11 @@ import {
   type FriendService,
 } from '../modules/friends/friendService.js';
 import {
+  createDrizzleGrowthEventService,
+  createMockGrowthEventService,
+  type GrowthEventService,
+} from '../modules/growth/growthEventService.js';
+import {
   createExpoPushNotificationService,
   createNoopPushNotificationService,
   type PushNotificationService,
@@ -49,6 +54,7 @@ export type ApiDependencies = {
   databaseClient?: DatabaseClient;
   entitlementsService: EntitlementsService;
   friendService: FriendService;
+  growthEventService: GrowthEventService;
   pushNotificationService: PushNotificationService;
   pushTokenService: PushTokenService;
   reportService: ReportService;
@@ -64,8 +70,9 @@ export function createApiDependencies(): ApiDependencies {
       authSessionService: createMockAuthSessionService(),
       close: async () => {},
       dataSyncService: createMockDataSyncService({ friendService }),
-      entitlementsService: createMockEntitlementsService(),
+      entitlementsService: createMockEntitlementsService({ commercialMode: env.COMMERCIAL_MODE }),
       friendService,
+      growthEventService: createMockGrowthEventService(),
       pushNotificationService,
       pushTokenService: createMockPushTokenService(),
       reportService: createMockReportService(),
@@ -86,8 +93,11 @@ export function createApiDependencies(): ApiDependencies {
     },
     dataSyncService: createDrizzleDataSyncService(databaseClient.db, { friendService }),
     databaseClient,
-    entitlementsService: createDrizzleEntitlementsService(databaseClient.db),
+    entitlementsService: createDrizzleEntitlementsService(databaseClient.db, {
+      commercialMode: env.COMMERCIAL_MODE,
+    }),
     friendService,
+    growthEventService: createDrizzleGrowthEventService(databaseClient.db),
     pushNotificationService,
     pushTokenService: createDrizzlePushTokenService(databaseClient.db),
     reportService: createDrizzleReportService(databaseClient.db),
@@ -104,5 +114,5 @@ export function createDefaultAppleAuthService() {
 }
 
 export function createDefaultEntitlementsService() {
-  return createMockEntitlementsService();
+  return createMockEntitlementsService({ commercialMode: env.COMMERCIAL_MODE });
 }

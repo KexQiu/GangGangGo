@@ -75,6 +75,7 @@ struct WatchTodayState: Codable, Equatable {
   }
 
   var account: Account
+  var canUseActions: Bool
   var date: String
   var generatedAt: String
   var habits: Habits
@@ -87,17 +88,19 @@ struct WatchTodayState: Codable, Equatable {
 
   init(
     account: Account,
+    canUseActions: Bool = false,
     date: String,
     generatedAt: String,
     habits: Habits,
     pendingEventCount: Int,
     proStatus: String,
-    schemaVersion: Int = 2,
+    schemaVersion: Int = 3,
     toilet: Toilet,
     training: Training,
     trainingModes: [TrainingModeConfig] = TrainingModeConfig.fallbackModes
   ) {
     self.account = account
+    self.canUseActions = canUseActions
     self.date = date
     self.generatedAt = generatedAt
     self.habits = habits
@@ -118,6 +121,8 @@ struct WatchTodayState: Codable, Equatable {
     habits = try container.decode(Habits.self, forKey: .habits)
     pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
     proStatus = try container.decode(String.self, forKey: .proStatus)
+    canUseActions = try container.decodeIfPresent(Bool.self, forKey: .canUseActions)
+      ?? (proStatus == "pro_active" || proStatus == "pro_grace_period")
     schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
     toilet = try container.decode(Toilet.self, forKey: .toilet)
     training = try container.decode(Training.self, forKey: .training)
@@ -131,6 +136,7 @@ struct WatchTodayState: Codable, Equatable {
 
   static let placeholder = WatchTodayState(
     account: Account(isLoggedIn: false, nickname: nil),
+    canUseActions: false,
     date: "--",
     generatedAt: ISO8601DateFormatter().string(from: Date()),
     habits: Habits(bowelDone: false, completion: 0, fiberDone: false, movementDone: false, waterDone: false),
@@ -219,32 +225,20 @@ private enum WatchDateParser {
 }
 
 extension WatchTodayState {
-  var isPro: Bool {
-    proStatus == "pro_active" || proStatus == "pro_grace_period"
-  }
-
-  var proLockedTitle: String {
+  var actionLockedTitle: String {
     if !account.isLoggedIn {
       return "先登录小提督"
     }
 
-    if proStatus == "pro_expired" {
-      return "小提督 Pro 已暂停"
-    }
-
-    return "Watch 联动在 Pro 里"
+    return "手表操作暂不可用"
   }
 
-  var proLockedBody: String {
+  var actionLockedBody: String {
     if !account.isLoggedIn {
       return "先在 iPhone 上登录小提督，手表就能同步今日低敏状态。"
     }
 
-    if proStatus == "pro_expired" {
-      return "请在 iPhone 上恢复 Pro 后，再继续使用手表联动。"
-    }
-
-    return "Apple Watch 联动属于小提督 Pro。手表仍会显示今日低敏状态。"
+    return "请在 iPhone 上刷新账号状态后再试。手表仍会显示今日低敏状态。"
   }
 
   func currentToiletElapsedSeconds(now: Date = Date()) -> Int {

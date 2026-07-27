@@ -1,10 +1,9 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
-import { Crown, Database } from 'lucide-react-native';
+import { Database } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 
-import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
@@ -77,34 +76,15 @@ function Metric({ hint, label, value }: { hint: string; label: string; value: st
   );
 }
 
-export function ProDataGate({ onPress }: { onPress: () => void }) {
-  const { colors } = useAppTheme();
-  const styles = createDataStyles(colors);
-  return (
-    <AppCard style={styles.gateCard}>
-      <Crown color={colors.warning} size={24} strokeWidth={2.3} />
-      <Text style={styles.gateTitle}>90 天日历在 Pro 里</Text>
-      <Text style={styles.gateText}>完整数据会继续为登录账号同步。升级后可按日期回看 90 天明细和长期折线。</Text>
-      <AppButton onPress={onPress} variant="secondary">
-        了解 Pro
-      </AppButton>
-    </AppCard>
-  );
-}
-
 export function DataTrendChart({
-  isPro,
   onGestureActiveChange,
   onOpenDate,
-  onRequestPro,
   onSelectDate,
   selectedDate,
   summaries,
 }: {
-  isPro: boolean;
   onGestureActiveChange: (active: boolean) => void;
   onOpenDate: (date: string) => void;
-  onRequestPro: () => void;
   onSelectDate: (date: string) => void;
   selectedDate: string;
   summaries: DailyActivitySummary[];
@@ -170,8 +150,8 @@ export function DataTrendChart({
     if (summaryIndex < 0) return;
     const daysAgo = summaries.length - 1 - summaryIndex;
     const requiredRange: TrendRange = daysAgo < 7 ? 7 : daysAgo < 30 ? 30 : 90;
-    if (requiredRange > range && (requiredRange !== 90 || isPro)) setRange(requiredRange);
-  }, [isPro, range, selectedDate, summaries]);
+    if (requiredRange > range) setRange(requiredRange);
+  }, [range, selectedDate, summaries]);
   useEffect(() => {
     const index = model.days.findIndex((summary) => summary.date === selectedDate);
     if (index < 0 || index === selectedRef.current) return;
@@ -179,10 +159,6 @@ export function DataTrendChart({
     setSelected(index);
   }, [model.days, selectedDate]);
   const setChartRange = (next: TrendRange) => {
-    if (next === 90 && !isPro) {
-      onRequestPro();
-      return;
-    }
     const nextDays = summaries.slice(-next);
     const nextIndex = nextDays.findIndex((summary) => summary.date === selectedDate);
     const resolvedIndex = nextIndex >= 0 ? nextIndex : Math.max(0, nextDays.length - 1);
@@ -197,7 +173,6 @@ export function DataTrendChart({
       <Segments
         items={[7, 30, 90] as TrendRange[]}
         label={(item) => `${item} 天`}
-        disabled={(item) => item === 90 && !isPro}
         onSelect={setChartRange}
         selected={range}
       />

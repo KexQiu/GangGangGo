@@ -8,6 +8,7 @@ import {
   createFriendInvitesRoute,
   createFriendsRoute,
 } from '../modules/friends/friends.route.js';
+import { createGrowthEventsRoute } from '../modules/growth/growthEvents.route.js';
 import { createPushTokensRoute } from '../modules/push/pushTokens.route.js';
 import { createReportsRoute } from '../modules/reports/reports.route.js';
 import { createSubscriptionsRoute } from '../modules/subscriptions/subscriptions.route.js';
@@ -37,6 +38,14 @@ export function registerRoutes(app: OpenAPIHono, dependencies: ApiRouteDependenc
       userRepository: dependencies.userRepository,
     }),
   );
+  app.route(
+    '/me/growth-events',
+    createGrowthEventsRoute({
+      growthEventService: dependencies.growthEventService,
+      requiresAuth: true,
+    }),
+  );
+  app.route('/growth-events', createGrowthEventsRoute({ growthEventService: dependencies.growthEventService }));
   app.route(
     '/friend-invites',
     createFriendInvitesRoute({

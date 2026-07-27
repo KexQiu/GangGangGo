@@ -49,12 +49,12 @@ struct WatchHomeView: View {
           statusRows
         }
 
-        if !session.todayState.isPro {
+        if !session.todayState.canUseActions {
           Section {
             VStack(alignment: .leading, spacing: 5) {
-              Text(session.todayState.proLockedTitle)
+              Text(session.todayState.actionLockedTitle)
                 .fontWeight(.semibold)
-              Text(session.todayState.proLockedBody)
+              Text(session.todayState.actionLockedBody)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             }
@@ -112,7 +112,7 @@ struct WatchHomeView: View {
 
   @ViewBuilder
   private var statusRows: some View {
-    if session.todayState.isPro {
+    if session.todayState.canUseActions {
       NavigationLink(value: WatchRoute.training) {
         StatusTile(title: "菊花抬", value: trainingValue)
       }
@@ -157,7 +157,7 @@ struct WatchHomeView: View {
   }
 
   private func canOpen(_ route: WatchRoute) -> Bool {
-    guard session.todayState.isPro else {
+    guard session.todayState.canUseActions else {
       return false
     }
 
@@ -202,7 +202,7 @@ private struct StatusTile: View {
   }
 }
 
-struct WatchProLockedContent: View {
+struct WatchActionLockedContent: View {
   @EnvironmentObject private var session: WatchSessionManager
 
   var body: some View {
@@ -211,10 +211,10 @@ struct WatchProLockedContent: View {
         .font(.system(size: 34, weight: .bold))
         .foregroundStyle(.yellow)
 
-      Text(session.todayState.proLockedTitle)
+      Text(session.todayState.actionLockedTitle)
         .font(.headline)
 
-      Text(session.todayState.proLockedBody)
+      Text(session.todayState.actionLockedBody)
         .font(.caption)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)

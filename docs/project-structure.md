@@ -215,7 +215,9 @@ apps/api/
 | `POST` | `/auth/refresh` | refresh session 轮换 |
 | `POST` | `/auth/logout` | 撤销当前 session |
 | `GET/PATCH` | `/me` | 当前用户信息读取和更新 |
-| `GET` | `/me/entitlements` | 会员权益 |
+| `GET` | `/me/entitlements` | 商业模式、功能能力与兼容会员状态 |
+| `POST` | `/growth-events` | 匿名安装增长事件批量上传 |
+| `POST` | `/me/growth-events` | 登录用户增长事件批量上传与匿名关联 |
 | `POST/GET` | `/friend-invites/*` | 创建、预览和接受一次性好友邀请 |
 | `GET/PATCH/DELETE` | `/friends/*` | 好友列表、详情、权限、授权数据和删除 |
 | `GET/POST` | `/friends/*/events`、`/friends/*/nudges` | 好友时间线和固定提醒 |

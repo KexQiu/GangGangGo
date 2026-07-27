@@ -8,6 +8,7 @@ import { createMockAuthSessionService } from '../modules/auth/authSessionService
 import { createMockDataSyncService } from '../modules/dataSync/dataSyncService.js';
 import { createMockEntitlementsService } from '../modules/entitlements/entitlementsService.js';
 import { createMockFriendService } from '../modules/friends/friendService.js';
+import { createMockGrowthEventService } from '../modules/growth/growthEventService.js';
 import { createMockPushTokenService } from '../modules/push/pushTokenService.js';
 import { createMockReportService } from '../modules/reports/reportService.js';
 import { createMockUserRepository } from '../modules/users/userRepository.js';
@@ -22,6 +23,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const authSessionService = options.authSessionService ?? createMockAuthSessionService();
   const entitlementsService = options.entitlementsService ?? createMockEntitlementsService();
   const friendService = options.friendService ?? createMockFriendService();
+  const growthEventService = options.growthEventService ?? createMockGrowthEventService();
   const dataSyncService = options.dataSyncService ?? createMockDataSyncService({ friendService });
   const pushTokenService = options.pushTokenService ?? createMockPushTokenService();
   const reportService = options.reportService ?? createMockReportService();
@@ -40,6 +42,7 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
     databaseHealthChecker: options.databaseHealthChecker,
     entitlementsService,
     friendService,
+    growthEventService,
     pushTokenService,
     reportService,
     userRepository,

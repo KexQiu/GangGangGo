@@ -42,7 +42,7 @@ private struct XiaoTiduComplicationProvider: TimelineProvider {
 
     if entry.isStale {
       minuteOffset = 10
-    } else if entry.state?.isPro == true && entry.state?.toilet.isRunning == true {
+    } else if entry.state?.canUseActions == true && entry.state?.toilet.isRunning == true {
       minuteOffset = 1
     } else {
       minuteOffset = 30
@@ -167,15 +167,15 @@ private struct XiaoTiduComplicationPresentation {
       return
     }
 
-    guard state.isPro else {
+    guard state.canUseActions else {
       accent = .yellow
-      circularText = "Pro"
-      detail = "手表联动在 Pro 里"
-      footnote = "已禁用"
+      circularText = state.account.isLoggedIn ? "同步" : "登录"
+      detail = state.account.isLoggedIn ? "手表操作暂不可用" : "先登录小提督"
+      footnote = state.account.isLoggedIn ? "请在 iPhone 刷新" : "打开 iPhone 登录"
       iconName = "lock.fill"
-      inlineText = "小提督 Pro 可用"
+      inlineText = state.account.isLoggedIn ? "小提督 手表暂不可用" : "小提督 请先登录"
       progress = 0
-      title = "小提督 Pro"
+      title = "小提督"
       widgetURL = nil
       return
     }
