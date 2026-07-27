@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createToiletRecordDraft,
+  isToiletStoolColor,
   MAX_TOILET_SIGNALS_PER_SESSION,
   normalizeToiletSignalLabel,
   normalizeToiletSignals,
+  toiletStoolColorOptions,
 } from '../toiletRecordLogic';
 import { buildLocalToiletHistoryCalendarDays, mergeToiletHistoryIntoCalendarDays } from '../toiletHistoryPresentation';
 
@@ -21,6 +23,29 @@ describe('toilet record logic', () => {
     });
 
     expect(draft).toMatchObject({ signals: [], stoolColor: null, stoolShape: null });
+  });
+
+  it('limits new color choices while safely reading the retired legacy value', () => {
+    expect(toiletStoolColorOptions).toEqual([
+      { label: '常见颜色', value: 'normal' },
+      { label: '需要留意', value: 'attention' },
+    ]);
+    expect(isToiletStoolColor('other')).toBe(true);
+
+    const draft = createToiletRecordDraft({
+      bleeding: false,
+      discomfort: false,
+      durationSeconds: 180,
+      endedAt: '2026-07-27T08:03:00.000Z',
+      feeling: 'normal',
+      id: 'legacy-other-color',
+      signals: [],
+      startedAt: '2026-07-27T08:00:00.000Z',
+      stoolColor: 'other',
+      stoolShape: null,
+    });
+
+    expect(draft.stoolColor).toBeNull();
   });
 
   it('normalizes custom labels and rejects malformed or duplicate signal snapshots', () => {

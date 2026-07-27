@@ -3,6 +3,7 @@ import {
   type ToiletSession,
   type ToiletSignal,
   type ToiletStoolColor,
+  type ToiletStoolColorOption,
   type ToiletStoolShape,
 } from './toiletTypes';
 
@@ -16,10 +17,9 @@ export const toiletStoolShapeOptions: Array<{ label: string; value: ToiletStoolS
   { label: '偏稀', value: 'loose' },
 ];
 
-export const toiletStoolColorOptions: Array<{ label: string; value: ToiletStoolColor }> = [
+export const toiletStoolColorOptions: Array<{ label: string; value: ToiletStoolColorOption }> = [
   { label: '常见颜色', value: 'normal' },
   { label: '需要留意', value: 'attention' },
-  { label: '其他', value: 'other' },
 ];
 
 export const builtInToiletSignals: ToiletSignal[] = [
@@ -30,7 +30,12 @@ export const builtInToiletSignals: ToiletSignal[] = [
 ];
 
 const toiletStoolShapes = new Set<ToiletStoolShape>(toiletStoolShapeOptions.map((option) => option.value));
-const toiletStoolColors = new Set<ToiletStoolColor>(toiletStoolColorOptions.map((option) => option.value));
+const toiletStoolColors = new Set<ToiletStoolColor>(['normal', 'attention', 'other']);
+const toiletStoolColorLabels: Record<ToiletStoolColor, string> = {
+  attention: '需要留意',
+  normal: '常见颜色',
+  other: '其他',
+};
 
 export function createToiletRecordDraft(session: ToiletSession): ToiletRecordDraft {
   return {
@@ -39,7 +44,7 @@ export function createToiletRecordDraft(session: ToiletSession): ToiletRecordDra
     durationSeconds: session.durationSeconds,
     feeling: session.feeling,
     signals: normalizeToiletSignals(session.signals),
-    stoolColor: session.stoolColor ?? null,
+    stoolColor: toSelectableToiletStoolColor(session.stoolColor),
     stoolShape: session.stoolShape ?? null,
   };
 }
@@ -49,7 +54,7 @@ export function getToiletStoolShapeLabel(value: ToiletStoolShape | null | undefi
 }
 
 export function getToiletStoolColorLabel(value: ToiletStoolColor | null | undefined): string | null {
-  return toiletStoolColorOptions.find((option) => option.value === value)?.label ?? null;
+  return value ? toiletStoolColorLabels[value] : null;
 }
 
 export function isToiletStoolShape(value: unknown): value is ToiletStoolShape {
@@ -58,6 +63,12 @@ export function isToiletStoolShape(value: unknown): value is ToiletStoolShape {
 
 export function isToiletStoolColor(value: unknown): value is ToiletStoolColor {
   return typeof value === 'string' && toiletStoolColors.has(value as ToiletStoolColor);
+}
+
+export function toSelectableToiletStoolColor(
+  value: ToiletStoolColor | null | undefined,
+): ToiletStoolColorOption | null {
+  return value === 'normal' || value === 'attention' ? value : null;
 }
 
 export function normalizeToiletSignalLabel(value: string): string {

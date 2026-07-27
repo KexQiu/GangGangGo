@@ -2,7 +2,11 @@ export type ToiletFeeling = 'smooth' | 'normal' | 'difficult';
 
 export type ToiletStoolShape = 'hard' | 'formed' | 'loose';
 
+// `other` is retained only to read legacy local and synced records. New records
+// intentionally expose the two choices that users can act on.
 export type ToiletStoolColor = 'normal' | 'attention' | 'other';
+
+export type ToiletStoolColorOption = Exclude<ToiletStoolColor, 'other'>;
 
 export type ToiletSignal = {
   id: string;
