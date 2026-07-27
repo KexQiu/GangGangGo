@@ -7,6 +7,7 @@ import { PageHeader } from '../../../components/PageHeader';
 import { Screen } from '../../../components/Screen';
 import { useAppTheme } from '../../../theme/themeProvider';
 import {
+  type DailyDataDetailSection,
   DailyDataCalendar,
   DailyDataDetailModal,
   DataTrendChart,
@@ -26,6 +27,7 @@ export default function TrendsScreen() {
   const [summaries, setSummaries] = useState<DailyActivitySummary[]>(createInitialSummaries);
   const [activeDate, setActiveDate] = useState(getLocalDateKey);
   const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [detailSection, setDetailSection] = useState<DailyDataDetailSection | null>(null);
   const [details, setDetails] = useState<DailyDataDetails | null>(null);
   const [trendGestureActive, setTrendGestureActive] = useState(false);
   const detailRequestRef = useRef(0);
@@ -52,11 +54,12 @@ export default function TrendsScreen() {
     }, []),
   );
 
-  const openDateDetails = (date: string) => {
+  const openDateDetails = (date: string, section: DailyDataDetailSection | null = null) => {
     const requestId = detailRequestRef.current + 1;
     detailRequestRef.current = requestId;
     setActiveDate(date);
     setDetailDate(date);
+    setDetailSection(section);
     setDetails(null);
     void getDailyDataDetails(date)
       .then((next) => {
@@ -72,7 +75,7 @@ export default function TrendsScreen() {
     <Screen scrollEnabled={!trendGestureActive}>
       <PageHeader subtitle="从今天的细节，到 90 天的身体节奏。" title="数据回看" />
 
-      <TodayDataOverview summary={today} />
+      <TodayDataOverview onOpenDetails={(section) => openDateDetails(today.date, section)} summary={today} />
 
       <View style={styles.sectionHeader}>
         <View style={styles.sectionCopy}>
@@ -106,7 +109,9 @@ export default function TrendsScreen() {
           detailRequestRef.current += 1;
           setDetailDate(null);
           setDetails(null);
+          setDetailSection(null);
         }}
+        section={detailSection}
       />
     </Screen>
   );

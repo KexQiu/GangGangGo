@@ -27,7 +27,21 @@ import { createDataStyles } from './styles/dataStyles';
 
 export { DailyDataCalendar } from './DailyDataCalendar';
 
-export function TodayDataOverview({ summary }: { summary: DailyActivitySummary }) {
+export type DailyDataDetailSection = 'toilet' | 'training' | 'habit';
+
+const detailSectionLabels: Record<DailyDataDetailSection, string> = {
+  habit: '小账本',
+  toilet: '蹲会儿',
+  training: '菊花抬',
+};
+
+export function TodayDataOverview({
+  onOpenDetails,
+  summary,
+}: {
+  onOpenDetails: (section: DailyDataDetailSection) => void;
+  summary: DailyActivitySummary;
+}) {
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
   return (
@@ -42,37 +56,32 @@ export function TodayDataOverview({ summary }: { summary: DailyActivitySummary }
         </View>
       </View>
       <View style={styles.todayMetrics}>
+        <Metric label="蹲会儿" onPress={() => onOpenDetails('toilet')} value={`${summary.toilet.sessionCount} 次`} />
         <Metric
-          hint={`${formatMinutes(summary.training.totalDurationSeconds)} 分钟`}
           label="菊花抬"
+          onPress={() => onOpenDetails('training')}
           value={`${summary.training.completedSessionCount} 次`}
         />
-        <Metric hint={formatHabitSummary(summary)} label="小账本" value={`${summary.habit.completionCount}/4 项`} />
-        <Metric
-          hint={
-            summary.toilet.attentionCount > 0
-              ? `${summary.toilet.attentionCount} 次需留意`
-              : `${formatMinutes(summary.toilet.totalDurationSeconds)} 分钟`
-          }
-          label="蹲会儿"
-          value={`${summary.toilet.sessionCount} 次`}
-        />
+        <Metric label="小账本" onPress={() => onOpenDetails('habit')} value={`${summary.habit.completionCount}/4 项`} />
       </View>
     </AppCard>
   );
 }
 
-function Metric({ hint, label, value }: { hint: string; label: string; value: string }) {
+function Metric({ label, onPress, value }: { label: string; onPress: () => void; value: string }) {
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
   return (
-    <View style={styles.metric}>
+    <Pressable
+      accessibilityHint={`查看今天${label}的详情`}
+      accessibilityLabel={`${label}，${value}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.metric, pressed ? styles.metricPressed : null]}
+    >
       <Text style={styles.metricValue}>{value}</Text>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text numberOfLines={1} style={styles.metricHint}>
-        {hint}
-      </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -394,10 +403,12 @@ export function DailyDataDetailModal({
   date,
   details,
   onClose,
+  section,
 }: {
   date: string | null;
   details: DailyDataDetails | null;
   onClose: () => void;
+  section: DailyDataDetailSection | null;
 }) {
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
@@ -406,7 +417,7 @@ export function DailyDataDetailModal({
   if (date) lastPresentedDate.current = date;
   const displayedDate = date ?? lastPresentedDate.current;
 
-  useEffect(() => setExpandedId(null), [date]);
+  useEffect(() => setExpandedId(null), [date, section]);
 
   if (!displayedDate) return null;
   return (
@@ -415,6 +426,7 @@ export function DailyDataDetailModal({
       contentContainerStyle={styles.modalContent}
       maxHeight="82%"
       onClose={onClose}
+      subtitle={section ? `${detailSectionLabels[section]} · 今日详情` : '训练、小账本与蹲会儿明细'}
       title={formatFullDate(displayedDate)}
       visible={Boolean(date)}
     >
@@ -423,6 +435,11 @@ export function DailyDataDetailModal({
           {details ? (
             <>
               <View style={styles.detailSummary}>
+                <DetailSummaryMetric
+                  color={colors.warning}
+                  label="蹲会儿"
+                  value={`${details.summary.toilet.sessionCount} 次`}
+                />
                 <DetailSummaryMetric
                   color={colors.primary}
                   label="菊花抬"
@@ -433,29 +450,16 @@ export function DailyDataDetailModal({
                   label="小账本"
                   value={`${details.summary.habit.completionCount}/4 项`}
                 />
-                <DetailSummaryMetric
-                  color={colors.warning}
-                  label="蹲会儿"
-                  value={`${details.summary.toilet.sessionCount} 次`}
+              </View>
+              {section === null || section === 'toilet' ? (
+                <ToiletDetails
+                  details={details}
+                  expandedId={expandedId}
+                  onToggle={(id) => setExpandedId((current) => (current === id ? null : id))}
                 />
-              </View>
-              <TrainingDetails details={details} />
-              <HabitDetails summary={details.summary} />
-              <View style={styles.detailSection}>
-                <Text style={styles.detailTitle}>蹲会儿明细</Text>
-                {details.toiletSessions.length === 0 ? (
-                  <Text style={styles.emptyText}>当天没有蹲会儿记录</Text>
-                ) : (
-                  details.toiletSessions.map((session) => (
-                    <ToiletDetailCard
-                      expanded={expandedId === session.id}
-                      key={session.id}
-                      onToggle={() => setExpandedId(expandedId === session.id ? null : session.id)}
-                      session={session}
-                    />
-                  ))
-                )}
-              </View>
+              ) : null}
+              {section === null || section === 'training' ? <TrainingDetails details={details} /> : null}
+              {section === null || section === 'habit' ? <HabitDetails summary={details.summary} /> : null}
             </>
           ) : (
             <View style={styles.modalLoading}>
@@ -465,6 +469,36 @@ export function DailyDataDetailModal({
         </>
       ) : null}
     </AppSheet>
+  );
+}
+
+function ToiletDetails({
+  details,
+  expandedId,
+  onToggle,
+}: {
+  details: DailyDataDetails;
+  expandedId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  const { colors } = useAppTheme();
+  const styles = createDataStyles(colors);
+  return (
+    <View style={styles.detailSection}>
+      <Text style={styles.detailTitle}>蹲会儿明细</Text>
+      {details.toiletSessions.length === 0 ? (
+        <Text style={styles.emptyText}>当天没有蹲会儿记录</Text>
+      ) : (
+        details.toiletSessions.map((session) => (
+          <ToiletDetailCard
+            expanded={expandedId === session.id}
+            key={session.id}
+            onToggle={() => onToggle(session.id)}
+            session={session}
+          />
+        ))
+      )}
+    </View>
   );
 }
 
@@ -614,18 +648,11 @@ function emptyTrendMessage(category: TrendCategory) {
       ? '这段时间还没有小账本记录'
       : '这段时间还没有蹲会儿记录';
 }
-function formatHabitSummary(summary: DailyActivitySummary) {
-  const count = summary.habit.completionCount;
-  return count === 4 ? '记录完整' : count > 0 ? `已记录 ${count} 项` : '尚未记录';
-}
 function habitLabel(value: string | null) {
   return value === 'good' ? '达标' : value === 'medium' ? '一般' : value === 'low' ? '偏少' : '未记录';
 }
 function feelingLabel(value: ToiletSession['feeling']) {
   return { difficult: '困难', normal: '一般', smooth: '顺畅' }[value];
-}
-function formatMinutes(seconds: number) {
-  return Math.round(seconds / 60);
 }
 function formatDuration(seconds: number) {
   const minutes = Math.floor(seconds / 60);

@@ -56,7 +56,7 @@ export function createDataStyles(colors: ThemeColors) {
       textAlign: 'center',
     },
     metricLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '800', marginTop: 4, textAlign: 'center' },
-    metricHint: { color: colors.textSubtle, fontSize: 9, fontWeight: '700', marginTop: 4, textAlign: 'center' },
+    metricPressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
     gateCard: { alignItems: 'flex-start', gap: 8, marginBottom: 20 },
     gateTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
     gateText: { color: colors.textMuted, fontSize: 13, fontWeight: '600', lineHeight: 19 },
