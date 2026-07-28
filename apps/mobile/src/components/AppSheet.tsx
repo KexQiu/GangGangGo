@@ -12,11 +12,13 @@ import {
   type StyleProp,
   type ViewStyle,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 import { useAppTheme } from '../theme/themeProvider';
 
-const sheetEnterTranslateY = 64;
+const sheetAnimationDuration = 280;
+const dialogAnimationDuration = 180;
 
 type AppSheetPresentation = 'dialog' | 'sheet';
 
@@ -59,71 +61,78 @@ export function AppSheet({
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const [isPresented, setIsPresented] = useState(visible);
+  const [isPanelReady, setIsPanelReady] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const isPresentedRef = useRef(visible);
+  const isPanelReadyRef = useRef(false);
+  const visibleRef = useRef(visible);
   const cachedChildren = useRef<ReactNode>(children);
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(sheetEnterTranslateY)).current;
+  const transitionProgress = useRef(new Animated.Value(0)).current;
 
+  visibleRef.current = visible;
   if (visible) cachedChildren.current = children;
 
   useEffect(() => {
+    let frame: number | null = null;
+    let transition: Animated.CompositeAnimation | null = null;
+    const target = visible ? 1 : 0;
+    const duration = presentation === 'sheet' ? sheetAnimationDuration : dialogAnimationDuration;
+
     if (visible) {
-      setIsPresented(true);
-      return;
+      if (!isPresentedRef.current) {
+        isPresentedRef.current = true;
+        isPanelReadyRef.current = false;
+        setIsPanelReady(false);
+        setIsPresented(true);
+        return;
+      }
+      if (!isPanelReady) return;
+      // Wait for Modal to mount so its first painted frame matches the animation start.
+      frame = requestAnimationFrame(() => {
+        transitionProgress.stopAnimation((currentValue) => {
+          const distance = Math.abs(target - currentValue);
+          transition = Animated.timing(transitionProgress, {
+            duration: Math.max(90, Math.round(duration * distance)),
+            easing: Easing.out(Easing.cubic),
+            toValue: target,
+            useNativeDriver: true,
+          });
+          transition.start();
+        });
+      });
+    } else if (isPresentedRef.current) {
+      transitionProgress.stopAnimation((currentValue) => {
+        const distance = Math.abs(target - currentValue);
+        transition = Animated.timing(transitionProgress, {
+          duration: Math.max(80, Math.round(duration * distance)),
+          easing: Easing.in(Easing.cubic),
+          toValue: target,
+          useNativeDriver: true,
+        });
+        transition.start(({ finished }) => {
+          if (finished && !visibleRef.current) {
+            isPresentedRef.current = false;
+            isPanelReadyRef.current = false;
+            setIsPanelReady(false);
+            setIsPresented(false);
+          }
+        });
+      });
     }
 
-    if (!isPresented) return;
-
-    const closingAnimation = Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: 150,
-        easing: Easing.in(Easing.cubic),
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-      Animated.timing(sheetTranslateY, {
-        duration: 160,
-        easing: Easing.in(Easing.cubic),
-        toValue: presentation === 'sheet' ? sheetEnterTranslateY : 12,
-        useNativeDriver: true,
-      }),
-    ]);
-
-    closingAnimation.start(({ finished }) => {
-      if (finished) setIsPresented(false);
-    });
-
-    return () => closingAnimation.stop();
-  }, [backdropOpacity, isPresented, presentation, sheetTranslateY, visible]);
-
-  useEffect(() => {
-    if (!visible || !isPresented) return;
-
-    backdropOpacity.setValue(0);
-    sheetTranslateY.setValue(presentation === 'sheet' ? sheetEnterTranslateY : 12);
-    const openingAnimation = Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        duration: 170,
-        easing: Easing.out(Easing.cubic),
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.spring(sheetTranslateY, {
-        damping: 22,
-        mass: 0.8,
-        stiffness: 250,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-    ]);
-    const frame = requestAnimationFrame(() => openingAnimation.start());
-
     return () => {
-      cancelAnimationFrame(frame);
-      openingAnimation.stop();
+      if (frame !== null) cancelAnimationFrame(frame);
+      transition?.stop();
     };
-  }, [backdropOpacity, isPresented, presentation, sheetTranslateY, visible]);
+  }, [isPanelReady, presentation, transitionProgress, visible]);
 
   const content = visible ? children : cachedChildren.current;
+  const hiddenTranslateY = presentation === 'sheet' ? windowHeight : 16;
+  const panelOpacity = presentation === 'dialog' ? transitionProgress : 1;
+  const panelTranslateY = transitionProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [hiddenTranslateY, 0],
+  });
   const panelStyle = [
     styles.panel,
     presentation === 'sheet' ? styles.sheet : styles.dialog,
@@ -133,14 +142,22 @@ export function AppSheet({
   return (
     <Modal animationType="none" onRequestClose={onClose} statusBarTranslucent transparent visible={isPresented}>
       <View style={[styles.root, presentation === 'dialog' ? styles.dialogRoot : null]}>
-        <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: backdropOpacity }]} />
+        <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: transitionProgress }]} />
         <Pressable
           accessibilityLabel={accessibilityLabel}
           accessibilityRole="button"
           onPress={onClose}
-          style={styles.backdrop}
+          style={styles.backdropPressTarget}
         />
-        <Animated.View style={[panelStyle, { transform: [{ translateY: sheetTranslateY }] }]}>
+        <Animated.View
+          onLayout={() => {
+            if (isPanelReadyRef.current) return;
+
+            isPanelReadyRef.current = true;
+            setIsPanelReady(true);
+          }}
+          style={[panelStyle, { opacity: panelOpacity, transform: [{ translateY: panelTranslateY }] }]}
+        >
           {presentation === 'sheet' ? <View style={styles.handle} /> : null}
           <View style={styles.header}>
             <View style={styles.headerCopy}>
@@ -185,6 +202,7 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(12, 21, 16, 0.48)' },
+    backdropPressTarget: StyleSheet.absoluteFillObject,
     closeButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
