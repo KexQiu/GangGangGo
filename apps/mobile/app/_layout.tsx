@@ -3,7 +3,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '../src/api/queryClient';
 import { AppToastHost } from '../src/components/toast/AppToast';
@@ -62,18 +62,31 @@ function RootStack() {
 
   useEffect(() => {
     if (!authHasHydrated) return;
-    void purgeExpiredLocalHealthData()
-      .then(() => rebuildRecentDailySummaries())
-      .then(() =>
-        Promise.all([
-          useTrainingStore.getState().hydrate(),
-          useToiletStore.getState().hydrate(),
-          useHabitStore.getState().hydrate(),
-          useReminderStore.getState().hydrate(),
-        ]),
-      )
-      .finally(() => syncCoordinator.start());
-    return () => syncCoordinator.stop();
+    let cancelled = false;
+
+    async function hydrateAppData() {
+      try {
+        await purgeExpiredLocalHealthData();
+        await rebuildRecentDailySummaries();
+      } catch {
+        // A cleanup or summary rebuild failure should not block the local stores from loading.
+      }
+
+      await Promise.all([
+        useTrainingStore.getState().hydrate(),
+        useToiletStore.getState().hydrate(),
+        useHabitStore.getState().hydrate(),
+        useReminderStore.getState().hydrate(),
+      ]);
+
+      if (!cancelled) syncCoordinator.start();
+    }
+
+    void hydrateAppData();
+    return () => {
+      cancelled = true;
+      syncCoordinator.stop();
+    };
   }, [authHasHydrated]);
 
   return (
@@ -95,7 +108,7 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <AppThemeProvider>
           <RootStack />
         </AppThemeProvider>

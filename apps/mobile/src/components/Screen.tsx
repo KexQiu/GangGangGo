@@ -1,6 +1,6 @@
 import { Children, isValidElement, type PropsWithChildren, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppTopBar } from './AppTopBar';
 import { useAppTheme } from '../theme/themeProvider';
@@ -20,30 +20,39 @@ export function Screen({
   scrollEnabled = true,
 }: ScreenProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const styles = createStyles(colors.background);
-  const edges: Edge[] = bottomSafeArea ? ['top', 'right', 'bottom', 'left'] : ['top', 'right', 'left'];
+  const safeAreaStyle = {
+    paddingBottom: bottomSafeArea ? insets.bottom : 0,
+    paddingLeft: insets.left,
+    paddingRight: insets.right,
+    paddingTop: insets.top,
+  };
   const { fixedTopBar, scrollChildren } = extractFixedTopBar(children);
 
   if (!scroll) {
     return (
-      <SafeAreaView edges={edges} style={[styles.safeArea, contentStyle]}>
-        {fixedTopBar ? <View style={styles.fixedTopBar}>{fixedTopBar}</View> : null}
-        {scrollChildren}
-      </SafeAreaView>
+      <View style={[styles.safeArea, safeAreaStyle]}>
+        <View style={[styles.nonScrollContent, contentStyle]}>
+          {fixedTopBar ? <View style={styles.fixedTopBar}>{fixedTopBar}</View> : null}
+          {scrollChildren}
+        </View>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView edges={edges} style={styles.safeArea}>
+    <View style={[styles.safeArea, safeAreaStyle]}>
       {fixedTopBar ? <View style={styles.fixedTopBar}>{fixedTopBar}</View> : null}
       <ScrollView
+        automaticallyAdjustContentInsets={false}
         contentContainerStyle={[styles.content, contentStyle]}
         scrollEnabled={scrollEnabled}
         showsVerticalScrollIndicator={false}
       >
         {scrollChildren}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -94,6 +103,9 @@ function createStyles(backgroundColor: string) {
     fixedTopBar: {
       paddingHorizontal: 24,
       paddingTop: 8,
+    },
+    nonScrollContent: {
+      flex: 1,
     },
   });
 }
