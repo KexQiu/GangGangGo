@@ -8,18 +8,21 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_RUNTIME_ENV": "development",
         "EXPO_PUSH_ENV": "development"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_RUNTIME_ENV": "preview",
         "EXPO_PUSH_ENV": "production"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_RUNTIME_ENV": "production",
         "EXPO_PUSH_ENV": "production"
       }
     }

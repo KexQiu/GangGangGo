@@ -42,12 +42,18 @@ import {
   type ReportService,
 } from '../modules/reports/reportService.js';
 import {
+  createDrizzleAccountDataService,
+  createMockAccountDataService,
+  type AccountDataService,
+} from '../modules/users/accountDataService.js';
+import {
   createDrizzleUserRepository,
   createMockUserRepository,
   type UserRepository,
 } from '../modules/users/userRepository.js';
 
 export type ApiDependencies = {
+  accountDataService: AccountDataService;
   close: () => Promise<void>;
   authSessionService: AuthSessionService;
   dataSyncService: DataSyncService;
@@ -66,7 +72,10 @@ export function createApiDependencies(): ApiDependencies {
     const pushNotificationService = createNoopPushNotificationService();
     const friendService = createMockFriendService({ pushNotificationService });
 
+    const userRepository = createMockUserRepository();
+
     return {
+      accountDataService: createMockAccountDataService(userRepository),
       authSessionService: createMockAuthSessionService(),
       close: async () => {},
       dataSyncService: createMockDataSyncService({ friendService }),
@@ -76,7 +85,7 @@ export function createApiDependencies(): ApiDependencies {
       pushNotificationService,
       pushTokenService: createMockPushTokenService(),
       reportService: createMockReportService(),
-      userRepository: createMockUserRepository(),
+      userRepository,
     };
   }
 
@@ -87,6 +96,7 @@ export function createApiDependencies(): ApiDependencies {
   const friendService = createDrizzleFriendService(databaseClient.db, { pushNotificationService });
 
   return {
+    accountDataService: createDrizzleAccountDataService(databaseClient.db),
     authSessionService: createDrizzleAuthSessionService(databaseClient.db),
     close: async () => {
       await databaseClient.close();

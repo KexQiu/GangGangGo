@@ -1,336 +1,288 @@
 # 小提督项目结构说明
 
-日期：2026-07-13
-阶段：Architecture v2 / P1 优化后的 monorepo 工程结构
+日期：2026-08-06
+阶段：v0.2 模块化 monorepo
 
 ## 1. 总体结构
 
-当前仓库采用 pnpm monorepo。移动端、后端和共享运行时契约位于同一仓库，统一执行类型、lint、格式、测试、OpenAPI 漂移和 Apple 原生构建门禁。
+仓库使用 pnpm workspace，移动端、API 与共享运行时契约在同一仓库内统一构建和校验。
 
 ```text
 .
+├── .github/workflows/ci.yml
+├── .nvmrc
 ├── apps/
-│   ├── mobile/              # Expo App、iOS / Watch target 与本地 Expo Modules
-│   └── api/                 # Hono + Postgres + Drizzle 模块化 API
-├── packages/
-│   └── contracts/           # 前后端共享 Zod schema 与推导类型
+│   ├── api/
+│   └── mobile/
 ├── docs/
-│   ├── architecture/        # ADR 与结构优化待办
-│   ├── v0.1/                # v0.1 归档文档
-│   └── v0.2/                # v0.2 需求、实现和验收文档
-├── package.json             # monorepo 根脚本
-├── pnpm-workspace.yaml      # pnpm workspace 配置
-└── pnpm-lock.yaml
+├── packages/
+│   └── contracts/
+├── scripts/
+├── package.json
+├── pnpm-lock.yaml
+└── pnpm-workspace.yaml
 ```
 
-工作区包名：
-
-| 路径 | 包名 | 说明 |
+| 路径 | 包名 | 职责 |
 | --- | --- | --- |
-| `apps/mobile` | `@xiaotidu/mobile` | Expo + React Native 移动端 App |
-| `apps/api` | `@xiaotidu/api` | Hono + Drizzle 模块化 API |
-| `packages/contracts` | `@xiaotidu/contracts` | Zod 运行时契约与推导类型 |
+| `apps/mobile` | `@xiaotidu/mobile` | Expo + React Native、iOS Live Activity、Apple Watch |
+| `apps/api` | `@xiaotidu/api` | Hono + Drizzle + PostgreSQL API |
+| `packages/contracts` | `@xiaotidu/contracts` | 前后端共享 Zod schema 与 TypeScript 类型 |
 
-## 2. 根目录职责
+根目录固定 pnpm 10.32 和 Node 22 类型基线；本地可使用 Node 22-24，CI 使用 Node 22。
 
-根目录只放 monorepo 级别配置，不再放移动端源码。
+## 2. 根脚本与门禁
 
-关键文件：
-
-| 文件 | 说明 |
-| --- | --- |
-| `package.json` | 根脚本，统一调度移动端、后端和类型检查 |
-| `pnpm-workspace.yaml` | 声明 `apps/*` 和 `packages/*` 工作区 |
-| `pnpm-lock.yaml` | 全仓库统一依赖锁定 |
-| `.gitignore` | 统一忽略依赖、构建产物和本地环境文件 |
-
-常用根脚本：
+常用命令：
 
 ```bash
-pnpm mobile:start
+pnpm api:dev
+pnpm build
+pnpm api:start
 pnpm mobile:ios
 pnpm mobile:android
-pnpm mobile:dev-client
-pnpm api:dev
-pnpm api:start
 pnpm check
 ```
 
-依赖安装应在仓库根目录执行：
+`pnpm build` 先生成 contracts 的 ESM 产物，再把 API 编译到 `apps/api/dist`；`pnpm api:start` 只运行编译后的 JavaScript，不依赖运行时 `tsx`。
 
-```bash
-pnpm install
-```
+`pnpm check` 包含版本一致性、生产构建、全仓类型检查、ESLint、Prettier、测试、OpenAPI 漂移检查，以及 iOS/Android Expo bundle 门禁。Apple 原生 scheme 继续由 macOS CI 构建。
 
-## 3. 移动端结构
+## 3. 移动端
 
-移动端位于 `apps/mobile`，保留 Expo Router 的标准结构。
-
-```text
-apps/mobile/
-├── app.config.ts
-├── eas.json
-├── package.json
-├── tsconfig.json
-├── app/                    # 只负责参数、导航和 feature screen 挂载
-├── src/                    # 移动端业务源码
-├── modules/                # Live Activity、WatchConnectivity、SQLite 保护 Expo Modules
-├── assets/                 # 图标、启动图、音效
-└── ios/                    # iOS 原生工程与 Live Activity 扩展
-```
-
-### 3.1 页面路由
+### 3.1 路由
 
 ```text
 apps/mobile/app/
 ├── _layout.tsx
+├── +native-intent.ts
 ├── (tabs)/
 │   ├── _layout.tsx
 │   ├── index.tsx
 │   ├── trends.tsx
-│   ├── team.tsx
+│   ├── friends.tsx
 │   └── me.tsx
+├── friend/join/[token]/index.tsx
+├── friends/
+│   ├── invite/index.tsx
+│   └── [userId]/
+│       ├── index.tsx
+│       └── events.tsx
+├── habits/index.tsx
+├── me/profile/index.tsx
+├── pro/index.tsx
+├── reminders/index.tsx
+├── safety/index.tsx
 ├── settings/index.tsx
+├── toilet/
+│   ├── index.tsx
+│   ├── complete.tsx
+│   └── records/[id].tsx
 ├── training/
 │   ├── index.tsx
 │   ├── session.tsx
 │   └── complete.tsx
-├── toilet/
-│   ├── index.tsx
-│   └── complete.tsx
-├── habits/index.tsx
-├── reminders/index.tsx
-├── safety/index.tsx
-└── trends/advanced.tsx
+├── trends/advanced.tsx
+└── watch/index.tsx
 ```
 
-当前导航使用底部 Tab。`apps/mobile/app/(tabs)` 承载首页、数据、好友和我的四个一级页面；训练、计时、设置、邀请等二级流程继续使用 `AppTopBar` 返回或关闭。
+路由文件只负责导航参数与 feature screen 挂载。底部一级页面为首页、数据、好友和我的。
 
-### 3.2 移动端源码
+### 3.2 业务源码
 
 ```text
 apps/mobile/src/
-├── components/             # 通用 UI 组件
-├── api/client/             # auth/users/teams/nudges/reports/push 等领域 client
-├── features/               # screen、section、hook、Query 与本地领域逻辑
-├── navigation/             # 路由常量
-├── storage/                # SQLite 初始化、迁移和 repository
-└── theme/                  # 深浅色主题 token 和 provider
+├── api/
+│   ├── client/
+│   │   ├── auth.ts
+│   │   ├── dataSync.ts
+│   │   ├── friends.ts
+│   │   ├── growth.ts
+│   │   ├── health.ts
+│   │   ├── push.ts
+│   │   ├── reports.ts
+│   │   ├── subscriptions.ts
+│   │   └── users.ts
+│   └── transport.ts
+├── components/
+├── features/
+│   ├── account/
+│   ├── data/
+│   ├── friends/
+│   ├── growth/
+│   ├── habits/
+│   ├── reminders/
+│   ├── reports/
+│   ├── settings/
+│   ├── sync/
+│   ├── today/
+│   ├── toilet/
+│   ├── training/
+│   ├── trends/
+│   └── watch/
+├── navigation/
+├── storage/
+└── theme/
 ```
 
-核心功能域：
+云端状态由 TanStack Query 持有；Zustand 只保存登录会话、本地健康领域状态和短期 UI 状态。SQLite repository 负责本地优先数据与 profile 隔离。
 
-| 路径 | 说明 |
-| --- | --- |
-| `features/training` | 菊花抬训练、训练模式、训练记录 |
-| `features/toilet` | 蹲会儿计时、阶段提醒、音效、Live Activity 桥接 |
-| `features/habits` | 小账本标准、快速打卡、详情滑块 |
-| `features/reminders` | 小暗号提醒、多段勿扰、本地通知 |
-| `features/today` | 首页今日正反馈 |
-| `features/trends` | 最近小报告 7 天与 30 天统计、90 天高级小报告同步与展示 |
-| `features/settings` | App 设置、灵动岛计时、阶段音效开关 |
+`features/toilet/ToiletRecordForm.tsx` 只保留表单编排；滚轮和选择字段位于 `components/ToiletRecordFormFields.tsx`，常量与样式分别位于 `toiletRecordForm.constants.ts` 和 `styles/toiletRecordFormStyles.ts`。
 
-云端状态由 TanStack Query 持有；Zustand 只保存登录会话、本地健康领域状态和短期 UI 状态。SQLite repository 按日期范围与复合游标分页，`SyncCoordinator` 通过 revision/event 防抖并保证 single-flight 与一次尾随补跑。
+### 3.3 构建环境
 
-### 3.3 iOS 原生工程
-
-```text
-apps/mobile/
-├── modules/
-│   ├── live-activity/
-│   ├── watch-connectivity/
-│   └── storage-protection/
-└── ios/
-    ├── app/
-    ├── XiaoTiduLiveActivities/
-    ├── XiaoTiduWatchApp/
-    ├── XiaoTiduWatchComplications/
-    ├── Tests/
-    ├── app.xcodeproj/
-    └── app.xcworkspace/
-```
-
-iOS 原生能力包括 ActivityKit + WidgetKit Extension、Watch App、Complication 和三个本地 Expo Modules。Live Activity 与 WatchConnectivity 保持独立类型化接口，Watch 侧进一步拆分 ViewModel、Connectivity client、state store 与 actor 离线队列。
-
-注意：
-
-- Expo Go 不能验证 Live Activity。
-- Development Build 或正式包才能验证灵动岛计时。
-- `eas.json` 在 `apps/mobile` 内，EAS 构建命令应从移动端目录执行。
-- 如果出现 `The sandbox is not in sync with the Podfile.lock`，需要在 `apps/mobile/ios` 下执行 `pod install` 同步 CocoaPods sandbox。
+development 可使用 Mac 局域网 API；preview/production 必须提供 HTTPS `EXPO_PUBLIC_API_BASE_URL`，且不能指向 localhost。EAS profile 显式设置 `EXPO_PUBLIC_RUNTIME_ENV`。
 
 ```bash
-cd apps/mobile
-pnpm exec eas build --profile development --platform ios
+cp apps/mobile/.env.example apps/mobile/.env.local
+pnpm --filter @xiaotidu/mobile bundle:check
+pnpm --filter @xiaotidu/mobile bundle:check:android
 ```
 
-### 3.4 资源
+## 4. API
 
-```text
-apps/mobile/assets/
-├── icon.png
-├── adaptive-icon.png
-├── splash-icon.png
-├── favicon.png
-└── sounds/
-    ├── toilet-knock-5.wav
-    ├── toilet-chime-10.wav
-    ├── toilet-warning-15.wav
-    └── toilet-stop-20.wav
-```
-
-PNG 的用途、重复关系、无损压缩与原生构建回归记录见
-[移动端图片资产审计](./architecture/mobile-assets.md)。
-
-## 4. 后端结构
-
-后端位于 `apps/api`，当前是 Hono + Drizzle 的模块化单体 API 服务。
+### 4.1 入口与装配
 
 ```text
 apps/api/
-├── package.json
+├── drizzle/
+├── scripts/
+├── src/
+│   ├── server.ts
+│   ├── app.ts
+│   ├── app/
+│   │   ├── createApiApp.ts
+│   │   ├── errorHandler.ts
+│   │   ├── registerRoutes.ts
+│   │   ├── requestLogger.ts
+│   │   └── types.ts
+│   ├── cli/
+│   │   └── purgeExpiredData.ts
+│   ├── config/
+│   ├── db/
+│   ├── dependencies/
+│   ├── http/
+│   ├── lib/
+│   ├── modules/
+│   └── __tests__/
 ├── tsconfig.json
-├── drizzle.config.ts
-├── drizzle/               # Drizzle 生成的 SQL migration
-└── src/
-    ├── server.ts          # Node 入口，负责 listen 和关闭依赖
-    ├── app.ts             # 兼容导出 createApiApp
-    ├── app/               # Hono app 装配层
-    ├── config/            # 环境变量和版本
-    ├── db/                # Drizzle client、schema、health check
-    ├── dependencies/      # API 依赖装配
-    ├── http/              # 通用响应、错误和 middleware
-    ├── lib/               # 基础设施工具
-    ├── modules/           # 按业务域组织的后端模块
-    └── __tests__/         # API handler 集成测试
+└── tsconfig.build.json
 ```
 
-当前已实现接口：
+调用链保持 `server.ts -> app.ts/createApiApp -> registerRoutes`。依赖装配在 `dependencies/createDependencies.ts` 中选择 Mock 或 Drizzle 实现。
+
+全局 HTTP 层包含 request id、结构化请求日志、安全响应头、请求体大小限制、通用固定窗口限流、认证和统一错误响应。当前限流状态是单进程内存级；多实例部署仍需在网关或共享存储层提供全局限流。
+
+### 4.2 数据库结构
+
+```text
+apps/api/src/db/schema/
+├── audit.ts
+├── auth.ts
+├── common.ts
+├── dataSync.ts
+├── enums.ts
+├── friends.ts
+├── growth.ts
+├── push.ts
+├── reports.ts
+├── subscriptions.ts
+├── users.ts
+└── index.ts
+```
+
+`src/db/schema.ts` 保持为兼容出口，实际表定义位于 `src/db/schema/`。
+
+### 4.3 业务模块
+
+```text
+apps/api/src/modules/
+├── auth/
+├── dataSync/
+├── entitlements/
+├── friends/
+├── growth/
+├── health/
+├── push/
+├── reports/
+├── storage/
+├── subscriptions/
+└── users/
+```
+
+好友域按职责拆分：
+
+- `friendService.ts`：Drizzle 用例与事务编排。
+- `friend.policy.ts`：邀请、勿扰、限额、游标和数据投影规则。
+- `friend.mapper.ts`：数据库行到 contracts DTO 的转换。
+- `friend.mock.ts`：内存测试实现。
+- `friend.types.ts`：稳定服务合同。
+
+账号数据生命周期由 `users/accountDataService.ts` 负责；统一定时清理由 `storage/retentionService.ts` 负责，不在增长事件上传请求内执行历史删除。
+
+### 4.4 当前主要接口
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | `/health` | 服务健康检查 |
-| `GET` | `/health/db` | 数据库连通性检查 |
-| `POST` | `/auth/apple` | Apple 登录 |
-| `POST` | `/auth/refresh` | refresh session 轮换 |
-| `POST` | `/auth/logout` | 撤销当前 session |
-| `GET/PATCH` | `/me` | 当前用户信息读取和更新 |
-| `GET` | `/me/entitlements` | 商业模式、功能能力与兼容会员状态 |
-| `POST` | `/growth-events` | 匿名安装增长事件批量上传 |
-| `POST` | `/me/growth-events` | 登录用户增长事件批量上传与匿名关联 |
-| `POST/GET` | `/friend-invites/*` | 创建、预览和接受一次性好友邀请 |
-| `GET/PATCH/DELETE` | `/friends/*` | 好友列表、详情、权限、授权数据和删除 |
-| `GET/POST` | `/friends/*/events`、`/friends/*/nudges` | 好友时间线和固定提醒 |
-| `POST` | `/friend-events/*/ack` | 好友提醒回执 |
-| `POST` | `/push-tokens` | Push token 同步 |
-| `POST` | `/subscriptions/*` | 订阅校验和恢复入口 |
-| `GET/PUT` | `/reports/*`、`/report-snapshots/*` | 高级报告和报告快照 |
+| `GET` | `/health`、`/health/db` | 服务与数据库健康检查 |
+| `POST` | `/auth/apple`、`/auth/refresh`、`/auth/logout` | 登录与会话 |
+| `GET/PATCH/DELETE` | `/me` | 资料读取、更新、永久删除账号 |
+| `GET` | `/me/export` | 导出当前账号数据 |
+| `GET` | `/me/entitlements` | 商业模式与功能能力 |
+| `POST` | `/data-sync/push`、`/data-sync/pull` | 本地健康数据同步 |
+| `POST` | `/growth-events`、`/me/growth-events` | 增长事件上传 |
+| 多种 | `/friend-invites/*`、`/friends/*`、`/friend-events/*` | 好友邀请、权限、数据、提醒与回执 |
+| `POST/DELETE` | `/push-tokens` | Push token 管理 |
+| 多种 | `/reports/*`、`/report-snapshots/*` | 报告与快照 |
+| 多种 | `/subscriptions/*` | 订阅入口 |
 
-结构原则：
+准确接口以生成的 `docs/v0.2/openapi.json` 和 `api-reference.md` 为准。
 
-- `server.ts` 只负责启动 Hono 服务和关闭依赖。
-- `src/app/` 负责 request id、请求日志、错误处理和路由注册。
-- `src/dependencies/` 负责选择 mock 或 Drizzle 实现，避免散落在入口文件。
-- `src/modules/` 采用 feature-first 结构，把 route、service、repository、policy、mapper 和 mock 放在同一业务域内。
-- 所有 Hono route 已归入对应模块，`app/registerRoutes.ts` 只负责挂载路径，不承载业务逻辑。
-- route 直接注册共享 Zod schema 并生成 OpenAPI；service 编排事务；repository 负责 Drizzle；policy 保存无数据库依赖的业务规则。
-- `src/db/schema.ts` 是 Drizzle schema 兼容出口，实际表定义拆在 `src/db/schema/` 下。
-- 结构迁移必须保持 API path、响应格式、Drizzle 表名 / 字段名 / enum 名和 `packages/contracts` 类型稳定。
+### 4.5 数据库验证
 
-当前后端源码分层：
+真实 PostgreSQL 集成测试覆盖认证、用户/权益、报告、好友/同步、账号删除与保留策略。未配置 `DATABASE_URL` 时这些测试显式跳过；CI 会启动 PostgreSQL 17、应用迁移后运行完整测试。
 
-```text
-apps/api/src/
-├── app/
-│   ├── createApiApp.ts
-│   ├── errorHandler.ts
-│   ├── registerRoutes.ts
-│   ├── requestLogger.ts
-│   └── types.ts
-├── db/
-│   ├── client.ts
-│   ├── health.ts
-│   ├── schema.ts
-│   └── schema/
-│       ├── audit.ts
-│       ├── common.ts
-│       ├── enums.ts
-│       ├── nudges.ts
-│       ├── push.ts
-│       ├── reports.ts
-│       ├── sharing.ts
-│       ├── subscriptions.ts
-│       ├── teams.ts
-│       └── users.ts
-├── dependencies/
-│   └── createDependencies.ts
-└── modules/
-    ├── auth/
-    ├── entitlements/
-    ├── health/
-    ├── nudges/
-    ├── push/
-    ├── reports/
-    ├── subscriptions/
-    ├── teams/
-    └── users/
-```
-
-运行：
-
-```bash
-pnpm api:dev
-pnpm api:start
-pnpm --filter @xiaotidu/api typecheck
-pnpm --filter @xiaotidu/api test
-```
-
-## 5. 共享契约结构
-
-共享契约位于 `packages/contracts`。
+## 5. 共享契约
 
 ```text
 packages/contracts/src/
-├── common.ts
 ├── auth.ts
-├── users.ts
+├── common.ts
+├── dataSync.ts
 ├── friends.ts
-├── reports.ts
+├── growth.ts
 ├── push.ts
+├── reports.ts
 ├── subscriptions.ts
-└── index.ts               # 仅重导出
+├── users.ts
+└── index.ts
 ```
 
-每个领域以 Zod schema 为单一来源并通过 `z.infer` 导出类型，API 和移动端在运行时解析请求或响应。当前包含：
+Zod schema 同时用于 API 输入输出校验、移动端响应解析和 OpenAPI 生成。API 生产构建使用 contracts 的 `dist` ESM；React Native 使用源码入口。
 
-- 会员状态：`ProStatus`
-- 好友数据权限：`FriendDataLevel`、`FriendHistoryDays`
-- 好友提醒与回执：`FriendNudgeType`、`FriendNudgeAckStatus`
-- 好友关系设置、授权数据投影和互动事件
-- API 响应类型：`ApiHealthResponse`、`EntitlementsResponse`
+## 6. 数据保留与账号操作
 
-原则：
+个人健康事实、同步变更和每日汇总按 90 天窗口清理；增长事件按接收时间保留 90 天。过期认证会话、好友邀请、临时好友事件和旧每日计数由独立清理任务处理。
 
-- 前后端共用的状态、枚举和接口响应类型放在 `packages/contracts`。
-- 移动端私有 UI 类型不放入 contracts。
-- 后端数据库实体不直接暴露给移动端，需转成共享 DTO。
-
-## 6. 验证命令
-
-每轮结构或代码调整后执行：
+开发环境：
 
 ```bash
-pnpm check
-pnpm --filter @xiaotidu/mobile exec expo install --check
-git diff --check
+pnpm --filter @xiaotidu/api data:purge-expired
 ```
 
-说明：
+生产构建：
 
-- `pnpm check` 会执行全仓类型、ESLint、Prettier、单元/集成测试和 OpenAPI 漂移检查。
-- `expo install --check` 需要针对移动端包执行。
-- 三个 Xcode scheme 由 GitHub Actions 的 macOS job 构建，真机能力仍按手动清单验收。
+```bash
+pnpm build
+pnpm --filter @xiaotidu/api data:purge-expired:prod
+```
 
-## 7. Git 注意事项
+账号导出不包含 refresh token 摘要和 Push token 原文。永久删除会删除用户及级联关联记录，并显式删除原本会匿名化保留的增长、审计和订阅事件关联数据；本机 SQLite 数据不会由云端删除接口自动清除。
 
-移动端文件均在 `apps/mobile` 下修改，不向根目录新增 `app/`、`src/`、`ios/` 或 `assets/`。OpenAPI 文件是生成物，不手工编辑；更新路由或 contracts 后运行生成命令并提交结果。
+## 7. 修改原则
+
+- 先更新 `packages/contracts`，再同步 API route/service 与移动端 client。
+- OpenAPI 生成物不手工编辑。
+- 不把数据库实体直接暴露给移动端。
+- 结构调整必须保持 API path、响应 envelope、表名和迁移历史兼容。
+- 修改后至少执行 `pnpm check` 与 `git diff --check`。

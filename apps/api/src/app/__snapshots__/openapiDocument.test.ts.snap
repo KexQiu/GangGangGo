@@ -5,6 +5,206 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
   "components": {
     "parameters": {},
     "schemas": {
+      "AccountDataExport": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "additionalProperties": false,
+            "properties": {
+              "auditEvents": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "dailyActivitySummaries": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "dailyReportSnapshots": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "dataSyncChanges": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "friendEventAcks": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "friendEvents": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "friendInvites": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "friendNudgeDailyCounters": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "friendSettings": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "friendships": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "growthEvents": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "habitCheckIns": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "pushRegistrations": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "sessions": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "subscriptionEvents": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "subscriptions": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "toiletSessions": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "toiletSignalPresets": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "trainingSessions": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "auditEvents",
+              "dailyActivitySummaries",
+              "dailyReportSnapshots",
+              "dataSyncChanges",
+              "friendEventAcks",
+              "friendEvents",
+              "friendInvites",
+              "friendNudgeDailyCounters",
+              "friendSettings",
+              "friendships",
+              "growthEvents",
+              "habitCheckIns",
+              "pushRegistrations",
+              "sessions",
+              "subscriptionEvents",
+              "subscriptions",
+              "toiletSessions",
+              "toiletSignalPresets",
+              "trainingSessions",
+            ],
+            "type": "object",
+          },
+          "exportedAt": {
+            "format": "date-time",
+            "type": "string",
+          },
+          "profile": {
+            "$ref": "#/components/schemas/UserProfile",
+          },
+          "version": {
+            "enum": [
+              1,
+            ],
+            "type": "number",
+          },
+        },
+        "required": [
+          "data",
+          "exportedAt",
+          "profile",
+          "version",
+        ],
+        "type": "object",
+      },
+      "AccountDeletionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "enum": [
+              true,
+            ],
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "deleted",
+        ],
+        "type": "object",
+      },
       "AckFriendNudgeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -233,6 +433,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                   "internal_error",
                   "internal_server_error",
                   "not_found",
+                  "payload_too_large",
                   "rate_limited",
                   "unauthorized",
                   "validation_error",
@@ -2968,6 +3169,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -3073,6 +3284,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -3184,6 +3405,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -3289,6 +3520,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -3399,6 +3640,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -3521,6 +3772,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -3620,6 +3881,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -3733,6 +4004,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -3840,6 +4121,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -3939,6 +4230,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -4063,6 +4364,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -4171,6 +4482,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -4282,6 +4603,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -4415,6 +4746,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -4535,6 +4876,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -4657,6 +5008,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -4767,6 +5128,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -4861,6 +5232,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -4957,6 +5338,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -4982,6 +5373,114 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
       },
     },
     "/me": {
+      "delete": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AccountDeletionResponse",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "永久删除当前账号及关联数据",
+      },
       "get": {
         "responses": {
           "200": {
@@ -5051,6 +5550,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -5160,6 +5669,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -5260,6 +5779,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -5287,6 +5816,116 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           },
         ],
         "summary": "账号能力与商业模式",
+      },
+    },
+    "/me/export": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AccountDataExport",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "成功",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求不合法",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "未登录或会话失效",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "没有操作权限",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源不存在",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求超过限制",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "服务内部错误",
+          },
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+          },
+        ],
+        "summary": "导出当前账号数据",
       },
     },
     "/me/growth-events": {
@@ -5369,6 +6008,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -5480,6 +6129,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -5590,6 +6249,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -5699,6 +6368,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {
@@ -5814,6 +6493,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -5924,6 +6613,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             },
             "description": "资源状态冲突",
           },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
+          },
           "429": {
             "content": {
               "application/json": {
@@ -6033,6 +6732,16 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               },
             },
             "description": "资源状态冲突",
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse",
+                },
+              },
+            },
+            "description": "请求体超过限制",
           },
           "429": {
             "content": {

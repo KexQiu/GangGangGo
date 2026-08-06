@@ -15,6 +15,8 @@
 - `POST /auth/logout`：撤销当前会话
 - `PUT /data-sync/push`：上传完整记录变更
 - `GET /data-sync/pull`：增量拉取完整记录
+- `GET /me/export`：导出当前账号数据
+- `DELETE /me`：永久删除当前账号及关联数据
 - `GET /me`：当前用户
 - `PATCH /me`：更新用户资料
 - `GET /me/entitlements`：账号能力与商业模式

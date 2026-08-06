@@ -1,7 +1,8 @@
 import type { Href } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Settings, Watch } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
@@ -10,7 +11,12 @@ import { PageHeader } from '../../src/components/PageHeader';
 import { PageSection, PageStack } from '../../src/components/PageStack';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
 import { Screen } from '../../src/components/Screen';
-import { useCurrentUserQuery } from '../../src/features/account/accountQueries';
+import { showToast } from '../../src/components/toast/AppToast';
+import {
+  useCurrentUserQuery,
+  useDeleteAccountMutation,
+  useExportAccountDataMutation,
+} from '../../src/features/account/accountQueries';
 import { mockUserIds, useAuthStore } from '../../src/features/account/authStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
@@ -44,8 +50,10 @@ export default function MeScreen() {
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const logout = useAuthStore((state) => state.logout);
   const selectedMockUserId = useAuthStore((state) => state.selectedMockUserId);
+  const deleteAccount = useDeleteAccountMutation();
+  const exportAccountData = useExportAccountDataMutation();
   const { data: user, isFetching: isFetchingUser, refetch: refetchCurrentUser } = useCurrentUserQuery();
-  const isLoading = authIsLoading || isFetchingUser;
+  const isLoading = authIsLoading || deleteAccount.isPending || exportAccountData.isPending || isFetchingUser;
 
   function handleRefresh() {
     void refetchCurrentUser();
@@ -54,6 +62,29 @@ export default function MeScreen() {
   async function handleLogin(mockUserId?: (typeof mockUserIds)[number]) {
     await loginWithMockApple(mockUserId);
     if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'settings' });
+  }
+
+  async function handleExportAccountData() {
+    const accountData = await exportAccountData.mutateAsync().catch(() => null);
+    if (!accountData) return;
+
+    try {
+      await Clipboard.setStringAsync(JSON.stringify(accountData, null, 2));
+      showToast('账号数据已复制到剪贴板。', { type: 'success' });
+    } catch {
+      showToast('复制失败，请稍后再试。', { type: 'error' });
+    }
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert('永久删除账号？', '云端账号、同步记录、好友关系和订阅关联数据会被永久删除，本机记录不会自动删除。', [
+      { style: 'cancel', text: '取消' },
+      {
+        onPress: () => deleteAccount.mutate(),
+        style: 'destructive',
+        text: '永久删除',
+      },
+    ]);
   }
 
   return (
@@ -152,6 +183,14 @@ export default function MeScreen() {
                 退出登录
               </AppButton>
             </View>
+            <View style={styles.dangerActions}>
+              <AppButton disabled={isLoading} onPress={() => void handleExportAccountData()} variant="secondary">
+                导出账号数据
+              </AppButton>
+              <AppButton disabled={isLoading} onPress={handleDeleteAccount} variant="warning">
+                永久删除账号
+              </AppButton>
+            </View>
           </PageSection>
         ) : null}
       </PageStack>
@@ -169,6 +208,10 @@ function createStyles(colors: ThemeColors) {
     },
     actionButton: {
       flex: 1,
+    },
+    dangerActions: {
+      gap: 12,
+      marginTop: 12,
     },
     linkCopy: {
       flex: 1,

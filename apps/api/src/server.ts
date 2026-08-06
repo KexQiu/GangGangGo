@@ -7,6 +7,7 @@ import { logger } from './lib/logger.js';
 
 const dependencies = createApiDependencies();
 const app = createApiApp({
+  accountDataService: dependencies.accountDataService,
   appleAuthService: createDefaultAppleAuthService(),
   authSessionService: dependencies.authSessionService,
   dataSyncService: dependencies.dataSyncService,

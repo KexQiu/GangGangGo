@@ -9,6 +9,7 @@ import type { CurrentUser } from './userTypes.js';
 import { mockCurrentUser } from './userTypes.js';
 
 export type UserRepository = {
+  deleteById: (userId: string) => Promise<boolean>;
   findById: (userId: string) => Promise<CurrentUser | null>;
   updateProfile: (userId: string, input: UpdateUserProfileRequest) => Promise<CurrentUser>;
   upsertFromApple: (input: { appleUserId: string; nickname?: string }) => Promise<CurrentUser>;
@@ -45,6 +46,17 @@ export function createMockUserRepository(): UserRepository {
   }
 
   return {
+    async deleteById(userId) {
+      const existingUser = usersById.get(userId);
+
+      if (!existingUser) {
+        return false;
+      }
+
+      usersById.delete(userId);
+      usersByAppleUserId.delete(existingUser.appleUserId);
+      return true;
+    },
     async findById(userId) {
       return usersById.get(userId) ?? null;
     },
@@ -93,6 +105,10 @@ export function createMockUserRepository(): UserRepository {
 
 export function createDrizzleUserRepository(db: Database): UserRepository {
   return {
+    async deleteById(userId) {
+      const deleted = await db.delete(users).where(eq(users.id, userId)).returning({ id: users.id });
+      return deleted.length > 0;
+    },
     async findById(userId) {
       const [user] = await db
         .select()

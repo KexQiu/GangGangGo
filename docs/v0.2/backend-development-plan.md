@@ -40,9 +40,9 @@ v0.2 后端只服务 Pro 能力，不接管 v0.1 的本地单人闭环。
 
 | 类别 | 选择 | 原因 |
 | --- | --- | --- |
-| Runtime | Node.js 24 LTS 当前本机版本 | 与当前本地环境一致 |
+| Runtime | Node.js 22 基线（本地支持 22-24） | 与 CI、`@types/node` 和 `.nvmrc` 对齐 |
 | Web 框架 | Hono | 轻量、类型友好、适合 API 服务 |
-| 数据库 | Postgres | 关系模型适合账号、订阅、小队和提醒 |
+| 数据库 | Postgres | 关系模型适合账号、订阅、好友权限和互动事件 |
 | ORM / Query Builder | Drizzle | 类型明确、迁移轻量、比大型 ORM 更贴合当前阶段 |
 | 校验 | Zod | API 入参、环境变量和 contracts 可共用思路 |
 | 鉴权 | Sign in with Apple + 服务端 session/JWT | iOS 首期优先 |

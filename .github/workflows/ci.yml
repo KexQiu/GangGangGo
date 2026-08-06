@@ -70,7 +70,7 @@ jobs:
             XiaoTiduWatchApp/Models/WatchTodayState.swift \
             Tests/WatchProtocolFixtureMain.swift \
             -o /tmp/watch-protocol-fixture-test
-          /tmp/watch-protocol-fixture-test ../fixtures/watch-today-state-v2.json
+          /tmp/watch-protocol-fixture-test ../fixtures/watch-today-state-v3.json
         working-directory: apps/mobile/ios
       - name: Test Watch queue and timelines
         run: |

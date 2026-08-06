@@ -112,6 +112,47 @@ export const updateUserProfileRequestSchema = z
   .meta({ id: 'UpdateUserProfileRequest' });
 export type UpdateUserProfileRequest = z.infer<typeof updateUserProfileRequestSchema>;
 
+const accountDataRowsSchema = z.array(z.record(z.string(), z.unknown()));
+
+export const accountDataExportSchema = z
+  .object({
+    data: z
+      .object({
+        auditEvents: accountDataRowsSchema,
+        dailyActivitySummaries: accountDataRowsSchema,
+        dailyReportSnapshots: accountDataRowsSchema,
+        dataSyncChanges: accountDataRowsSchema,
+        friendEventAcks: accountDataRowsSchema,
+        friendEvents: accountDataRowsSchema,
+        friendInvites: accountDataRowsSchema,
+        friendNudgeDailyCounters: accountDataRowsSchema,
+        friendSettings: accountDataRowsSchema,
+        friendships: accountDataRowsSchema,
+        growthEvents: accountDataRowsSchema,
+        habitCheckIns: accountDataRowsSchema,
+        pushRegistrations: accountDataRowsSchema,
+        sessions: accountDataRowsSchema,
+        subscriptionEvents: accountDataRowsSchema,
+        subscriptions: accountDataRowsSchema,
+        toiletSessions: accountDataRowsSchema,
+        toiletSignalPresets: accountDataRowsSchema,
+        trainingSessions: accountDataRowsSchema,
+      })
+      .strict(),
+    exportedAt: z.string().datetime({ offset: true }),
+    profile: userProfileSchema,
+    version: z.literal(1),
+  })
+  .strict()
+  .meta({ id: 'AccountDataExport' });
+export type AccountDataExport = z.infer<typeof accountDataExportSchema>;
+
+export const accountDeletionResponseSchema = z
+  .object({ deleted: z.literal(true) })
+  .strict()
+  .meta({ id: 'AccountDeletionResponse' });
+export type AccountDeletionResponse = z.infer<typeof accountDeletionResponseSchema>;
+
 export function isAvatarEmojiPresetKey(value: unknown): value is AvatarEmojiPresetKey {
   return avatarEmojiPresetKeySchema.safeParse(value).success;
 }

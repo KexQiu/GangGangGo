@@ -4,11 +4,11 @@ import { env } from '../src/config/env.js';
 import { createDatabaseClient } from '../src/db/client.js';
 import { subscriptions, users } from '../src/db/schema.js';
 
-const mockUsers = [
+const mockUsers: Array<typeof users.$inferInsert> = [
   { appleUserId: 'mock:mock-user-a', nickname: '模拟搭子 A' },
   { appleUserId: 'mock:mock-user-b', nickname: '模拟搭子 B' },
   { appleUserId: 'mock:mock-user-c', nickname: '模拟搭子 C' },
-] as const;
+];
 
 if (env.NODE_ENV === 'production') {
   throw new Error('Mobile UI test fixtures cannot be prepared in production.');

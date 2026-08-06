@@ -1,4 +1,4 @@
-import { and, count, eq, gte, isNull, lt } from 'drizzle-orm';
+import { and, count, eq, gte, isNull } from 'drizzle-orm';
 
 import type { GrowthEventsRequest, GrowthEventsResponse } from '@xiaotidu/contracts';
 
@@ -32,8 +32,6 @@ export function createMockGrowthEventService(): GrowthEventService {
 export function createDrizzleGrowthEventService(db: Database): GrowthEventService {
   return {
     async recordBatch(input, userId) {
-      const retentionCutoff = new Date(Date.now() - anonymousAssociationWindowMs);
-      await db.delete(growthEvents).where(lt(growthEvents.receivedAt, retentionCutoff));
       const installationIds = [...new Set(input.events.map((event) => event.installationId))];
       const dayStart = new Date();
       dayStart.setUTCHours(0, 0, 0, 0);

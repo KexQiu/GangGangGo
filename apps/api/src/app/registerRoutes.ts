@@ -34,6 +34,7 @@ export function registerRoutes(app: OpenAPIHono, dependencies: ApiRouteDependenc
   app.route(
     '/me',
     createMeRoute({
+      accountDataService: dependencies.accountDataService,
       entitlementsService: dependencies.entitlementsService,
       userRepository: dependencies.userRepository,
     }),

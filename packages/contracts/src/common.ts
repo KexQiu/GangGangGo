@@ -27,6 +27,7 @@ export const apiErrorCodeSchema = z.enum([
   'internal_error',
   'internal_server_error',
   'not_found',
+  'payload_too_large',
   'rate_limited',
   'unauthorized',
   'validation_error',

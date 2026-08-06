@@ -11,11 +11,13 @@ import type { FriendService } from '../modules/friends/friendService.js';
 import type { GrowthEventService } from '../modules/growth/growthEventService.js';
 import type { PushTokenService } from '../modules/push/pushTokenService.js';
 import type { ReportService } from '../modules/reports/reportService.js';
+import type { AccountDataService } from '../modules/users/accountDataService.js';
 import type { UserRepository } from '../modules/users/userRepository.js';
 
 export type ApiMiddleware = MiddlewareHandler<{ Variables: AuthVariables }>;
 
 export type ApiRouteDependencies = {
+  accountDataService: AccountDataService;
   appleAuthService: AppleAuthService;
   authSessionService: AuthSessionService;
   authMiddleware: ApiMiddleware;
@@ -30,6 +32,7 @@ export type ApiRouteDependencies = {
 };
 
 export type CreateApiAppOptions = {
+  accountDataService?: AccountDataService;
   appleAuthService?: AppleAuthService;
   authSessionService?: AuthSessionService;
   dataSyncService?: DataSyncService;

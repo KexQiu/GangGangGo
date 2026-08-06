@@ -1,6 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
 
 import {
+  accountDataExportSchema,
+  accountDeletionResponseSchema,
   entitlementsResponseSchema,
   updateUserProfileRequestSchema,
   userProfileSchema,
@@ -11,16 +13,48 @@ import { apiResponses, bearerSecurity, createOpenApiRouter, jsonRequest } from '
 import type { AuthVariables } from '../../http/middleware/auth.js';
 import { toSuccessResponse } from '../../http/responses.js';
 import type { EntitlementsService } from '../entitlements/entitlementsService.js';
+import type { AccountDataService } from './accountDataService.js';
 import type { UserRepository } from './userRepository.js';
 import { toUserProfile } from './users.mapper.js';
 
 type CreateMeRouteOptions = {
+  accountDataService: AccountDataService;
   entitlementsService: EntitlementsService;
   userRepository: UserRepository;
 };
 
 export function createMeRoute(options: CreateMeRouteOptions) {
   const route = createOpenApiRouter<{ Variables: AuthVariables }>();
+
+  route.openapi(
+    createRoute({
+      method: 'get',
+      path: '/export',
+      responses: apiResponses(accountDataExportSchema),
+      security: bearerSecurity,
+      summary: '导出当前账号数据',
+    }),
+    async (context) => {
+      const body = await options.accountDataService.exportAccountData(context.get('currentUser'));
+
+      return context.json(toSuccessResponse(body), 200);
+    },
+  );
+
+  route.openapi(
+    createRoute({
+      method: 'delete',
+      path: '/',
+      responses: apiResponses(accountDeletionResponseSchema),
+      security: bearerSecurity,
+      summary: '永久删除当前账号及关联数据',
+    }),
+    async (context) => {
+      await options.accountDataService.deleteAccount(context.get('currentUser').id);
+
+      return context.json(toSuccessResponse({ deleted: true as const }), 200);
+    },
+  );
 
   route.openapi(
     createRoute({

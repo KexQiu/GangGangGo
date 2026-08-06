@@ -45,6 +45,7 @@ export function apiResponses(schema: ZodType): RouteConfig['responses'] {
     403: { ...errorResponse, description: '没有操作权限' },
     404: { ...errorResponse, description: '资源不存在' },
     409: { ...errorResponse, description: '资源状态冲突' },
+    413: { ...errorResponse, description: '请求体超过限制' },
     429: { ...errorResponse, description: '请求超过限制' },
     500: { ...errorResponse, description: '服务内部错误' },
   };

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createLogger } from '../lib/logger.js';
 
 describe('logger redaction', () => {
-  it('redacts authentication, health, and Watch payload fields', () => {
+  it('redacts credentials and health payloads while preserving useful error context', () => {
     let output = '';
     const destination = new Writable({
       write(chunk, _encoding, callback) {
@@ -15,12 +15,13 @@ describe('logger redaction', () => {
     });
     const logger = createLogger({ LOG_LEVEL: 'info', NODE_ENV: 'test' }, destination);
     const secret = 'must-not-appear';
+    const error = new Error(`database unavailable for Bearer ${secret}`);
 
     logger.info(
       {
         accessToken: secret,
         body: { note: secret },
-        err: { message: secret, stack: secret },
+        err: error,
         nested: { token: secret },
         req: { headers: { authorization: `Bearer ${secret}` } },
         watchPayload: { symptoms: secret },
@@ -30,5 +31,6 @@ describe('logger redaction', () => {
 
     expect(output).not.toContain(secret);
     expect(output).toContain('[Redacted]');
+    expect(output).toContain('database unavailable for Bearer [Redacted]');
   });
 });

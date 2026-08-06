@@ -10,7 +10,10 @@ describe('api env', () => {
     });
 
     expect(env.APPLE_AUTH_MODE).toBe('mock');
+    expect(env.API_RATE_LIMIT_MAX).toBe(300);
+    expect(env.API_RATE_LIMIT_WINDOW_SECONDS).toBe(60);
     expect(env.COMMERCIAL_MODE).toBe('growth_free');
+    expect(env.REQUEST_BODY_LIMIT_BYTES).toBe(256 * 1024);
   });
 
   it('accepts paid commercial mode', () => {

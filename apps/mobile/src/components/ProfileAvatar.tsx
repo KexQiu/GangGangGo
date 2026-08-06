@@ -92,7 +92,7 @@ export const profileAvatarEmojiPresets = [
 type Assert<T extends true> = T;
 type AllAvatarEmojiPresetsHaveVisuals =
   Exclude<AvatarEmojiPresetKey, (typeof profileAvatarEmojiPresets)[number]['key']> extends never ? true : false;
-type _AvatarEmojiPresetCoverage = Assert<AllAvatarEmojiPresetsHaveVisuals>;
+export type AvatarEmojiPresetCoverage = Assert<AllAvatarEmojiPresetsHaveVisuals>;
 
 export const profileAvatarEmojiOptions = [
   { emoji: null, key: null, label: '默认' },

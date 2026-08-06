@@ -151,6 +151,7 @@ describe('api app', () => {
     const upsertFromApple = vi.fn().mockResolvedValueOnce(staleUser).mockResolvedValueOnce(recreatedUser);
     const create = vi.fn().mockRejectedValueOnce(new SessionUserUnavailableError()).mockResolvedValueOnce(session);
     const userRepository = {
+      deleteById: async () => false,
       findById: async () => null,
       updateProfile: async () => recreatedUser,
       upsertFromApple,
@@ -217,6 +218,47 @@ describe('api app', () => {
     expect(
       (await app.request('/me', { headers: { authorization: `Bearer ${secondSession.accessToken}` } })).status,
     ).toBe(401);
+  });
+
+  it('exports and permanently deletes the current account', async () => {
+    const app = createTestApp();
+    const token = await login(app, { identityToken: 'account-lifecycle-user', nickname: '账号用户' });
+    const headers = { authorization: `Bearer ${token}` };
+
+    const exportResponse = await app.request('/me/export', { headers });
+    const exportBody = await exportResponse.json();
+
+    expect(exportResponse.status).toBe(200);
+    expect(exportBody.data).toMatchObject({
+      data: {
+        growthEvents: [],
+        toiletSessions: [],
+        trainingSessions: [],
+      },
+      profile: { nickname: '账号用户' },
+      version: 1,
+    });
+
+    const deleteResponse = await app.request('/me', { headers, method: 'DELETE' });
+    expect(deleteResponse.status).toBe(200);
+    expect(await deleteResponse.json()).toEqual({ data: { deleted: true } });
+    expect((await app.request('/me', { headers })).status).toBe(401);
+  });
+
+  it('adds secure headers and rejects oversized request bodies', async () => {
+    const app = createTestApp();
+    const healthResponse = await app.request('/health');
+
+    expect(healthResponse.headers.get('x-content-type-options')).toBe('nosniff');
+
+    const response = await app.request('/auth/apple', {
+      body: JSON.stringify({ identityToken: 'x'.repeat(300_000) }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'payload_too_large' } });
   });
 
   it('returns validation errors for invalid JSON request bodies', async () => {

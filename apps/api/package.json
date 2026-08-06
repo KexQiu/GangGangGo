@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "pnpm --filter @xiaotidu/contracts build && tsc -p tsconfig.build.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "docs:generate": "node --import tsx scripts/generate-openapi.ts",
-    "docs:check": "node --import tsx scripts/generate-openapi.ts --check",
+    "docs:generate": "pnpm --filter @xiaotidu/contracts build && node --import tsx scripts/generate-openapi.ts",
+    "docs:check": "pnpm --filter @xiaotidu/contracts build && node --import tsx scripts/generate-openapi.ts --check",
     "data:purge-expired": "tsx scripts/purge-expired-data.ts",
+    "data:purge-expired:prod": "node dist/cli/purgeExpiredData.js",
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
+    "start": "node dist/server.js",
+    "pretest": "pnpm --filter @xiaotidu/contracts build",
     "test": "vitest run",
     "test:ui:prepare": "tsx scripts/prepare-mobile-ui-test.ts",
     "typecheck": "tsc --noEmit"
@@ -27,7 +30,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^25.8.0",
+    "@types/node": "^22.0.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.22.3",
     "typescript": "~5.9.2",

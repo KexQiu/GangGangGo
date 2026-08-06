@@ -41,6 +41,28 @@ export function useUpdateProfileMutation() {
   });
 }
 
+export function useExportAccountDataMutation() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  return useMutation({
+    mutationFn: () => usersApi.exportAccountData(requireValue(accessToken)),
+    onError: notifyUserError,
+  });
+}
+
+export function useDeleteAccountMutation() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const logout = useAuthStore((state) => state.logout);
+
+  return useMutation({
+    mutationFn: () => usersApi.deleteAccount(requireValue(accessToken)),
+    onError: notifyUserError,
+    onSuccess: async () => {
+      await logout();
+    },
+  });
+}
+
 function requireValue<T>(value: T | null | undefined): T {
   if (value === null || value === undefined || value === '') throw new Error('请先登录。');
   return value;

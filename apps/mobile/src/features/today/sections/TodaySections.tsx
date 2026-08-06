@@ -94,7 +94,10 @@ export function TrainingQuickStartCard({ completedCount, onPress, target }: Trai
       </View>
       <View style={styles.rowCopy}>
         <Text style={styles.rowTitle}>
-          菊花抬 <Text style={styles.trainingProgress}>{Math.min(completedCount, target)}/{target}</Text>
+          菊花抬{' '}
+          <Text style={styles.trainingProgress}>
+            {Math.min(completedCount, target)}/{target}
+          </Text>
         </Text>
         <Text style={styles.trainingDescription}>
           {isComplete ? '建议量已完成，今天让肌肉轻轻下班。' : '轻抬轻放，给肌肉一点呼吸。'}

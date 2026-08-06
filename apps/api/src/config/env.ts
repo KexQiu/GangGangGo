@@ -51,6 +51,8 @@ const envSchema = z
     APPLE_AUTH_MODE: z.enum(['mock', 'real']).optional(),
     APPLE_BUNDLE_ID: z.string().min(1).optional(),
     APPLE_JWKS_URL: z.url().default('https://appleid.apple.com/auth/keys'),
+    API_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(10_000).default(300),
+    API_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().max(3600).default(60),
     COMMERCIAL_MODE: z.enum(['growth_free', 'paid']).default('growth_free'),
     DATABASE_URL: z.url().optional(),
     DB_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(10),
@@ -66,6 +68,12 @@ const envSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(8787),
+    REQUEST_BODY_LIMIT_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(10 * 1024 * 1024)
+      .default(256 * 1024),
   })
   .superRefine((value, context) => {
     if (value.NODE_ENV === 'production' && value.APPLE_AUTH_MODE === 'mock') {

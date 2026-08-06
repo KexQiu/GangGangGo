@@ -5,7 +5,8 @@
   "scripts": {
     "start": "expo start --host lan",
     "android": "expo run:android",
-    "bundle:check": "expo export --platform ios --output-dir /tmp/xiaotidu-mobile-export",
+    "bundle:check": "EXPO_PUBLIC_RUNTIME_ENV=preview EXPO_PUBLIC_API_BASE_URL=https://api.example.invalid expo export --platform ios --output-dir /tmp/xiaotidu-mobile-export",
+    "bundle:check:android": "EXPO_PUBLIC_RUNTIME_ENV=preview EXPO_PUBLIC_API_BASE_URL=https://api.example.invalid expo export --platform android --output-dir /tmp/xiaotidu-mobile-android-export",
     "ios": "expo run:ios",
     "start:dev-client": "expo start --dev-client --host lan",
     "test": "vitest run",
@@ -16,7 +17,7 @@
     "@tanstack/react-query": "^5.101.2",
     "@xiaotidu/contracts": "workspace:*",
     "date-fns": "^4.1.0",
-    "expo": "~54.0.35",
+    "expo": "~54.0.36",
     "expo-audio": "~1.1.1",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",

@@ -2,6 +2,11 @@
   "name": "xiaotidu-monorepo",
   "version": "0.2.0",
   "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22 <25",
+    "pnpm": ">=10.32 <12"
+  },
   "scripts": {
     "api:dev": "pnpm --filter @xiaotidu/api dev",
     "api:start": "pnpm --filter @xiaotidu/api start",
@@ -13,6 +18,7 @@
     "mobile:ui:prepare": "pnpm --filter @xiaotidu/api test:ui:prepare",
     "api:typecheck": "pnpm --filter @xiaotidu/api typecheck",
     "contracts:typecheck": "pnpm --filter @xiaotidu/contracts typecheck",
+    "build": "pnpm --filter @xiaotidu/api build",
     "typecheck": "pnpm -r --if-present typecheck",
     "versions:check": "node scripts/check-versions.mjs",
     "lint": "eslint apps packages",
@@ -21,10 +27,10 @@
     "hooks:install": "git config core.hooksPath .githooks",
     "test": "pnpm -r --if-present test",
     "docs:check": "pnpm --filter @xiaotidu/api docs:check",
-    "check": "pnpm versions:check && pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check && pnpm --filter @xiaotidu/mobile bundle:check"
+    "check": "pnpm versions:check && pnpm build && pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:check && pnpm --filter @xiaotidu/mobile bundle:check && pnpm --filter @xiaotidu/mobile bundle:check:android"
   },
   "devDependencies": {
-    "@types/node": "^25.8.0",
+    "@types/node": "^22.0.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~10.0.0",
     "prettier": "^3.9.5",
