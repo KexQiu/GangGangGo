@@ -18,11 +18,14 @@ type ToiletState = {
   error: string | null;
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
+  reset: () => void;
   isHydrating: boolean;
   revision: number;
   sessions: ToiletSession[];
   updateSession: (session: ToiletSession) => Promise<void>;
 };
+
+let hydrationRevision = 0;
 
 export const useToiletStore = create<ToiletState>((set, get) => ({
   addSession: async (session) => {
@@ -61,11 +64,16 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
   },
   error: null,
   hasHydrated: false,
+  reset: () => {
+    hydrationRevision += 1;
+    set({ error: null, hasHydrated: false, isHydrating: false, sessions: [] });
+  },
   hydrate: async () => {
     if (get().isHydrating || get().hasHydrated) {
       return;
     }
 
+    const revision = ++hydrationRevision;
     set({ error: null, isHydrating: true });
 
     try {
@@ -78,8 +86,10 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
           toDateTimeExclusive: range.toDateTimeExclusive,
         }),
       );
+      if (revision !== hydrationRevision) return;
       set({ hasHydrated: true, isHydrating: false, sessions });
     } catch (error) {
+      if (revision !== hydrationRevision) return;
       set({
         error: error instanceof Error ? error.message : '如厕记录加载失败',
         hasHydrated: true,

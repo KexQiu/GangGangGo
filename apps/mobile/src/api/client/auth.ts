@@ -19,6 +19,7 @@ export const authApi = {
   logout: (token: string, refreshToken?: string | null) =>
     request<{ ok: true }>('/auth/logout', okResponseSchema, {
       body: refreshToken ? { refreshToken } : {},
+      detachedSession: true,
       method: 'POST',
       token,
     }),

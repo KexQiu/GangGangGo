@@ -7,6 +7,7 @@ import type {
 } from '@xiaotidu/contracts';
 
 import { dataSyncApi } from '../../api/client';
+import { authSessionContext, SessionChangedError } from '../../api/sessionContext';
 import { initializeDatabase } from '../../storage/db';
 import {
   getDataSyncCursor,
@@ -14,56 +15,59 @@ import {
   removeAcceptedDataMutations,
   setDataSyncCursor,
 } from '../../storage/dataSyncOutbox';
-import { getActiveLocalProfileId, getActiveProfileUserId } from '../../storage/localDataProfile';
 import { rebuildDailySummary } from '../data/dailyData';
 import { trackGrowthEvent } from '../growth/growthEventTracker';
 import { useHabitStore } from '../habits/habitStore';
 import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
-import { useAuthStore } from '../account/authStore';
 import { notifyLocalDataChanged } from './localDataEvents';
 
 export async function syncCompleteHealthData() {
   try {
     return await performCompleteHealthDataSync();
   } catch (error) {
+    if (error instanceof SessionChangedError) return false;
     trackGrowthEvent('sync_failed', { domain: 'full_data' });
     throw error;
   }
 }
 
 async function performCompleteHealthDataSync() {
-  const token = useAuthStore.getState().accessToken;
-  if (!token) return false;
-  const profileId = await getActiveLocalProfileId();
-  const activeUserId = await getActiveProfileUserId();
-  if (!activeUserId) return false;
+  const owner = authSessionContext.current();
+  if (!owner) return false;
+  const { accessToken: token, profileId, generation } = owner;
 
   for (;;) {
     const mutations = await listPendingDataMutations(100, profileId);
+    authSessionContext.assertCurrent(owner);
     if (mutations.length === 0) break;
     const response = await dataSyncApi.push(
       { mutations, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' },
       token,
     );
-    if (!(await isSyncContextActive(token, profileId))) return false;
+    authSessionContext.assertCurrent(owner);
     const requestedIds = new Set(mutations.map((mutation) => mutation.mutationId));
     const acceptedIds = response.acceptedMutationIds.filter((mutationId) => requestedIds.has(mutationId));
-    await removeAcceptedDataMutations(acceptedIds, profileId);
+    await authSessionContext.runExclusive(generation, async () => {
+      await removeAcceptedDataMutations(acceptedIds, profileId);
+    });
     if (acceptedIds.length === 0) throw new Error('云端暂未确认完整记录，请稍后重试。');
   }
 
   let cursor = await getDataSyncCursor(profileId);
   for (;;) {
+    authSessionContext.assertCurrent(owner);
     const response = await dataSyncApi.pull(cursor, token);
-    if (!(await isSyncContextActive(token, profileId))) return false;
-    await applyRemoteChanges(response.changes, profileId);
+    authSessionContext.assertCurrent(owner);
+    await authSessionContext.runExclusive(generation, async () => {
+      await applyRemoteChanges(response.changes, profileId);
+      await setDataSyncCursor(response.nextCursor, profileId);
+    });
     cursor = response.nextCursor;
-    await setDataSyncCursor(cursor, profileId);
     if (!response.hasMore) break;
   }
-  if (!(await isSyncContextActive(token, profileId))) return false;
-  await reloadLocalStores();
+  await authSessionContext.runExclusive(generation, reloadLocalStores);
+  authSessionContext.assertCurrent(owner);
   return true;
 }
 
@@ -227,14 +231,10 @@ async function applyRemoteChange(
   return null;
 }
 
-async function isSyncContextActive(token: string, profileId: string) {
-  return useAuthStore.getState().accessToken === token && (await getActiveLocalProfileId()) === profileId;
-}
-
 async function reloadLocalStores() {
-  useTrainingStore.setState({ hasHydrated: false, sessions: [] });
-  useToiletStore.setState({ hasHydrated: false, sessions: [] });
-  useHabitStore.setState({ checkIns: [], hasHydrated: false });
+  useTrainingStore.getState().reset();
+  useToiletStore.getState().reset();
+  useHabitStore.getState().reset();
   await Promise.all([
     useTrainingStore.getState().hydrate(),
     useToiletStore.getState().hydrate(),

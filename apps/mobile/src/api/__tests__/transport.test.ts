@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { SessionContext } from '../sessionContext';
 import { ApiClientError, ApiTransport, type RuntimeSchema } from '../transport';
 
 const valueSchema: RuntimeSchema<string> = {
@@ -93,7 +94,12 @@ describe('ApiTransport', () => {
     const refreshResult = new Promise<string | null>((resolve) => {
       releaseRefresh = resolve;
     });
-    const refreshHandler = vi.fn(() => refreshResult);
+    const sessions = createSessions();
+    const refreshHandler = vi.fn(async () => {
+      const token = await refreshResult;
+      if (token) sessions.activate({ ...sessions.current()!, accessToken: token });
+      return token;
+    });
     const fetchImplementation = vi.fn((_input: URL | RequestInfo, init?: RequestInit) => {
       const authorization = new Headers(init?.headers).get('authorization');
       return Promise.resolve(
@@ -102,7 +108,7 @@ describe('ApiTransport', () => {
           : jsonResponse({ error: { code: 'unauthorized', message: 'expired' } }, 401),
       );
     });
-    const transport = createTransport(fetchImplementation);
+    const transport = createTransport(fetchImplementation, 100, sessions);
     transport.setSessionRefreshHandler(refreshHandler);
 
     const first = transport.request('/me', valueSchema, { token: 'expired-token' });
@@ -133,9 +139,10 @@ describe('ApiTransport', () => {
   });
 });
 
-function createTransport(fetchImplementation: typeof fetch, timeoutMs = 100) {
+function createTransport(fetchImplementation: typeof fetch, timeoutMs = 100, sessions = createSessions()) {
   return new ApiTransport({
     baseUrl: 'https://api.example.test',
+    sessions,
     delay: async () => undefined,
     fetchImplementation,
     timeoutMs,
@@ -147,4 +154,15 @@ function jsonResponse(value: unknown, status = 200) {
     headers: { 'content-type': 'application/json' },
     status,
   });
+}
+
+function createSessions() {
+  const sessions = new SessionContext();
+  sessions.activate({
+    generation: sessions.beginTransition(),
+    userId: 'A',
+    profileId: 'profile-A',
+    accessToken: 'expired-token',
+  });
+  return sessions;
 }

@@ -323,7 +323,7 @@ psql xiaotidu -c "select user_id, provider, platform, enabled, last_seen_at from
 - [ ] 本地菊花抬、蹲会儿、小账本仍可用。
 - [ ] 云端入口显示轻量错误，不崩溃。
 - [ ] 重新启动后端后，刷新可恢复。
-- [ ] access token 失效时只刷新并重放一次；refresh 失败后才清理登录状态并提示重新登录。
+- [ ] access token 失效时只刷新并重放一次；明确的 refresh 凭证失效才登出。断网、超时、5xx 保留当前账号与本地资料，恢复网络后可重试；换号后旧 401 不得影响新账号。
 
 ## 16. 当前已知限制
 

@@ -12,9 +12,12 @@ type HabitState = {
   error: string | null;
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
+  reset: () => void;
   isHydrating: boolean;
   setHabitLevel: (date: string, key: HabitKey, level: HabitLevel) => Promise<void>;
 };
+
+let hydrationRevision = 0;
 
 export const useHabitStore = create<HabitState>((set, get) => ({
   checkIns: [],
@@ -44,11 +47,16 @@ export const useHabitStore = create<HabitState>((set, get) => ({
   },
   error: null,
   hasHydrated: false,
+  reset: () => {
+    hydrationRevision += 1;
+    set({ error: null, hasHydrated: false, isHydrating: false, checkIns: [] });
+  },
   hydrate: async () => {
     if (get().isHydrating || get().hasHydrated) {
       return;
     }
 
+    const revision = ++hydrationRevision;
     set({ error: null, isHydrating: true });
 
     try {
@@ -58,8 +66,10 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         limit: 30,
         toDateExclusive: range.toDateExclusive,
       });
+      if (revision !== hydrationRevision) return;
       set({ checkIns: page.items, hasHydrated: true, isHydrating: false });
     } catch (error) {
+      if (revision !== hydrationRevision) return;
       set({
         error: error instanceof Error ? error.message : '健康打卡加载失败',
         hasHydrated: true,
