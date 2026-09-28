@@ -86,8 +86,6 @@ function growthEntitlements(proStatus: 'free' | 'pro_active' | 'pro_expired') {
   return {
     commercialMode: 'growth_free',
     features: {
-      advancedReport: true,
-      reportSnapshotSync: true,
       watchActions: true,
     },
     proStatus,

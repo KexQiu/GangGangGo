@@ -80,7 +80,6 @@ struct WatchTodayState: Codable, Equatable {
   var generatedAt: String
   var habits: Habits
   var pendingEventCount: Int
-  var proStatus: String
   var schemaVersion: Int
   var toilet: Toilet
   var training: Training
@@ -93,7 +92,6 @@ struct WatchTodayState: Codable, Equatable {
     generatedAt: String,
     habits: Habits,
     pendingEventCount: Int,
-    proStatus: String,
     schemaVersion: Int = 3,
     toilet: Toilet,
     training: Training,
@@ -105,7 +103,6 @@ struct WatchTodayState: Codable, Equatable {
     self.generatedAt = generatedAt
     self.habits = habits
     self.pendingEventCount = pendingEventCount
-    self.proStatus = proStatus
     self.schemaVersion = schemaVersion
     self.toilet = toilet
     self.training = training
@@ -120,10 +117,11 @@ struct WatchTodayState: Codable, Equatable {
     generatedAt = try container.decode(String.self, forKey: .generatedAt)
     habits = try container.decode(Habits.self, forKey: .habits)
     pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
-    proStatus = try container.decode(String.self, forKey: .proStatus)
-    canUseActions = try container.decodeIfPresent(Bool.self, forKey: .canUseActions)
-      ?? (proStatus == "pro_active" || proStatus == "pro_grace_period")
-    schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+    canUseActions = try container.decode(Bool.self, forKey: .canUseActions)
+    schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+    guard schemaVersion == 3 else {
+      throw DecodingError.dataCorruptedError(forKey: .schemaVersion, in: container, debugDescription: "Unsupported Watch state version")
+    }
     toilet = try container.decode(Toilet.self, forKey: .toilet)
     training = try container.decode(Training.self, forKey: .training)
 
@@ -141,7 +139,6 @@ struct WatchTodayState: Codable, Equatable {
     generatedAt: ISO8601DateFormatter().string(from: Date()),
     habits: Habits(bowelDone: false, completion: 0, fiberDone: false, movementDone: false, waterDone: false),
     pendingEventCount: 0,
-    proStatus: "free",
     toilet: Toilet(elapsedSeconds: 0, isPaused: false, isRunning: false, sessionCount: 0, stage: nil),
     training: Training(completedSets: 0, done: false),
     trainingModes: TrainingModeConfig.fallbackModes

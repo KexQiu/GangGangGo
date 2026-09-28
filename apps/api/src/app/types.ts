@@ -10,7 +10,6 @@ import type { EntitlementsService } from '../modules/entitlements/entitlementsSe
 import type { FriendService } from '../modules/friends/friendService.js';
 import type { GrowthEventService } from '../modules/growth/growthEventService.js';
 import type { PushTokenService } from '../modules/push/pushTokenService.js';
-import type { ReportService } from '../modules/reports/reportService.js';
 import type { AccountDataService } from '../modules/users/accountDataService.js';
 import type { UserRepository } from '../modules/users/userRepository.js';
 
@@ -27,7 +26,6 @@ export type ApiRouteDependencies = {
   friendService: FriendService;
   growthEventService: GrowthEventService;
   pushTokenService: PushTokenService;
-  reportService: ReportService;
   userRepository: UserRepository;
 };
 
@@ -42,6 +40,5 @@ export type CreateApiAppOptions = {
   growthEventService?: GrowthEventService;
   logger?: Logger;
   pushTokenService?: PushTokenService;
-  reportService?: ReportService;
   userRepository?: UserRepository;
 };

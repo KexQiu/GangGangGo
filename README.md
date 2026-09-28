@@ -6,6 +6,8 @@
 - `apps/api`：Hono + Postgres + Drizzle API。
 - `packages/contracts`：跨端 Zod schema 与 TypeScript 类型。
 
+> 上线前数据库已整理为初始基线。已有开发环境切换与空库初始化方式见[数据库基线说明](docs/architecture/database-baseline.md)。
+
 ## Mac 开发环境
 
 需要 Node.js 22-24、pnpm 10.32+、Xcode 和 PostgreSQL。仓库通过 `.nvmrc` 推荐 Node 22，CI 也使用 Node 22。Android 构建额外需要 Android Studio / SDK 36 与 OpenJDK 17。首次安装：

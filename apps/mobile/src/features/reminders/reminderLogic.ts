@@ -18,7 +18,6 @@ export const defaultReminderSettings: ReminderSettings = {
   kegelEnabled: false,
   kegelTimes: DEFAULT_KEGEL_TIMES.slice(0, 2),
   privacyMode: true,
-  quietHoursEnd: DEFAULT_QUIET_HOURS_END,
   quietHoursRanges: [
     {
       end: DEFAULT_QUIET_HOURS_END,
@@ -26,7 +25,6 @@ export const defaultReminderSettings: ReminderSettings = {
       start: DEFAULT_QUIET_HOURS_START,
     },
   ],
-  quietHoursStart: DEFAULT_QUIET_HOURS_START,
   sedentaryEnabled: false,
   sedentaryIntervalMinutes: 60,
   updatedAt: new Date(0).toISOString(),
@@ -35,14 +33,11 @@ export const defaultReminderSettings: ReminderSettings = {
 export function normalizeReminderSettings(settings: ReminderSettings): ReminderSettings {
   const kegelTimes = settings.kegelTimes.filter(isReminderTime).slice(0, DEFAULT_KEGEL_TIMES.length);
   const quietHoursRanges = normalizeQuietHoursRanges(settings);
-  const primaryQuietRange = quietHoursRanges[0];
 
   return {
     ...settings,
     kegelTimes: kegelTimes.length > 0 ? kegelTimes : defaultReminderSettings.kegelTimes,
-    quietHoursEnd: primaryQuietRange?.end ?? '00:00',
     quietHoursRanges,
-    quietHoursStart: primaryQuietRange?.start ?? '00:00',
     sedentaryIntervalMinutes: normalizeSedentaryInterval(settings.sedentaryIntervalMinutes),
   };
 }
@@ -244,21 +239,7 @@ function normalizeQuietHoursRanges(settings: ReminderSettings): QuietHoursRange[
     .filter((range) => range.start && range.end && range.start !== range.end)
     .slice(0, MAX_QUIET_HOURS_RANGES);
 
-  if (normalizedRanges.length > 0 || settings.quietHoursStart === settings.quietHoursEnd) {
-    return sortQuietHoursRanges(normalizedRanges);
-  }
-
-  if (isReminderTime(settings.quietHoursStart) && isReminderTime(settings.quietHoursEnd)) {
-    return [
-      {
-        end: settings.quietHoursEnd,
-        id: 'legacy-quiet',
-        start: settings.quietHoursStart,
-      },
-    ];
-  }
-
-  return defaultReminderSettings.quietHoursRanges;
+  return sortQuietHoursRanges(normalizedRanges);
 }
 
 function sortQuietHoursRanges(ranges: QuietHoursRange[]): QuietHoursRange[] {

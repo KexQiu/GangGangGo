@@ -72,6 +72,8 @@ describe('Watch protocol v3 fixture', () => {
 
     expect(extractWatchEvent({ event: validEvent, type: 'watch_event' })).toEqual(validEvent);
     expect(extractWatchEvent({ event: { ...validEvent, schemaVersion: 3 }, type: 'watch_event' })).toBeNull();
+    expect(extractWatchEvent(validEvent)).toBeNull();
+    expect(extractWatchEvent({ event: { ...validEvent, schemaVersion: undefined }, type: 'watch_event' })).toBeNull();
     expect(createInvalidWatchPayloadAck()).toEqual({
       eventId: 'unknown',
       message: '手表消息格式不对。',

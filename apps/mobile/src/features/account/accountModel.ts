@@ -2,8 +2,6 @@ import type { EntitlementsResponse, FeatureAccess, ProStatus } from '@xiaotidu/c
 
 export const defaultProStatus: ProStatus = 'free';
 export const defaultFeatureAccess: FeatureAccess = {
-  advancedReport: true,
-  reportSnapshotSync: true,
   watchActions: true,
 };
 export const defaultEntitlements: EntitlementsResponse = {
@@ -21,17 +19,4 @@ export function canAccessFeature(
   feature: FeatureAccessKey,
 ): boolean {
   return entitlements?.features[feature] ?? false;
-}
-
-export function isProStatus(proStatus: ProStatus): boolean {
-  return proStatus === 'pro_active' || proStatus === 'pro_grace_period';
-}
-
-export function migrateAuthPreferences(persistedState: unknown): { selectedMockUserId: MockUserId } {
-  const selectedMockUserId = (persistedState as { selectedMockUserId?: unknown } | undefined)?.selectedMockUserId;
-  return {
-    selectedMockUserId: mockUserIds.includes(selectedMockUserId as MockUserId)
-      ? (selectedMockUserId as MockUserId)
-      : 'mock-user-a',
-  };
 }

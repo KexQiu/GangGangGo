@@ -1,14 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { AdvancedReportSummary, AuthSession, DailyReportSnapshot } from '@xiaotidu/contracts';
+import type { AuthSession } from '@xiaotidu/contracts';
 
 import { createApiApp } from '../app.js';
 import { checkDatabaseHealth } from '../db/health.js';
 import { ApiError } from '../http/apiError.js';
 import { createLogger } from '../lib/logger.js';
 import { SessionUserUnavailableError, type AuthSessionService } from '../modules/auth/authSessionService.js';
-import type { EntitlementsService } from '../modules/entitlements/entitlementsService.js';
-import type { ReportService } from '../modules/reports/reportService.js';
 import type { UserRepository } from '../modules/users/userRepository.js';
 
 const testLogger = createLogger({
@@ -19,16 +17,6 @@ const testLogger = createLogger({
 function createTestApp() {
   return createApiApp({ logger: testLogger });
 }
-
-const proEntitlementsService: EntitlementsService = {
-  async getEntitlements() {
-    return {
-      commercialMode: 'paid',
-      features: { advancedReport: true, reportSnapshotSync: true, watchActions: true },
-      proStatus: 'pro_active',
-    };
-  },
-};
 
 async function login(app: ReturnType<typeof createApiApp>, input: { identityToken?: string; nickname?: string } = {}) {
   const loginResponse = await app.request('/auth/apple', {
@@ -44,41 +32,6 @@ async function login(app: ReturnType<typeof createApiApp>, input: { identityToke
   const loginBody = await loginResponse.json();
 
   return loginBody.data.session.accessToken as string;
-}
-
-function getTestDateKey(now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-  }).formatToParts(now);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
-function addDaysToDateKey(dateKey: string, days: number) {
-  const date = new Date(`${dateKey}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-
-  return date.toISOString().slice(0, 10);
-}
-
-function createDailyReportSnapshot(input: Partial<DailyReportSnapshot> = {}): DailyReportSnapshot {
-  return {
-    date: getTestDateKey(),
-    habitCompletion: 4,
-    streakDays: 9,
-    toiletLongMeeting: false,
-    toiletRecorded: true,
-    trainingDone: true,
-    ...input,
-  };
-}
-
-function repeatAdvancedSummary(summary: AdvancedReportSummary) {
-  return { '7d': summary, '30d': summary, '90d': summary };
 }
 
 describe('api app', () => {
@@ -509,8 +462,6 @@ describe('api app', () => {
       data: {
         commercialMode: 'growth_free',
         features: {
-          advancedReport: true,
-          reportSnapshotSync: true,
           watchActions: true,
         },
         proStatus: 'free',
@@ -672,285 +623,6 @@ describe('api app', () => {
     });
   });
 
-  it('opens reports in growth mode and preserves paid-mode entitlement gates', async () => {
-    const paidFreeEntitlementsService: EntitlementsService = {
-      async getEntitlements() {
-        return {
-          commercialMode: 'paid',
-          features: { advancedReport: false, reportSnapshotSync: false, watchActions: false },
-          proStatus: 'free',
-        };
-      },
-    };
-    const reportService: ReportService = {
-      async getAdvancedReport(_currentUser, range) {
-        const snapshot = createDailyReportSnapshot({
-          date: '2026-05-22',
-          streakDays: 8,
-        });
-
-        return {
-          days: [
-            {
-              date: snapshot.date,
-              habitCompletion: snapshot.habitCompletion,
-              habitFull: snapshot.habitCompletion === 4,
-              toiletLongMeeting: snapshot.toiletLongMeeting,
-              toiletRecorded: snapshot.toiletRecorded,
-              trainingDone: snapshot.trainingDone,
-            },
-          ],
-          endedAt: snapshot.date,
-          range,
-          snapshot,
-          startedAt: '2026-02-22',
-          summaries: repeatAdvancedSummary({
-            currentStreakDays: snapshot.streakDays,
-            habitFullDays: 20,
-            hasAnyRecord: true,
-            recordDays: 31,
-            toiletLongMeetingCount: 2,
-            toiletRecordDays: 20,
-            trainingDays: 31,
-          }),
-        };
-      },
-      async upsertDailyReportSnapshot(_currentUser, snapshot) {
-        return {
-          snapshot,
-        };
-      },
-      async upsertDailyReportSnapshots(_currentUser, snapshots) {
-        return {
-          snapshots,
-        };
-      },
-    };
-    const growthApp = createApiApp({ logger: testLogger, reportService });
-    const growthToken = await login(growthApp);
-    const growthResponse = await growthApp.request('/reports/advanced?range=90d', {
-      headers: {
-        authorization: `Bearer ${growthToken}`,
-      },
-    });
-    expect(growthResponse.status).toBe(200);
-
-    const paidFreeApp = createApiApp({
-      entitlementsService: paidFreeEntitlementsService,
-      logger: testLogger,
-      reportService,
-    });
-    const paidFreeToken = await login(paidFreeApp, { identityToken: 'paid-free-report-token' });
-    const paidFreeResponse = await paidFreeApp.request('/reports/advanced?range=90d', {
-      headers: { authorization: `Bearer ${paidFreeToken}` },
-    });
-    const paidFreeBody = await paidFreeResponse.json();
-
-    expect(paidFreeResponse.status).toBe(403);
-    expect(paidFreeBody.error.code).toBe('forbidden');
-
-    const proApp = createApiApp({
-      entitlementsService: proEntitlementsService,
-      logger: testLogger,
-      reportService,
-    });
-    const unauthorizedResponse = await proApp.request('/reports/advanced?range=90d');
-    const unauthorizedBody = await unauthorizedResponse.json();
-
-    expect(unauthorizedResponse.status).toBe(401);
-    expect(unauthorizedBody.error.code).toBe('unauthorized');
-
-    const proToken = await login(proApp, {
-      identityToken: 'pro-report-token',
-    });
-    const response = await proApp.request('/reports/advanced?range=90d', {
-      headers: {
-        authorization: `Bearer ${proToken}`,
-      },
-    });
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body.data).toMatchObject({
-      range: '90d',
-      snapshot: {
-        date: '2026-05-22',
-        habitCompletion: 4,
-      },
-    });
-  });
-
-  it('upserts a Pro daily report snapshot and reads it back', async () => {
-    const app = createApiApp({
-      entitlementsService: proEntitlementsService,
-      logger: testLogger,
-    });
-    const token = await login(app, {
-      identityToken: 'report-snapshot-token',
-    });
-    const snapshot = createDailyReportSnapshot();
-    const upsertResponse = await app.request('/report-snapshots/today', {
-      body: JSON.stringify({ snapshot }),
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      method: 'PUT',
-    });
-    const upsertBody = await upsertResponse.json();
-
-    expect(upsertResponse.status).toBe(200);
-    expect(upsertBody.data.snapshot).toEqual(snapshot);
-
-    const reportResponse = await app.request('/reports/advanced?range=90d', {
-      headers: {
-        authorization: `Bearer ${token}`,
-      },
-    });
-    const reportBody = await reportResponse.json();
-
-    expect(reportResponse.status).toBe(200);
-    expect(reportBody.data.snapshot).toEqual(snapshot);
-    expect(reportBody.data.days).toHaveLength(90);
-    expect(reportBody.data.days.at(-1)).toMatchObject({
-      date: snapshot.date,
-      habitFull: true,
-      trainingDone: true,
-    });
-    expect(reportBody.data.summaries['90d']).toMatchObject({
-      currentStreakDays: 9,
-      habitFullDays: 1,
-      hasAnyRecord: true,
-      recordDays: 1,
-      toiletLongMeetingCount: 0,
-      toiletRecordDays: 1,
-      trainingDays: 1,
-    });
-  });
-
-  it('bulk upserts report snapshots with 90-day validation and duplicate date handling', async () => {
-    const snapshotDate = getTestDateKey();
-    const previousDate = addDaysToDateKey(snapshotDate, -1);
-    const freeApp = createTestApp();
-    const freeToken = await login(freeApp, {
-      identityToken: 'bulk-report-free-token',
-    });
-    const freeResponse = await freeApp.request('/report-snapshots/bulk', {
-      body: JSON.stringify({
-        snapshots: [createDailyReportSnapshot({ date: snapshotDate })],
-      }),
-      headers: {
-        authorization: `Bearer ${freeToken}`,
-        'content-type': 'application/json',
-      },
-      method: 'PUT',
-    });
-
-    expect(freeResponse.status).toBe(200);
-
-    const paidFreeApp = createApiApp({
-      entitlementsService: {
-        async getEntitlements() {
-          return {
-            commercialMode: 'paid',
-            features: { advancedReport: false, reportSnapshotSync: false, watchActions: false },
-            proStatus: 'free',
-          };
-        },
-      },
-      logger: testLogger,
-    });
-    const paidFreeToken = await login(paidFreeApp, { identityToken: 'bulk-report-paid-free-token' });
-    const paidFreeResponse = await paidFreeApp.request('/report-snapshots/bulk', {
-      body: JSON.stringify({ snapshots: [createDailyReportSnapshot({ date: snapshotDate })] }),
-      headers: {
-        authorization: `Bearer ${paidFreeToken}`,
-        'content-type': 'application/json',
-      },
-      method: 'PUT',
-    });
-
-    expect(paidFreeResponse.status).toBe(403);
-
-    const app = createApiApp({
-      entitlementsService: proEntitlementsService,
-      logger: testLogger,
-    });
-    const token = await login(app, {
-      identityToken: 'bulk-report-pro-token',
-    });
-    const staleSnapshot = createDailyReportSnapshot({
-      date: previousDate,
-      habitCompletion: 1,
-      toiletRecorded: false,
-      trainingDone: false,
-    });
-    const latestPreviousSnapshot = createDailyReportSnapshot({
-      date: previousDate,
-      habitCompletion: 4,
-    });
-    const latestSnapshot = createDailyReportSnapshot({
-      date: snapshotDate,
-      streakDays: 2,
-      toiletLongMeeting: true,
-    });
-    const bulkResponse = await app.request('/report-snapshots/bulk', {
-      body: JSON.stringify({
-        snapshots: [staleSnapshot, latestPreviousSnapshot, latestSnapshot],
-      }),
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      method: 'PUT',
-    });
-    const bulkBody = await bulkResponse.json();
-
-    expect(bulkResponse.status).toBe(200);
-    expect(bulkBody.data.snapshots).toHaveLength(2);
-    expect(bulkBody.data.snapshots[0]).toMatchObject({
-      date: previousDate,
-      habitCompletion: 4,
-    });
-
-    const reportResponse = await app.request('/reports/advanced?range=90d', {
-      headers: {
-        authorization: `Bearer ${token}`,
-      },
-    });
-    const reportBody = await reportResponse.json();
-    const previousDay = reportBody.data.days.find((day: { date: string }) => day.date === previousDate);
-
-    expect(reportResponse.status).toBe(200);
-    expect(reportBody.data.days).toHaveLength(90);
-    expect(previousDay).toMatchObject({
-      habitFull: true,
-      trainingDone: true,
-    });
-    expect(reportBody.data.summaries['90d']).toMatchObject({
-      currentStreakDays: 2,
-      habitFullDays: 2,
-      recordDays: 2,
-      toiletLongMeetingCount: 1,
-      trainingDays: 2,
-    });
-
-    const oversizedResponse = await app.request('/report-snapshots/bulk', {
-      body: JSON.stringify({
-        snapshots: Array.from({ length: 91 }, () => latestSnapshot),
-      }),
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      method: 'PUT',
-    });
-    const oversizedBody = await oversizedResponse.json();
-
-    expect(oversizedResponse.status).toBe(400);
-    expect(oversizedBody.error.code).toBe('validation_error');
-  });
-
   it('returns pending subscription verification placeholders', async () => {
     const app = createTestApp();
     const token = await login(app, {
@@ -974,8 +646,6 @@ describe('api app', () => {
       entitlements: {
         commercialMode: 'growth_free',
         features: {
-          advancedReport: true,
-          reportSnapshotSync: true,
           watchActions: true,
         },
         proStatus: 'free',

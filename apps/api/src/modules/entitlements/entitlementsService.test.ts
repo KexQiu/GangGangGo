@@ -58,17 +58,15 @@ describe('resolveProStatus', () => {
 describe('resolveFeatureAccess', () => {
   it('opens current features during growth mode', () => {
     expect(resolveFeatureAccess('growth_free', 'free')).toEqual({
-      advancedReport: true,
-      reportSnapshotSync: true,
       watchActions: true,
     });
     expect(resolveFeatureAccess('growth_free', 'pro_expired').watchActions).toBe(true);
   });
 
   it('requires an active entitlement in paid mode', () => {
-    expect(resolveFeatureAccess('paid', 'free').advancedReport).toBe(false);
-    expect(resolveFeatureAccess('paid', 'pro_expired').reportSnapshotSync).toBe(false);
+    expect(resolveFeatureAccess('paid', 'free').watchActions).toBe(false);
+    expect(resolveFeatureAccess('paid', 'pro_expired').watchActions).toBe(false);
     expect(resolveFeatureAccess('paid', 'pro_active').watchActions).toBe(true);
-    expect(resolveFeatureAccess('paid', 'pro_grace_period').advancedReport).toBe(true);
+    expect(resolveFeatureAccess('paid', 'pro_grace_period').watchActions).toBe(true);
   });
 });

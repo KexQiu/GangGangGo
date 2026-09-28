@@ -1,5 +1,3 @@
-import type { ProStatus } from '@xiaotidu/contracts';
-
 import type { HabitKey, HabitLevel } from '../habits/habitTypes';
 import type { ToiletTimerStage } from '../toilet/toiletTypes';
 import type { TrainingPresetId } from '../training/trainingTypes';
@@ -28,7 +26,6 @@ export type WatchTodayState = {
     waterDone: boolean;
   };
   pendingEventCount: number;
-  proStatus: ProStatus;
   toilet: {
     elapsedSeconds: number;
     isPaused: boolean;
@@ -47,7 +44,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion?: 2;
+      schemaVersion: 2;
       payload: {
         completedSets: number;
         durationSeconds: number;
@@ -58,7 +55,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion?: 2;
+      schemaVersion: 2;
       payload: {
         habitKey: HabitKey;
         level: HabitLevel | null;
@@ -68,7 +65,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion?: 2;
+      schemaVersion: 2;
       payload: {
         action: 'finish' | 'pause' | 'resume';
         elapsedSeconds: number;

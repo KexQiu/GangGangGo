@@ -10,7 +10,6 @@ import {
 } from '../modules/friends/friends.route.js';
 import { createGrowthEventsRoute } from '../modules/growth/growthEvents.route.js';
 import { createPushTokensRoute } from '../modules/push/pushTokens.route.js';
-import { createReportsRoute } from '../modules/reports/reports.route.js';
 import { createSubscriptionsRoute } from '../modules/subscriptions/subscriptions.route.js';
 import { createMeRoute } from '../modules/users/me.route.js';
 import type { ApiRouteDependencies } from './types.js';
@@ -65,14 +64,4 @@ export function registerRoutes(app: OpenAPIHono, dependencies: ApiRouteDependenc
   app.use('/subscriptions/*', dependencies.authMiddleware);
   app.use('/subscriptions', dependencies.authMiddleware);
   app.route('/subscriptions', createSubscriptionsRoute({ entitlementsService: dependencies.entitlementsService }));
-  app.use('/reports/*', dependencies.authMiddleware);
-  app.use('/report-snapshots/*', dependencies.authMiddleware);
-  app.use('/report-snapshots', dependencies.authMiddleware);
-  app.route(
-    '/',
-    createReportsRoute({
-      entitlementsService: dependencies.entitlementsService,
-      reportService: dependencies.reportService,
-    }),
-  );
 }

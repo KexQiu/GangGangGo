@@ -4,6 +4,5 @@ export * from './dataSync.js';
 export * from './friends.js';
 export * from './growth.js';
 export * from './push.js';
-export * from './reports.js';
 export * from './subscriptions.js';
 export * from './users.js';

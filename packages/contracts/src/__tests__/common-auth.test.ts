@@ -34,11 +34,7 @@ describe('common contracts', () => {
     ['isoDateTimeSchema', isoDateTimeSchema, NOW],
     ['proStatusSchema', proStatusSchema, 'pro_active'],
     ['commercialModeSchema', commercialModeSchema, 'growth_free'],
-    [
-      'featureAccessSchema',
-      featureAccessSchema,
-      { advancedReport: true, reportSnapshotSync: true, watchActions: true },
-    ],
+    ['featureAccessSchema', featureAccessSchema, { watchActions: true }],
     ['apiErrorCodeSchema', apiErrorCodeSchema, 'validation_error'],
     [
       'apiErrorResponseSchema',
@@ -64,7 +60,7 @@ describe('common contracts', () => {
   it('rejects invalid enums, types, and malformed quiet ranges', () => {
     expect(proStatusSchema.safeParse('premium').success).toBe(false);
     expect(commercialModeSchema.safeParse('free_trial').success).toBe(false);
-    expect(featureAccessSchema.safeParse({ advancedReport: true, watchActions: true }).success).toBe(false);
+    expect(featureAccessSchema.safeParse({ watchActions: 'true' }).success).toBe(false);
     expect(apiErrorCodeSchema.safeParse(401).success).toBe(false);
     expect(quietRangeSchema.safeParse({ end: '24:00', start: '23:00' }).success).toBe(false);
     expect(quietRangeSchema.safeParse({ end: '00:00', start: '00:00' }).success).toBe(true);

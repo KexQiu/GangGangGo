@@ -4,10 +4,6 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getLocalDateKey } from '../../features/habits/habitLogic';
-import type { HabitCheckIn } from '../../features/habits/habitTypes';
-import { buildRecentReportSnapshots } from '../../features/reports/reportSnapshotBuilder';
-import type { ToiletSession } from '../../features/toilet/toiletTypes';
-import type { TrainingSession } from '../../features/training/trainingTypes';
 import { buildLocalDateRange } from '../dateRange';
 import { runMigrations } from '../migrations';
 import { habitCheckInPageSql, toiletSessionPageSql, trainingSessionPageSql } from '../repositories/pageQueries';
@@ -99,40 +95,6 @@ describe('SQLite large-history performance', () => {
     expect(queryPlan(database, trainingSessionPageSql, secondParams)).toContain(
       'idx_training_sessions_profile_ended_at_id',
     );
-  });
-
-  it('loads and builds a 90-day report with three bounded queries', () => {
-    const range = buildLocalDateRange(90, now);
-    let queryCount = 0;
-    const runQuery = <T>(sql: string, parameters: QueryParameters) => {
-      queryCount += 1;
-      return queryAll<T>(database, sql, parameters);
-    };
-
-    const { durationMs, value: snapshots } = measure(() => {
-      const habits = runQuery<HabitRow>(
-        habitCheckInPageSql,
-        habitParameters(range.fromDate, range.toDateExclusive, 91),
-      ).map(rowToHabitCheckIn);
-      const toilets = runQuery<ToiletRow>(
-        toiletSessionPageSql,
-        sessionParameters(range.fromDateTime, range.toDateTimeExclusive, 251),
-      ).map(rowToToiletSession);
-      const trainings = runQuery<TrainingRow>(
-        trainingSessionPageSql,
-        sessionParameters(range.fromDateTime, range.toDateTimeExclusive, 251),
-      ).map(rowToTrainingSession);
-      return buildRecentReportSnapshots(
-        { habitCheckIns: habits, toiletSessions: toilets, trainingSessions: trainings },
-        now,
-      );
-    });
-
-    expect(queryCount).toBe(3);
-    expect(snapshots).toHaveLength(90);
-    expect(snapshots.at(-1)?.date).toBe(getLocalDateKey(now));
-    expect(snapshots.every((snapshot) => snapshot.trainingDone && snapshot.toiletRecorded)).toBe(true);
-    expect(durationMs).toBeLessThan(maximumBenchmarkDurationMs);
   });
 });
 
@@ -236,40 +198,4 @@ function measure<T>(operation: () => T) {
   const startedAt = performance.now();
   const value = operation();
   return { durationMs: performance.now() - startedAt, value };
-}
-
-function rowToHabitCheckIn(row: HabitRow): HabitCheckIn {
-  return {
-    bowel: 'good',
-    date: row.date,
-    fiber: 'good',
-    movement: 'good',
-    updatedAt: row.updated_at,
-    water: 'good',
-  };
-}
-
-function rowToToiletSession(row: ToiletRow): ToiletSession {
-  return {
-    bleeding: Boolean(row.bleeding),
-    discomfort: Boolean(row.discomfort),
-    durationSeconds: row.duration_seconds,
-    endedAt: row.ended_at,
-    feeling: 'normal',
-    id: row.id,
-    startedAt: row.started_at,
-  };
-}
-
-function rowToTrainingSession(row: TrainingRow): TrainingSession {
-  return {
-    completedRepetitions: row.completed_repetitions,
-    discomfortReported: Boolean(row.discomfort_reported),
-    durationSeconds: row.duration_seconds,
-    endedAt: row.ended_at,
-    id: row.id,
-    isCompleted: Boolean(row.is_completed),
-    presetId: 'standard',
-    startedAt: row.started_at,
-  };
 }

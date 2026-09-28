@@ -7,9 +7,9 @@ import type { AuthResponse } from '@xiaotidu/contracts';
 import { ApiClientError, authApi, setApiSessionRefreshHandler, setApiUnauthorizedHandler } from '../../api/client';
 import { queryClient } from '../../api/queryClient';
 import { showToast } from '../../components/toast/AppToast';
-import { migrateAuthPreferences, type MockUserId } from './accountModel';
 import { clearCloudQueryCache, resetCloudQueryCacheForUser } from './accountQueryCache';
 import { refreshCurrentUserQuery, refreshEntitlementsQuery, seedCurrentUser } from './accountQueryService';
+import type { MockUserId } from './accountModel';
 import { clearSecureSession, loadSecureSession, saveSecureSession } from './sessionStorage';
 import { activateAnonymousLocalProfile, bindActiveLocalProfileToUser } from '../../storage/localDataProfile';
 import { rebuildRecentDailySummaries } from '../data/dailyData';
@@ -17,7 +17,7 @@ import { useHabitStore } from '../habits/habitStore';
 import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
 
-export { isProStatus, mockUserIds } from './accountModel';
+export { mockUserIds } from './accountModel';
 export type { MockUserId } from './accountModel';
 
 type AuthState = {
@@ -161,7 +161,7 @@ export const useAuthStore = create<AuthState>()(
       selectedMockUserId: 'mock-user-a',
     }),
     {
-      name: 'xiaotidu-auth-profile-v2',
+      name: 'xiaotidu-auth-preferences',
       onRehydrateStorage: () => (state) => {
         if (state) void state.restoreSecureSession();
       },
@@ -169,8 +169,6 @@ export const useAuthStore = create<AuthState>()(
         selectedMockUserId: state.selectedMockUserId,
       }),
       storage: createJSONStorage(() => AsyncStorage),
-      migrate: migrateAuthPreferences,
-      version: 3,
     },
   ),
 );

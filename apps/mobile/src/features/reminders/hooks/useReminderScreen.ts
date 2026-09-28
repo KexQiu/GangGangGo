@@ -26,11 +26,8 @@ export function useReminderScreen() {
 
   function updateQuietRanges(ranges: QuietHoursRange[]) {
     const nextRanges = ranges.slice(0, MAX_QUIET_HOURS_RANGES);
-    const primaryRange = nextRanges[0];
     void updateSettings({
-      quietHoursEnd: primaryRange?.end ?? '00:00',
       quietHoursRanges: nextRanges,
-      quietHoursStart: primaryRange?.start ?? '00:00',
     });
   }
 

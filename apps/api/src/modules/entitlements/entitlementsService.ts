@@ -25,8 +25,6 @@ export function resolveFeatureAccess(commercialMode: CommercialMode, proStatus: 
   const enabled = commercialMode === 'growth_free' || hasPaidAccess;
 
   return {
-    advancedReport: enabled,
-    reportSnapshotSync: enabled,
     watchActions: enabled,
   };
 }

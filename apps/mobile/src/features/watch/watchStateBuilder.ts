@@ -1,4 +1,4 @@
-import { canAccessFeature, defaultProStatus } from '../account/accountModel';
+import { canAccessFeature } from '../account/accountModel';
 import { getCachedCurrentUser, getCachedEntitlements } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
 import { calculateHabitCompletion, createEmptyHabitCheckIn, getLocalDateKey } from '../habits/habitLogic';
@@ -17,7 +17,6 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
   const auth = useAuthStore.getState();
   const user = getCachedCurrentUser();
   const entitlements = getCachedEntitlements();
-  const proStatus = entitlements?.proStatus ?? defaultProStatus;
   const habitCheckIns = useHabitStore.getState().checkIns;
   const trainingSessions = useTrainingStore.getState().sessions;
   const toiletSessions = useToiletStore.getState().sessions;
@@ -47,7 +46,6 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
       waterDone: Boolean(checkIn.water),
     },
     pendingEventCount: 0,
-    proStatus,
     toilet: {
       elapsedSeconds: canUseActions ? elapsedSeconds : 0,
       isPaused: canUseActions ? (toiletSession?.isPaused ?? false) : false,

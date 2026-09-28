@@ -3,7 +3,6 @@ import {
   type ToiletSession,
   type ToiletSignal,
   type ToiletStoolColor,
-  type ToiletStoolColorOption,
   type ToiletStoolShape,
 } from './toiletTypes';
 
@@ -17,7 +16,7 @@ export const toiletStoolShapeOptions: Array<{ label: string; value: ToiletStoolS
   { label: '偏稀', value: 'loose' },
 ];
 
-export const toiletStoolColorOptions: Array<{ label: string; value: ToiletStoolColorOption }> = [
+export const toiletStoolColorOptions: Array<{ label: string; value: ToiletStoolColor }> = [
   { label: '常见颜色', value: 'normal' },
   { label: '需要留意', value: 'attention' },
 ];
@@ -30,11 +29,10 @@ export const builtInToiletSignals: ToiletSignal[] = [
 ];
 
 const toiletStoolShapes = new Set<ToiletStoolShape>(toiletStoolShapeOptions.map((option) => option.value));
-const toiletStoolColors = new Set<ToiletStoolColor>(['normal', 'attention', 'other']);
+const toiletStoolColors = new Set<ToiletStoolColor>(['normal', 'attention']);
 const toiletStoolColorLabels: Record<ToiletStoolColor, string> = {
   attention: '需要留意',
   normal: '常见颜色',
-  other: '其他',
 };
 
 export function createToiletRecordDraft(session: ToiletSession): ToiletRecordDraft {
@@ -44,7 +42,7 @@ export function createToiletRecordDraft(session: ToiletSession): ToiletRecordDra
     durationSeconds: session.durationSeconds,
     feeling: session.feeling,
     signals: normalizeToiletSignals(session.signals),
-    stoolColor: toSelectableToiletStoolColor(session.stoolColor),
+    stoolColor: session.stoolColor ?? null,
     stoolShape: session.stoolShape ?? null,
   };
 }
@@ -63,12 +61,6 @@ export function isToiletStoolShape(value: unknown): value is ToiletStoolShape {
 
 export function isToiletStoolColor(value: unknown): value is ToiletStoolColor {
   return typeof value === 'string' && toiletStoolColors.has(value as ToiletStoolColor);
-}
-
-export function toSelectableToiletStoolColor(
-  value: ToiletStoolColor | null | undefined,
-): ToiletStoolColorOption | null {
-  return value === 'normal' || value === 'attention' ? value : null;
 }
 
 export function normalizeToiletSignalLabel(value: string): string {

@@ -1,1 +1,0 @@
-CREATE INDEX "growth_events_received_at_idx" ON "growth_events" USING btree ("received_at");

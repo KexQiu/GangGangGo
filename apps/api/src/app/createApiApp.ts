@@ -15,7 +15,6 @@ import { createMockEntitlementsService } from '../modules/entitlements/entitleme
 import { createMockFriendService } from '../modules/friends/friendService.js';
 import { createMockGrowthEventService } from '../modules/growth/growthEventService.js';
 import { createMockPushTokenService } from '../modules/push/pushTokenService.js';
-import { createMockReportService } from '../modules/reports/reportService.js';
 import { createMockAccountDataService } from '../modules/users/accountDataService.js';
 import { createMockUserRepository } from '../modules/users/userRepository.js';
 import { createErrorHandler, notFoundHandler } from './errorHandler.js';
@@ -32,7 +31,6 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const growthEventService = options.growthEventService ?? createMockGrowthEventService();
   const dataSyncService = options.dataSyncService ?? createMockDataSyncService({ friendService });
   const pushTokenService = options.pushTokenService ?? createMockPushTokenService();
-  const reportService = options.reportService ?? createMockReportService();
   const userRepository = options.userRepository ?? createMockUserRepository();
   const accountDataService = options.accountDataService ?? createMockAccountDataService(userRepository);
   const app = createOpenApiRouter();
@@ -67,7 +65,6 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
     friendService,
     growthEventService,
     pushTokenService,
-    reportService,
     userRepository,
   });
 

@@ -25,13 +25,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                 },
                 "type": "array",
               },
-              "dailyReportSnapshots": {
-                "items": {
-                  "additionalProperties": {},
-                  "type": "object",
-                },
-                "type": "array",
-              },
               "dataSyncChanges": {
                 "items": {
                   "additionalProperties": {},
@@ -148,7 +141,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             "required": [
               "auditEvents",
               "dailyActivitySummaries",
-              "dailyReportSnapshots",
               "dataSyncChanges",
               "friendEventAcks",
               "friendEvents",
@@ -219,203 +211,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         },
         "required": [
           "status",
-        ],
-        "type": "object",
-      },
-      "AdvancedReportResponse": {
-        "properties": {
-          "days": {
-            "items": {
-              "properties": {
-                "date": {
-                  "$ref": "#/components/schemas/IsoDate",
-                },
-                "habitCompletion": {
-                  "maximum": 4,
-                  "minimum": 0,
-                  "type": "integer",
-                },
-                "habitFull": {
-                  "type": "boolean",
-                },
-                "toiletLongMeeting": {
-                  "type": "boolean",
-                },
-                "toiletRecorded": {
-                  "type": "boolean",
-                },
-                "trainingDone": {
-                  "type": "boolean",
-                },
-              },
-              "required": [
-                "date",
-                "habitCompletion",
-                "habitFull",
-                "toiletLongMeeting",
-                "toiletRecorded",
-                "trainingDone",
-              ],
-              "type": "object",
-            },
-            "type": "array",
-          },
-          "endedAt": {
-            "$ref": "#/components/schemas/IsoDate",
-          },
-          "range": {
-            "enum": [
-              "90d",
-            ],
-            "type": "string",
-          },
-          "snapshot": {
-            "$ref": "#/components/schemas/DailyReportSnapshot",
-          },
-          "startedAt": {
-            "$ref": "#/components/schemas/IsoDate",
-          },
-          "summaries": {
-            "properties": {
-              "30d": {
-                "properties": {
-                  "currentStreakDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "habitFullDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "hasAnyRecord": {
-                    "type": "boolean",
-                  },
-                  "recordDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "toiletLongMeetingCount": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "toiletRecordDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "trainingDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                },
-                "required": [
-                  "currentStreakDays",
-                  "habitFullDays",
-                  "hasAnyRecord",
-                  "recordDays",
-                  "toiletLongMeetingCount",
-                  "toiletRecordDays",
-                  "trainingDays",
-                ],
-                "type": "object",
-              },
-              "7d": {
-                "properties": {
-                  "currentStreakDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "habitFullDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "hasAnyRecord": {
-                    "type": "boolean",
-                  },
-                  "recordDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "toiletLongMeetingCount": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "toiletRecordDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "trainingDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                },
-                "required": [
-                  "currentStreakDays",
-                  "habitFullDays",
-                  "hasAnyRecord",
-                  "recordDays",
-                  "toiletLongMeetingCount",
-                  "toiletRecordDays",
-                  "trainingDays",
-                ],
-                "type": "object",
-              },
-              "90d": {
-                "properties": {
-                  "currentStreakDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "habitFullDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "hasAnyRecord": {
-                    "type": "boolean",
-                  },
-                  "recordDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "toiletLongMeetingCount": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "toiletRecordDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                  "trainingDays": {
-                    "minimum": 0,
-                    "type": "integer",
-                  },
-                },
-                "required": [
-                  "currentStreakDays",
-                  "habitFullDays",
-                  "hasAnyRecord",
-                  "recordDays",
-                  "toiletLongMeetingCount",
-                  "toiletRecordDays",
-                  "trainingDays",
-                ],
-                "type": "object",
-              },
-            },
-            "required": [
-              "7d",
-              "30d",
-              "90d",
-            ],
-            "type": "object",
-          },
-        },
-        "required": [
-          "days",
-          "endedAt",
-          "range",
-          "snapshot",
-          "startedAt",
-          "summaries",
         ],
         "type": "object",
       },
@@ -688,69 +483,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
         ],
         "type": "object",
       },
-      "DailyReportSnapshot": {
-        "additionalProperties": false,
-        "properties": {
-          "date": {
-            "$ref": "#/components/schemas/IsoDate",
-          },
-          "habitCompletion": {
-            "maximum": 4,
-            "minimum": 0,
-            "type": "integer",
-          },
-          "streakDays": {
-            "minimum": 0,
-            "type": "integer",
-          },
-          "toiletLongMeeting": {
-            "type": "boolean",
-          },
-          "toiletRecorded": {
-            "type": "boolean",
-          },
-          "trainingDone": {
-            "type": "boolean",
-          },
-        },
-        "required": [
-          "date",
-          "habitCompletion",
-          "streakDays",
-          "toiletLongMeeting",
-          "toiletRecorded",
-          "trainingDone",
-        ],
-        "type": [
-          "object",
-          "null",
-        ],
-      },
-      "DailyReportSnapshotResponse": {
-        "properties": {
-          "snapshot": {
-            "$ref": "#/components/schemas/DailyReportSnapshot",
-          },
-        },
-        "required": [
-          "snapshot",
-        ],
-        "type": "object",
-      },
-      "DailyReportSnapshotsBulkResponse": {
-        "properties": {
-          "snapshots": {
-            "items": {
-              "$ref": "#/components/schemas/DailyReportSnapshot",
-            },
-            "type": "array",
-          },
-        },
-        "required": [
-          "snapshots",
-        ],
-        "type": "object",
-      },
       "DataSyncPullResponse": {
         "additionalProperties": false,
         "properties": {
@@ -948,7 +680,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                           "enum": [
                             "normal",
                             "attention",
-                            "other",
                             null,
                           ],
                           "type": [
@@ -1297,7 +1028,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                               "enum": [
                                 "normal",
                                 "attention",
-                                "other",
                                 null,
                               ],
                               "type": [
@@ -1584,7 +1314,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                           "enum": [
                             "normal",
                             "attention",
-                            "other",
                             null,
                           ],
                           "type": [
@@ -1703,24 +1432,14 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           "features": {
             "additionalProperties": false,
             "default": {
-              "advancedReport": true,
-              "reportSnapshotSync": true,
               "watchActions": true,
             },
             "properties": {
-              "advancedReport": {
-                "type": "boolean",
-              },
-              "reportSnapshotSync": {
-                "type": "boolean",
-              },
               "watchActions": {
                 "type": "boolean",
               },
             },
             "required": [
-              "advancedReport",
-              "reportSnapshotSync",
               "watchActions",
             ],
             "type": "object",
@@ -2969,35 +2688,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
             "type": "string",
           },
         },
-        "type": "object",
-      },
-      "UpsertDailyReportSnapshotRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "snapshot": {
-            "$ref": "#/components/schemas/DailyReportSnapshot",
-          },
-        },
-        "required": [
-          "snapshot",
-        ],
-        "type": "object",
-      },
-      "UpsertDailyReportSnapshotsBulkRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "snapshots": {
-            "items": {
-              "$ref": "#/components/schemas/DailyReportSnapshot",
-            },
-            "maxItems": 90,
-            "minItems": 1,
-            "type": "array",
-          },
-        },
-        "required": [
-          "snapshots",
-        ],
         "type": "object",
       },
       "UserProfile": {
@@ -6166,370 +5856,6 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           },
         ],
         "summary": "注册 Push token",
-      },
-    },
-    "/report-snapshots/bulk": {
-      "put": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertDailyReportSnapshotsBulkRequest",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/DailyReportSnapshotsBulkResponse",
-                    },
-                  },
-                  "required": [
-                    "data",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "成功",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求不合法",
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "未登录或会话失效",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "没有操作权限",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "资源不存在",
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "资源状态冲突",
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求体超过限制",
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求超过限制",
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "服务内部错误",
-          },
-        },
-        "security": [
-          {
-            "bearerAuth": [],
-          },
-        ],
-        "summary": "批量上传个人日报",
-      },
-    },
-    "/report-snapshots/today": {
-      "put": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertDailyReportSnapshotRequest",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/DailyReportSnapshotResponse",
-                    },
-                  },
-                  "required": [
-                    "data",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "成功",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求不合法",
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "未登录或会话失效",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "没有操作权限",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "资源不存在",
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "资源状态冲突",
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求体超过限制",
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求超过限制",
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "服务内部错误",
-          },
-        },
-        "security": [
-          {
-            "bearerAuth": [],
-          },
-        ],
-        "summary": "上传个人日报",
-      },
-    },
-    "/reports/advanced": {
-      "get": {
-        "parameters": [
-          {
-            "in": "query",
-            "name": "range",
-            "required": false,
-            "schema": {
-              "default": "90d",
-              "enum": [
-                "90d",
-              ],
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/AdvancedReportResponse",
-                    },
-                  },
-                  "required": [
-                    "data",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "成功",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求不合法",
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "未登录或会话失效",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "没有操作权限",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "资源不存在",
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "资源状态冲突",
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求体超过限制",
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "请求超过限制",
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse",
-                },
-              },
-            },
-            "description": "服务内部错误",
-          },
-        },
-        "security": [
-          {
-            "bearerAuth": [],
-          },
-        ],
-        "summary": "90 天高级报告",
       },
     },
     "/subscriptions/restore": {

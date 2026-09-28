@@ -11,8 +11,6 @@ export type CommercialMode = z.infer<typeof commercialModeSchema>;
 
 export const featureAccessSchema = z
   .object({
-    advancedReport: z.boolean(),
-    reportSnapshotSync: z.boolean(),
     watchActions: z.boolean(),
   })
   .strict();
@@ -61,8 +59,6 @@ export const entitlementsResponseSchema = z
   .object({
     commercialMode: commercialModeSchema.default('growth_free'),
     features: featureAccessSchema.default({
-      advancedReport: true,
-      reportSnapshotSync: true,
       watchActions: true,
     }),
     proStatus: proStatusSchema,

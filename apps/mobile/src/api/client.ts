@@ -5,7 +5,5 @@ export { growthEventsApi } from './client/growth';
 export { setApiSessionRefreshHandler, setApiUnauthorizedHandler } from './client/core';
 export { healthApi } from './client/health';
 export { pushApi } from './client/push';
-export { reportsApi } from './client/reports';
-export { subscriptionsApi } from './client/subscriptions';
 export { usersApi } from './client/users';
 export { ApiClientError } from './transport';

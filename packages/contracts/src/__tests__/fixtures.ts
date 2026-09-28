@@ -18,31 +18,3 @@ export const userProfile = {
   ...userSummary,
   timezone: 'Asia/Shanghai',
 };
-
-export const dailyReportSnapshot = {
-  date: DATE,
-  habitCompletion: 4,
-  streakDays: 7,
-  toiletLongMeeting: false,
-  toiletRecorded: true,
-  trainingDone: false,
-};
-
-export const advancedReportDay = {
-  date: DATE,
-  habitCompletion: 4,
-  habitFull: true,
-  toiletLongMeeting: false,
-  toiletRecorded: true,
-  trainingDone: false,
-};
-
-export const advancedReportSummary = {
-  currentStreakDays: 7,
-  habitFullDays: 1,
-  hasAnyRecord: true,
-  recordDays: 1,
-  toiletLongMeetingCount: 0,
-  toiletRecordDays: 1,
-  trainingDays: 0,
-};

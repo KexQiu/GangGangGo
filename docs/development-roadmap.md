@@ -1,482 +1,101 @@
 # 小提督整体开发路线图
 
-> 历史说明：路线图中的小队、监督搭子和共享快照里程碑已由 [v0.2 好友关系重构](./v0.2/friends-refactor.md)取代。
+更新日期：2026-09-28
+阶段：增长免费版本的缺陷修复、生产准备与人工验收
 
-日期：2026-07-13
-阶段：v0.1 已完成，v0.2 代码主链路完成，进入生产化与人工验收
-关联文档：[项目结构说明](./project-structure.md)、[v0.1 PRD](./v0.1/prd-v0.1.md)、[v0.2 PRD](./v0.2/prd.md)、[v0.2 开发方案](./v0.2/development-plan.md)
+当前执行清单以 [Architecture v2 后续待办](./architecture/architecture-v2-follow-up-todo.md) 为准，问题与证据见[全项目审查报告](./audits/2026-09-22-full-review.md)。本路线图说明阶段依赖，不重复维护缺陷完成状态。
 
-## 1. 当前状态
+## 当前产品与工程范围
 
-当前项目已经完成 v0.1 的单人本地闭环，并完成 v0.2 代码主链路与 Architecture v2 的 P1 结构优化。
+仓库采用 pnpm monorepo：
 
-已完成：
+- `apps/mobile`：Expo / React Native、iOS、Watch 与本地 SQLite。
+- `apps/api`：Hono + Drizzle + PostgreSQL。
+- `packages/contracts`：跨端 Zod schema、TypeScript 类型与接口契约。
 
-- 移动端 App：`apps/mobile`
-- 模块化 API、Postgres 基线迁移与真实数据库测试：`apps/api`
-- Zod 运行时契约与生成式 OpenAPI：`packages/contracts`
-- TanStack Query 云端状态、SecureStore 会话与事件化同步：`apps/mobile`
-- WatchConnectivity、Live Activity 本地 Expo Modules 与 Watch 离线队列。
-- Linux、Postgres 与三个 Apple scheme 的 GitHub Actions 门禁。
-- v0.1 文档归档：`docs/v0.1`
-- v0.2 需求与开发方案：`docs/v0.2`
+已有训练、习惯、排便计时与记录、数据日历、好友、完整同步、Watch 和 Live Activity 的代码基础。当前审查仍发现账号归属、保存、同步与操作可达性问题，不能把“已有主链路”当作“发布验收完成”。
 
-v0.1 当前能力：
+当前采用 `COMMERCIAL_MODE=growth_free`：用户侧隐藏 Pro 页面、购买入口和付费锁。90 天数据查看开放；完整云端同步与 Watch 操作仍受账号边界约束。订阅表、交易接口和 `proStatus` 保留为商业化骨架，真实交易验证尚未完成。
 
-- 菊花抬训练。
-- 蹲会儿计时、阶段提醒、阶段音效和离开提醒。
-- 小账本打卡、固定判断标准、首页快速打卡撤销。
-- 小暗号提醒、多段勿扰。
-- 最近小报告。
-- 小花说明书。
-- iOS Live Activity / 灵动岛计时基础能力。
+旧小队、独立共享快照和 Pro 首发里程碑已由现行好友、完整同步和增长免费模式替代。[v0.2 总待办](./v0.2/todo-checklist.md)仅保留历史规划，不再决定当前实现、数据承诺或上线阻断项。
 
-v0.2 已实现的代码能力：
+## 开发原则
 
-- 小提督 Pro 会员权益。
-- 好友监督、小队、搭子提醒和提醒回执。
-- Apple Watch 联动。
-- 高级小报告。
+1. **保持本地免费闭环。** 训练、习惯、排便记录与本地提醒应离线可用；云端或订阅失败不应让本地记录丢失或错误换号。
+2. **先修正确性，再做结构整理。** 优先处理身份隔离、持久化结果和同步竞态；沿用现有框架与模块边界，按实际需要迁出路由业务逻辑。
+3. **契约先行。** 同步数据、好友权限、会话和跨端协议先明确语义，再分别实现各端；本地 SQLite 表与 UI props 不直接作为 API 实体。
+4. **按端到端流程验收。** 每项同时覆盖输入、持久化、同步、错误反馈及恢复；单元测试、JS bundle、模拟器构建与真机验收分别记录。
+5. **发布范围与商业化分开。** 免费版本不等待支付功能；恢复付费模式必须先完成交易校验、权益和购买流程验收。
 
-尚未完成的生产化能力包括真实 StoreKit、Sign in with Apple、远程 Push、生产部署、完整真机人工清单和 App Store 发布材料。这些事项不再与已完成的基础设施重构混写。
+## 数据与隐私边界
 
-## 2. 开发原则
+当前规则以[隐私与数据边界](./architecture/privacy-boundaries.md)为准：
 
-### 2.1 免费能力不倒退
+- 本地 SQLite 保存训练、习惯、具体排便记录、自定义小信号和每日汇总。
+- 登录后个人完整记录通过 `/data-sync/push`、`/data-sync/pull` 同步到账号云端，包括具体时长、感受等字段。旧“健康明细不上云”的承诺已失效。
+- 健康事实、同步变更与每日汇总保留 90 天；使用中的自定义小信号常用项持续保留。
+- 好友读取由服务端依据关系与 none/summary/detailed 权限裁剪每日汇总，个人同步不等于向好友共享。
+- 增长事件使用独立白名单协议，不上传健康明细。
+- 云端账号导出/删除接口已经存在；云端删除不会自动清除本机健康记录，仍需验证换号、重新登录与本地保留行为。
 
-v0.1 的单人本地能力必须继续免费、离线可用：
+登录前说明与好友授权文案尚需按实际字段修正（R06），正式发布前还需用户可见隐私政策。这里描述当前代码边界，不代表这些说明和验收已完成。
 
-- 菊花抬。
-- 蹲会儿。
-- 小账本。
-- 小暗号。
-- 最近小报告基础版。
-- 小花说明书。
+## 阶段一：身份与记录可靠性
 
-云端或订阅失败时，不能影响这些基础能力。
+目标：避免跨账号写入、错误会话恢复、假保存成功和同步覆盖。
 
-### 2.2 隐私优先
+- R02、R03、R10：统一会话归属与失败分类，覆盖 HTTP 刷新、重试和未授权回调。
+- R04、R08：Watch 事件绑定归属，保存成功才确认，临时失败重试，永久拒绝不得换号重放。
+- R05：推送绑定可撤销，远程 Push 开放前验证退出与多设备边界。
+- R09：远端合并保护本地待提交编辑和删除。
+- R21：真实 PostgreSQL 两连接控制提交顺序，先验证风险，再根据结果修复或记录排除证据。
 
-v0.2 后端不做完整健康数据仓库。默认只上传 Pro 功能必要的低敏摘要。
+验收：覆盖延迟响应、断网、换号、数据库不可写、重启、重复投递与并发修改；关键用例进入正式测试，不能只依赖临时脚本。
 
-不上云的数据：
+## 阶段二：隔离 Preview 与公开服务防护
 
-- 明显便血。
-- 明显不舒服。
-- 具体蹲会儿时长。
-- 具体排便感受。
-- 训练过程明细。
+目标：建立真实环境中的验证入口。可与阶段一并行准备环境。
 
-可选上传的低敏摘要：
+- 独立 HTTPS API、PostgreSQL、secrets、迁移与定时清理任务。
+- R16 在 API 对外开放前完成：无效 token 不能绕过基础限流，可信代理和多实例策略可验证。
+- 验证实际证书、超时、413/429、数据库异常与移动端错误反馈。
+- 使用合成资料完成双账号、双设备、好友权限、导出/删除及本地保留回归。
 
-- 今日菊花抬是否完成。
-- 今日小账本完成度。
-- 今日是否记过蹲会儿。
-- 连续完成天数。
-- 最近 7 天摘要。
+开发 Mock 仅用于受控联调，不作为真实登录验收或正式用户入口。
 
-### 2.3 契约先行
+## 阶段三：正式用户与设备闭环
 
-跨端共享的数据结构先写入 `packages/contracts`，再分别在 `apps/api` 和 `apps/mobile` 中实现。
+目标：让用户能登录、理解披露范围，并可靠完成核心操作。
 
-适合放入 contracts：
+- R01：接入真实 Sign in with Apple，验证取消、凭证失效、退出重登和邀请加入。
+- R06、R07：修正同步/共享说明，确保小屏、大字体下始终能暂停和结束。界面修复可提前独立推进。
+- R11–R13、R17、R18：补记录纠错、草稿恢复、准确事件时间以及同步/读取失败反馈。
+- R14、R15、R19、R20：完成提醒续排、勿扰边界、明确后台计时规则及可读性改进。
+- 验证本次发布包含的 Watch、Live Activity、通知能力与签名安装。
 
-- API 请求/响应 DTO。
-- 会员状态。
-- 小队成员状态。
-- 搭子提醒类型。
-- 提醒回执类型。
-- 低敏共享快照。
+Apple Developer 权限、配对设备与签名是相关验收的外部依赖。设备结果写入[真机验收总清单](./architecture/physical-device-acceptance-checklist.md)，未验证保持待验收；若功能延期，应同步缩小入口和用户承诺。
 
-不适合放入 contracts：
+## 阶段四：发布候选与运行保障
 
-- 移动端 UI props。
-- 后端数据库实体内部字段。
-- 本地 SQLite 私有记录。
+- 执行完整工程门禁与实际设备验收，记录所用提交、环境、失败和跳过项。
+- 配置生产 API/PostgreSQL、连接池、最小权限、密钥轮换、迁移发布与清理调度。
+- 验证指标告警、备份恢复、回滚和故障处理流程。
+- 完成用户可见隐私政策、审计保留与备份擦除流程，以及 App Store/TestFlight 材料。
+- 确认全部发布范围内的 P1 已关闭，P2 有明确处理计划；R21 的待验证风险必须先验证并处置。
 
-### 2.4 纵向切片开发
+## 条件阶段：恢复付费模式
 
-每个阶段优先做一条可跑通的端到端链路，而不是一次性铺满所有页面和表。
+当前不作为增长免费版本的发布前置条件。重新启用 `COMMERCIAL_MODE=paid` 或购买入口前必须完成：
 
-推荐节奏：
+- StoreKit 购买、恢复、取消及权益生命周期。
+- App Store Server API、Server Notifications 与服务端交易校验。
+- Paywall、价格/订阅说明及付费模式回归，确保免费能力不倒退。
 
-1. 先定义 contracts。
-2. 再实现 API。
-3. 再接移动端 Query、client 与本地领域 store。
-4. 最后补 UI 和验收。
+Android 完整适配与商店发布、社区、聊天、AI 和新健康领域仍延期，纳入范围时重新定义验收。
 
-## 3. 版本节奏
+## 验证与证据
 
-| 版本 | 阶段 | 目标 |
-| --- | --- | --- |
-| v0.1 | 已完成 | 单人本地健康习惯闭环 |
-| v0.1.x | 稳定期 | 修复体验问题、完善真机测试和发布准备 |
-| v0.2-alpha | 开发期 | 账号、会员、小队、搭子提醒基础链路 |
-| v0.2-beta | 测试期 | 好友监督闭环、高级小报告、Apple Watch 初版 |
-| v0.2 | 发布候选 | 小提督 Pro 第一版 |
-
-## 4. v0.1 稳定期
-
-目标：保证当前移动端在 monorepo 后仍能稳定开发、构建和测试。
-
-### M0.1 工程稳定
-
-交付物：
-
-- 根脚本可用。
-- `apps/mobile` 可正常启动。
-- iOS 原生路径在 monorepo 下可构建。
-- 文档能准确描述当前结构。
-
-验收：
-
-```bash
-pnpm run typecheck
-pnpm --filter @xiaotidu/mobile exec expo install --check
-pnpm peers check
-plutil -lint apps/mobile/ios/app/Info.plist apps/mobile/ios/XiaoTiduLiveActivities/Info.plist
-git diff --check
-```
-
-### M0.2 真机测试准备
-
-交付物：
-
-- Expo Go 测试路径。
-- Development Build 测试路径。
-- Live Activity 真机测试说明。
-- 远程测试限制说明。
-
-验收：
-
-- Expo Go 能打开首页和核心流程。
-- Development Build 能验证图标、通知和 Live Activity。
-- 文档中明确 Expo Go 不支持灵动岛。
-
-## 5. v0.2 开发阶段
-
-### M1. 后端基础设施
-
-目标：把 `apps/api` 从骨架推进到可持续开发的服务底座。
-
-交付物：
-
-- API 框架：优先 Hono。
-- 统一错误结构。
-- 请求日志。
-- 环境变量读取。
-- `/health` 保留。
-- `/me/entitlements` 保留。
-- 本地开发脚本。
-- 后端测试脚本。
-
-建议文件：
-
-```text
-apps/api/src/
-  server.ts
-  app.ts
-  config/env.ts
-  http/errors.ts
-  http/response.ts
-```
-
-验收：
-
-- `pnpm api:dev` 可启动服务。
-- `GET /health` 返回正常。
-- 类型检查通过。
-- 没有接入数据库时也能运行。
-
-### M2. 数据库与迁移
-
-目标：建立 v0.2 云端数据基础。
-
-推荐技术：
-
-- Postgres。
-- Drizzle 或 Prisma。
-
-首批表：
-
-- `users`
-- `subscriptions`
-- `teams`
-- `team_members`
-- `team_invites`
-- `share_settings`
-- `daily_share_snapshots`
-- `buddy_nudges`
-- `buddy_nudge_acks`
-- `push_tokens`
-
-验收：
-
-- 本地数据库可启动。
-- migration 可重复执行。
-- seed 可创建测试用户、小队和快照。
-- 数据库实体不直接暴露给移动端。
-
-### M3. 账号与会员权益
-
-目标：先跑通“用户是谁”和“是否 Pro”。
-
-后端：
-
-- Sign in with Apple 登录入口。
-- 用户资料。
-- 会员权益查询。
-- App Store 订阅校验占位。
-- App Store Server Notifications 接收入口。
-
-移动端：
-
-- 账号页。
-- 登录状态 store。
-- 会员权益 store。
-- 设置页增加账号和 Pro 入口。
-
-验收：
-
-- 未登录时 v0.1 功能完整可用。
-- 登录后能看到账号状态。
-- 免费用户权益为 `free`。
-- Pro 页面能根据权益状态切换展示。
-
-### M4. Pro Paywall 与订阅恢复
-
-目标：建立清晰的会员边界。
-
-移动端：
-
-- Pro 介绍页。
-- 订阅购买页。
-- 恢复购买入口。
-- 取消订阅后的状态说明。
-
-后端：
-
-- 订阅状态表。
-- 订阅状态刷新。
-- grace period / expired / revoked 处理。
-
-验收：
-
-- 免费功能不被 paywall 拦截。
-- Pro 功能入口能展示订阅页。
-- 取消订阅后 Pro 功能冻结但数据保留。
-- 恢复订阅后能力恢复。
-
-### M5. 低敏共享快照
-
-目标：让本地数据能以低敏摘要形式上云，为小队做准备。
-
-contracts：
-
-- `DailyShareSnapshot`
-- `ShareSettings`
-
-后端：
-
-- `PUT /share-snapshots/today`
-- `GET /me/share-snapshot`
-- `PUT /share-settings`
-
-移动端：
-
-- 从本地 SQLite 汇总今日状态。
-- 仅在用户登录并开启共享时上传。
-- 上传失败不影响本地记录。
-
-验收：
-
-- 上传内容不包含便血、不适、具体时长。
-- 离线时本地继续可用。
-- 恢复网络后可补传最新摘要。
-
-### M6. 小队与邀请
-
-目标：跑通好友监督的关系链。
-
-后端：
-
-- 创建小队。
-- 生成邀请。
-- 接受邀请。
-- 成员列表。
-- 退出/移除成员。
-- 暂停共享。
-
-移动端：
-
-- 小队首页。
-- 拉个搭子页面。
-- 邀请接受页。
-- 共享设置页。
-
-验收：
-
-- Pro 用户能创建小队。
-- 好友能通过链接加入。
-- 小队最多 3 个搭子。
-- 暂停共享后搭子看不到新状态。
-- 移除搭子后对方不能继续访问新数据。
-
-### M7. 搭子提醒与回执
-
-目标：形成“提醒 -> 收到 -> 回执”的监督闭环。
-
-contracts：
-
-- `BuddyNudgeType`
-- `BuddyNudgeAckStatus`
-
-后端：
-
-- `POST /nudges`
-- `GET /nudges/threads`
-- `GET /nudges/threads/:buddyUserId`
-- `POST /nudges/:id/ack`
-- 每日提醒次数限制。
-- 30 分钟内允许修改一次回执。
-
-移动端：
-
-- 搭子提醒按钮。
-- 通知快捷操作：收到、等会儿、已完成。
-- 小队页展示回执状态。
-- 单个搭子每日提醒上限设置，默认 5 次。
-
-验收：
-
-- 不支持自由文本。
-- 每条提醒只能回执一次。
-- 回执只展示给发起提醒的搭子。
-- 0 次上限等同关闭主动提醒。
-
-### M8. 高级小报告
-
-目标：把 Pro 的长期价值做出来。
-
-高级报告：
-
-- 90 天小报告。
-- 小队周报。
-- 小花训练达标趋势。
-- 小账本满格趋势。
-- 蹲会儿长会趋势。
-
-原则：
-
-- 不做健康评分。
-- 不做排行榜。
-- 风险数据不庆祝。
-- 风险提示仍指向小花说明书。
-
-验收：
-
-- 免费用户看到基础小报告。
-- Pro 用户能看 90 天。
-- 小队周报只展示低敏摘要。
-
-### M9. Apple Watch 初版
-
-目标：减少手机操作成本。
-
-状态：2026-06-16 真机初步测试通过，待完整手动清单、Complication 表盘刷新节奏和 haptic 手感留痕。
-
-Watch 能力：
-
-- 今日状态。
-- 菊花抬训练。
-- 小账本快速达标。
-- 蹲会儿状态查看。
-- 低敏状态 complication。
-
-同步：
-
-- 使用 WatchConnectivity。
-- iPhone 仍是本地数据主源。
-- Watch 离线操作重连后补同步。
-- Watch 首页状态行即入口，非 Pro 用户只读不可操作。
-- Watch 菊花抬倒计时按真实时间推导。
-- Watch 收工后 iPhone Live Activity 不残留计时。
-- Complication 支持首页和蹲会儿深链，非 Pro 状态禁用跳转。
-
-验收：
-
-- Watch 完成菊花抬后 iPhone 有记录。
-- Watch 快速打卡后 iPhone 首页更新。
-- Watch 不展示敏感数据。
-- Watch 不播放蹲会儿阶段音效，只使用震动。
-
-### M10. 发布前验收
-
-目标：保证 v0.2 可提测。
-
-验收清单：
-
-- v0.1 免费流程完整可用。
-- 订阅成功、取消、恢复流程可用。
-- 好友监督链路可用。
-- 分享数据不包含敏感字段。
-- 通知权限、推送 token、搭子提醒可用。
-- Apple Watch 关键流程可用。
-- 隐私说明和会员说明文案完整。
-- TestFlight 包可安装。
-
-## 6. 数据边界
-
-### 6.1 本地保留
-
-继续只在本机保存：
-
-- 原始训练记录。
-- 原始蹲会儿记录。
-- 明显便血。
-- 明显不舒服。
-- 排便感受。
-- 小账本每日明细。
-
-### 6.2 云端保存
-
-云端只保存：
-
-- 账号。
-- 会员状态。
-- 小队关系。
-- 邀请。
-- 低敏每日快照。
-- 搭子提醒。
-- 提醒回执。
-- Push token。
-- 高级报告所需摘要。
-
-## 7. 分支与提交建议
-
-建议每个里程碑单独分支，分支名前缀使用 `codex/`：
-
-```text
-codex/api-foundation
-codex/db-schema
-codex/auth-entitlements
-codex/pro-paywall
-codex/team-invites
-codex/buddy-nudges
-codex/advanced-report
-codex/watch-app
-```
-
-提交粒度建议：
-
-- contracts 修改单独提交。
-- API schema/migration 单独提交。
-- 移动端 UI 和接入逻辑分开提交。
-- 原生 Watch / iOS 能力单独提交。
-
-## 8. 每阶段验收命令
-
-统一门禁：
+工程门禁在仓库根目录执行：
 
 ```bash
 pnpm check
@@ -484,31 +103,6 @@ pnpm --filter @xiaotidu/mobile exec expo install --check
 git diff --check
 ```
 
-后端阶段额外检查：
+真实 PostgreSQL 验证使用隔离测试数据库，不能将集成测试指向生产库。测试跳过不等于通过；R21 还需专门控制事务时序的用例。Apple 模拟器构建与协议测试见 [CI 配置](../.github/workflows/ci.yml)，不能替代签名安装、后台行为和配对设备验收。
 
-```bash
-pnpm api:dev
-```
-
-iOS 原生阶段额外检查：
-
-```bash
-plutil -lint apps/mobile/ios/app/Info.plist apps/mobile/ios/XiaoTiduLiveActivities/Info.plist
-```
-
-如涉及 EAS 或 Watch：
-
-```bash
-cd apps/mobile
-pnpm exec eas build --profile development --platform ios
-```
-
-## 9. 剩余发布工作
-
-M1-M9 的代码主链路、真实 Postgres 并发测试和三个 Apple scheme 自动构建已经完成。后续按发布依赖推进：
-
-1. 使用开发环境 `mock-user-a/b/c` 完成小队、邀请、共享和提醒双用户人工回归并留痕。
-2. 完成 Watch 离线恢复、重复事件、haptic、Complication、Live Activity 和三套 entitlement 真机清单。
-3. Apple Developer Program 准备完成后接入真实 Apple 登录、远程 Push 和 StoreKit。
-4. 建立生产 API/Postgres、可观测性、备份恢复、账号删除与数据保留流程。
-5. 准备隐私申报、订阅说明、截图、审核备注和 TestFlight 发布验收。
+每个关闭项至少记录修复提交、正式测试路径、执行命令与结果；设备项补充设备、系统版本和复现步骤。历史审查记录保留日期，不用一次旧的全量通过结果覆盖之后的待验证项。

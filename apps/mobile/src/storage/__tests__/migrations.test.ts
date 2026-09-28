@@ -13,12 +13,12 @@ afterEach(() => {
 });
 
 describe('SQLite migrations', () => {
-  it('upgrades an empty v0 database through every version', async () => {
+  it('initializes the current schema from an empty database', async () => {
     const harness = createDatabaseHarness();
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(7);
+    expect(getUserVersion(harness.database)).toBe(1);
     expect(getTableNames(harness.database)).toEqual([
       'app_metadata',
       'daily_activity_summaries',
@@ -48,58 +48,41 @@ describe('SQLite migrations', () => {
     );
   });
 
-  it('upgrades a populated v1 database without losing health records', async () => {
+  it('keeps initialized records and the schema unchanged on repeat initialization', async () => {
     const harness = createDatabaseHarness();
-    seedVersionOneDatabase(harness.database);
-
     await runMigrations(harness.db);
-
-    expect(getUserVersion(harness.database)).toBe(7);
-    expect(getColumnNames(harness.database, 'reminder_settings')).toContain('quiet_hours_ranges');
-    expect(getColumnNames(harness.database, 'toilet_sessions')).toEqual(
-      expect.arrayContaining(['deleted_at', 'local_date', 'profile_id', 'signals_json', 'stool_color', 'stool_shape']),
-    );
-    expect(getIds(harness.database, 'training_sessions')).toEqual(['training-existing']);
-    expect(getIds(harness.database, 'toilet_sessions')).toEqual(['toilet-existing']);
-    expect(getProfileIds(harness.database, 'training_sessions')).toEqual(['local-default']);
-    expect(getProfileIds(harness.database, 'toilet_sessions')).toEqual(['local-default']);
-  });
-
-  it('adds the maximum toilet duration to an existing v5 summary without losing it', async () => {
-    const harness = createDatabaseHarness();
     harness.database.exec(`
-      CREATE TABLE daily_activity_summaries (
-        profile_id TEXT NOT NULL,
-        date TEXT NOT NULL,
-        toilet_median_duration_seconds INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY (profile_id, date)
-      );
-      INSERT INTO daily_activity_summaries (profile_id, date, toilet_median_duration_seconds)
-      VALUES ('local-default', '2026-07-21', 360);
-      PRAGMA user_version = 5;
+      INSERT INTO reminder_settings (id, kegel_times, quiet_hours_ranges, updated_at)
+      VALUES ('default', '["09:30"]', '[]', '2026-09-28T00:00:00Z');
     `);
+    const schema = harness.database.prepare('SELECT sql FROM sqlite_master ORDER BY name').all();
 
     await runMigrations(harness.db);
-
-    expect(getUserVersion(harness.database)).toBe(7);
-    expect(getColumnNames(harness.database, 'daily_activity_summaries')).toContain('toilet_max_duration_seconds');
-    expect(
-      harness.database
-        .prepare("SELECT toilet_median_duration_seconds FROM daily_activity_summaries WHERE date = '2026-07-21'")
-        .get()?.toilet_median_duration_seconds,
-    ).toBe(360);
-  });
-
-  it('rolls back a failed migration and preserves its previous version and data', async () => {
-    const harness = createDatabaseHarness(/ALTER TABLE reminder_settings/);
-    seedVersionOneDatabase(harness.database);
-
-    await expect(runMigrations(harness.db)).rejects.toThrow('Injected migration failure');
 
     expect(getUserVersion(harness.database)).toBe(1);
-    expect(getColumnNames(harness.database, 'reminder_settings')).not.toContain('quiet_hours_ranges');
-    expect(getIds(harness.database, 'training_sessions')).toEqual(['training-existing']);
-    expect(getIds(harness.database, 'toilet_sessions')).toEqual(['toilet-existing']);
+    expect(getIds(harness.database, 'reminder_settings')).toEqual(['default']);
+    expect(harness.database.prepare('SELECT sql FROM sqlite_master ORDER BY name').all()).toEqual(schema);
+    expect(getColumnNames(harness.database, 'reminder_settings')).not.toContain('quiet_hours_start');
+    expect(getColumnNames(harness.database, 'reminder_settings')).not.toContain('quiet_hours_end');
+  });
+
+  it('rolls back a failed initialization and can retry from an empty database', async () => {
+    const harness = createDatabaseHarness(/CREATE TABLE reminder_settings/);
+    await expect(runMigrations(harness.db)).rejects.toThrow('Injected migration failure');
+    expect(getUserVersion(harness.database)).toBe(0);
+    expect(getTableNames(harness.database)).toEqual([]);
+
+    await runMigrations(harness.db);
+    expect(getUserVersion(harness.database)).toBe(1);
+    expect(getTableNames(harness.database)).toContain('reminder_settings');
+  });
+
+  it('rejects unsupported versions without changing existing data', async () => {
+    const harness = createDatabaseHarness();
+    harness.database.exec('CREATE TABLE sentinel (id TEXT); PRAGMA user_version = 99;');
+    await expect(runMigrations(harness.db)).rejects.toThrow('Unsupported database version: 99');
+    expect(getTableNames(harness.database)).toEqual(['sentinel']);
+    expect(getUserVersion(harness.database)).toBe(99);
   });
 
   it('queues existing profile records once for the first account sync', async () => {
@@ -209,27 +192,6 @@ function createDatabaseHarness(failAfterPattern?: RegExp) {
   return { database, db };
 }
 
-function seedVersionOneDatabase(database: DatabaseSync) {
-  database.exec(`
-    CREATE TABLE training_sessions (
-      id TEXT PRIMARY KEY NOT NULL,
-      ended_at TEXT NOT NULL
-    );
-    CREATE INDEX idx_training_sessions_ended_at ON training_sessions (ended_at DESC);
-    CREATE TABLE toilet_sessions (
-      id TEXT PRIMARY KEY NOT NULL,
-      ended_at TEXT NOT NULL
-    );
-    CREATE INDEX idx_toilet_sessions_ended_at ON toilet_sessions (ended_at DESC);
-    CREATE TABLE reminder_settings (
-      id TEXT PRIMARY KEY NOT NULL
-    );
-    INSERT INTO training_sessions (id, ended_at) VALUES ('training-existing', '2026-07-13T08:00:00.000Z');
-    INSERT INTO toilet_sessions (id, ended_at) VALUES ('toilet-existing', '2026-07-13T08:00:00.000Z');
-    PRAGMA user_version = 1;
-  `);
-}
-
 function getUserVersion(database: DatabaseSync): number {
   return Number(database.prepare('PRAGMA user_version').get()?.user_version ?? 0);
 }
@@ -260,11 +222,4 @@ function getIds(database: DatabaseSync, tableName: string): string[] {
     .prepare(`SELECT id FROM ${tableName} ORDER BY id`)
     .all()
     .map((row) => String(row.id));
-}
-
-function getProfileIds(database: DatabaseSync, tableName: string): string[] {
-  return database
-    .prepare(`SELECT profile_id FROM ${tableName} ORDER BY profile_id`)
-    .all()
-    .map((row) => String(row.profile_id));
 }

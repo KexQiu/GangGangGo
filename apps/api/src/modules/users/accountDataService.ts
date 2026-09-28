@@ -7,7 +7,6 @@ import {
   auditEvents,
   authSessions,
   dailyActivitySummaries,
-  dailyReportSnapshots,
   dataSyncChanges,
   friendEventAcks,
   friendEvents,
@@ -39,7 +38,6 @@ function createEmptyExport(user: CurrentUser): AccountDataExport {
     data: {
       auditEvents: [],
       dailyActivitySummaries: [],
-      dailyReportSnapshots: [],
       dataSyncChanges: [],
       friendEventAcks: [],
       friendEvents: [],
@@ -102,7 +100,6 @@ export function createDrizzleAccountDataService(db: Database): AccountDataServic
         toiletSessions,
         toiletSignalPresets,
         userDailyActivitySummaries,
-        userDailyReportSnapshots,
         userDataSyncChanges,
         userGrowthEvents,
         userFriendships,
@@ -122,7 +119,6 @@ export function createDrizzleAccountDataService(db: Database): AccountDataServic
         db.select().from(syncedToiletSessions).where(eq(syncedToiletSessions.userId, userId)),
         db.select().from(syncedToiletSignalPresets).where(eq(syncedToiletSignalPresets.userId, userId)),
         db.select().from(dailyActivitySummaries).where(eq(dailyActivitySummaries.userId, userId)),
-        db.select().from(dailyReportSnapshots).where(eq(dailyReportSnapshots.userId, userId)),
         db.select().from(dataSyncChanges).where(eq(dataSyncChanges.userId, userId)),
         db.select().from(growthEvents).where(eq(growthEvents.userId, userId)),
         db
@@ -175,7 +171,6 @@ export function createDrizzleAccountDataService(db: Database): AccountDataServic
         data: {
           auditEvents: userAuditEvents,
           dailyActivitySummaries: userDailyActivitySummaries,
-          dailyReportSnapshots: userDailyReportSnapshots,
           dataSyncChanges: userDataSyncChanges,
           friendEventAcks: userFriendEventAcks,
           friendEvents: userFriendEvents,

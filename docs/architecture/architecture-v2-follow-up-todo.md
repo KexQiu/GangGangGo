@@ -1,107 +1,115 @@
 # Architecture v2 后续待办
 
-更新日期：2026-08-06
-当前基线：Hono + Drizzle 模块化 API、Expo 本地优先移动端、Watch schema v3
+更新日期：2026-09-28
+当前基线：Hono + Drizzle 模块化 API、Expo 本地优先移动端、Watch 状态协议 v3 / 事件协议 v2
+当前发布目标：增长免费模式；恢复付费模式单独排期。
 
-本文只记录当前仍有效的架构与上线待办。旧版“小队 / nudges / sharing”实现记录已由现行“好友 / friend events / data sync”模型替代，不再作为当前目录或接口事实源。
+本文是当前架构修复与发布工作的执行清单。问题依据与验收要求见[全项目审查报告（2026-09-28 修订）](../audits/2026-09-22-full-review.md)，设备证据统一记录在[真机验收总清单](./physical-device-acceptance-checklist.md)。旧“小队 / nudges / sharing”规划与旧版优先级不再作为当前事实源。
 
 ## 状态和优先级
 
-- `P0`：当前分支合并前必须完成。
-- `P1`：结构、质量与自动化门禁。
-- `P2`：公开测试或生产上线前完成。
-- `P3`：明确延期，重新排期后实施。
+与审查报告统一使用：
 
-## P0：当前分支
+- `P0`：需立即处置的严重故障或已确认的重大数据安全事件。
+- `P1`：公开测试或正式发布前必须解决或完成验收的关键项；条件项须注明对应功能开放前提。
+- `P2`：应排期修复的体验、可恢复性或维护问题，按依赖安排，可与 P1 同批处理。
+- `P3`：当前版本延期或仅在扩大产品范围时实施的事项。
 
-- [x] 修复 Watch v3 fixture 与 Swift 校验版本漂移。
-- [x] 修复 Prettier 与 ESLint 门禁问题。
-- [x] preview/production 移动端构建强制 HTTPS API 地址，禁止 localhost。
-- [x] 保持真实 Sign in with Apple 待定，不用 Mock 冒充生产能力。
+优先级、实现状态和证据状态分别记录。当前没有已确认的 P0；R21 是 P1 待验证风险。下文“已具备的实现”中的勾选仅表示代码或配置存在，不代表通过本次验收或不存在缺陷。当前待办只有在修复提交、回归结果及所需设备证据齐备后才可关闭。
 
-## P1：代码结构
+## 已具备的实现
 
-### 移动端
+### 工程与分层
 
-- [x] Expo Router 文件只负责导航与 feature screen 挂载。
-- [x] 云端状态由 TanStack Query 持有；Zustand 只保存会话、本地领域状态和短期 UI 状态。
-- [x] API client 按 auth、users、dataSync、friends、growth、push、reports、subscriptions 拆分。
-- [x] 拆分 `ToiletRecordForm.tsx`：
-  - 表单编排：`ToiletRecordForm.tsx`
-  - 字段和时长滚轮：`components/ToiletRecordFormFields.tsx`
-  - 常量：`toiletRecordForm.constants.ts`
-  - 样式：`styles/toiletRecordFormStyles.ts`
-
-### API
-
-- [x] 保持 `server.ts -> app.ts/createApiApp -> registerRoutes` 稳定装配链。
+- [x] `server.ts -> app.ts/createApiApp -> registerRoutes` 装配链与模块化 API。
 - [x] contracts 作为请求、响应、移动端解析和 OpenAPI 的单一来源。
-- [x] 好友域拆为 Drizzle service、policy、mapper、mock 和 types。
-- [x] 报告域保持 service/repository/mapper/mock 分层。
-- [x] 账号数据生命周期独立为 `accountDataService.ts`。
-- [x] 定时保留策略独立为 `storage/retentionService.ts`，删除请求链路内的顺带清理。
-- [x] API scripts 纳入 TypeScript 类型检查。
+- [x] 好友域 service/policy/mapper/mock/types 与报告域 service/repository/mapper/mock 分层。
+- [x] 账号生命周期独立为 `accountDataService.ts`，定时保留任务独立为 `storage/retentionService.ts`。
+- [x] 云端查询使用 TanStack Query；Zustand 保存会话、本地领域状态和短期 UI 状态。
+- [x] API client 按 auth、users、dataSync、friends、growth、push 拆分。
+- [x] `ToiletRecordForm.tsx` 已拆分表单编排、字段组件、常量和样式。
 
-## P1：安全与数据生命周期
+Router 薄化仅部分完成。训练、账号和好友等路由仍承载业务与界面逻辑，不能标记为全部完成；剩余范围列入下方 P2 维护项。
 
-- [x] 全局 request id、结构化请求日志和统一错误响应。
-- [x] 安全响应头。
+### 安全与数据生命周期
+
+- [x] request id、结构化请求日志、统一错误响应和安全响应头。
 - [x] 默认 256 KiB 请求体限制与结构化 413。
-- [x] 可配置的单进程固定窗口限流与结构化 429。
-- [x] `GET /me/export` 账号数据导出。
-- [x] `DELETE /me` 云端账号永久删除。
-- [x] 移动端导出、删除确认和本地会话清理入口。
-- [x] 90 天健康/增长数据、过期 session、邀请、临时好友事件和旧每日计数的统一清理任务。
-- [x] 账号导出/删除和保留策略文档。
+- [x] 单进程固定窗口限流与结构化 429；身份选择存在 R16 绕过问题，防护尚未验收。
+- [x] `GET /me/export`、`DELETE /me` 及移动端入口；双账号与真实环境回归仍待完成。
+- [x] 健康/增长数据保留任务、过期会话/邀请/好友事件清理及相关文档。
+- [x] preview/production 移动端 API 地址校验 HTTPS 且禁止 localhost。
+- [x] 服务端生产配置禁止 Mock Apple 验证；移动端正式登录入口仍缺失，见 R01。
 
-## P1：构建与自动化
+### 构建与自动化
 
-- [x] contracts 编译为 ESM。
-- [x] API 编译到 `apps/api/dist`，生产入口为 `node dist/server.js`。
-- [x] 根目录固定 pnpm 10.32，Node 类型与 CI 对齐到 22。
-- [x] 根门禁包含生产构建、类型、lint、格式、测试、OpenAPI 和 iOS/Android Expo bundle。
-- [x] CI 使用 PostgreSQL 17 应用迁移并运行真实 Drizzle 集成测试。
-- [x] 集成测试覆盖认证、用户/权益、报告、好友/同步、账号删除和保留策略。
-- [x] Apple CI 构建 iPhone、Watch App、Watch complication，并校验 Watch v3 fixture。
+- [x] contracts 编译为 ESM；API 生产入口为 `node dist/server.js`；API scripts 纳入类型检查。
+- [x] 根目录固定 pnpm 10.32.1，Node 类型与 CI 使用 22。
+- [x] `pnpm check` 包含构建、类型、lint、格式、测试、OpenAPI 和 iOS/Android Expo bundle。
+- [x] CI 配置 PostgreSQL 17、迁移及 Drizzle 集成测试；现有覆盖不等于 R21 提交乱序已验证。
+- [x] Apple CI 配置 iPhone、Watch App、Complication 模拟器构建和 Watch fixture/核心测试。
 
-## P2：人工验收
+历史运行结果见审查报告。本次文档更新不宣称重新完成全量门禁、签名安装或真机验收。
 
-真机证据统一记录在[真机验收总清单](./physical-device-acceptance-checklist.md)。
+## P1：身份、数据与公开服务边界
 
-- [ ] 完成 Watch 离线恢复、重复事件、haptic、Complication 和系统刷新节奏验收。
-- [ ] 在可签名 iPhone 真机验证 Live Activity 启动、更新、结束和重启恢复。
-- [ ] 完成生产双用户、好友权限、账号导出/删除与本地数据保留回归。
-- [ ] 验证 preview/production 的真实 HTTPS API、证书和错误展示。
+以下编号沿用审查报告，表内验收是关闭条件，不是已取得的结果。
 
-## P2：生产环境与合规
+| 编号 | 工作 | 当前状态 | 关键关闭条件 |
+| --- | --- | --- | --- |
+| R02、R03 | 会话归属贯穿 auth store、完整同步和 HTTP 自动刷新/重试 | 待修复 | 延迟成功、失败与 401 均不能覆盖新会话或跨账号重发旧 body；同会话令牌轮换仍可用 |
+| R04 | Watch 事件绑定账号/profile/计时 session，持久化幂等 | 待修复 | 旧事件、换号、重复投递和跨重启不修改新的状态 |
+| R05 | 设备级推送解绑与服务端有效绑定校验 | 待修复；远程 Push 开放前完成 | 退出、匿名态、换号失败和多设备场景不会继续使用已撤销的绑定；明确离线解绑策略与验证边界 |
+| R08 | 保存结果可靠反馈，补齐 Watch 两端回执语义 | 待修复 | 落库成功才确认完成；临时失败保留重试；永久拒绝不得换账号重放；覆盖实时与离线发送 |
+| R09 | 远端合并保护本地编辑/删除与待提交 outbox | 待修复 | pull 在途产生的修改不被旧响应覆盖，最终云端结果符合冲突策略 |
+| R21 | 验证数据库版本分配与提交顺序 | 待 PostgreSQL 并发验证 | 两连接控制不同日期实体的提交顺序，验证是否漏同步；确认后修复并回归，排除时保留证据 |
+| R16 | 基础限流、桶数量限制及可信代理边界 | 待修复；API 对外开放前完成 | 轮换无效 token 仍受基础预算约束；网关方案验证无法绕过直连，多实例使用一致限流 |
 
-- [ ] 部署生产 API 与 PostgreSQL，配置独立 secrets、连接池和迁移发布流程。
-- [ ] 在网关或共享存储层实现多实例一致限流。
-- [ ] 建立指标、告警、备份恢复、回滚和故障手册。
-- [ ] 定义审计事件最终法定保留期限和备份擦除流程。
-- [ ] 将账号导出、删除、健康数据和非医疗用途边界同步到用户可见隐私政策。
-- [ ] 建立密钥轮换和最小权限访问流程。
+R10 虽为 P2，应与 R02/R03 同批处理：区分凭证失效与网络/服务暂时失败，并保留该分类直到 HTTP 层，避免刷新失败后仍被全局 401 回调登出。
 
-## P2：Apple 能力与商业化
+## P1：免费版本发布闭环
 
-- [ ] 接入真实 Sign in with Apple，并完成 Apple Developer capability。
-- [ ] 接入远程 Push 生产证书、发送、失败重试和回执。
-- [ ] 接入真实 StoreKit 购买、恢复购买和取消后的权益生命周期。
-- [ ] 接入 App Store Server API 与 Server Notifications。
-- [ ] 完成 Live Activity 真机签名和发布配置。
-- [ ] 完成 Paywall、邀请分享和 onboarding 产品验收。
+- [ ] R01：接入真实 Sign in with Apple；Mock 入口仅在开发态出现，验证生产配置登录、取消、失效、退出重登和邀请加入。
+- [ ] R06：登录前说明完整同步范围与保留期；好友授权说明与实际字段一致，区分个人同步与好友披露。
+- [ ] R07：小屏和大字体下训练/计时操作始终可达；可独立于 Apple 权限先修复。
+- [ ] 完成邀请分享与 onboarding 验收；增长免费模式不出现付费锁和购买入口。
+- [ ] 建立隔离 Preview API/PostgreSQL、独立 secrets、迁移和清理任务，验证 HTTPS、错误展示与 R16 防护。
+- [ ] 完成双账号/双设备同步、好友权限、账号导出/删除及本地数据保留回归。
+- [ ] 完成所发布 Watch 功能的离线恢复、重复事件、haptic、Complication 和系统刷新验收。
+- [ ] 完成所发布 Live Activity 功能的签名安装、启动、更新、结束及重启恢复验收。
+- [ ] 远程 Push 开放前完成证书、投递、失败重试、回执与 R05 解绑验收；若延期，需明确收缩功能范围并同步用户说明。
+- [ ] 生产发布前配置 API/PostgreSQL、连接池、最小权限、密钥轮换、指标告警、备份恢复、回滚和故障手册。
+- [ ] 把数据同步、好友共享、保留和删除规则同步到用户可见隐私政策，明确审计保留和备份擦除流程，完成 App Store/TestFlight 发布材料。
 
-## P3：延期范围
+Apple Developer 权限与设备签名是相应能力的外部依赖，不阻塞代码缺陷修复、隔离 Preview 和本地回归。以上事项仍待完成，不因文档列出即视为验收通过。
 
-- [ ] Android 完整适配与商店发布。
-- [ ] 社区功能。
-- [ ] 自由聊天。
-- [ ] AI 功能。
-- [ ] 当前 v0.2 范围之外的新健康领域和 UI 重设计。
+## P2：恢复能力、体验与维护
+
+- [ ] R10：暂时断网不强制登出，与身份修复同批验收。
+- [ ] R11：新数据日详情接入已有记录编辑/删除页，验证统计与同步更新。
+- [ ] R12、R13：持久化待补充草稿，结束计时时固定 endedAt，验证离开、重启、暂停与跨午夜。
+- [ ] R17、R18：区分已登录、同步状态和本地读取状态，提供失败与重试反馈。
+- [ ] R14、R15：确定长期提醒策略，补排、勿扰边界和第三天以后行为均需验收。
+- [ ] R19：先确定训练后台暂停或继续规则，再实现时间校准与真机验收。
+- [ ] R20：修正按钮/文字对比度与小字号，补深色、大字体和关键操作状态验收。
+- [ ] Router 薄化：按实际变更需要逐步迁出训练、账号、好友等路由的业务逻辑，不为目录统一进行无关重写。
+- [x] 上线前清理旧报告快照同步、报告 API/契约/表、无入口页面、旧路由及历史格式兼容；SQLite 与 PostgreSQL 已整理为初始基线，见[数据库基线](./database-baseline.md)。
+- [ ] 将审查中的关键竞态与故障复现迁为正式回归测试；保存提交、命令和结果，替换临时文件证据。
+
+## P3：条件商业化与延期范围
+
+恢复 `COMMERCIAL_MODE=paid`、重新开放购买入口前，必须完成以下项目；它们不阻塞当前增长免费版本：
+
+- [ ] 真实 StoreKit 购买、恢复购买、取消及权益生命周期。
+- [ ] App Store Server API、Server Notifications 和服务端交易校验。
+- [ ] Paywall、价格/订阅说明及付费模式完整回归。
+
+其余延期范围：Android 完整适配与商店发布、社区、自由聊天、AI、当前 v0.2 之外的新健康领域和 UI 重设计。重新纳入发布范围时再调整优先级与验收要求。
 
 ## 推荐执行顺序
 
-1. 完成当前代码全量 `pnpm check`、Expo dependency check 和 Apple scheme 回归。
-2. 获取 Apple Developer 权限后补真实 Apple 登录、Push 与真机签名验收。
-3. 部署生产 API/PostgreSQL，并补多实例限流、监控、备份与恢复。
-4. 完成隐私政策、审计期限和 App Store 发布材料。
+1. 修复身份与数据可靠性：R02–R05、R08–R10，覆盖 HTTP 重试与 Watch 回执；同步验证 R21。
+2. 在 API 对外开放前完成 R16；可并行准备隔离 Preview，并独立推进 R07 小屏修复。
+3. 完成真实登录、隐私说明、双账号/双设备回归，以及所发布 Apple 能力的端到端验收。
+4. 按问题依赖补齐其余 P2；发布候选执行 `pnpm check`、Expo dependency check、Apple scheme 和真机清单，记录失败、跳过与待验证项。
+5. 完成生产部署、备份恢复、隐私政策及商店材料；商业化按付费模式的独立条件推进。

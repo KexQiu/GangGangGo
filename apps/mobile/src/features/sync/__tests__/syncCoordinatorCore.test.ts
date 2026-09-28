@@ -67,37 +67,37 @@ describe('SyncCoordinator', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(harness.refreshEntitlements).toHaveBeenCalledTimes(1);
     expect(harness.syncWatch).toHaveBeenCalledTimes(1);
-    expect(harness.syncReports).toHaveBeenCalledTimes(1);
+    expect(harness.syncData).toHaveBeenCalledTimes(1);
     expect(harness.registerPushToken).toHaveBeenCalledTimes(1);
     expect(coordinator.getTaskStatuses().entitlements).toMatchObject({
       lastError: 'entitlements unavailable',
       phase: 'error',
     });
-    expect(coordinator.getTaskStatuses().reports.phase).toBe('success');
+    expect(coordinator.getTaskStatuses().data.phase).toBe('success');
     coordinator.stop();
   });
 
   it('retries only the selected synchronization task', async () => {
     vi.useFakeTimers();
     const harness = createHarness({ accessToken: 'access-token' });
-    harness.syncReports.mockRejectedValueOnce(new Error('reports unavailable'));
+    harness.syncData.mockRejectedValueOnce(new Error('data unavailable'));
     const coordinator = new SyncCoordinator(harness.dependencies);
     coordinator.start();
     await vi.advanceTimersByTimeAsync(0);
-    expect(coordinator.getTaskStatuses().reports.phase).toBe('error');
+    expect(coordinator.getTaskStatuses().data.phase).toBe('error');
 
     harness.refreshEntitlements.mockClear();
     harness.registerPushToken.mockClear();
-    harness.syncReports.mockClear();
+    harness.syncData.mockClear();
     harness.syncWatch.mockClear();
-    coordinator.retryTask('reports');
+    coordinator.retryTask('data');
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(harness.syncReports).toHaveBeenCalledTimes(1);
+    expect(harness.syncData).toHaveBeenCalledTimes(1);
     expect(harness.refreshEntitlements).not.toHaveBeenCalled();
     expect(harness.registerPushToken).not.toHaveBeenCalled();
     expect(harness.syncWatch).not.toHaveBeenCalled();
-    expect(coordinator.getTaskStatuses().reports).toMatchObject({ lastError: null, phase: 'success' });
+    expect(coordinator.getTaskStatuses().data).toMatchObject({ lastError: null, phase: 'success' });
     coordinator.stop();
   });
 
@@ -131,7 +131,6 @@ function createHarness(
   const refreshEntitlements = vi.fn().mockResolvedValue(undefined);
   const registerPushToken = vi.fn().mockResolvedValue(undefined);
   const syncData = vi.fn().mockResolvedValue(undefined);
-  const syncReports = vi.fn().mockResolvedValue(undefined);
   const syncWatch = vi.fn(options.syncWatch ?? (async () => undefined));
 
   const dependencies: SyncCoordinatorDependencies = {
@@ -151,7 +150,6 @@ function createHarness(
       return () => localListeners.delete(listener);
     },
     syncData,
-    syncReports,
     syncWatch,
   };
 
@@ -166,7 +164,7 @@ function createHarness(
     },
     refreshEntitlements,
     registerPushToken,
-    syncReports,
+    syncData,
     syncWatch,
   };
 }

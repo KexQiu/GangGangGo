@@ -6,7 +6,8 @@ export function extractWatchEvent(payload: unknown): WatchEvent | null {
   }
 
   const maybeWrapped = payload as { event?: unknown; type?: unknown };
-  const candidate = maybeWrapped.type === 'watch_event' ? maybeWrapped.event : payload;
+  if (maybeWrapped.type !== 'watch_event') return null;
+  const candidate = maybeWrapped.event;
 
   if (!candidate || typeof candidate !== 'object') {
     return null;
@@ -17,7 +18,7 @@ export function extractWatchEvent(payload: unknown): WatchEvent | null {
   if (typeof event.id !== 'string' || typeof event.type !== 'string' || typeof event.createdAt !== 'string') {
     return null;
   }
-  if (event.schemaVersion !== undefined && event.schemaVersion !== 2) {
+  if (event.schemaVersion !== 2) {
     return null;
   }
   if (event.type !== 'training_completed' && event.type !== 'habit_toggled' && event.type !== 'toilet_timer_action') {

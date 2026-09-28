@@ -26,7 +26,7 @@ server.ts -> app.ts/createApiApp -> registerRoutes -> domain route/service
 
 ## 共享契约与 OpenAPI
 
-`packages/contracts` 按 common、auth、users、dataSync、friends、growth、push、reports、subscriptions 拆分。Zod schema 是运行时校验与 TypeScript 类型的共同来源。
+`packages/contracts` 按 common、auth、users、dataSync、friends、growth、push、subscriptions 拆分。Zod schema 是运行时校验与 TypeScript 类型的共同来源。
 
 Hono OpenAPI 注册表直接读取 route 和共享 schema 生成 `api-reference.md` 与 `openapi.json`。新增或修改接口时只修改 route 和 contracts，然后更新快照与生成物，不维护第二份 operations 清单。
 

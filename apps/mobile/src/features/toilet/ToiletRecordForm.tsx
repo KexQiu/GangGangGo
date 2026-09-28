@@ -26,14 +26,13 @@ import {
   normalizeToiletSignalLabel,
   toiletStoolColorOptions,
   toiletStoolShapeOptions,
-  toSelectableToiletStoolColor,
 } from './toiletRecordLogic';
 import {
   type ToiletFeeling,
   type ToiletRecordDraft,
   type ToiletSignal,
   type ToiletSignalPreset,
-  type ToiletStoolColorOption,
+  type ToiletStoolColor,
 } from './toiletTypes';
 import { createToiletRecordFormStyles } from './styles/toiletRecordFormStyles';
 
@@ -87,9 +86,7 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
   const [discomfort, setDiscomfort] = useState(initialValue.discomfort);
   const [bleeding, setBleeding] = useState(initialValue.bleeding);
   const [stoolShape, setStoolShape] = useState(initialValue.stoolShape ?? null);
-  const [stoolColor, setStoolColor] = useState<ToiletStoolColorOption | null>(() =>
-    toSelectableToiletStoolColor(initialValue.stoolColor),
-  );
+  const [stoolColor, setStoolColor] = useState<ToiletStoolColor | null>(() => initialValue.stoolColor ?? null);
   const [signals, setSignals] = useState<ToiletSignal[]>(initialValue.signals ?? []);
   const [customSignals, setCustomSignals] = useState<ToiletSignalPreset[]>([]);
   const [isLoadingSignals, setIsLoadingSignals] = useState(true);

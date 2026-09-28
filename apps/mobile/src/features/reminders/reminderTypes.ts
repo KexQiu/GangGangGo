@@ -10,9 +10,7 @@ export type ReminderSettings = {
   kegelEnabled: boolean;
   kegelTimes: string[];
   privacyMode: boolean;
-  quietHoursEnd: string;
   quietHoursRanges: QuietHoursRange[];
-  quietHoursStart: string;
   sedentaryEnabled: boolean;
   sedentaryIntervalMinutes: number;
   updatedAt: string;

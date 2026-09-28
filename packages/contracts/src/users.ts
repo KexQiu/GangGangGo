@@ -120,7 +120,6 @@ export const accountDataExportSchema = z
       .object({
         auditEvents: accountDataRowsSchema,
         dailyActivitySummaries: accountDataRowsSchema,
-        dailyReportSnapshots: accountDataRowsSchema,
         dataSyncChanges: accountDataRowsSchema,
         friendEventAcks: accountDataRowsSchema,
         friendEvents: accountDataRowsSchema,

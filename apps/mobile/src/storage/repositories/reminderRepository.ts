@@ -9,9 +9,7 @@ type ReminderSettingsRow = {
   kegel_enabled: number;
   kegel_times: string;
   privacy_mode: number;
-  quiet_hours_end: string;
   quiet_hours_ranges: string | null;
-  quiet_hours_start: string;
   sedentary_enabled: number;
   sedentary_interval_minutes: number;
   updated_at: string;
@@ -27,8 +25,6 @@ export async function getReminderSettings(): Promise<ReminderSettings> {
         kegel_times,
         sedentary_enabled,
         sedentary_interval_minutes,
-        quiet_hours_start,
-        quiet_hours_end,
         quiet_hours_ranges,
         privacy_mode,
         updated_at
@@ -59,8 +55,6 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
         kegel_times,
         sedentary_enabled,
         sedentary_interval_minutes,
-        quiet_hours_start,
-        quiet_hours_end,
         quiet_hours_ranges,
         privacy_mode,
         updated_at
@@ -70,8 +64,6 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
         $kegelTimes,
         $sedentaryEnabled,
         $sedentaryIntervalMinutes,
-        $quietHoursStart,
-        $quietHoursEnd,
         $quietHoursRanges,
         $privacyMode,
         $updatedAt
@@ -81,8 +73,6 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
         kegel_times = excluded.kegel_times,
         sedentary_enabled = excluded.sedentary_enabled,
         sedentary_interval_minutes = excluded.sedentary_interval_minutes,
-        quiet_hours_start = excluded.quiet_hours_start,
-        quiet_hours_end = excluded.quiet_hours_end,
         quiet_hours_ranges = excluded.quiet_hours_ranges,
         privacy_mode = excluded.privacy_mode,
         updated_at = excluded.updated_at;
@@ -92,9 +82,7 @@ export async function upsertReminderSettings(settings: ReminderSettings): Promis
       $kegelEnabled: settings.kegelEnabled ? 1 : 0,
       $kegelTimes: JSON.stringify(settings.kegelTimes),
       $privacyMode: settings.privacyMode ? 1 : 0,
-      $quietHoursEnd: settings.quietHoursEnd,
       $quietHoursRanges: JSON.stringify(settings.quietHoursRanges),
-      $quietHoursStart: settings.quietHoursStart,
       $sedentaryEnabled: settings.sedentaryEnabled ? 1 : 0,
       $sedentaryIntervalMinutes: settings.sedentaryIntervalMinutes,
       $updatedAt: settings.updatedAt,
@@ -107,9 +95,7 @@ function rowToReminderSettings(row: ReminderSettingsRow): ReminderSettings {
     kegelEnabled: Boolean(row.kegel_enabled),
     kegelTimes: parseKegelTimes(row.kegel_times),
     privacyMode: Boolean(row.privacy_mode),
-    quietHoursEnd: row.quiet_hours_end,
     quietHoursRanges: parseQuietHoursRanges(row.quiet_hours_ranges),
-    quietHoursStart: row.quiet_hours_start,
     sedentaryEnabled: Boolean(row.sedentary_enabled),
     sedentaryIntervalMinutes: row.sedentary_interval_minutes,
     updatedAt: row.updated_at,

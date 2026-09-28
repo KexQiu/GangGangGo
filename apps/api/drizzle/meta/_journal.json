@@ -5,50 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783756946175,
-      "tag": "0000_grey_otto_octavius",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1784642373373,
-      "tag": "0001_yummy_the_enforcers",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1784720196410,
-      "tag": "0002_tan_lake",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1784721898619,
-      "tag": "0003_red_sunset_bain",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1784722960021,
-      "tag": "0004_familiar_vermin",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1785121781531,
-      "tag": "0005_cold_pixie",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1785124134415,
-      "tag": "0006_bouncy_mister_fear",
+      "when": 1790578329286,
+      "tag": "0000_initial",
       "breakpoints": true
     }
   ]

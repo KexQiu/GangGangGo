@@ -8,7 +8,6 @@ import { syncWatchTodayState } from '../watch/watchSyncService';
 import { subscribeToLocalDataChanges } from './localDataEvents';
 import { syncCompleteHealthData } from './fullDataSync';
 import { registerPushTokenIfAllowed } from './pushTokenSync';
-import { syncRecentReportSnapshots } from './reportSnapshotSync';
 import { SyncCoordinator, type SyncAppState } from './syncCoordinatorCore';
 
 function normalizeAppState(state: AppStateStatus): SyncAppState {
@@ -54,7 +53,6 @@ export const syncCoordinator = new SyncCoordinator({
     subscribeToLocalDataChanges((_revision, source) => {
       if (source === 'local') listener();
     }),
-  syncReports: syncRecentReportSnapshots,
   syncWatch: syncWatchTodayState,
 });
 

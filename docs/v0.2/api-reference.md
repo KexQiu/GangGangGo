@@ -36,6 +36,3 @@
 - `POST /push-tokens`：注册 Push token
 - `POST /subscriptions/verify`：提交订阅校验
 - `POST /subscriptions/restore`：恢复订阅
-- `GET /reports/advanced`：90 天高级报告
-- `PUT /report-snapshots/today`：上传个人日报
-- `PUT /report-snapshots/bulk`：批量上传个人日报

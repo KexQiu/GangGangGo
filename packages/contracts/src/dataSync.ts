@@ -14,7 +14,7 @@ const trainingPresetIdSchema = z.enum(['beginner', 'standard', 'quick']);
 const habitLevelSchema = z.enum(['low', 'medium', 'good']);
 const toiletFeelingSchema = z.enum(['smooth', 'normal', 'difficult']);
 const toiletStoolShapeSchema = z.enum(['hard', 'formed', 'loose']);
-const toiletStoolColorSchema = z.enum(['normal', 'attention', 'other']);
+const toiletStoolColorSchema = z.enum(['normal', 'attention']);
 const toiletSignalSchema = z.object({ id: z.string().min(1).max(100), label: z.string().min(1).max(12) }).strict();
 
 export const trainingSessionSyncPayloadSchema = z

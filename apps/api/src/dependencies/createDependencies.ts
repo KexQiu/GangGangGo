@@ -37,11 +37,6 @@ import {
   type PushTokenService,
 } from '../modules/push/pushTokenService.js';
 import {
-  createDrizzleReportService,
-  createMockReportService,
-  type ReportService,
-} from '../modules/reports/reportService.js';
-import {
   createDrizzleAccountDataService,
   createMockAccountDataService,
   type AccountDataService,
@@ -63,7 +58,6 @@ export type ApiDependencies = {
   growthEventService: GrowthEventService;
   pushNotificationService: PushNotificationService;
   pushTokenService: PushTokenService;
-  reportService: ReportService;
   userRepository: UserRepository;
 };
 
@@ -84,7 +78,6 @@ export function createApiDependencies(): ApiDependencies {
       growthEventService: createMockGrowthEventService(),
       pushNotificationService,
       pushTokenService: createMockPushTokenService(),
-      reportService: createMockReportService(),
       userRepository,
     };
   }
@@ -110,7 +103,6 @@ export function createApiDependencies(): ApiDependencies {
     growthEventService: createDrizzleGrowthEventService(databaseClient.db),
     pushNotificationService,
     pushTokenService: createDrizzlePushTokenService(databaseClient.db),
-    reportService: createDrizzleReportService(databaseClient.db),
     userRepository: createDrizzleUserRepository(databaseClient.db),
   };
 }
@@ -121,8 +113,4 @@ export function createDefaultAppleAuthService() {
   }
 
   return createMockAppleAuthService();
-}
-
-export function createDefaultEntitlementsService() {
-  return createMockEntitlementsService({ commercialMode: env.COMMERCIAL_MODE });
 }

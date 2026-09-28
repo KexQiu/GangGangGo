@@ -8,7 +8,7 @@ struct WatchCoreTestMain {
     try testTrainingTimeline()
     try testToiletHapticTimeline()
     try testRefreshBackoff()
-    try testLegacyStateCompatibility()
+    try testCurrentStateContract()
     print("Watch core tests passed")
   }
 
@@ -124,31 +124,22 @@ struct WatchCoreTestMain {
     try expect(backoff.takeNextDelay(isApplicationActive: true) == 5, "foreground reset must restore the 5 second delay")
   }
 
-  private static func testLegacyStateCompatibility() throws {
-    let legacyState: [String: Any] = [
-      "account": ["isLoggedIn": true],
-      "date": "2026-07-13",
-      "generatedAt": "2026-07-13T10:00:00Z",
-      "habits": [
-        "bowelDone": false,
-        "completion": 1,
-        "fiberDone": false,
-        "movementDone": false,
-        "waterDone": true,
-      ],
-      "proStatus": "pro_active",
-      "toilet": ["isRunning": false],
-      "training": ["completedSets": 0, "done": false],
-    ]
-    let data = try JSONSerialization.data(withJSONObject: legacyState)
+  private static func testCurrentStateContract() throws {
+    let data = try JSONEncoder().encode(WatchTodayState.placeholder)
     let decoded = try JSONDecoder().decode(WatchTodayState.self, from: data)
+    try expect(decoded == WatchTodayState.placeholder, "current state must round-trip")
 
-    try expect(decoded.schemaVersion == 1, "legacy Watch state must default to schema version 1")
-    try expect(
-      decoded.trainingModes == WatchTodayState.TrainingModeConfig.fallbackModes,
-      "legacy Watch state must receive fallback training modes"
-    )
-    try expect(decoded.toilet.elapsedSeconds == 0, "legacy toilet state must receive safe defaults")
+    let state = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+    for key in ["schemaVersion", "canUseActions"] {
+      var incomplete = state
+      incomplete.removeValue(forKey: key)
+      let invalid = try JSONSerialization.data(withJSONObject: incomplete)
+      try expect((try? JSONDecoder().decode(WatchTodayState.self, from: invalid)) == nil, "missing required state fields must be rejected")
+    }
+    var unsupported = state
+    unsupported["schemaVersion"] = 1
+    let invalid = try JSONSerialization.data(withJSONObject: unsupported)
+    try expect((try? JSONDecoder().decode(WatchTodayState.self, from: invalid)) == nil, "unsupported state versions must be rejected")
   }
 
   private static func makeDefaults() -> (UserDefaults, String) {
