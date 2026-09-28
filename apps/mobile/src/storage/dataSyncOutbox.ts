@@ -77,9 +77,13 @@ export async function listPendingDataMutations(limit = 100, providedProfileId?: 
   );
 }
 
-export async function removeAcceptedDataMutations(mutationIds: string[], providedProfileId?: string) {
+export async function removeAcceptedDataMutations(
+  mutationIds: string[],
+  providedProfileId?: string,
+  database?: Awaited<ReturnType<typeof initializeDatabase>>,
+) {
   if (mutationIds.length === 0) return;
-  const db = await initializeDatabase();
+  const db = database ?? (await initializeDatabase());
   const profileId = providedProfileId ?? (await getActiveLocalProfileId());
   const placeholders = mutationIds.map((_, index) => `$id${index}`).join(', ');
   await db.runAsync(
@@ -98,8 +102,12 @@ export async function getDataSyncCursor(providedProfileId?: string) {
   return row?.cursor ?? '0';
 }
 
-export async function setDataSyncCursor(cursor: string, providedProfileId?: string) {
-  const db = await initializeDatabase();
+export async function setDataSyncCursor(
+  cursor: string,
+  providedProfileId?: string,
+  database?: Awaited<ReturnType<typeof initializeDatabase>>,
+) {
+  const db = database ?? (await initializeDatabase());
   const profileId = providedProfileId ?? (await getActiveLocalProfileId());
   await db.runAsync(
     `

@@ -49,6 +49,7 @@ beforeEach(async () => {
   mocks.pull.mockResolvedValue(pullResponse());
   mocks.push.mockImplementation(async ({ mutations }) => ({
     acceptedMutationIds: mutations.map((mutation: { mutationId: string }) => mutation.mutationId),
+    changes: [],
   }));
 });
 afterEach(() => database.close());

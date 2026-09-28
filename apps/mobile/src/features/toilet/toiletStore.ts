@@ -50,18 +50,20 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
     }
   },
   deleteSession: async (id) => {
-    const previousSession = get().sessions.find((session) => session.id === id);
-    set((state) => ({ error: null, sessions: state.sessions.filter((session) => session.id !== id) }));
-
+    const generation = authSessionContext.captureLocalGeneration();
     try {
-      await deleteToiletSession(id);
-      set((state) => ({ revision: state.revision + 1 }));
-      notifyLocalDataChanged();
+      await deleteToiletSession(id, { generation });
+      if (authSessionContext.isGenerationCurrent(generation)) {
+        set((state) => ({
+          error: null,
+          revision: state.revision + 1,
+          sessions: state.sessions.filter((session) => session.id !== id),
+        }));
+        notifyLocalDataChanged();
+      }
     } catch (error) {
-      set((state) => ({
-        error: error instanceof Error ? error.message : '如厕记录删除失败',
-        sessions: previousSession ? [previousSession, ...state.sessions] : state.sessions,
-      }));
+      if (authSessionContext.isGenerationCurrent(generation))
+        set({ error: error instanceof Error ? error.message : '如厕记录删除失败' });
       throw error;
     }
   },
@@ -104,23 +106,20 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
   revision: 0,
   sessions: [],
   updateSession: async (session) => {
-    const previousSession = get().sessions.find((item) => item.id === session.id);
-    set((state) => ({
-      error: null,
-      sessions: state.sessions.map((item) => (item.id === session.id ? session : item)),
-    }));
-
+    const generation = authSessionContext.captureLocalGeneration();
     try {
-      await updateToiletSession(session);
-      set((state) => ({ revision: state.revision + 1 }));
-      notifyLocalDataChanged();
+      await updateToiletSession(session, { generation });
+      if (authSessionContext.isGenerationCurrent(generation)) {
+        set((state) => ({
+          error: null,
+          revision: state.revision + 1,
+          sessions: state.sessions.map((item) => (item.id === session.id ? session : item)),
+        }));
+        notifyLocalDataChanged();
+      }
     } catch (error) {
-      set((state) => ({
-        error: error instanceof Error ? error.message : '如厕记录更新失败',
-        sessions: previousSession
-          ? state.sessions.map((item) => (item.id === session.id ? previousSession : item))
-          : state.sessions,
-      }));
+      if (authSessionContext.isGenerationCurrent(generation))
+        set({ error: error instanceof Error ? error.message : '如厕记录更新失败' });
       throw error;
     }
   },

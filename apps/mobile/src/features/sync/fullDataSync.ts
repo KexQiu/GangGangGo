@@ -7,7 +7,7 @@ import type {
 } from '@xiaotidu/contracts';
 
 import { dataSyncApi } from '../../api/client';
-import { authSessionContext, SessionChangedError } from '../../api/sessionContext';
+import { authSessionContext, SessionChangedError, type SessionSnapshot } from '../../api/sessionContext';
 import { initializeDatabase } from '../../storage/db';
 import {
   getDataSyncCursor,
@@ -22,69 +22,129 @@ import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
 import { notifyLocalDataChanged } from './localDataEvents';
 
-export async function syncCompleteHealthData() {
-  try {
-    return await performCompleteHealthDataSync();
-  } catch (error) {
-    if (error instanceof SessionChangedError) return false;
-    trackGrowthEvent('sync_failed', { domain: 'full_data' });
-    throw error;
-  }
+let inFlight: { generation: number; promise: Promise<boolean> } | null = null;
+
+export function syncCompleteHealthData(): Promise<boolean> {
+  const owner = authSessionContext.current();
+  if (!owner) return Promise.resolve(false);
+  if (inFlight?.generation === owner.generation) return inFlight.promise;
+  const pending = {
+    generation: owner.generation,
+    promise: performCompleteHealthDataSync(owner).catch((error: unknown) => {
+      if (error instanceof SessionChangedError) return false;
+      trackGrowthEvent('sync_failed', { domain: 'full_data' });
+      throw error;
+    }),
+  };
+  pending.promise = pending.promise.finally(() => {
+    if (inFlight === pending) inFlight = null;
+  });
+  inFlight = pending;
+  return pending.promise;
 }
 
-async function performCompleteHealthDataSync() {
-  const owner = authSessionContext.current();
-  if (!owner) return false;
+async function performCompleteHealthDataSync(owner: SessionSnapshot) {
   const { accessToken: token, profileId, generation } = owner;
+  const readPending = () => authSessionContext.runExclusive(generation, () => listPendingDataMutations(100, profileId));
 
+  // pull 期间可能又有本地编辑；补推后再拉取，直到本轮观察到没有待提交项。
   for (;;) {
-    const mutations = await listPendingDataMutations(100, profileId);
-    authSessionContext.assertCurrent(owner);
-    if (mutations.length === 0) break;
-    const response = await dataSyncApi.push(
-      { mutations, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' },
-      token,
-    );
-    authSessionContext.assertCurrent(owner);
-    const requestedIds = new Set(mutations.map((mutation) => mutation.mutationId));
-    const acceptedIds = response.acceptedMutationIds.filter((mutationId) => requestedIds.has(mutationId));
-    await authSessionContext.runExclusive(generation, async () => {
-      await removeAcceptedDataMutations(acceptedIds, profileId);
-    });
-    if (acceptedIds.length === 0) throw new Error('云端暂未确认完整记录，请稍后重试。');
-  }
+    for (;;) {
+      const mutations = await readPending();
+      authSessionContext.assertCurrent(owner);
+      if (mutations.length === 0) break;
+      const response = await dataSyncApi.push(
+        { mutations, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' },
+        token,
+      );
+      authSessionContext.assertCurrent(owner);
+      const requestedIds = new Set(mutations.map((mutation) => mutation.mutationId));
+      const acceptedIds = response.acceptedMutationIds.filter((id) => requestedIds.has(id));
+      if (acceptedIds.length === 0) throw new Error('云端暂未确认完整记录，请稍后重试。');
+      const acceptedIdSet = new Set(acceptedIds);
+      const acceptedEntities = new Set(
+        mutations.filter((mutation) => acceptedIdSet.has(mutation.mutationId)).map(entityKey),
+      );
+      await authSessionContext.runExclusive(generation, async () => {
+        const db = await initializeDatabase();
+        await db.withTransactionAsync(async () => {
+          await removeAcceptedDataMutations(acceptedIds, profileId, db);
+          // ACK 与服务端版本同时落库。剩余的新 mutation 仍会阻止旧 ACK 覆盖本地内容。
+          await applyRemoteChanges(
+            response.changes.filter((change) => acceptedEntities.has(entityKey(change))),
+            profileId,
+            db,
+          );
+        });
+      });
+    }
 
-  let cursor = await getDataSyncCursor(profileId);
-  for (;;) {
-    authSessionContext.assertCurrent(owner);
-    const response = await dataSyncApi.pull(cursor, token);
-    authSessionContext.assertCurrent(owner);
-    await authSessionContext.runExclusive(generation, async () => {
-      await applyRemoteChanges(response.changes, profileId);
-      await setDataSyncCursor(response.nextCursor, profileId);
-    });
-    cursor = response.nextCursor;
-    if (!response.hasMore) break;
+    let cursor = await getDataSyncCursor(profileId);
+    for (;;) {
+      authSessionContext.assertCurrent(owner);
+      const response = await dataSyncApi.pull(cursor, token);
+      authSessionContext.assertCurrent(owner);
+      await authSessionContext.runExclusive(generation, async () => {
+        const db = await initializeDatabase();
+        await db.withTransactionAsync(async () => {
+          await applyRemoteChanges(response.changes, profileId, db);
+          await setDataSyncCursor(response.nextCursor, profileId, db);
+        });
+        notifyLocalDataChanged('remote');
+      });
+      cursor = response.nextCursor;
+      if (!response.hasMore) break;
+    }
+    if ((await readPending()).length === 0) break;
   }
   await authSessionContext.runExclusive(generation, reloadLocalStores);
   authSessionContext.assertCurrent(owner);
   return true;
 }
 
-async function applyRemoteChanges(changes: DataSyncChange[], profileId: string) {
-  if (changes.length === 0) return;
-  const db = await initializeDatabase();
+function entityKey(entity: Pick<DataSyncChange, 'entityType' | 'entityId'>) {
+  return JSON.stringify([entity.entityType, entity.entityId]);
+}
+
+/** 调用方负责事务；与本地写入共用会话队列，保护检查与合并不可被用户编辑穿插。 */
+async function applyRemoteChanges(
+  changes: DataSyncChange[],
+  profileId: string,
+  db: Awaited<ReturnType<typeof initializeDatabase>>,
+) {
   const affectedDates = new Set<string>();
-
-  await db.withTransactionAsync(async () => {
-    for (const change of changes) {
-      const date = await applyRemoteChange(change, profileId, db);
-      if (date) affectedDates.add(date);
+  for (const change of [...changes].sort((left, right) => left.version - right.version)) {
+    const pending = await db.getFirstAsync<{ mutation_id: string }>(
+      'SELECT mutation_id FROM data_sync_outbox WHERE profile_id = $profileId AND entity_type = $entityType AND entity_id = $entityId LIMIT 1;',
+      { $profileId: profileId, $entityType: change.entityType, $entityId: change.entityId },
+    );
+    if (pending) continue;
+    // 同名常用项在本地唯一：保护不同 ID 的待上传新增项，不能被远端去重删除。
+    if (change.entityType === 'toilet_signal_preset' && change.operation === 'upsert' && change.payload) {
+      const conflict = await db.getFirstAsync<{ id: string }>(
+        `SELECT p.id FROM toilet_signal_presets p WHERE p.profile_id = $profileId AND p.label = $label COLLATE NOCASE
+         AND p.id <> $entityId AND EXISTS (SELECT 1 FROM data_sync_outbox o WHERE o.profile_id = p.profile_id AND o.entity_type = 'toilet_signal_preset' AND o.entity_id = p.id AND o.operation = 'upsert') LIMIT 1;`,
+        {
+          $profileId: profileId,
+          $label: (change.payload as ToiletSignalPresetSyncPayload).label,
+          $entityId: change.entityId,
+        },
+      );
+      if (conflict) continue;
     }
-  });
-
+    // 远端记录可能跨日移动，旧日期和新日期的汇总都必须重建。
+    if (change.entityType === 'training_session' || change.entityType === 'toilet_session') {
+      const table = change.entityType === 'training_session' ? 'training_sessions' : 'toilet_sessions';
+      const previous = await db.getFirstAsync<{ local_date: string | null }>(
+        `SELECT local_date FROM ${table} WHERE profile_id = $profileId AND id = $id;`,
+        { $profileId: profileId, $id: change.entityId },
+      );
+      if (previous?.local_date) affectedDates.add(previous.local_date);
+    }
+    const date = await applyRemoteChange(change, profileId, db);
+    if (date) affectedDates.add(date);
+  }
   for (const date of affectedDates) await rebuildDailySummary(date, db, profileId);
-  notifyLocalDataChanged('remote');
 }
 
 async function applyRemoteChange(

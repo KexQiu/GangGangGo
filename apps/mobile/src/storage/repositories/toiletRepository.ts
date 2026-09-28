@@ -116,11 +116,9 @@ export async function insertToiletSession(session: ToiletSession, options: Local
   });
 }
 
-export async function updateToiletSession(session: ToiletSession): Promise<void> {
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
+export async function updateToiletSession(session: ToiletSession, options: LocalMutationOptions = {}): Promise<void> {
   const localDate = getLocalDateKey(new Date(session.endedAt));
-  await db.withTransactionAsync(async () => {
+  await commitLocalMutation(options, async (db, profileId) => {
     const result = await db.runAsync(
       `
       UPDATE toilet_sessions
@@ -161,20 +159,17 @@ export async function updateToiletSession(session: ToiletSession): Promise<void>
       db,
       profileId,
     );
+    await rebuildDailySummary(localDate, db, profileId);
   });
-  await rebuildDailySummary(localDate);
 }
 
-export async function deleteToiletSession(id: string): Promise<void> {
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
-  let localDate: string | null = null;
-  await db.withTransactionAsync(async () => {
+export async function deleteToiletSession(id: string, options: LocalMutationOptions = {}): Promise<void> {
+  await commitLocalMutation(options, async (db, profileId) => {
     const row = await db.getFirstAsync<{ local_date: string | null }>(
       'SELECT local_date FROM toilet_sessions WHERE id = $id AND profile_id = $profileId;',
       { $id: id, $profileId: profileId },
     );
-    localDate = row?.local_date ?? null;
+    const localDate = row?.local_date ?? null;
     const result = await db.runAsync(
       'UPDATE toilet_sessions SET deleted_at = $now, updated_at = $now WHERE id = $id AND profile_id = $profileId AND deleted_at IS NULL;',
       { $id: id, $now: new Date().toISOString(), $profileId: profileId },
@@ -185,8 +180,8 @@ export async function deleteToiletSession(id: string): Promise<void> {
       db,
       profileId,
     );
+    if (localDate) await rebuildDailySummary(localDate, db, profileId);
   });
-  if (localDate) await rebuildDailySummary(localDate);
 }
 
 export async function getToiletSession(id: string): Promise<ToiletSession | null> {
@@ -234,38 +229,37 @@ export async function createToiletSignalPreset(label: string): Promise<ToiletSig
   const normalizedLabel = normalizeToiletSignalLabel(label);
   if (!normalizedLabel) throw new Error('请输入自定义小信号');
 
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
-  const existing = await db.getFirstAsync<ToiletSignalPresetRow>(
-    `
-      SELECT id, label, created_at, updated_at
+  const result = await commitLocalMutation({}, async (db, profileId) => {
+    const existing = await db.getFirstAsync<ToiletSignalPresetRow & { deleted_at: string | null }>(
+      `
+      SELECT id, label, created_at, updated_at, deleted_at
       FROM toilet_signal_presets
-      WHERE profile_id = $profileId AND label = $label COLLATE NOCASE AND deleted_at IS NULL;
+      WHERE profile_id = $profileId AND label = $label COLLATE NOCASE;
     `,
-    { $label: normalizedLabel, $profileId: profileId },
-  );
-  if (existing) return rowToToiletSignalPreset(existing);
+      { $label: normalizedLabel, $profileId: profileId },
+    );
+    if (existing && !existing.deleted_at) return rowToToiletSignalPreset(existing);
 
-  const countRow = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) AS count FROM toilet_signal_presets WHERE profile_id = $profileId AND deleted_at IS NULL;',
-    { $profileId: profileId },
-  );
-  if ((countRow?.count ?? 0) >= MAX_CUSTOM_TOILET_SIGNAL_PRESETS) {
-    throw new Error(`最多保留 ${MAX_CUSTOM_TOILET_SIGNAL_PRESETS} 个自定义常用项`);
-  }
+    const countRow = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM toilet_signal_presets WHERE profile_id = $profileId AND deleted_at IS NULL;',
+      { $profileId: profileId },
+    );
+    if ((countRow?.count ?? 0) >= MAX_CUSTOM_TOILET_SIGNAL_PRESETS) {
+      throw new Error(`最多保留 ${MAX_CUSTOM_TOILET_SIGNAL_PRESETS} 个自定义常用项`);
+    }
 
-  const now = new Date().toISOString();
-  const preset: ToiletSignalPreset = {
-    createdAt: now,
-    id: createToiletSignalPresetId(),
-    label: normalizedLabel,
-    updatedAt: now,
-  };
-  await db.withTransactionAsync(async () => {
+    const now = new Date().toISOString();
+    const preset: ToiletSignalPreset = {
+      createdAt: existing?.created_at ?? now,
+      id: existing?.id ?? createToiletSignalPresetId(),
+      label: existing?.label ?? normalizedLabel,
+      updatedAt: now,
+    };
     await db.runAsync(
       `
       INSERT INTO toilet_signal_presets (profile_id, id, label, created_at, updated_at)
-      VALUES ($profileId, $id, $label, $createdAt, $updatedAt);
+      VALUES ($profileId, $id, $label, $createdAt, $updatedAt)
+      ON CONFLICT(profile_id, id) DO UPDATE SET updated_at = excluded.updated_at, deleted_at = NULL;
     `,
       {
         $createdAt: preset.createdAt,
@@ -285,16 +279,15 @@ export async function createToiletSignalPreset(label: string): Promise<ToiletSig
       db,
       profileId,
     );
+    return preset;
   });
-
-  return preset;
+  if (result.status === 'duplicate') throw new Error('常用项保存未完成，请重试。');
+  return result.value;
 }
 
 export async function deleteToiletSignalPreset(id: string): Promise<void> {
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
   const now = new Date().toISOString();
-  await db.withTransactionAsync(async () => {
+  await commitLocalMutation({}, async (db, profileId) => {
     await db.runAsync(
       'UPDATE toilet_signal_presets SET deleted_at = $now, updated_at = $now WHERE id = $id AND profile_id = $profileId;',
       { $id: id, $now: now, $profileId: profileId },
