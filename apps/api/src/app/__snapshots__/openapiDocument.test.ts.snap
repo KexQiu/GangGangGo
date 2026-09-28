@@ -280,14 +280,18 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
       "AppleLoginRequest": {
         "additionalProperties": false,
         "properties": {
-          "authorizationCode": {
-            "type": "string",
-          },
           "identityToken": {
             "minLength": 1,
             "type": "string",
           },
           "nickname": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string",
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 32,
             "type": "string",
           },
         },

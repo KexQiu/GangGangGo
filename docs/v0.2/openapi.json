@@ -292,15 +292,19 @@
       "AppleLoginRequest": {
         "type": "object",
         "properties": {
-          "authorizationCode": {
-            "type": "string"
-          },
           "identityToken": {
             "type": "string",
             "minLength": 1
           },
           "nickname": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "nonce": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 128
           }
         },
         "required": [

@@ -10,7 +10,17 @@ SecureStore 在同一个值中保存用户、profile ID 和凭证。恢复时先
 
 SecureStore 写入/删除、本地 profile 切换及同步响应落库共用本地副作用队列，网络请求不占用队列。旧代次的排队操作取消；已经开始的本地写入先完成，随后才切换 profile。退出立即使本地会话失效，并异步尝试撤销原远端会话；旧撤销请求不能刷新或清除新账号。SQLite 健康记录保持保留。设备 Push 绑定服务端 session，令牌轮换时迁移绑定，投递查询同时验证会话归属、撤销状态和有效期。
 
-Mock Apple 登录仅允许非生产环境。自动化证据见[会话归属回归记录](./session-ownership-acceptance.md)；真机与真实 Apple 登录验收仍需单独执行。
+移动端 Mock 登录要求开发构建、development 运行环境和显式 `EXPO_PUBLIC_ENABLE_MOCK_LOGIN=1` 同时成立，UI 与 store 入口均限制。preview/production 禁止使用；服务端生产配置禁止 Mock。开发 API 处于 Mock 模式时拒绝原生 JWT/nonce 请求，避免把真实 Apple 身份静默变成模拟账号。
+
+## Apple 登录入口
+
+“我的”及好友邀请加入页先展示共用同步说明，再通过 `expo-apple-authentication` 原生按钮发起系统授权。仅请求姓名，不请求当前业务未使用的邮箱；再次授权缺少姓名时不覆盖已有昵称。Android/不支持的设备显示本地使用说明，检测失败可重试。
+
+每次授权生成随机 state 和 nonce，客户端核对 state，服务端通过 Apple JWKS 校验 RS256 签名、issuer、bundle audience、sub、exp、iat 和 nonce。nonce 直接传给 Apple，服务端匹配相同原值。该检查关联本次授权；当前没有服务端一次性 challenge 消费机制，不应宣称可阻止完整有效请求被重放。
+
+系统授权期间不改变会话或合并资料。取消、缺少身份令牌、state 不匹配、页面已关闭或账号代次变化时不提交登录；并发系统授权被阻止。拿到有效授权结果后进入已有会话隔离流程，API 验签失败不会绑定资料。登录接口仅在本次会话仍生效时返回成功给 UI，防止旧请求错报登录完成。
+
+原生工程需安装新 Pods 并重新构建；Apple Developer 中 `com.kex.xiaotidu` 的能力与 provisioning profile 仍需配置和真机验证。见 [R01 实施与验收](./apple-login-acceptance.md)。已有会话隔离证据见[会话归属回归记录](./session-ownership-acceptance.md)。
 
 ## 设备退出与离线补偿
 

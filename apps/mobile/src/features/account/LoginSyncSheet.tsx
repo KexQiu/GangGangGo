@@ -3,6 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../../components/AppButton';
 import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
+import { MOCK_LOGIN_ENABLED } from '../../config/auth';
+import { AppleLoginAction } from './AppleLoginAction';
+import { useAuthStore } from './authStore';
 import { describeDisclosureFields, syncDisclosureFields } from './dataDisclosure';
 
 const recordKinds = [
@@ -15,13 +18,20 @@ const recordKinds = [
 export function LoginSyncSheet({
   visible,
   onClose,
-  onConfirm,
+  onMockConfirm,
+  source,
 }: {
   visible: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onMockConfirm?: () => void;
+  source: 'settings' | 'friend';
 }) {
   const { colors } = useAppTheme();
+  const authLoading = useAuthStore((state) => state.isLoading);
+  const closeBeforeLogin = () => {
+    // 授权后正在提交登录时，避免将“暂不登录”误表现为可撤销资料绑定。
+    if (!useAuthStore.getState().isLoading) onClose();
+  };
   const styles = StyleSheet.create({
     section: { gap: 6 },
     title: { color: colors.text, fontSize: 16, fontWeight: '800' },
@@ -36,13 +46,19 @@ export function LoginSyncSheet({
       closeLabel="取消"
       title="登录与同步"
       visible={visible}
-      onClose={onClose}
+      onClose={closeBeforeLogin}
       footer={
         <View style={styles.actions}>
-          <AppButton onPress={onConfirm} style={styles.button}>
-            继续登录并同步
-          </AppButton>
-          <AppButton onPress={onClose} style={styles.button} variant="secondary">
+          {visible ? (
+            onMockConfirm && MOCK_LOGIN_ENABLED ? (
+              <AppButton onPress={onMockConfirm} style={styles.button}>
+                使用开发账号登录并同步
+              </AppButton>
+            ) : (
+              <AppleLoginAction active={visible} source={source} onSuccess={onClose} />
+            )
+          ) : null}
+          <AppButton disabled={authLoading} onPress={closeBeforeLogin} style={styles.button} variant="secondary">
             暂不登录
           </AppButton>
         </View>

@@ -4,6 +4,7 @@
 - [全项目审查报告（2026-09-28 修订）](../audits/2026-09-22-full-review.md)
 - [API 分层与 OpenAPI 单一来源](./api-layering.md)
 - [认证会话](./auth-sessions.md)
+- [R01 Apple 登录实施与验收](./apple-login-acceptance.md)
 - [移动端同步](./mobile-sync.md)
 - [上线前数据库基线](./database-baseline.md)
 - [移动端图片资产审计](./mobile-assets.md)

@@ -108,10 +108,10 @@ describe('auth contracts', () => {
     expect(schema.safeParse(value).success).toBe(true);
   });
 
-  it('accepts optional Apple and logout fields', () => {
+  it('accepts Apple nonce and nickname', () => {
     expect(
       appleLoginRequestSchema.safeParse({
-        authorizationCode: 'authorization-code',
+        nonce: '12345678-1234-1234-1234-123456789012',
         identityToken: 'identity-token',
         nickname: '测试用户',
       }).success,
@@ -121,6 +121,10 @@ describe('auth contracts', () => {
 
   it('rejects empty tokens, wrong types, and unknown request fields', () => {
     expect(appleLoginRequestSchema.safeParse({ identityToken: '' }).success).toBe(false);
+    expect(appleLoginRequestSchema.safeParse({ identityToken: 'token', nonce: 'short' }).success).toBe(false);
+    expect(appleLoginRequestSchema.safeParse({ identityToken: 'token', authorizationCode: 'unused' }).success).toBe(
+      false,
+    );
     expect(authSessionSchema.safeParse({ ...authSession, accessTokenExpiresAt: 'tomorrow' }).success).toBe(false);
     expect(refreshSessionRequestSchema.safeParse({ refreshToken: 1 }).success).toBe(false);
     expect(refreshSessionRequestSchema.safeParse({ refreshToken: 'token', userId: 'unexpected' }).success).toBe(false);

@@ -1,6 +1,7 @@
 # 小提督 v0.2 后端详细开发方案
 
 > 历史说明：本文中的小队、监督搭子、共享快照和小队周报设计已由[好友关系重构](./friends-refactor.md)取代。
+> 当前认证请求、nonce 校验与令牌轮换以[认证会话](../architecture/auth-sessions.md)和[生成的 API 契约](./openapi.json)为准；下文早期请求及无 refresh token 的策略不再适用。
 
 版本：v0.2
 日期：2026-07-13

@@ -5,9 +5,9 @@ import { userProfileSchema } from './users.js';
 
 export const appleLoginRequestSchema = z
   .object({
-    authorizationCode: z.string().optional(),
     identityToken: z.string().min(1),
-    nickname: z.string().optional(),
+    nickname: z.string().trim().min(1).max(60).optional(),
+    nonce: z.string().min(32).max(128).optional(),
   })
   .strict()
   .meta({ id: 'AppleLoginRequest' });

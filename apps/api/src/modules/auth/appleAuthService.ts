@@ -1,5 +1,5 @@
 import type { AppleLoginRequest } from '@xiaotidu/contracts';
-import { createRemoteJWKSet, errors, jwtVerify, type JWTPayload } from 'jose';
+import { createRemoteJWKSet, errors, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
 
 import type { ApiEnv } from '../../config/env.js';
 import { env } from '../../config/env.js';
@@ -22,6 +22,9 @@ type AppleIdentityClaims = JWTPayload & {
 export function createMockAppleAuthService(): AppleAuthService {
   return {
     async verifyLogin(request) {
+      if (request.nonce || request.identityToken.includes('.')) {
+        throw new ApiError(400, 'bad_request', '当前服务尚未启用真实 Apple 登录。');
+      }
       return {
         appleUserId: `mock:${request.identityToken}`,
         nickname: request.nickname,
@@ -32,22 +35,26 @@ export function createMockAppleAuthService(): AppleAuthService {
 
 export function createAppleJwtAuthService(
   config: Pick<ApiEnv, 'APPLE_BUNDLE_ID' | 'APPLE_JWKS_URL'> = env,
+  keySet?: JWTVerifyGetKey,
 ): AppleAuthService {
   if (!config.APPLE_BUNDLE_ID) {
     throw new ApiError(500, 'internal_server_error', 'Apple 登录配置缺失。');
   }
 
-  const appleJwks = createRemoteJWKSet(new URL(config.APPLE_JWKS_URL));
+  const appleJwks = keySet ?? createRemoteJWKSet(new URL(config.APPLE_JWKS_URL));
 
   return {
     async verifyLogin(request) {
       try {
+        if (!request.nonce) throw new ApiError(401, 'unauthorized', 'Apple 登录状态无效，请重新登录。');
         const result = await jwtVerify<AppleIdentityClaims>(request.identityToken, appleJwks, {
+          algorithms: ['RS256'],
           audience: config.APPLE_BUNDLE_ID,
           issuer: 'https://appleid.apple.com',
+          requiredClaims: ['sub', 'exp', 'iat', 'nonce'],
         });
 
-        if (!result.payload.sub) {
+        if (!result.payload.sub || result.payload.nonce !== request.nonce) {
           throw new ApiError(401, 'unauthorized', 'Apple 登录状态无效，请重新登录。');
         }
 

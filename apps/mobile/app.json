@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "plugins": ["expo-router", "expo-audio", "expo-notifications"],
+    "plugins": ["expo-router", "expo-audio", "expo-notifications", "expo-apple-authentication"],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,6 +16,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.kex.xiaotidu",
+      "usesAppleSignIn": true,
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

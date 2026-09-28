@@ -17,7 +17,6 @@ import {
   useAcceptFriendInviteMutation,
   useFriendInvitePreviewQuery,
 } from '../../../../src/features/friends/friendQueries';
-import { trackGrowthEvent } from '../../../../src/features/growth/growthEventTracker';
 import { routes } from '../../../../src/navigation/routes';
 import { useAppTheme } from '../../../../src/theme/themeProvider';
 
@@ -28,19 +27,11 @@ export default function JoinFriendScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const [isLoginSheetOpen, setIsLoginSheetOpen] = useState(false);
-  const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const authIsLoading = useAuthStore((state) => state.isLoading);
   const user = useCurrentUserQuery().data;
   const previewQuery = useFriendInvitePreviewQuery(token);
   const acceptInvite = useAcceptFriendInviteMutation();
   const preview = previewQuery.data;
-
-  async function handleLogin() {
-    if (!isLoginSheetOpen || authIsLoading) return;
-    setIsLoginSheetOpen(false);
-    await loginWithMockApple();
-    if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'friend' });
-  }
 
   return (
     <Screen>
@@ -82,11 +73,7 @@ export default function JoinFriendScreen() {
           {previewQuery.error ? <Text style={styles.error}>{previewQuery.error.message}</Text> : null}
         </AppCard>
       </PageStack>
-      <LoginSyncSheet
-        visible={isLoginSheetOpen}
-        onClose={() => setIsLoginSheetOpen(false)}
-        onConfirm={() => void handleLogin()}
-      />
+      <LoginSyncSheet visible={isLoginSheetOpen} onClose={() => setIsLoginSheetOpen(false)} source="friend" />
     </Screen>
   );
 }

@@ -18,6 +18,7 @@ import {
   useDeleteAccountMutation,
   useExportAccountDataMutation,
 } from '../../src/features/account/accountQueries';
+import { MOCK_LOGIN_ENABLED } from '../../src/config/auth';
 import { LoginSyncSheet } from '../../src/features/account/LoginSyncSheet';
 import { mockUserIds, useAuthStore } from '../../src/features/account/authStore';
 import { routes } from '../../src/navigation/routes';
@@ -51,7 +52,7 @@ export default function MeScreen() {
   const authIsLoading = useAuthStore((state) => state.isLoading);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const logout = useAuthStore((state) => state.logout);
-  const [pendingLoginUserId, setPendingLoginUserId] = useState<(typeof mockUserIds)[number] | null>(null);
+  const [pendingLoginUserId, setPendingLoginUserId] = useState<'apple' | (typeof mockUserIds)[number] | null>(null);
   const selectedMockUserId = useAuthStore((state) => state.selectedMockUserId);
   const deleteAccount = useDeleteAccountMutation();
   const exportAccountData = useExportAccountDataMutation();
@@ -63,11 +64,11 @@ export default function MeScreen() {
   }
 
   async function handleLogin() {
-    if (!pendingLoginUserId || isLoading) return;
+    if (!pendingLoginUserId || pendingLoginUserId === 'apple' || !MOCK_LOGIN_ENABLED || isLoading) return;
     const mockUserId = pendingLoginUserId;
     setPendingLoginUserId(null);
-    await loginWithMockApple(mockUserId);
-    if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'settings' });
+    const signedIn = await loginWithMockApple(mockUserId);
+    if (signedIn) trackGrowthEvent('login_completed', { source: 'settings' });
   }
 
   async function handleExportAccountData() {
@@ -121,14 +122,14 @@ export default function MeScreen() {
           ) : (
             <>
               <Text style={styles.loginHint}>登录前可查看同步内容、历史范围与保留期。好友共享需单独授权。</Text>
-              <AppButton disabled={isLoading} onPress={() => setPendingLoginUserId(selectedMockUserId)}>
-                开发 Mock 登录
+              <AppButton disabled={isLoading} onPress={() => setPendingLoginUserId('apple')}>
+                登录并查看同步说明
               </AppButton>
             </>
           )}
         </AppCard>
 
-        {__DEV__ ? (
+        {MOCK_LOGIN_ENABLED ? (
           <PageSection title="开发账号">
             <View style={styles.mockUsers}>
               {mockUserIds.map((mockUserId) => (
@@ -203,7 +204,8 @@ export default function MeScreen() {
       <LoginSyncSheet
         visible={pendingLoginUserId !== null}
         onClose={() => setPendingLoginUserId(null)}
-        onConfirm={() => void handleLogin()}
+        source="settings"
+        onMockConfirm={pendingLoginUserId && pendingLoginUserId !== 'apple' ? () => void handleLogin() : undefined}
       />
     </Screen>
   );

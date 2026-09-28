@@ -119,8 +119,27 @@ beforeEach(() => {
 });
 
 describe('session ownership in auth store', () => {
+  it('blocks a direct mock login call when development login is disabled', async () => {
+    await expect(state().loginWithMockApple()).rejects.toThrow('开发登录未启用');
+    expect(mocks.login).not.toHaveBeenCalled();
+    expect(mocks.bind).not.toHaveBeenCalled();
+  });
+
+  it('forwards the native nonce and returns the login outcome', async () => {
+    const request = { identityToken: A, nonce: '12345678-1234-1234-1234-123456789012' };
+    expect(await state().loginWithApple(request)).toBe(true);
+    expect(mocks.login).toHaveBeenCalledWith(request);
+  });
+
+  it('does not bind local data after an invalid Apple token', async () => {
+    mocks.login.mockRejectedValue(new ApiClientError(401, 'unauthorized', 'Apple 登录状态无效'));
+    expect(await state().loginWithApple({ identityToken: 'expired' })).toBe(false);
+    expect(mocks.bind).not.toHaveBeenCalled();
+    expect(stored).toBeNull();
+    expect(state().isLoading).toBe(false);
+  });
   it('does not resurrect A when refresh succeeds after logout', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     const delayed = deferred<AuthResponse>();
     mocks.refresh.mockReturnValue(delayed.promise);
     const refreshing = state()
@@ -136,13 +155,13 @@ describe('session ownership in auth store', () => {
   });
 
   it.each(['success', '401', 'offline'])('ignores A refresh %s after B logs in', async (result) => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     const delayed = deferred<AuthResponse>();
     mocks.refresh.mockReturnValue(delayed.promise);
     const refreshing = state()
       .refreshSession()
       .catch((error) => error);
-    await state().loginWithApple(B);
+    await state().loginWithApple({ identityToken: B });
     if (result === 'success') delayed.resolve(response(A, 'rotated'));
     else
       delayed.reject(
@@ -159,18 +178,18 @@ describe('session ownership in auth store', () => {
   it('ignores an older login that completes after a newer login', async () => {
     const delayed = deferred<AuthResponse>();
     mocks.login.mockReturnValueOnce(delayed.promise);
-    const first = state().loginWithApple(A);
+    const first = state().loginWithApple({ identityToken: A });
     await vi.waitFor(() => expect(mocks.login).toHaveBeenCalledTimes(1));
-    await state().loginWithApple(B);
+    await state().loginWithApple({ identityToken: B });
     delayed.resolve(response(A));
-    await first;
+    expect(await first).toBe(false);
     expect(stored?.user.id).toBe(B);
     expect(mocks.bind).toHaveBeenCalledTimes(1);
     expect(authSessionContext.current()?.userId).toBe(B);
   });
 
   it('orders an in-flight secure write before logout cleanup', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     const saving = deferred<void>();
     mocks.save.mockImplementationOnce(async (value) => {
       await saving.promise;
@@ -190,14 +209,14 @@ describe('session ownership in auth store', () => {
   });
 
   it('does not let an old refresh finalizer clear the new single flight', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     const old = deferred<AuthResponse>();
     const current = deferred<AuthResponse>();
     mocks.refresh.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
     const oldRefresh = state()
       .refreshSession()
       .catch((error) => error);
-    await state().loginWithApple(B);
+    await state().loginWithApple({ identityToken: B });
     const currentRefresh = state().refreshSession();
     old.resolve(response(A, 'rotated'));
     await oldRefresh;
@@ -214,7 +233,7 @@ describe('session ownership in auth store', () => {
     [200, 'invalid_response'],
     [401, 'invalid_response'],
   ])('retains the session after temporary failure %s/%s', async (status, code) => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     const original = stored;
     const failure = new ApiClientError(Number(status), String(code), '暂时不可用');
     mocks.refresh.mockRejectedValue(failure);
@@ -229,7 +248,7 @@ describe('session ownership in auth store', () => {
   });
 
   it('clears only a confirmed invalid credential', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     mocks.refresh.mockRejectedValue(new ApiClientError(401, 'unauthorized', 'expired'));
     await expect(state().refreshSession()).resolves.toBeNull();
     expect(state().accessToken).toBeNull();
@@ -238,7 +257,7 @@ describe('session ownership in auth store', () => {
   });
 
   it('rejects a refresh response belonging to another user', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     mocks.refresh.mockResolvedValue(response(B));
     await expect(state().refreshSession()).rejects.toMatchObject({ code: 'invalid_response' });
     expect(stored?.user.id).toBe(A);
@@ -266,7 +285,7 @@ describe('session ownership in auth store', () => {
     mocks.load.mockReturnValueOnce(reading.promise);
     const restoring = state().restoreSecureSession();
     await vi.waitFor(() => expect(mocks.load).toHaveBeenCalledOnce());
-    const login = state().loginWithApple(B);
+    const login = state().loginWithApple({ identityToken: B });
     reading.resolve({ ...response(A), profileId: `profile-${A}` });
     await Promise.all([restoring, login]);
     expect(stored?.user.id).toBe(B);
@@ -274,7 +293,7 @@ describe('session ownership in auth store', () => {
   });
 
   it('finishes local logout even while remote revocation is pending', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     vi.mocked(flushPendingSessionRevocations).mockReturnValue(new Promise(() => undefined));
     await state().logout();
     expect(queueSessionRevocation).toHaveBeenCalledWith(`${A}-refresh-initial`, A);
@@ -283,7 +302,7 @@ describe('session ownership in auth store', () => {
   });
 
   it('does not erase the secure session if durable logout compensation fails', async () => {
-    await state().loginWithApple(A);
+    await state().loginWithApple({ identityToken: A });
     vi.mocked(queueSessionRevocation).mockRejectedValueOnce(new Error('secure storage failed'));
     await expect(state().logout()).rejects.toThrow('secure storage failed');
     expect(stored?.user.id).toBe(A);

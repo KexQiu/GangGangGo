@@ -48,6 +48,10 @@ Watch 工程使用 `apps/mobile/ios/app.xcworkspace` 中的 `app`、`XiaoTiduWat
 移动端 development 可以使用 Mac 局域网地址；preview / production 构建必须通过 EAS 环境变量提供
 HTTPS `EXPO_PUBLIC_API_BASE_URL`，缺失或指向 localhost 时构建会直接失败。
 
+开发模拟账号需显式设置移动端 `EXPO_PUBLIC_ENABLE_MOCK_LOGIN=1`，并使用 `APPLE_AUTH_MODE=mock` 的开发 API。
+在“我的”选择开发账号后，仍需确认同步说明；preview / production 不显示也不允许调用开发登录。
+原生 Apple 登录的配置与设备验收见 [R01 登录验收记录](docs/architecture/apple-login-acceptance.md)。
+
 ## 数据边界
 
 菊花抬、蹲会儿、小账本和每日汇总采用本地优先存储。登录后，个人完整记录会同步到账号云端，包括训练次数、蹲会儿时长、排便细节和自定义小信号。好友默认看不到这些数据；用户需要按好友、按领域授予低敏或完整权限，服务端会在响应层裁剪未授权字段。健康事实和每日汇总保留 90 天，仍在使用的小信号常用项持续保留。

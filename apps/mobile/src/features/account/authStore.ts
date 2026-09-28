@@ -2,12 +2,13 @@ import AsyncStorage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { AuthResponse } from '@xiaotidu/contracts';
+import type { AppleLoginRequest, AuthResponse } from '@xiaotidu/contracts';
 
 import { ApiClientError, authApi, setApiSessionRefreshHandler, setApiUnauthorizedHandler } from '../../api/client';
 import { queryClient } from '../../api/queryClient';
 import { authSessionContext, SessionChangedError, type SessionSnapshot } from '../../api/sessionContext';
 import { showToast } from '../../components/toast/AppToast';
+import { MOCK_LOGIN_ENABLED } from '../../config/auth';
 import { clearCloudQueryCache, resetCloudQueryCacheForUser } from './accountQueryCache';
 import { refreshCurrentUserQuery, refreshEntitlementsQuery, seedCurrentUser } from './accountQueryService';
 import type { MockUserId } from './accountModel';
@@ -37,8 +38,8 @@ type AuthState = {
   error: null | string;
   hasHydrated: boolean;
   isLoading: boolean;
-  loginWithApple: (identityToken: string, nickname?: string) => Promise<void>;
-  loginWithMockApple: (mockUserId?: MockUserId) => Promise<void>;
+  loginWithApple: (request: AppleLoginRequest) => Promise<boolean>;
+  loginWithMockApple: (mockUserId?: MockUserId) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshSession: (owner?: SessionSnapshot) => Promise<null | string>;
   refreshToken: null | string;
@@ -56,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       hasHydrated: false,
       isLoading: false,
-      loginWithApple: async (identityToken, nickname) => {
+      loginWithApple: async (request) => {
         const previous = { ...get(), userId: authSessionContext.current()?.userId };
         const generation = beginTransition();
         let revocationQueued = !previous.refreshToken;
@@ -64,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
           await revokeRemoteSession(previous);
           revocationQueued = true;
           await authSessionContext.runExclusive(generation, clearSessionAfterRevocation);
-          const response = await authApi.loginWithApple({ identityToken, ...(nickname ? { nickname } : {}) });
+          const response = await authApi.loginWithApple(request);
           await authSessionContext.runExclusive(generation, async () => {
             const assertCurrent = () => authSessionContext.assertGeneration(generation);
             const profileId = await bindActiveLocalProfileToUser(response.user.id, assertCurrent);
@@ -81,21 +82,27 @@ export const useAuthStore = create<AuthState>()(
           } catch (error) {
             if (authSessionContext.isGenerationCurrent(generation)) set({ error: notifyUserError(error) });
           }
+          return authSessionContext.current()?.generation === generation;
         } catch (error) {
-          if (!authSessionContext.isGenerationCurrent(generation)) return;
+          if (!authSessionContext.isGenerationCurrent(generation)) return false;
           if (!revocationQueued) {
             set({ error: notifyUserError(error), isLoading: false });
-            return;
+            return false;
           }
           await finishAnonymousSession(generation);
           if (authSessionContext.isGenerationCurrent(generation)) set({ error: notifyUserError(error) });
+          return false;
         } finally {
           if (revocationQueued) void flushPendingSessionRevocations().catch(() => undefined);
         }
       },
       loginWithMockApple: async (mockUserId = get().selectedMockUserId) => {
+        if (!MOCK_LOGIN_ENABLED) throw new Error('开发登录未启用。');
         set({ selectedMockUserId: mockUserId });
-        await get().loginWithApple(mockUserId, `模拟用户 ${mockUserId.slice(-1).toUpperCase()}`);
+        return get().loginWithApple({
+          identityToken: mockUserId,
+          nickname: `模拟用户 ${mockUserId.slice(-1).toUpperCase()}`,
+        });
       },
       logout: async () => {
         const previous = { ...get(), userId: authSessionContext.current()?.userId };
