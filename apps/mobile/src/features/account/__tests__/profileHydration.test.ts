@@ -16,7 +16,7 @@ vi.mock('../../../storage/repositories/toiletRepository', () => ({
 }));
 vi.mock('../../../storage/repositories/habitRepository', () => ({
   listHabitCheckInsPage: reads.habits,
-  upsertHabitCheckIn: vi.fn(),
+  saveHabitLevel: vi.fn(),
 }));
 
 const cases = [

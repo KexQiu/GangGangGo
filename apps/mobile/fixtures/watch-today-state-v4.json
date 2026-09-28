@@ -1,8 +1,12 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "account": {
     "isLoggedIn": true,
-    "nickname": "Fixture User"
+    "nickname": "Fixture User",
+    "owner": {
+      "userId": "fixture-user",
+      "profileId": "fixture-profile"
+    }
   },
   "canUseActions": true,
   "date": "2026-07-11",
@@ -20,7 +24,8 @@
     "isPaused": false,
     "isRunning": true,
     "sessionCount": 1,
-    "stage": "normal"
+    "stage": "normal",
+    "sessionId": "fixture-timer"
   },
   "training": {
     "completedSets": 1,

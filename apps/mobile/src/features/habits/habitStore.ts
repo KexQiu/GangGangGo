@@ -1,50 +1,38 @@
+import { authSessionContext } from '../../api/sessionContext';
+import type { LocalMutationOptions, LocalMutationResult } from '../../storage/localMutation';
 import { create } from 'zustand';
 
 import { buildLocalDateRange } from '../../storage/dateRange';
-import { listHabitCheckInsPage, upsertHabitCheckIn } from '../../storage/repositories/habitRepository';
+import { listHabitCheckInsPage, saveHabitLevel } from '../../storage/repositories/habitRepository';
 import { notifyLocalDataChanged } from '../sync/localDataEvents';
-import { createEmptyHabitCheckIn, getLocalDateKey } from './habitLogic';
+import { getLocalDateKey } from './habitLogic';
 import { type HabitCheckIn, type HabitKey, type HabitLevel } from './habitTypes';
 
 type HabitState = {
   checkIns: HabitCheckIn[];
-  clearHabitLevel: (date: string, key: HabitKey) => Promise<void>;
+  clearHabitLevel: (
+    date: string,
+    key: HabitKey,
+    options?: LocalMutationOptions,
+  ) => Promise<LocalMutationResult<HabitCheckIn>>;
   error: string | null;
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
   reset: () => void;
   isHydrating: boolean;
-  setHabitLevel: (date: string, key: HabitKey, level: HabitLevel) => Promise<void>;
+  setHabitLevel: (
+    date: string,
+    key: HabitKey,
+    level: HabitLevel,
+    options?: LocalMutationOptions,
+  ) => Promise<LocalMutationResult<HabitCheckIn>>;
 };
 
 let hydrationRevision = 0;
 
 export const useHabitStore = create<HabitState>((set, get) => ({
   checkIns: [],
-  clearHabitLevel: async (date, key) => {
-    const existing = get().checkIns.find((checkIn) => checkIn.date === date) ?? createEmptyHabitCheckIn(date);
-    const updated: HabitCheckIn = {
-      ...existing,
-      [key]: null,
-      updatedAt: new Date().toISOString(),
-    };
-
-    set((state) => ({
-      checkIns: [updated, ...state.checkIns.filter((checkIn) => checkIn.date !== date)].sort((left, right) =>
-        right.date.localeCompare(left.date),
-      ),
-      error: null,
-    }));
-
-    try {
-      await upsertHabitCheckIn(updated);
-      notifyLocalDataChanged();
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '健康打卡保存失败',
-      });
-    }
-  },
+  clearHabitLevel: (date, key, options) => persistLevel(date, key, null, options),
   error: null,
   hasHydrated: false,
   reset: () => {
@@ -78,32 +66,30 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     }
   },
   isHydrating: false,
-  setHabitLevel: async (date, key, level) => {
-    const existing = get().checkIns.find((checkIn) => checkIn.date === date) ?? createEmptyHabitCheckIn(date);
-    const updated: HabitCheckIn = {
-      ...existing,
-      [key]: level,
-      updatedAt: new Date().toISOString(),
-    };
-
-    set((state) => ({
-      checkIns: [updated, ...state.checkIns.filter((checkIn) => checkIn.date !== date)].sort((left, right) =>
-        right.date.localeCompare(left.date),
-      ),
-      error: null,
-    }));
-
-    try {
-      await upsertHabitCheckIn(updated);
-      notifyLocalDataChanged();
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '健康打卡保存失败',
-      });
-    }
-  },
+  setHabitLevel: (date, key, level, options) => persistLevel(date, key, level, options),
 }));
 
 export function getHabitCheckInForDate(checkIns: HabitCheckIn[], date = getLocalDateKey()): HabitCheckIn | null {
   return checkIns.find((checkIn) => checkIn.date === date) ?? null;
+}
+
+async function persistLevel(date: string, key: HabitKey, level: HabitLevel | null, options: LocalMutationOptions = {}) {
+  const generation = options.generation ?? authSessionContext.captureLocalGeneration();
+  try {
+    const result = await saveHabitLevel(date, key, level, { ...options, generation });
+    if (result.status === 'saved' && authSessionContext.isGenerationCurrent(generation)) {
+      useHabitStore.setState((state) => ({
+        error: null,
+        checkIns: [result.value, ...state.checkIns.filter((item) => item.date !== date)].sort((left, right) =>
+          right.date.localeCompare(left.date),
+        ),
+      }));
+      notifyLocalDataChanged();
+    }
+    return result;
+  } catch (error) {
+    if (authSessionContext.isGenerationCurrent(generation))
+      useHabitStore.setState({ error: error instanceof Error ? error.message : '健康打卡保存失败' });
+    throw error;
+  }
 }

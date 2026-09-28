@@ -10,6 +10,8 @@ final class WatchSessionManager: ObservableObject {
   @Published private(set) var lastSyncedAt: Date?
   @Published private(set) var pendingEventCount = 0
   @Published private(set) var pendingEventSummaries: [String] = []
+  @Published private(set) var trainingDelivery:
+    (eventId: String, disposition: WatchDeliveryDisposition)?
   @Published private(set) var todayState: WatchTodayState
 
   private let connectivityClient: WatchConnectivityClient
@@ -17,6 +19,11 @@ final class WatchSessionManager: ObservableObject {
   private let stateStore: WatchStateStore
   private var refreshBackoff = WatchRefreshBackoff()
   private var stateRefreshTask: Task<Void, Never>?
+  private var isResolvingDelivery = false
+  private var deliveryBackoff = WatchRefreshBackoff()
+  private var deliveryRetryTask: Task<Void, Never>?
+  private var deliveryAttempts: [String: UUID] = [:]
+  private var deliveryTimeouts: [String: Task<Void, Never>] = [:]
 
   init(
     connectivityClient: WatchConnectivityClient = WatchConnectivityClient(),
@@ -47,6 +54,8 @@ final class WatchSessionManager: ObservableObject {
   func setApplicationActive(_ isActive: Bool) {
     isApplicationActive = isActive
     cancelStateRefreshRetry()
+    deliveryRetryTask?.cancel()
+    deliveryRetryTask = nil
 
     guard isActive else {
       return
@@ -57,35 +66,43 @@ final class WatchSessionManager: ObservableObject {
     flushPendingEventsIfPossible()
   }
 
-  func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) {
-    guard ensureActionAllowed() else {
-      return
+  func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) -> String? {
+    guard ensureActionAllowed(), let owner = todayState.account.owner else {
+      return nil
     }
 
-    sendOrQueue(
-      .trainingCompleted(
-        mode: mode,
-        completedSets: completedSets,
-        durationSeconds: durationSeconds
-      )
+    let event = WatchOutboundEvent.trainingCompleted(
+      owner: owner,
+      mode: mode,
+      completedSets: completedSets,
+      durationSeconds: durationSeconds
     )
+    trainingDelivery = (event.id, .retry)
+    sendOrQueue(event)
+    return event.id
   }
 
   func sendHabitToggle(habitKey: String, level: String?) {
-    guard ensureActionAllowed() else {
+    guard ensureActionAllowed(), let owner = todayState.account.owner else {
       return
     }
 
     applyHabitToggle(habitKey: habitKey, isDone: level != nil)
-    sendOrQueue(.habitToggled(habitKey: habitKey, level: level))
+    sendOrQueue(.habitToggled(owner: owner, habitKey: habitKey, level: level))
   }
 
   func sendToiletAction(_ action: String, elapsedSeconds: Int) {
-    guard ensureActionAllowed() else {
+    guard ensureActionAllowed(), let owner = todayState.account.owner else {
       return
     }
 
-    sendOrQueue(.toiletTimerAction(action: action, elapsedSeconds: elapsedSeconds))
+    guard let sessionId = todayState.toilet.sessionId else {
+      lastError = "请先同步当前计时。"
+      return
+    }
+    sendOrQueue(
+      .toiletTimerAction(
+        owner: owner, sessionId: sessionId, action: action, elapsedSeconds: elapsedSeconds))
   }
 
   private func bindConnectivityClient() {
@@ -130,94 +147,107 @@ final class WatchSessionManager: ObservableObject {
   }
 
   private func sendOrQueue(_ event: WatchOutboundEvent) {
-    guard connectivityClient.isReadyToSend else {
-      queue(event)
-      return
+    // 实时发送同样先持久化，ACK 丢失或进程退出后仍可重放。
+    Task { [weak self, eventQueue] in
+      let snapshot = await eventQueue.enqueue(event)
+      self?.applyPendingSnapshot(snapshot)
+      self?.flushPendingEventsIfPossible()
     }
-
-    deliver(event, isReplay: false)
   }
 
-  private func deliver(_ event: WatchOutboundEvent, isReplay: Bool) {
+  private func deliver(_ event: WatchOutboundEvent) {
     guard let message = event.messageDictionary else {
-      lastAckMessage = nil
-      lastError = "手表操作暂时无法编码。"
-      if isReplay {
-        markDeliveryFailed(eventId: event.id)
-      }
+      finishDelivery(event, disposition: .retry, message: "手表操作暂时无法编码。")
       return
     }
-
+    let attempt = UUID()
+    deliveryAttempts[event.id] = attempt
+    deliveryTimeouts[event.id] = Task { @MainActor [weak self] in
+      do { try await Task.sleep(for: .seconds(15)) } catch { return }
+      self?.handleDeliveryResult(
+        .failure(
+          NSError(
+            domain: "WatchDelivery", code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "同步超时，操作已保留，稍后重试。"])), event: event,
+        attempt: attempt)
+    }
     connectivityClient.sendMessage(message) { [weak self] result in
       Task { @MainActor [weak self] in
-        self?.handleDeliveryResult(result, event: event, isReplay: isReplay)
+        self?.handleDeliveryResult(result, event: event, attempt: attempt)
       }
     }
   }
 
   private func handleDeliveryResult(
-    _ result: Result<[String: Any], Error>,
-    event: WatchOutboundEvent,
-    isReplay: Bool
+    _ result: Result<[String: Any], Error>, event: WatchOutboundEvent, attempt: UUID
   ) {
+    guard deliveryAttempts[event.id] == attempt else { return }
+    deliveryAttempts.removeValue(forKey: event.id)
+    deliveryTimeouts.removeValue(forKey: event.id)?.cancel()
     switch result {
-    case let .success(reply):
-      handleReply(reply)
-      if isReplay {
-        acknowledge(eventId: event.id)
+    case .success(let reply):
+      let disposition = WatchDeliveryDisposition.classify(reply, eventId: event.id)
+      if reply["eventId"] as? String == event.id && event.event.owner == todayState.account.owner {
+        _ = updateStateIfPresent(in: reply, replay: false)
       }
-    case let .failure(error):
-      lastError = friendlyConnectivityMessage(for: error)
-      if isReplay {
-        markDeliveryFailed(eventId: event.id)
-      } else {
-        queue(event)
-      }
+      finishDelivery(event, disposition: disposition, message: reply["message"] as? String)
+    case .failure(let error):
+      finishDelivery(event, disposition: .retry, message: friendlyConnectivityMessage(for: error))
     }
   }
 
-  private func queue(_ event: WatchOutboundEvent) {
+  private func finishDelivery(
+    _ event: WatchOutboundEvent, disposition: WatchDeliveryDisposition, message: String?
+  ) {
+    isResolvingDelivery = true
     Task { [weak self, eventQueue] in
-      let snapshot = await eventQueue.enqueue(event)
-      self?.applyPendingSnapshot(snapshot)
+      let snapshot = await eventQueue.resolve(eventId: event.id, disposition: disposition)
+      guard let self else { return }
+      applyPendingSnapshot(snapshot)
+      if trainingDelivery?.eventId == event.id { trainingDelivery = (event.id, disposition) }
+      switch disposition {
+      case .accepted, .duplicate:
+        lastAckMessage = disposition == .accepted ? "iPhone 已保存。" : "这条记录已经保存过。"
+        lastError = nil
+        deliveryBackoff.reset()
+      case .rejected:
+        lastAckMessage = nil
+        lastError = message ?? "这条操作未保存，已停止重试。"
+        deliveryBackoff.reset()
+      case .retry:
+        lastAckMessage = nil
+        lastError = message ?? "尚未确认保存，操作已保留，稍后重试。"
+        scheduleDeliveryRetry()
+      }
+      isResolvingDelivery = false
+      if disposition != .retry { flushPendingEventsIfPossible() }
+    }
+  }
+
+  private func scheduleDeliveryRetry() {
+    guard deliveryRetryTask == nil,
+      let delay = deliveryBackoff.takeNextDelay(isApplicationActive: isApplicationActive)
+    else { return }
+    deliveryRetryTask = Task { @MainActor [weak self] in
+      do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+      guard let self else { return }
+      deliveryRetryTask = nil
+      flushPendingEventsIfPossible()
     }
   }
 
   private func flushPendingEventsIfPossible() {
-    guard connectivityClient.isReadyToSend else {
-      return
-    }
-
+    guard connectivityClient.isReadyToSend, deliveryRetryTask == nil, !isResolvingDelivery,
+      deliveryAttempts.isEmpty
+    else { return }
+    let owner = todayState.account.owner
     let allowDelivery = todayState.account.isLoggedIn && todayState.canUseActions
     Task { [weak self, eventQueue] in
-      let batch = await eventQueue.beginReplay(allowDelivery: allowDelivery)
-      guard let self else {
-        return
-      }
-
+      guard let self, !isResolvingDelivery, deliveryRetryTask == nil, deliveryAttempts.isEmpty
+      else { return }
+      let batch = await eventQueue.beginReplay(allowDelivery: allowDelivery, owner: owner)
       applyPendingSnapshot(batch.snapshot)
-      if batch.removedUnauthorizedCount > 0 {
-        lastAckMessage = nil
-        lastError = "账号状态暂不可用，未继续同步 \(batch.removedUnauthorizedCount) 条手表操作。"
-      }
-
-      for event in batch.events {
-        deliver(event, isReplay: true)
-      }
-    }
-  }
-
-  private func acknowledge(eventId: String) {
-    Task { [weak self, eventQueue] in
-      let snapshot = await eventQueue.acknowledge(eventId: eventId)
-      self?.applyPendingSnapshot(snapshot)
-    }
-  }
-
-  private func markDeliveryFailed(eventId: String) {
-    Task { [weak self, eventQueue] in
-      let snapshot = await eventQueue.deliveryFailed(eventId: eventId)
-      self?.applyPendingSnapshot(snapshot)
+      for event in batch.events { deliver(event) }
     }
   }
 
@@ -228,61 +258,24 @@ final class WatchSessionManager: ObservableObject {
     }
   }
 
-  private func prunePendingEventsForCurrentState() {
-    let allowDelivery = todayState.account.isLoggedIn && todayState.canUseActions
-    Task { [weak self, eventQueue] in
-      let (snapshot, removedCount) = await eventQueue.pruneForAuthorization(allowDelivery: allowDelivery)
-      guard let self else {
-        return
-      }
-
-      applyPendingSnapshot(snapshot)
-      if removedCount > 0 {
-        lastAckMessage = nil
-        lastError = "账号状态暂不可用，未继续同步 \(removedCount) 条手表操作。"
-      }
-    }
-  }
-
   private func applyPendingSnapshot(_ snapshot: WatchPendingQueueSnapshot) {
     pendingEventCount = snapshot.count
     pendingEventSummaries = snapshot.summaries
   }
 
-  private func handleReply(_ reply: [String: Any]) {
-    let status = reply["status"] as? String
-    let message = reply["message"] as? String
-    let didUpdateState = updateStateIfPresent(in: reply)
-
-    switch status {
-    case "accepted":
-      lastAckMessage = "iPhone 已同步。"
-      lastError = nil
-    case "duplicate":
-      lastAckMessage = "这条记录已经同步过。"
-      lastError = nil
-    case "rejected":
-      lastAckMessage = nil
-      lastError = message ?? "iPhone 暂时没有接住这次操作。"
-    default:
-      lastAckMessage = nil
-      if !didUpdateState {
-        lastError = nil
-      }
-    }
-  }
-
   @discardableResult
-  private func updateState(from payload: [String: Any]) -> Bool {
+  private func updateState(from payload: [String: Any], replay: Bool = true) -> Bool {
     let decodedState: WatchTodayState?
 
     if let stateJson = payload["stateJson"] as? String,
-       let data = stateJson.data(using: .utf8) {
+      let data = stateJson.data(using: .utf8)
+    {
       decodedState = try? JSONDecoder().decode(WatchTodayState.self, from: data)
     } else {
       let rawState = dictionaryValue(payload["state"]) ?? payload
       if JSONSerialization.isValidJSONObject(rawState),
-         let data = try? JSONSerialization.data(withJSONObject: rawState) {
+        let data = try? JSONSerialization.data(withJSONObject: rawState)
+      {
         decodedState = try? JSONDecoder().decode(WatchTodayState.self, from: data)
       } else {
         decodedState = nil
@@ -300,17 +293,16 @@ final class WatchSessionManager: ObservableObject {
     lastError = nil
     lastSyncedAt = Date()
     stateStore.save(todayState)
-    prunePendingEventsForCurrentState()
-    flushPendingEventsIfPossible()
+    if replay { flushPendingEventsIfPossible() }
     return true
   }
 
-  private func updateStateIfPresent(in payload: [String: Any]) -> Bool {
+  private func updateStateIfPresent(in payload: [String: Any], replay: Bool = true) -> Bool {
     guard payload["stateJson"] is String || dictionaryValue(payload["state"]) != nil else {
       return false
     }
 
-    return updateState(from: payload)
+    return updateState(from: payload, replay: replay)
   }
 
   private func dictionaryValue(_ value: Any?) -> [String: Any]? {
@@ -354,13 +346,13 @@ final class WatchSessionManager: ObservableObject {
         }
 
         switch result {
-        case let .success(reply):
+        case .success(let reply):
           if !updateStateIfPresent(in: reply) {
             lastError = nil
           }
           refreshBackoff.reset()
           cancelStateRefreshRetry()
-        case let .failure(error):
+        case .failure(let error):
           lastError = friendlyConnectivityMessage(for: error)
           scheduleStateRefreshRetry()
         }
@@ -440,12 +432,13 @@ final class WatchSessionManager: ObservableObject {
       return
     }
 
-    todayState.habits.completion = [
-      todayState.habits.waterDone,
-      todayState.habits.fiberDone,
-      todayState.habits.movementDone,
-      todayState.habits.bowelDone,
-    ].filter { $0 }.count
+    todayState.habits.completion =
+      [
+        todayState.habits.waterDone,
+        todayState.habits.fiberDone,
+        todayState.habits.movementDone,
+        todayState.habits.bowelDone,
+      ].filter { $0 }.count
     todayState.generatedAt = ISO8601DateFormatter().string(from: Date())
     stateStore.save(todayState)
   }

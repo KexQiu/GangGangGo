@@ -1,9 +1,15 @@
 import Foundation
 
+struct WatchEventOwner: Codable, Equatable, Sendable {
+  var userId: String
+  var profileId: String
+}
+
 struct WatchTodayState: Codable, Equatable {
   struct Account: Codable, Equatable {
     var isLoggedIn: Bool
     var nickname: String?
+    var owner: WatchEventOwner? = nil
   }
 
   struct Habits: Codable, Equatable {
@@ -19,6 +25,7 @@ struct WatchTodayState: Codable, Equatable {
     var isPaused: Bool
     var isRunning: Bool
     var sessionCount: Int
+    var sessionId: String? = nil
     var stage: String?
 
     init(elapsedSeconds: Int, isPaused: Bool, isRunning: Bool, sessionCount: Int, stage: String?) {
@@ -37,6 +44,7 @@ struct WatchTodayState: Codable, Equatable {
       isRunning = try container.decodeIfPresent(Bool.self, forKey: .isRunning) ?? false
       sessionCount = try container.decodeIfPresent(Int.self, forKey: .sessionCount) ?? 0
       stage = try container.decodeIfPresent(String.self, forKey: .stage)
+      sessionId = try container.decodeIfPresent(String.self, forKey: .sessionId)
     }
   }
 
@@ -92,7 +100,7 @@ struct WatchTodayState: Codable, Equatable {
     generatedAt: String,
     habits: Habits,
     pendingEventCount: Int,
-    schemaVersion: Int = 3,
+    schemaVersion: Int = 4,
     toilet: Toilet,
     training: Training,
     trainingModes: [TrainingModeConfig] = TrainingModeConfig.fallbackModes
@@ -119,13 +127,20 @@ struct WatchTodayState: Codable, Equatable {
     pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
     canUseActions = try container.decode(Bool.self, forKey: .canUseActions)
     schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
-    guard schemaVersion == 3 else {
-      throw DecodingError.dataCorruptedError(forKey: .schemaVersion, in: container, debugDescription: "Unsupported Watch state version")
+    guard schemaVersion == 4 else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .schemaVersion, in: container, debugDescription: "Unsupported Watch state version")
+    }
+    if account.isLoggedIn && account.owner == nil {
+      throw DecodingError.dataCorruptedError(
+        forKey: .account, in: container, debugDescription: "Logged-in state needs an owner")
     }
     toilet = try container.decode(Toilet.self, forKey: .toilet)
     training = try container.decode(Training.self, forKey: .training)
 
-    if let decodedModes = try container.decodeIfPresent([TrainingModeConfig].self, forKey: .trainingModes), !decodedModes.isEmpty {
+    if let decodedModes = try container.decodeIfPresent(
+      [TrainingModeConfig].self, forKey: .trainingModes), !decodedModes.isEmpty
+    {
       trainingModes = decodedModes
     } else {
       trainingModes = TrainingModeConfig.fallbackModes
@@ -137,9 +152,11 @@ struct WatchTodayState: Codable, Equatable {
     canUseActions: false,
     date: "--",
     generatedAt: ISO8601DateFormatter().string(from: Date()),
-    habits: Habits(bowelDone: false, completion: 0, fiberDone: false, movementDone: false, waterDone: false),
+    habits: Habits(
+      bowelDone: false, completion: 0, fiberDone: false, movementDone: false, waterDone: false),
     pendingEventCount: 0,
-    toilet: Toilet(elapsedSeconds: 0, isPaused: false, isRunning: false, sessionCount: 0, stage: nil),
+    toilet: Toilet(
+      elapsedSeconds: 0, isPaused: false, isRunning: false, sessionCount: 0, stage: nil),
     training: Training(completedSets: 0, done: false),
     trainingModes: TrainingModeConfig.fallbackModes
   )
@@ -252,7 +269,8 @@ extension WatchTodayState {
       return toilet.elapsedSeconds
     }
 
-    return max(toilet.elapsedSeconds + Int(elapsedSinceSnapshot.rounded(.down)), toilet.elapsedSeconds)
+    return max(
+      toilet.elapsedSeconds + Int(elapsedSinceSnapshot.rounded(.down)), toilet.elapsedSeconds)
   }
 
   func currentToiletStage(now: Date = Date()) -> WatchToiletStage? {

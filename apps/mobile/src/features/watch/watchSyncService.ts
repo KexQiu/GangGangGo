@@ -41,7 +41,7 @@ export function startWatchConnectivityEventListener() {
   }
 
   const subscription = addWatchConnectivityEventListener((payload) => {
-    void handleIncomingWatchPayload(payload);
+    void handleIncomingWatchPayload(payload).catch(() => undefined);
   });
 
   eventListenerStarted = Boolean(subscription);
@@ -70,7 +70,7 @@ async function handleIncomingWatchPayload(payload: unknown) {
   const event = extractWatchEvent(payload);
 
   if (!event) {
-    const ack = createInvalidWatchPayloadAck();
+    const ack = createInvalidWatchPayloadAck(payload);
     useWatchDebugStore.getState().recordAck(ack);
     await replyToWatchMessage(replyId, ack);
     return;

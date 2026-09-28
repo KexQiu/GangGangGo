@@ -43,7 +43,9 @@ final class WatchConnectivityClient: NSObject, WCSessionDelegate {
   func sendTodayState(_ state: [String: Any], promise: Promise) {
     activateSession { isActivated, error in
       guard isActivated, let session = self.session else {
-        promise.resolve(["reason": error?.localizedDescription ?? "watch_session_unavailable", "sent": false])
+        promise.resolve([
+          "reason": error?.localizedDescription ?? "watch_session_unavailable", "sent": false,
+        ])
         return
       }
       guard session.isPaired else {
@@ -116,7 +118,8 @@ final class WatchConnectivityClient: NSObject, WCSessionDelegate {
     replyHandler: @escaping ([String: Any]) -> Void
   ) {
     DispatchQueue.main.async {
-      if message["type"] as? String == "request_today_state", let state = self.lastTodayStatePayload {
+      if message["type"] as? String == "request_today_state", let state = self.lastTodayStatePayload
+      {
         var reply = state
         reply["eventId"] = "request_today_state"
         reply["repliedAt"] = ISO8601DateFormatter().string(from: Date())
@@ -125,11 +128,13 @@ final class WatchConnectivityClient: NSObject, WCSessionDelegate {
         return
       }
 
+      let eventId = (message["event"] as? [String: Any])?["id"] as? String ?? "unknown"
       guard self.hasListeners else {
         replyHandler([
+          "eventId": eventId,
           "message": "iPhone 暂时没有准备好处理手表操作。",
           "repliedAt": ISO8601DateFormatter().string(from: Date()),
-          "status": "rejected",
+          "status": "retryable",
         ])
         return
       }
@@ -139,10 +144,13 @@ final class WatchConnectivityClient: NSObject, WCSessionDelegate {
       emittedMessage["replyId"] = replyId
       self.pendingReplies[replyId] = replyHandler
       let timeout = DispatchWorkItem { [weak self] in
-        self?.completePendingReply(replyId, response: [
-          "message": "iPhone 处理超时，稍后会重新同步。",
-          "status": "rejected",
-        ])
+        self?.completePendingReply(
+          replyId,
+          response: [
+            "eventId": eventId,
+            "message": "iPhone 处理超时，稍后会重新同步。",
+            "status": "retryable",
+          ])
       }
       self.pendingReplyTimeouts[replyId] = timeout
       DispatchQueue.main.asyncAfter(deadline: .now() + 20, execute: timeout)
@@ -223,10 +231,12 @@ final class WatchConnectivityClient: NSObject, WCSessionDelegate {
 
   private func embeddedWatchBundleIdentifiers() -> [String] {
     let watchURL = Bundle.main.bundleURL.appendingPathComponent("Watch", isDirectory: true)
-    guard let watchAppURLs = try? FileManager.default.contentsOfDirectory(
-      at: watchURL,
-      includingPropertiesForKeys: nil
-    ) else {
+    guard
+      let watchAppURLs = try? FileManager.default.contentsOfDirectory(
+        at: watchURL,
+        includingPropertiesForKeys: nil
+      )
+    else {
       return []
     }
     return watchAppURLs.compactMap { Bundle(url: $0)?.bundleIdentifier }

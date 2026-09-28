@@ -1,16 +1,17 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
-const latestVersion = 1;
+const latestVersion = 2;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   const version = row?.user_version ?? 0;
   if (version === latestVersion) return;
-  if (version !== 0) throw new Error(`Unsupported database version: ${version}`);
+  if (version !== 0 && version !== 1) throw new Error(`Unsupported database version: ${version}`);
 
   await db.withTransactionAsync(async () => {
-    await db.execAsync(`
+    if (version === 0)
+      await db.execAsync(`
       CREATE TABLE app_metadata (
         key TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL
@@ -186,6 +187,17 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       VALUES ('local-default', NULL, datetime('now'), datetime('now'));
       INSERT INTO app_metadata (key, value) VALUES ('active_profile_id', 'local-default');
       PRAGMA user_version = 1;
+    `);
+    await db.execAsync(`
+      CREATE TABLE watch_event_receipts (
+        profile_id TEXT NOT NULL REFERENCES local_data_profiles(id) ON DELETE CASCADE,
+        event_id TEXT NOT NULL,
+        event_json TEXT NOT NULL,
+        processed_at TEXT NOT NULL,
+        PRIMARY KEY (profile_id, event_id)
+      );
+      CREATE INDEX idx_watch_event_receipts_processed_at ON watch_event_receipts (processed_at);
+      PRAGMA user_version = 2;
     `);
   });
 }

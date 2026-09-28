@@ -2,6 +2,7 @@ import Foundation
 
 struct WatchOutboundEvent: Codable, Equatable, Sendable {
   struct Event: Codable, Equatable, Sendable {
+    var owner: WatchEventOwner
     var createdAt: String
     var id: String
     var payload: Payload
@@ -17,6 +18,7 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
     var habitKey: String?
     var level: String?
     var mode: String?
+    var sessionId: String?
 
     init(
       action: String? = nil,
@@ -25,7 +27,8 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
       elapsedSeconds: Int? = nil,
       habitKey: String? = nil,
       level: String? = nil,
-      mode: String? = nil
+      mode: String? = nil,
+      sessionId: String? = nil
     ) {
       self.action = action
       self.completedSets = completedSets
@@ -34,6 +37,7 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
       self.habitKey = habitKey
       self.level = level
       self.mode = mode
+      self.sessionId = sessionId
     }
   }
 
@@ -47,7 +51,8 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
 
   var messageDictionary: [String: Any]? {
     guard let data = try? JSONEncoder().encode(self),
-          let object = try? JSONSerialization.jsonObject(with: data) else {
+      let object = try? JSONSerialization.jsonObject(with: data)
+    else {
       return nil
     }
 
@@ -67,8 +72,11 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
     }
   }
 
-  static func trainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) -> WatchOutboundEvent {
+  static func trainingCompleted(
+    owner: WatchEventOwner, mode: String, completedSets: Int, durationSeconds: Int
+  ) -> WatchOutboundEvent {
     make(
+      owner: owner,
       type: "training_completed",
       payload: Payload(
         completedSets: completedSets,
@@ -78,27 +86,35 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
     )
   }
 
-  static func habitToggled(habitKey: String, level: String?) -> WatchOutboundEvent {
-    make(type: "habit_toggled", payload: Payload(habitKey: habitKey, level: level))
+  static func habitToggled(owner: WatchEventOwner, habitKey: String, level: String?)
+    -> WatchOutboundEvent
+  {
+    make(owner: owner, type: "habit_toggled", payload: Payload(habitKey: habitKey, level: level))
   }
 
-  static func toiletTimerAction(action: String, elapsedSeconds: Int) -> WatchOutboundEvent {
+  static func toiletTimerAction(
+    owner: WatchEventOwner, sessionId: String, action: String, elapsedSeconds: Int
+  ) -> WatchOutboundEvent {
     make(
+      owner: owner,
       type: "toilet_timer_action",
-      payload: Payload(action: action, elapsedSeconds: elapsedSeconds)
+      payload: Payload(action: action, elapsedSeconds: elapsedSeconds, sessionId: sessionId)
     )
   }
 
-  private static func make(type: String, payload: Payload) -> WatchOutboundEvent {
+  private static func make(owner: WatchEventOwner, type: String, payload: Payload)
+    -> WatchOutboundEvent
+  {
     WatchOutboundEvent(
       event: Event(
+        owner: owner,
         createdAt: ISO8601DateFormatter().string(from: Date()),
         id: UUID().uuidString,
         payload: payload,
-        schemaVersion: 2,
+        schemaVersion: 3,
         type: type
       ),
-      schemaVersion: 2,
+      schemaVersion: 3,
       type: "watch_event"
     )
   }
@@ -139,7 +155,6 @@ struct WatchPendingQueueSnapshot: Equatable, Sendable {
 
 struct WatchPendingReplayBatch: Sendable {
   var events: [WatchOutboundEvent]
-  var removedUnauthorizedCount: Int
   var snapshot: WatchPendingQueueSnapshot
 }
 
@@ -180,28 +195,22 @@ actor WatchOfflineEventQueue {
     return makeSnapshot()
   }
 
-  func beginReplay(allowDelivery: Bool, now: Date = Date()) -> WatchPendingReplayBatch {
+  func beginReplay(allowDelivery: Bool, owner: WatchEventOwner?, now: Date = Date())
+    -> WatchPendingReplayBatch
+  {
     purgeExpiredEvents(now: now)
 
-    if !allowDelivery {
-      let removedCount = events.count
-      events.removeAll()
-      inFlightEventIds.removeAll()
+    guard allowDelivery, owner != nil, inFlightEventIds.isEmpty else {
       persist()
-      return WatchPendingReplayBatch(
-        events: [],
-        removedUnauthorizedCount: removedCount,
-        snapshot: makeSnapshot()
-      )
+      return WatchPendingReplayBatch(events: [], snapshot: makeSnapshot())
     }
-
-    let readyEvents = events.filter { !inFlightEventIds.contains($0.id) }
+    // 串行发送，失败的旧习惯更新不能晚于新操作写回。
+    let readyEvents = Array(events.prefix(1))
     inFlightEventIds.formUnion(readyEvents.map(\.id))
     persist()
 
     return WatchPendingReplayBatch(
       events: readyEvents,
-      removedUnauthorizedCount: 0,
       snapshot: makeSnapshot()
     )
   }
@@ -218,19 +227,14 @@ actor WatchOfflineEventQueue {
     return makeSnapshot()
   }
 
-  func pruneForAuthorization(allowDelivery: Bool, now: Date = Date()) -> (WatchPendingQueueSnapshot, Int) {
-    purgeExpiredEvents(now: now)
-
-    guard !allowDelivery else {
-      persist()
-      return (makeSnapshot(), 0)
+  func resolve(eventId: String, disposition: WatchDeliveryDisposition) -> WatchPendingQueueSnapshot
+  {
+    switch disposition {
+    case .accepted, .duplicate, .rejected:
+      return acknowledge(eventId: eventId)
+    case .retry:
+      return deliveryFailed(eventId: eventId)
     }
-
-    let removedCount = events.count
-    events.removeAll()
-    inFlightEventIds.removeAll()
-    persist()
-    return (makeSnapshot(), removedCount)
   }
 
   private func purgeExpiredEvents(now: Date) {
@@ -273,7 +277,8 @@ actor WatchOfflineEventQueue {
     defaults.set(encodedEvents, forKey: storageKey)
   }
 
-  private static func loadEvents(defaults: UserDefaults, storageKey: String) -> [WatchOutboundEvent] {
+  private static func loadEvents(defaults: UserDefaults, storageKey: String) -> [WatchOutboundEvent]
+  {
     guard let encodedEvents = defaults.stringArray(forKey: storageKey) else {
       return []
     }
@@ -283,6 +288,20 @@ actor WatchOfflineEventQueue {
         return nil
       }
       return try? JSONDecoder().decode(WatchOutboundEvent.self, from: data)
+    }
+  }
+}
+
+enum WatchDeliveryDisposition: Equatable, Sendable {
+  case accepted, duplicate, rejected, retry
+
+  static func classify(_ reply: [String: Any], eventId: String) -> WatchDeliveryDisposition {
+    guard reply["eventId"] as? String == eventId else { return .retry }
+    switch reply["status"] as? String {
+    case "accepted": return .accepted
+    case "duplicate": return .duplicate
+    case "rejected": return .rejected
+    default: return .retry
     }
   }
 }

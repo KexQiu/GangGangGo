@@ -4,7 +4,7 @@
 
 ## 移动端
 
-- 当前文件为 `xiaotidu-v1.db`，初始 `user_version` 为 `1`。
+- 当前文件为 `xiaotidu-v1.db`，当前 `user_version` 为 `2`。版本 1 是清理后的初始基线；版本 2 增加 Watch 持久化去重回执，保留当前开发库数据。
 - 首次打开时，在一个事务中创建当前表、索引和匿名数据 profile；重复初始化不改动已有记录。
 - 不自动导入或删除旧开发文件 `xiaotidu.db`。运行新版后，本地记录从新库开始；登录后按当前同步机制拉取云端数据。
 - 需要保留旧测试记录时，先备份旧文件及 WAL/SHM，或在切换前导出；基线没有提供旧结构升级流程。
@@ -30,5 +30,5 @@ pnpm --filter @xiaotidu/api db:generate
 
 ## 验证
 
-- SQLite：`pnpm --filter @xiaotidu/mobile test` 覆盖空库建表、重复初始化、失败回滚、未知版本拒绝，以及匿名数据归属与同步队列。
+- SQLite：`pnpm --filter @xiaotidu/mobile test` 覆盖空库建表、版本 1 增量升级、重复初始化、失败回滚、未知版本拒绝，以及匿名数据归属与同步队列。
 - PostgreSQL：在独立测试数据库上执行基线迁移，再以该库的 `DATABASE_URL` 运行 `pnpm --filter @xiaotidu/api test`；未配置数据库时 PostgreSQL 集成测试会跳过。

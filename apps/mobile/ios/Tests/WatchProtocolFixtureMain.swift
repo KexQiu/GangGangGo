@@ -20,8 +20,8 @@ struct WatchProtocolFixtureMain {
 
     let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))
     let state = try JSONDecoder().decode(WatchTodayState.self, from: data)
-    guard state.schemaVersion == 3 else {
-      throw ValidationError("expected schemaVersion 3")
+    guard state.schemaVersion == 4 else {
+      throw ValidationError("expected schemaVersion 4")
     }
     guard state.habits.completion >= 0, state.habits.completion <= 4 else {
       throw ValidationError("habit completion is outside 0...4")
@@ -33,7 +33,8 @@ struct WatchProtocolFixtureMain {
     let json = try JSONSerialization.jsonObject(with: data)
     let leakedKeys = findForbiddenKeys(json)
     guard leakedKeys.isEmpty else {
-      throw ValidationError("fixture exposes private keys: \(leakedKeys.sorted().joined(separator: ", "))")
+      throw ValidationError(
+        "fixture exposes private keys: \(leakedKeys.sorted().joined(separator: ", "))")
     }
   }
 

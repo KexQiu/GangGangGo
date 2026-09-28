@@ -140,6 +140,7 @@ export const useAuthStore = create<AuthState>()(
             if (!stored) {
               await activateAnonymousLocalProfile();
               assertCurrent();
+              authSessionContext.completeAnonymousTransition(generation);
               set({ hasHydrated: true, isLoading: false });
               return;
             }
@@ -209,6 +210,7 @@ async function finishAnonymousSession(generation: number) {
       await activateAnonymousLocalProfile();
       await resetLocalHealthStores();
       authSessionContext.assertGeneration(generation);
+      authSessionContext.completeAnonymousTransition(generation);
       useAuthStore.setState({ hasHydrated: true, isLoading: false });
     });
   } catch (error) {

@@ -10,7 +10,13 @@ export function getLocalDataRevision() {
 
 export function notifyLocalDataChanged(source: LocalDataChangeSource = 'local') {
   revision += 1;
-  for (const listener of listeners) listener(revision, source);
+  for (const listener of listeners) {
+    try {
+      listener(revision, source);
+    } catch (error) {
+      console.warn('本地数据变更监听失败', error);
+    }
+  }
 }
 
 export function subscribeToLocalDataChanges(listener: LocalDataChangeListener) {

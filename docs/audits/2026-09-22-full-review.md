@@ -138,6 +138,8 @@ API 跳过项受 `DATABASE_URL` 未配置影响。原记录引用的 `/tmp/gangg
 
 ### R08 · P1 · 训练和习惯保存失败仍表现为成功
 
+2026-09-28 实施进展：保存事务、手机失败反馈和 Watch 分类回执已实现，见 [R08 回归记录](../architecture/save-ack-acceptance.md)。下述问题描述为修复前证据；原生构建与配对设备验收仍待完成。
+
 **证据：隔离复现。** 模拟 repository 抛出 `disk full`，两个 store 的操作 Promise 都正常 resolve，并保留乐观更新的记录。错误只写入 store 字段。训练结束页调用 `addSession` 后立即跳转结果页，甚至未等待落库；Watch 对对应操作也可能返回接受回执。
 
 **影响：** 用户看见完成/达标，重启后记录消失；手表收到成功回执后不再重试，扩大数据丢失影响。
@@ -148,7 +150,7 @@ API 跳过项受 `DATABASE_URL` 未配置影响。原记录引用的 `/tmp/gangg
 
 **补充位置：** [WatchSessionManager.swift:163](../../apps/mobile/ios/XiaoTiduWatchApp/Connectivity/WatchSessionManager.swift#L163)、[WatchOfflineEventQueue.swift:209](../../apps/mobile/ios/XiaoTiduWatchApp/Connectivity/WatchOfflineEventQueue.swift#L209)。
 
-**修复与验收：** 持久化失败需要返回明确失败并回滚或保留可重试草稿；只有落库成功才显示保存成功和发送 Watch 接受回执。手机与 Watch 联合定义回执语义：accepted/duplicate 才确认完成；临时失败保留或入队重试；账号/session 不匹配等永久拒绝明确提示并按约定终止，不得换账号重放。现有协议只有 rejected，尚无可重试分类，需要补齐两端兼容规则。覆盖实时发送、离线重放、数据库不可写、超时、未知回执、应用重启和重复投递。
+**修复与验收：** 持久化失败需要返回明确失败并回滚或保留可重试草稿；只有落库成功才显示保存成功和发送 Watch 接受回执。手机与 Watch 联合定义回执语义：accepted/duplicate 才确认完成；临时失败保留或入队重试；账号/session 不匹配等永久拒绝明确提示并按约定终止，不得换账号重放。现有协议只有 rejected，尚无可重试分类，需要同步补齐两端协议；App 尚未上线，无需保留旧版兼容。覆盖实时发送、离线重放、数据库不可写、超时、未知回执、应用重启和重复投递。
 
 ### R09 · P1 · 拉取响应覆盖同步途中产生的本地新编辑
 

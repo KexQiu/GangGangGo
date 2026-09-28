@@ -1,8 +1,8 @@
+import { commitLocalMutation, type LocalMutationOptions } from '../localMutation';
 import { isHabitLevel } from '../../features/habits/habitLogic';
-import { type HabitCheckIn } from '../../features/habits/habitTypes';
+import { type HabitCheckIn, type HabitKey, type HabitLevel } from '../../features/habits/habitTypes';
 import { rebuildDailySummary } from '../../features/data/dailyData';
 import { enqueueDataMutation } from '../dataSyncOutbox';
-import { getActiveLocalProfileId } from '../localDataProfile';
 import { initializeDatabase } from '../db';
 import { normalizePageSize, type Page } from '../pagination';
 import { habitCheckInPageSql } from './pageQueries';
@@ -23,11 +23,22 @@ export type HabitCheckInPageOptions = {
   toDateExclusive?: string;
 };
 
-export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
-
-  await db.withTransactionAsync(async () => {
+export async function saveHabitLevel(
+  date: string,
+  key: HabitKey,
+  level: HabitLevel | null,
+  options: LocalMutationOptions = {},
+) {
+  return commitLocalMutation(options, async (db, profileId) => {
+    const previous = await db.getFirstAsync<HabitCheckInRow>(
+      'SELECT date, water, fiber, movement, bowel, updated_at FROM habit_checkins WHERE profile_id = $profileId AND date = $date AND deleted_at IS NULL;',
+      { $profileId: profileId, $date: date },
+    );
+    const checkIn: HabitCheckIn = {
+      ...(previous ? rowToHabitCheckIn(previous) : { date, water: null, fiber: null, movement: null, bowel: null }),
+      [key]: level,
+      updatedAt: new Date().toISOString(),
+    };
     await db.runAsync(
       `
       INSERT INTO habit_checkins (
@@ -52,7 +63,8 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
         fiber = excluded.fiber,
         movement = excluded.movement,
         bowel = excluded.bowel,
-        updated_at = excluded.updated_at;
+        updated_at = excluded.updated_at,
+        deleted_at = NULL;
     `,
       {
         $bowel: checkIn.bowel,
@@ -80,8 +92,9 @@ export async function upsertHabitCheckIn(checkIn: HabitCheckIn): Promise<void> {
       db,
       profileId,
     );
+    await rebuildDailySummary(checkIn.date, db, profileId);
+    return checkIn;
   });
-  await rebuildDailySummary(checkIn.date);
 }
 
 export async function listHabitCheckInsPage(

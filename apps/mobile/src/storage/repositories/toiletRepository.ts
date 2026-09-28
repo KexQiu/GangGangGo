@@ -1,3 +1,4 @@
+import { commitLocalMutation, type LocalMutationOptions } from '../localMutation';
 import {
   isToiletStoolColor,
   isToiletStoolShape,
@@ -48,13 +49,11 @@ export type ToiletSessionPageOptions = {
   toDateTimeExclusive?: string;
 };
 
-export async function insertToiletSession(session: ToiletSession): Promise<void> {
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
+export async function insertToiletSession(session: ToiletSession, options: LocalMutationOptions = {}) {
   const localDate = getLocalDateKey(new Date(session.endedAt));
   const updatedAt = new Date().toISOString();
 
-  await db.withTransactionAsync(async () => {
+  return commitLocalMutation(options, async (db, profileId) => {
     await db.runAsync(
       `
       INSERT INTO toilet_sessions (
@@ -113,8 +112,8 @@ export async function insertToiletSession(session: ToiletSession): Promise<void>
       db,
       profileId,
     );
+    await rebuildDailySummary(localDate, db, profileId);
   });
-  await rebuildDailySummary(localDate);
 }
 
 export async function updateToiletSession(session: ToiletSession): Promise<void> {

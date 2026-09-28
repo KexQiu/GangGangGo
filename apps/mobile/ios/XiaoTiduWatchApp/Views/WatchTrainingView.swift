@@ -36,7 +36,9 @@ struct WatchTrainingView: View {
     }
     .navigationTitle("菊花抬")
     .navigationBarBackButtonHidden(trainingSession != nil)
-    .confirmationDialog("要结束这组训练吗？", isPresented: $showingCancelConfirmation, titleVisibility: .visible) {
+    .confirmationDialog(
+      "要结束这组训练吗？", isPresented: $showingCancelConfirmation, titleVisibility: .visible
+    ) {
       Button("结束，不记录", role: .destructive) {
         cancelTraining()
       }
@@ -102,8 +104,9 @@ struct WatchTrainingView: View {
     cancelTrainingBoundary()
     let currentSession = session ?? trainingSession
     guard self.session.isApplicationActive,
-          let currentSession,
-          let boundary = currentSession.nextBoundary(after: Date()) else {
+      let currentSession,
+      let boundary = currentSession.nextBoundary(after: Date())
+    else {
       return
     }
 
@@ -117,8 +120,9 @@ struct WatchTrainingView: View {
       }
 
       guard var activeSession = trainingSession,
-            activeSession.startedAt == expectedStartDate,
-            !activeSession.isPaused else {
+        activeSession.startedAt == expectedStartDate,
+        !activeSession.isPaused
+      else {
         return
       }
 
@@ -146,12 +150,13 @@ struct WatchTrainingView: View {
     cancelTrainingBoundary()
     trainingSession = nil
     WKInterfaceDevice.current().play(.success)
-    session.sendTrainingCompleted(
+    let eventId = session.sendTrainingCompleted(
       mode: currentSession.mode.id,
       completedSets: 1,
       durationSeconds: currentSession.mode.totalDurationSeconds
     )
     completedTraining = WatchTrainingCompletion(
+      eventId: eventId,
       mode: currentSession.mode,
       durationSeconds: currentSession.mode.totalDurationSeconds
     )
@@ -306,6 +311,7 @@ private struct TrainingSessionContent: View {
 }
 
 private struct TrainingCompletionContent: View {
+  @EnvironmentObject private var session: WatchSessionManager
   var completion: WatchTrainingCompletion
   var onDone: () -> Void
 
@@ -322,7 +328,7 @@ private struct TrainingCompletionContent: View {
         .font(.caption)
         .foregroundStyle(.secondary)
 
-      Text("已发给 iPhone，同步后会计入今日菊花抬。")
+      Text(saveStatusText)
         .font(.caption2)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
@@ -334,9 +340,23 @@ private struct TrainingCompletionContent: View {
     }
     .padding()
   }
+
+  private var saveStatusText: String {
+    guard let eventId = completion.eventId else { return "这次训练尚未保存，请回首页检查账号状态。" }
+    guard let delivery = session.trainingDelivery, delivery.eventId == eventId else {
+      return "记录等待 iPhone 确认保存。"
+    }
+    switch delivery.disposition {
+    case .accepted, .duplicate: return "iPhone 已确认保存这次训练。"
+    case .rejected: return "iPhone 未接受这条记录，请回首页查看原因。"
+    case .retry: return "记录待同步，iPhone 确认后才会计入今日训练。"
+    }
+  }
+
 }
 
 private struct WatchTrainingCompletion {
+  var eventId: String?
   var mode: WatchTrainingMode
   var durationSeconds: Int
 }

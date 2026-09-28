@@ -1,3 +1,5 @@
+import { authSessionContext } from '../../api/sessionContext';
+import type { LocalMutationOptions, LocalMutationResult } from '../../storage/localMutation';
 import { create } from 'zustand';
 
 import { buildLocalDateRange } from '../../storage/dateRange';
@@ -17,7 +19,7 @@ type TrainingState = {
   reset: () => void;
   isHydrating: boolean;
   sessions: TrainingSession[];
-  addSession: (session: TrainingSession) => Promise<void>;
+  addSession: (session: TrainingSession, options?: LocalMutationOptions) => Promise<LocalMutationResult>;
 };
 
 let hydrationRevision = 0;
@@ -60,19 +62,22 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   },
   isHydrating: false,
   sessions: [],
-  addSession: async (session) => {
-    set((state) => ({
-      error: null,
-      sessions: [session, ...state.sessions],
-    }));
-
+  addSession: async (session, options = {}) => {
+    const generation = options.generation ?? authSessionContext.captureLocalGeneration();
     try {
-      await insertTrainingSession(session);
-      notifyLocalDataChanged();
+      const result = await insertTrainingSession(session, { ...options, generation });
+      if (result.status === 'saved' && authSessionContext.isGenerationCurrent(generation)) {
+        set((state) => ({
+          error: null,
+          sessions: [session, ...state.sessions.filter((item) => item.id !== session.id)],
+        }));
+        notifyLocalDataChanged();
+      }
+      return result;
     } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '训练记录保存失败',
-      });
+      if (authSessionContext.isGenerationCurrent(generation))
+        set({ error: error instanceof Error ? error.message : '训练记录保存失败' });
+      throw error;
     }
   },
 }));

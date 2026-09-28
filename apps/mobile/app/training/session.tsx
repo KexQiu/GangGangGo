@@ -3,6 +3,8 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { authSessionContext } from '../../src/api/sessionContext';
+import { createTrainingCompletion } from '../../src/features/training/trainingCompletion';
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
@@ -32,6 +34,23 @@ export default function TrainingSessionScreen() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const finishedRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const completion = useRef<ReturnType<typeof createTrainingCompletion> | null>(null);
+  completion.current ??= createTrainingCompletion(
+    ({ session, generation }) => addSession(session, { generation }),
+    (session) =>
+      router.replace({
+        pathname: routes.trainingComplete,
+        params: {
+          completedRepetitions: session.completedRepetitions.toString(),
+          durationSeconds: session.durationSeconds.toString(),
+          isCompleted: session.isCompleted ? 'true' : 'false',
+          presetId: session.presetId,
+        },
+      }),
+    (error) => setSaveError(error instanceof Error ? error.message : '保存失败，请重试。'),
+  );
   const startedAtRef = useRef(new Date().toISOString());
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
@@ -56,47 +75,42 @@ export default function TrainingSessionScreen() {
 
   useEffect(() => {
     if (elapsedSeconds >= totalSeconds && !finishedRef.current) {
-      finishSession(true);
+      void finishSession(true);
     }
   });
 
   useEffect(() => {
     if (!isPaused) {
-      void Haptics.selectionAsync();
+      void Haptics.selectionAsync().catch(() => undefined);
     }
   }, [currentStep.phase, currentStep.repetition, isPaused]);
 
-  function finishSession(isCompleted: boolean) {
-    if (finishedRef.current) {
-      return;
-    }
-
+  async function finishSession(isCompleted: boolean) {
     finishedRef.current = true;
-    const endedAt = new Date().toISOString();
-    const session: TrainingSession = {
-      id: createSessionId(),
-      presetId: preset.id,
-      startedAt: startedAtRef.current,
-      endedAt,
-      durationSeconds: elapsedSeconds,
-      completedRepetitions: isCompleted ? preset.repetitions : completedRepetitions,
-      isCompleted,
-      discomfortReported: false,
-    };
-
-    addSession(session);
-    router.replace({
-      pathname: routes.trainingComplete,
-      params: {
-        completedRepetitions: session.completedRepetitions.toString(),
-        durationSeconds: session.durationSeconds.toString(),
-        isCompleted: session.isCompleted ? 'true' : 'false',
-        presetId: session.presetId,
-      },
-    });
+    setIsPaused(true);
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await completion.current!.finish(() => ({
+        generation: authSessionContext.captureLocalGeneration(),
+        session: {
+          id: createSessionId(),
+          presetId: preset.id,
+          startedAt: startedAtRef.current,
+          endedAt: new Date().toISOString(),
+          durationSeconds: elapsedSeconds,
+          completedRepetitions: isCompleted ? preset.repetitions : completedRepetitions,
+          isCompleted,
+          discomfortReported: false,
+        } satisfies TrainingSession,
+      }));
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function confirmDiscardTraining() {
+    if (isSaving) return;
     const wasPaused = isPaused;
     setIsPaused(true);
 
@@ -115,7 +129,7 @@ export default function TrainingSessionScreen() {
   }
 
   return (
-    <Screen bottomSafeArea scroll={false} contentStyle={styles.screenContent}>
+    <Screen bottomSafeArea contentStyle={styles.screenContent}>
       <AppTopBar fallbackHref={routes.training} onBackPress={confirmDiscardTraining} title="菊花抬中" variant="close" />
 
       <View style={styles.topBar}>
@@ -153,12 +167,31 @@ export default function TrainingSessionScreen() {
         <Text style={styles.tipsText}>这是提肛训练：轻提轻放，呼吸在线。别夹臀、别收腹，疼了或更不舒服就停。</Text>
       </AppCard>
 
+      {saveError ? (
+        <AppCard muted>
+          <Text accessibilityRole="alert" style={styles.safetyHint}>
+            保存失败：{saveError} 本次训练仍可重试保存。
+          </Text>
+        </AppCard>
+      ) : null}
       <View style={styles.actions}>
-        <AppButton onPress={() => setIsPaused((current) => !current)} style={styles.actionButton} variant="secondary">
+        <AppButton
+          disabled={isSaving || finishedRef.current}
+          onPress={() => setIsPaused((current) => !current)}
+          style={styles.actionButton}
+          variant="secondary"
+        >
           {isPaused ? '继续' : '暂停'}
         </AppButton>
-        <AppButton onPress={() => finishSession(false)} style={styles.actionButton} variant="warning">
-          结束
+        <AppButton
+          disabled={isSaving}
+          onPress={() => {
+            void finishSession(false);
+          }}
+          style={styles.actionButton}
+          variant="warning"
+        >
+          {isSaving ? '保存中…' : saveError ? '重试保存' : '结束'}
         </AppButton>
       </View>
     </Screen>
@@ -170,7 +203,7 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     screenContent: {
-      flex: 1,
+      flexGrow: 1,
       justifyContent: 'space-between',
       paddingBottom: 24,
       paddingHorizontal: 24,

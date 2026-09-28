@@ -17,15 +17,27 @@ export class SessionChangedError extends Error {
 /** 身份变更递增代次；同一身份的 token 轮换不改变代次。 */
 export class SessionContext {
   private generation = 0;
+  private transitioning = false;
   private session: SessionSnapshot | null = null;
   private tokens = new Set<string>();
   private effects: Promise<unknown> = Promise.resolve();
 
   beginTransition() {
     this.generation += 1;
+    this.transitioning = true;
     this.session = null;
     this.tokens.clear();
     return this.generation;
+  }
+
+  captureLocalGeneration() {
+    if (this.transitioning) throw new SessionChangedError();
+    return this.generation;
+  }
+
+  completeAnonymousTransition(generation: number) {
+    this.assertGeneration(generation);
+    this.transitioning = false;
   }
 
   isGenerationCurrent(generation: number) {
@@ -41,6 +53,7 @@ export class SessionContext {
     if (this.session && (this.session.userId !== session.userId || this.session.profileId !== session.profileId)) {
       throw new SessionChangedError();
     }
+    this.transitioning = false;
     this.session = Object.freeze({ ...session });
     this.tokens.add(session.accessToken);
   }

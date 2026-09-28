@@ -9,11 +9,14 @@ export type WatchTrainingModeConfig = {
   rounds: number;
 };
 
+export type WatchEventOwner = { userId: string; profileId: string };
+
 export type WatchTodayState = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   account: {
     isLoggedIn: boolean;
     nickname: null | string;
+    owner: WatchEventOwner | null;
   };
   canUseActions: boolean;
   date: string;
@@ -31,6 +34,7 @@ export type WatchTodayState = {
     isPaused: boolean;
     isRunning: boolean;
     sessionCount: number;
+    sessionId: string | null;
     stage: null | ToiletTimerStage;
   };
   training: {
@@ -44,7 +48,8 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion: 2;
+      schemaVersion: 3;
+      owner: WatchEventOwner;
       payload: {
         completedSets: number;
         durationSeconds: number;
@@ -55,7 +60,8 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion: 2;
+      schemaVersion: 3;
+      owner: WatchEventOwner;
       payload: {
         habitKey: HabitKey;
         level: HabitLevel | null;
@@ -65,9 +71,11 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion: 2;
+      schemaVersion: 3;
+      owner: WatchEventOwner;
       payload: {
         action: 'finish' | 'pause' | 'resume';
+        sessionId: string;
         elapsedSeconds: number;
       };
       type: 'toilet_timer_action';
@@ -78,7 +86,7 @@ export type WatchEventAck = {
   message?: string;
   state?: WatchTodayState;
   stateJson?: string;
-  status: 'accepted' | 'duplicate' | 'rejected';
+  status: 'accepted' | 'duplicate' | 'retryable' | 'rejected';
 };
 
 export type WatchConnectivityStatus = {

@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { Droplets, Leaf, ListChecks, Move, PlusCircle, Smile } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
+import { showToast } from '../../../components/toast/AppToast';
 import { AppCard } from '../../../components/AppCard';
 import { AppTopBar } from '../../../components/AppTopBar';
 import { PressableScale } from '../../../components/feedback/PressableScale';
@@ -55,8 +56,12 @@ export default function HabitsScreen() {
   const styles = createStyles(colors);
 
   async function selectHabitLevel(key: HabitKey, level: HabitLevel) {
-    await Haptics.selectionAsync();
-    await setHabitLevel(today, key, level);
+    void Haptics.selectionAsync().catch(() => undefined);
+    try {
+      await setHabitLevel(today, key, level);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '保存失败，请重试。', { type: 'error' });
+    }
   }
 
   return (

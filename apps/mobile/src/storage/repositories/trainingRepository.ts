@@ -1,10 +1,10 @@
+import { commitLocalMutation, type LocalMutationOptions } from '../localMutation';
 import { initializeDatabase } from '../db';
 import { isTrainingPresetId } from '../../features/training/presets';
 import { type TrainingSession } from '../../features/training/trainingTypes';
 import { getLocalDateKey } from '../../features/habits/habitLogic';
 import { rebuildDailySummary } from '../../features/data/dailyData';
 import { enqueueDataMutation } from '../dataSyncOutbox';
-import { getActiveLocalProfileId } from '../localDataProfile';
 import { normalizePageSize, type Page } from '../pagination';
 import { trainingSessionPageSql } from './pageQueries';
 
@@ -31,13 +31,11 @@ export type TrainingSessionPageOptions = {
   toDateTimeExclusive?: string;
 };
 
-export async function insertTrainingSession(session: TrainingSession): Promise<void> {
-  const db = await initializeDatabase();
-  const profileId = await getActiveLocalProfileId();
+export async function insertTrainingSession(session: TrainingSession, options: LocalMutationOptions = {}) {
   const localDate = getLocalDateKey(new Date(session.endedAt));
   const updatedAt = new Date().toISOString();
 
-  await db.withTransactionAsync(async () => {
+  return commitLocalMutation(options, async (db, profileId) => {
     await db.runAsync(
       `
       INSERT INTO training_sessions (
@@ -99,8 +97,8 @@ export async function insertTrainingSession(session: TrainingSession): Promise<v
       db,
       profileId,
     );
+    await rebuildDailySummary(localDate, db, profileId);
   });
-  await rebuildDailySummary(localDate);
 }
 
 export async function listTrainingSessionsPage(

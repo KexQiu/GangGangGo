@@ -1,3 +1,5 @@
+import { authSessionContext } from '../../api/sessionContext';
+import type { LocalMutationOptions, LocalMutationResult } from '../../storage/localMutation';
 import { create } from 'zustand';
 
 import { buildLocalDateRange } from '../../storage/dateRange';
@@ -13,7 +15,7 @@ import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { type ToiletSession } from './toiletTypes';
 
 type ToiletState = {
-  addSession: (session: ToiletSession) => Promise<void>;
+  addSession: (session: ToiletSession, options?: LocalMutationOptions) => Promise<LocalMutationResult>;
   deleteSession: (id: string) => Promise<void>;
   error: string | null;
   hasHydrated: boolean;
@@ -28,21 +30,22 @@ type ToiletState = {
 let hydrationRevision = 0;
 
 export const useToiletStore = create<ToiletState>((set, get) => ({
-  addSession: async (session) => {
-    set((state) => ({
-      error: null,
-      sessions: [session, ...state.sessions],
-    }));
-
+  addSession: async (session, options = {}) => {
+    const generation = options.generation ?? authSessionContext.captureLocalGeneration();
     try {
-      await insertToiletSession(session);
-      set((state) => ({ revision: state.revision + 1 }));
-      notifyLocalDataChanged();
+      const result = await insertToiletSession(session, { ...options, generation });
+      if (result.status === 'saved' && authSessionContext.isGenerationCurrent(generation)) {
+        set((state) => ({
+          error: null,
+          revision: state.revision + 1,
+          sessions: [session, ...state.sessions.filter((item) => item.id !== session.id)],
+        }));
+        notifyLocalDataChanged();
+      }
+      return result;
     } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '如厕记录保存失败',
-        sessions: get().sessions.filter((item) => item.id !== session.id),
-      });
+      if (authSessionContext.isGenerationCurrent(generation))
+        set({ error: error instanceof Error ? error.message : '如厕记录保存失败' });
       throw error;
     }
   },

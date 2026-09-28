@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { notifyLocalDataChanged } from '../sync/localDataEvents';
 
 export type ActiveToiletTimerSession = {
+  id: string;
   baseElapsedSeconds: number;
   isPaused: boolean;
   lastResumedAt: string | null;
@@ -78,6 +79,7 @@ export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
       startSession: (startedAt) => {
         set({
           session: {
+            id: `timer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
             baseElapsedSeconds: 0,
             isPaused: false,
             lastResumedAt: startedAt,
@@ -113,4 +115,36 @@ export function getActiveToiletTimerElapsedSeconds(session: ActiveToiletTimerSes
     : 0;
 
   return Math.max(0, Math.floor(session.baseElapsedSeconds + elapsedSinceResume));
+}
+
+/** Watch 必须等待持久化完成；相同 pause/resume 重放保持幂等。 */
+export async function persistWatchTimerAction(
+  sessionId: string,
+  action: 'pause' | 'resume' | 'finish',
+  elapsedSeconds: number,
+) {
+  const previous = useToiletTimerSessionStore.getState().session;
+  if (!previous || previous.id !== sessionId) return;
+  const next =
+    action === 'finish'
+      ? null
+      : action === 'pause'
+        ? { ...previous, baseElapsedSeconds: elapsedSeconds, isPaused: true, lastResumedAt: null }
+        : previous.isPaused
+          ? { ...previous, isPaused: false, lastResumedAt: new Date().toISOString() }
+          : previous;
+  try {
+    // persist middleware 的 setState 返回实际的 storage.setItem Promise。
+    await useToiletTimerSessionStore.setState({ session: next });
+  } catch (error) {
+    if (useToiletTimerSessionStore.getState().session === next) {
+      try {
+        await useToiletTimerSessionStore.setState({ session: previous });
+      } catch {
+        /* 保留原错误，并恢复内存计时。 */
+      }
+    }
+    throw error;
+  }
+  notifyLocalDataChanged();
 }

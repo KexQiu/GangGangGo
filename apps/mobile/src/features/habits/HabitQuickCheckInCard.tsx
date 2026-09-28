@@ -4,6 +4,7 @@ import { ChevronRight, Droplets, Leaf, ListChecks, Move, Smile } from 'lucide-re
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { showToast } from '../../components/toast/AppToast';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { AnimatedCheckBadge } from '../../components/feedback/AnimatedCheckBadge';
@@ -69,41 +70,50 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
   const styles = createStyles(colors, compact);
   const [burstKey, setBurstKey] = useState(0);
   const [justCompleted, setJustCompleted] = useState(false);
+  const savingKeys = useRef(new Set<HabitKey>());
   const justCompletedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function toggleGood(key: HabitKey) {
-    const activeLevel = todayCheckIn[key];
+    if (savingKeys.current.has(key)) return;
+    savingKeys.current.add(key);
+    try {
+      const activeLevel = todayCheckIn[key];
 
-    if (activeLevel === 'good') {
-      await Haptics.selectionAsync();
-      await clearHabitLevel(today, key);
-      setJustCompleted(false);
-
-      if (justCompletedTimerRef.current) {
-        clearTimeout(justCompletedTimerRef.current);
-        justCompletedTimerRef.current = null;
-      }
-
-      return;
-    }
-
-    const nextCompletion = activeLevel ? completion : Math.min(completion + 1, 4);
-
-    await Haptics.selectionAsync();
-    await setHabitLevel(today, key, 'good');
-
-    if (completion < 4 && nextCompletion === 4) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setBurstKey((current) => current + 1);
-      setJustCompleted(true);
-
-      if (justCompletedTimerRef.current) {
-        clearTimeout(justCompletedTimerRef.current);
-      }
-
-      justCompletedTimerRef.current = setTimeout(() => {
+      if (activeLevel === 'good') {
+        void Haptics.selectionAsync().catch(() => undefined);
+        await clearHabitLevel(today, key);
         setJustCompleted(false);
-      }, 2200);
+
+        if (justCompletedTimerRef.current) {
+          clearTimeout(justCompletedTimerRef.current);
+          justCompletedTimerRef.current = null;
+        }
+
+        return;
+      }
+
+      const nextCompletion = activeLevel ? completion : Math.min(completion + 1, 4);
+
+      void Haptics.selectionAsync().catch(() => undefined);
+      await setHabitLevel(today, key, 'good');
+
+      if (completion < 4 && nextCompletion === 4) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+        setBurstKey((current) => current + 1);
+        setJustCompleted(true);
+
+        if (justCompletedTimerRef.current) {
+          clearTimeout(justCompletedTimerRef.current);
+        }
+
+        justCompletedTimerRef.current = setTimeout(() => {
+          setJustCompleted(false);
+        }, 2200);
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '保存失败，请重试。', { type: 'error' });
+    } finally {
+      savingKeys.current.delete(key);
     }
   }
 
