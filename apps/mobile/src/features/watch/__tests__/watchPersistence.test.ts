@@ -110,6 +110,14 @@ afterEach(() => {
 });
 
 describe('save -> SQLite -> visible state -> Watch ACK', () => {
+  it('rejects a timer owned by another account even when its ID is known', async () => {
+    startTimer('timer-A');
+    const timer = useToiletTimerSessionStore.getState().session!;
+    useToiletTimerSessionStore.setState({ session: { ...timer, owner: { userId: 'B', profileId: 'profile-B' } } });
+    expect(await handleWatchEvent(finishEvent())).toMatchObject({ status: 'rejected' });
+    expect(rows('toilet_sessions')).toHaveLength(0);
+    expect(useToiletTimerSessionStore.getState().session?.id).toBe('timer-A');
+  });
   it.each(['training_sessions', 'data_sync_outbox', 'daily_activity_summaries', 'watch_event_receipts'])(
     'rolls back all effects and returns retryable when %s fails',
     async (table) => {
@@ -343,6 +351,7 @@ function finishEvent(): Extract<WatchEvent, { type: 'toilet_timer_action' }> {
 function startTimer(id: string) {
   useToiletTimerSessionStore.setState({
     session: {
+      owner,
       id,
       startedAt: training.startedAt,
       baseElapsedSeconds: 120,

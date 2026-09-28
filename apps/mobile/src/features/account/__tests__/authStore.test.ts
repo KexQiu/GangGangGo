@@ -4,6 +4,11 @@ import { ApiClientError } from '../../../api/transport';
 import { authSessionContext } from '../../../api/sessionContext';
 import type { StoredSession } from '../sessionStorage';
 import { useAuthStore } from '../authStore';
+import {
+  queueSessionRevocation,
+  isSessionRevocationPending,
+  flushPendingSessionRevocations,
+} from '../sessionRevocation';
 
 const mocks = vi.hoisted(() => ({
   login: vi.fn(),
@@ -44,6 +49,12 @@ vi.mock('../sessionStorage', () => ({
   saveSecureSession: mocks.save,
   clearSecureSession: mocks.clear,
 }));
+vi.mock('../sessionRevocation', () => ({
+  queueSessionRevocation: vi.fn().mockResolvedValue(undefined),
+  markLocalRevocationsCleared: async () => undefined,
+  isSessionRevocationPending: vi.fn().mockResolvedValue(false),
+  flushPendingSessionRevocations: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('../accountQueryCache', () => ({
   clearCloudQueryCache: mocks.clearCache,
   resetCloudQueryCacheForUser: mocks.resetCache,
@@ -76,6 +87,9 @@ const state = () => useAuthStore.getState();
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(queueSessionRevocation).mockResolvedValue(undefined);
+  vi.mocked(isSessionRevocationPending).mockResolvedValue(false);
+  vi.mocked(flushPendingSessionRevocations).mockResolvedValue(undefined);
   authSessionContext.beginTransition();
   useAuthStore.setState({
     accessToken: null,
@@ -261,10 +275,28 @@ describe('session ownership in auth store', () => {
 
   it('finishes local logout even while remote revocation is pending', async () => {
     await state().loginWithApple(A);
-    mocks.logout.mockReturnValue(new Promise(() => undefined));
+    vi.mocked(flushPendingSessionRevocations).mockReturnValue(new Promise(() => undefined));
     await state().logout();
+    expect(queueSessionRevocation).toHaveBeenCalledWith(`${A}-refresh-initial`, A);
     expect(state()).toMatchObject({ accessToken: null, isLoading: false });
     expect(stored).toBeNull();
+  });
+
+  it('does not erase the secure session if durable logout compensation fails', async () => {
+    await state().loginWithApple(A);
+    vi.mocked(queueSessionRevocation).mockRejectedValueOnce(new Error('secure storage failed'));
+    await expect(state().logout()).rejects.toThrow('secure storage failed');
+    expect(stored?.user.id).toBe(A);
+    expect(state().error).toBe('secure storage failed');
+  });
+
+  it('finishes an interrupted logout before restoring a saved session', async () => {
+    stored = { ...response(A), profileId: `profile-${A}` };
+    vi.mocked(isSessionRevocationPending).mockResolvedValue(true);
+    await state().restoreSecureSession();
+    expect(stored).toBeNull();
+    expect(state().accessToken).toBeNull();
+    expect(mocks.restore).not.toHaveBeenCalled();
   });
 });
 

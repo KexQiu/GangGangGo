@@ -103,7 +103,7 @@ describe('auth contracts', () => {
     ['authSessionSchema', authSessionSchema, authSession],
     ['authResponseSchema', authResponseSchema, { session: authSession, user: userProfile }],
     ['refreshSessionRequestSchema', refreshSessionRequestSchema, { refreshToken: 'refresh-token' }],
-    ['logoutRequestSchema', logoutRequestSchema, {}],
+    ['logoutRequestSchema', logoutRequestSchema, { refreshToken: 'refresh-token' }],
   ])('%s accepts a legal value', (_name, schema, value) => {
     expect(schema.safeParse(value).success).toBe(true);
   });

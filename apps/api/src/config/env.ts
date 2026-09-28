@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { isIP } from 'node:net';
 
 import { z } from 'zod';
 
@@ -53,6 +54,16 @@ const envSchema = z
     APPLE_JWKS_URL: z.url().default('https://appleid.apple.com/auth/keys'),
     API_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(10_000).default(300),
     API_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().max(3600).default(60),
+    API_TRUSTED_PROXY_IPS: z
+      .string()
+      .default('')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((ip) => ip.trim())
+          .filter(Boolean),
+      )
+      .refine((ips) => ips.every((ip) => isIP(ip) !== 0), 'Expected comma-separated literal proxy IP addresses'),
     COMMERCIAL_MODE: z.enum(['growth_free', 'paid']).default('growth_free'),
     DATABASE_URL: z.url().optional(),
     DB_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(10),

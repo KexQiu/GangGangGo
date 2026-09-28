@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, lt, min } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull, lt, min, sql } from 'drizzle-orm';
 
 import {
   habitCheckInSyncPayloadSchema,
@@ -65,6 +65,11 @@ export function createDrizzleDataSyncService(
     async push(currentUser, mutations, timeZone) {
       const toiletEvents: ToiletFinishedSyncEvent[] = [];
       const response = await db.transaction(async (transaction) => {
+        // Sequence allocation alone does not order commits. Serialize each user's
+        // writers before allocating any version so a pull cursor cannot skip a late commit.
+        await transaction.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${'data-sync:' + currentUser.id}, 0))`,
+        );
         const acceptedAt = new Date();
         const acceptedMutationIds: string[] = [];
         const changes: DataSyncChange[] = [];

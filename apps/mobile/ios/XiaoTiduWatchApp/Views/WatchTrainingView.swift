@@ -59,15 +59,19 @@ struct WatchTrainingView: View {
         cancelTrainingBoundary()
       }
     }
+    .onChange(of: session.todayState.account.owner) { _, _ in
+      resetTraining()
+    }
   }
 
   private func startTraining() {
+    guard session.todayState.canUseActions, let owner = session.todayState.account.owner else { return }
     let mode = currentSelectedMode
     selectedModeId = mode.id
-    let session = WatchTrainingSession(mode: mode)
-    trainingSession = session
+    let startedSession = WatchTrainingSession(owner: owner, mode: mode)
+    trainingSession = startedSession
     WKInterfaceDevice.current().play(.start)
-    scheduleNextTrainingBoundary(for: session)
+    scheduleNextTrainingBoundary(for: startedSession)
   }
 
   private func cancelTraining() {
@@ -151,6 +155,7 @@ struct WatchTrainingView: View {
     trainingSession = nil
     WKInterfaceDevice.current().play(.success)
     let eventId = session.sendTrainingCompleted(
+      owner: currentSession.owner,
       mode: currentSession.mode.id,
       completedSets: 1,
       durationSeconds: currentSession.mode.totalDurationSeconds

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const registerPushTokenRequestSchema = z
   .object({
-    deviceId: z.string().min(1).max(120).optional(),
+    deviceId: z.string().min(1).max(120),
     platform: z.enum(['android', 'ios']),
     provider: z.enum(['apns', 'expo']),
     token: z.string().min(1).max(300),

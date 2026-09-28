@@ -1,69 +1,57 @@
 import { createHash } from 'node:crypto';
-
-import type { MiddlewareHandler } from 'hono';
+import { isIP } from 'node:net';
+import { getConnInfo } from '@hono/node-server/conninfo';
+import type { Context, MiddlewareHandler } from 'hono';
 
 import { ApiError } from '../apiError.js';
+import { createMemoryRateLimitStore, type RateLimitStore } from './rateLimitStore.js';
 
 type RateLimitOptions = {
   maxRequests: number;
   now?: () => number;
   windowMs: number;
+  store?: RateLimitStore;
+  trustedProxyIps?: string[];
+  identity?: (context: Context) => string;
 };
 
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
-
-function hashIdentity(value: string) {
-  return createHash('sha256').update(value).digest('base64url');
+export function clientAddress(context: Context, trustedProxyIps: string[] = []) {
+  let peer = 'unknown';
+  try {
+    peer = normalizeAddress(getConnInfo(context).remote.address ?? 'unknown');
+  } catch {
+    /* Non-socket test adapter. */
+  }
+  if (trustedProxyIps.map(normalizeAddress).includes(peer)) {
+    // The trusted proxy must overwrite this header with one client address.
+    const forwarded = context.req.header('x-forwarded-for')?.trim();
+    if (forwarded && isIP(forwarded)) return normalizeAddress(forwarded);
+  }
+  return peer;
 }
 
-function getClientIdentity(request: Request) {
-  const authorization = request.headers.get('authorization');
-
-  if (authorization) {
-    return `auth:${hashIdentity(authorization)}`;
-  }
-
-  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  const ipAddress = forwardedFor || request.headers.get('x-real-ip') || 'anonymous';
-
-  return `ip:${hashIdentity(ipAddress)}`;
+function normalizeAddress(value: string) {
+  return value.startsWith('::ffff:') && isIP(value.slice(7)) === 4 ? value.slice(7) : value;
 }
 
 export function createRateLimitMiddleware(options: RateLimitOptions): MiddlewareHandler {
-  const entries = new Map<string, RateLimitEntry>();
   const now = options.now ?? Date.now;
-
+  const store = options.store ?? createMemoryRateLimitStore(10_000, now);
   return async (context, next) => {
-    const timestamp = now();
-    const identity = getClientIdentity(context.req.raw);
-    const existing = entries.get(identity);
-    const entry =
-      !existing || existing.resetAt <= timestamp ? { count: 0, resetAt: timestamp + options.windowMs } : existing;
-
-    entry.count += 1;
-    entries.set(identity, entry);
-
-    const remaining = Math.max(options.maxRequests - entry.count, 0);
+    const identity = options.identity?.(context) ?? `ip:${clientAddress(context, options.trustedProxyIps)}`;
+    const key = createHash('sha256').update(identity).digest('hex');
+    const entry = await store.consume(key, options);
+    const resetAt = entry?.resetAt ?? now() + options.windowMs;
     context.header('RateLimit-Limit', String(options.maxRequests));
-    context.header('RateLimit-Remaining', String(remaining));
-    context.header('RateLimit-Reset', String(Math.ceil(entry.resetAt / 1000)));
-
-    if (entry.count > options.maxRequests) {
-      context.header('Retry-After', String(Math.max(Math.ceil((entry.resetAt - timestamp) / 1000), 1)));
+    context.header(
+      'RateLimit-Remaining',
+      String(Math.max(options.maxRequests - (entry?.count ?? options.maxRequests), 0)),
+    );
+    context.header('RateLimit-Reset', String(Math.ceil(resetAt / 1000)));
+    if (!entry || entry.count > options.maxRequests) {
+      context.header('Retry-After', String(Math.max(Math.ceil((resetAt - now()) / 1000), 1)));
       throw new ApiError(429, 'rate_limited', '请求过于频繁，请稍后再试。');
     }
-
-    if (entries.size > 10_000) {
-      for (const [key, value] of entries) {
-        if (value.resetAt <= timestamp) {
-          entries.delete(key);
-        }
-      }
-    }
-
     await next();
   };
 }

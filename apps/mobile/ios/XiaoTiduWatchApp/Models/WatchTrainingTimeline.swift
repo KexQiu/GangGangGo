@@ -76,13 +76,15 @@ enum WatchTrainingPhase {
 }
 
 struct WatchTrainingSession {
+  let owner: WatchEventOwner
   let mode: WatchTrainingMode
   let startedAt: Date
   var pausedAt: Date?
   var accumulatedPausedDuration: TimeInterval = 0
   var lastNotifiedBoundaryKey: String
 
-  init(mode: WatchTrainingMode, startedAt: Date = Date()) {
+  init(owner: WatchEventOwner, mode: WatchTrainingMode, startedAt: Date = Date()) {
+    self.owner = owner
     self.mode = mode
     self.startedAt = startedAt
     lastNotifiedBoundaryKey = Self.phaseKey(roundIndex: 0, phase: .hold)

@@ -125,7 +125,7 @@ struct WatchCoreTestMain {
     let mode = WatchTrainingMode(
       config: .init(id: "test", holdSeconds: 5, restSeconds: 3, rounds: 2))
     let start = Date(timeIntervalSince1970: 1_000)
-    var session = WatchTrainingSession(mode: mode, startedAt: start)
+    var session = WatchTrainingSession(owner: owner, mode: mode, startedAt: start)
 
     let initial = session.snapshot(at: start)
     try expect(
@@ -162,7 +162,7 @@ struct WatchCoreTestMain {
 
     var boundaryKeys: [String] = []
     var boundaryDate = start
-    let uninterruptedSession = WatchTrainingSession(mode: mode, startedAt: start)
+    let uninterruptedSession = WatchTrainingSession(owner: owner, mode: mode, startedAt: start)
     while let boundary = uninterruptedSession.nextBoundary(after: boundaryDate) {
       boundaryKeys.append(boundary.key)
       boundaryDate = boundary.date.addingTimeInterval(0.001)
@@ -213,7 +213,7 @@ struct WatchCoreTestMain {
     try expect(decoded == WatchTodayState.placeholder, "current state must round-trip")
 
     let state = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-    for key in ["schemaVersion", "canUseActions"] {
+    for key in ["schemaVersion", "canUseActions", "revision"] {
       var incomplete = state
       incomplete.removeValue(forKey: key)
       let invalid = try JSONSerialization.data(withJSONObject: incomplete)

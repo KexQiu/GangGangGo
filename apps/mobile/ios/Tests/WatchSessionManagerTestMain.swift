@@ -23,10 +23,11 @@ final class WatchConnectivityClient {
   }
 }
 
-struct WatchStateStore {
+final class WatchStateStore {
   var state: WatchTodayState = .placeholder
+  init(state: WatchTodayState = .placeholder) { self.state = state }
   func load() -> WatchTodayState { state }
-  func save(_ state: WatchTodayState) {}
+  func save(_ state: WatchTodayState) { self.state = state }
 }
 
 @main
@@ -45,7 +46,7 @@ struct WatchSessionManagerTestMain {
       connectivityClient: client, eventQueue: queue, stateStore: WatchStateStore(state: state))
     client.isReadyToSend = true
     let id = manager.sendTrainingCompleted(
-      mode: "standard", completedSets: 1, durationSeconds: 120)!
+      owner: state.account.owner!, mode: "standard", completedSets: 1, durationSeconds: 120)!
     try await waitFor { client.sentEvents.count == 1 }
     try expect(await queue.snapshot().count == 1, "live delivery must persist before sending")
     let firstReply = client.sentEvents[0].1
@@ -74,7 +75,7 @@ struct WatchSessionManagerTestMain {
       manager.trainingDelivery?.disposition == .duplicate, "training must show confirmed save")
 
     let rejectedId = manager.sendTrainingCompleted(
-      mode: "standard", completedSets: 1, durationSeconds: 120)!
+      owner: state.account.owner!, mode: "standard", completedSets: 1, durationSeconds: 120)!
     try await waitFor { client.sentEvents.count == 4 }
     client.sentEvents[3].1(
       .success(["eventId": rejectedId, "status": "rejected", "message": "account changed"]))
@@ -83,7 +84,7 @@ struct WatchSessionManagerTestMain {
     try expect(manager.lastError == "account changed", "permanent refusal must be visible")
 
     let unansweredId = manager.sendTrainingCompleted(
-      mode: "standard", completedSets: 1, durationSeconds: 120)!
+      owner: state.account.owner!, mode: "standard", completedSets: 1, durationSeconds: 120)!
     try await waitFor { client.sentEvents.count == 5 }
     try await waitFor(attempts: 2_000) { manager.lastError?.contains("超时") == true }
     try expect(
@@ -94,6 +95,28 @@ struct WatchSessionManagerTestMain {
     try await waitFor { manager.trainingDelivery?.disposition == .accepted }
     try expect(await queue.snapshot().count == 0, "timeout retry must remain acknowledgeable")
     manager.setApplicationActive(false)
+
+    var newer = state
+    newer.revision += 1
+    newer.account.owner = WatchEventOwner(userId: "B", profileId: "profile-B")
+    let newerJSON = String(decoding: try JSONEncoder().encode(newer), as: UTF8.self)
+    client.onPayloadReceived?(["stateJson": newerJSON])
+    try await waitFor { manager.todayState.account.owner == newer.account.owner }
+    let changedOwnerResult = manager.sendTrainingCompleted(
+      owner: state.account.owner!, mode: "standard", completedSets: 1, durationSeconds: 120)
+    try expect(changedOwnerResult == nil, "training must keep its start owner after an account switch")
+    try expect(await queue.snapshot().count == 0, "old training must not enter the new owner's queue")
+    client.onPayloadReceived?(["stateJson": String(decoding: data, as: UTF8.self)])
+    try await Task.sleep(for: .milliseconds(20))
+    try expect(manager.todayState == newer, "late snapshots must not restore the old account")
+
+    let persisted = WatchStateStore(state: newer)
+    let restoredClient = WatchConnectivityClient()
+    let restored = WatchSessionManager(connectivityClient: restoredClient, stateStore: persisted)
+    restored.setApplicationActive(false)
+    restoredClient.onPayloadReceived?(["stateJson": String(decoding: data, as: UTF8.self)])
+    try await Task.sleep(for: .milliseconds(20))
+    try expect(restored.todayState == newer, "snapshot ordering must survive restart")
     print("Watch session manager tests passed (mock transport)")
   }
 

@@ -6,6 +6,7 @@ import {
   appleLoginRequestSchema,
   authResponseSchema,
   refreshSessionRequestSchema,
+  logoutRequestSchema,
   type AuthResponse,
 } from '@xiaotidu/contracts';
 
@@ -30,6 +31,20 @@ const passThroughMiddleware: MiddlewareHandler<{ Variables: AuthVariables }> = a
 export function createAuthRoute(options: CreateAuthRouteOptions) {
   const route = createOpenApiRouter<{ Variables: AuthVariables }>();
   const authMiddleware = options.authMiddleware ?? passThroughMiddleware;
+
+  route.openapi(
+    createRoute({
+      method: 'post',
+      path: '/revoke',
+      request: { body: jsonRequest(logoutRequestSchema) },
+      responses: apiResponses(z.object({ ok: z.literal(true) })),
+      summary: '按原会话凭证补偿离线退出',
+    }),
+    async (context) => {
+      await options.authSessionService.revokeRefreshToken(context.req.valid('json').refreshToken);
+      return context.json(toSuccessResponse({ ok: true as const }), 200);
+    },
+  );
 
   route.openapi(
     createRoute({

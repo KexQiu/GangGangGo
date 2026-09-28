@@ -1,6 +1,6 @@
 # Watch 协议
 
-当前状态协议为 `schemaVersion: 4`，事件协议为 `schemaVersion: 3`。iPhone 与 Watch 同步更新，不接受旧格式。
+当前状态协议为 `schemaVersion: 5`，事件协议为 `schemaVersion: 3`。iPhone 与 Watch 同步更新，不接受旧格式。
 
 ## 状态与事件归属
 
@@ -27,6 +27,12 @@
 
 实时、离线事件统一先写入 Watch 队列，再逐条发送。队列最多 25 条、保留 24 小时，超限移除最早项、过期项清理；不能据此承诺无限期保存。临时不可用或尚未恢复账号状态只暂停发送，不清空队列。前台重试按 5、10、20、30 秒退避，后台不持续轮询。
 
-iPhone 通过 `apps/mobile/modules/watch-connectivity` 本地 Expo Module 暴露接口；NSObject client 持有 WCSession delegate 与待回复消息。TypeScript 和 Swift 共用 `apps/mobile/fixtures/watch-today-state-v4.json` 验证状态格式和隐私字段。训练与计时显示仍以真实时间推导并按 1 Hz 刷新。
+iPhone 通过 `apps/mobile/modules/watch-connectivity` 本地 Expo Module 暴露接口；NSObject client 持有 WCSession delegate 与待回复消息。TypeScript 和 Swift 共用 `apps/mobile/fixtures/watch-today-state-v5.json` 验证状态格式和隐私字段。训练与计时显示仍以真实时间推导并按 1 Hz 刷新。
 
-自动化证据与未覆盖边界见 [R08 保存与回执验收](./save-ack-acceptance.md)。训练开始时的账号绑定、旧状态消息乱序等完整设备归属问题仍由 R04 跟踪。
+自动化证据与未覆盖边界见 [R08 保存与回执验收](./save-ack-acceptance.md)。R04 的训练归属与状态顺序回归见[本轮记录](./sync-device-service-boundaries-acceptance.md)，配对真机仍待验收。
+
+## 状态顺序与动作起点
+
+状态 v5 带有 `revision`。iPhone 每次构建快照前，在本地 KV 中同步分配并保存递增序号，跨账号、进程重启和时钟回拨保持顺序。Watch 持久化最近快照，仅接受更大的 revision；主动推送、刷新响应和 ACK 中的状态遵循同一规则。重新安装 iPhone 应用导致本地资料整体重置时，需同时重置/重新配对 Watch 缓存；不迁移旧开发版本状态。
+
+训练 session 在开始时固定 owner，换号会清除未完成的训练展示；即使旧定时回调已到达，发送入口也拒绝将其归给新账号。手机计时在开始时保存 owner，Watch 快照仅暴露当前账号拥有的计时，执行与重复事件清理都核对 owner 和 sessionId。

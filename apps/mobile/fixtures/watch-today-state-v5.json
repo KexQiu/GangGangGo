@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
+  "revision": 1,
   "account": {
     "isLoggedIn": true,
     "nickname": "Fixture User",

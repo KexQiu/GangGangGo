@@ -29,12 +29,8 @@ export async function purgeExpiredData(db: Database, now = new Date()): Promise<
       await Promise.all([
         transaction
           .delete(authSessions)
-          .where(
-            or(
-              lt(authSessions.expiresAt, now),
-              and(isNotNull(authSessions.revokedAt), lt(authSessions.revokedAt, now)),
-            ),
-          )
+          // Retain revoked hashes through their expiry for offline logout compensation.
+          .where(lt(authSessions.expiresAt, now))
           .returning({ id: authSessions.id }),
         transaction
           .delete(friendEvents)

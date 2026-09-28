@@ -37,7 +37,7 @@ export const refreshSessionRequestSchema = z
 export type RefreshSessionRequest = z.infer<typeof refreshSessionRequestSchema>;
 
 export const logoutRequestSchema = z
-  .object({ refreshToken: z.string().min(1).optional() })
+  .object({ refreshToken: z.string().min(1) })
   .strict()
   .meta({ id: 'LogoutRequest' });
 export type LogoutRequest = z.infer<typeof logoutRequestSchema>;

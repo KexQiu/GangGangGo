@@ -1,4 +1,5 @@
 import { createMiddleware } from 'hono/factory';
+import type { MiddlewareHandler } from 'hono';
 
 import { ApiError } from '../apiError.js';
 import { verifyAccessToken } from '../../modules/auth/token.js';
@@ -11,7 +12,11 @@ export type AuthVariables = {
   sessionId: string;
 };
 
-export function createAuthMiddleware(userRepository: UserRepository, authSessionService: AuthSessionService) {
+export function createAuthMiddleware(
+  userRepository: UserRepository,
+  authSessionService: AuthSessionService,
+  userLimit?: MiddlewareHandler,
+) {
   return createMiddleware<{ Variables: AuthVariables }>(async (context, next) => {
     const authorization = context.req.header('authorization');
     const token = authorization?.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : null;
@@ -31,6 +36,7 @@ export function createAuthMiddleware(userRepository: UserRepository, authSession
 
     context.set('currentUser', currentUser);
     context.set('sessionId', payload.sessionId);
-    await next();
+    if (userLimit) await userLimit(context, next);
+    else await next();
   });
 }

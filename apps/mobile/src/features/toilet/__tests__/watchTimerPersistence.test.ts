@@ -5,6 +5,7 @@ const storage = vi.hoisted(() => ({ getItem: vi.fn(), setItem: vi.fn(), removeIt
 vi.mock('expo-sqlite/kv-store', () => ({ default: storage }));
 const session = {
   id: 'timer-A',
+  owner: { userId: 'A', profileId: 'profile-A' },
   baseElapsedSeconds: 0,
   isPaused: false,
   lastResumedAt: '2026-09-28T00:00:00Z',

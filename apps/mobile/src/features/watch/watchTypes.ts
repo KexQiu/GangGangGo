@@ -12,7 +12,8 @@ export type WatchTrainingModeConfig = {
 export type WatchEventOwner = { userId: string; profileId: string };
 
 export type WatchTodayState = {
-  schemaVersion: 4;
+  schemaVersion: 5;
+  revision: number;
   account: {
     isLoggedIn: boolean;
     nickname: null | string;

@@ -25,9 +25,9 @@ describe('push contracts', () => {
     expect(schema.safeParse(value).success).toBe(true);
   });
 
-  it('accepts optional device IDs and token length boundaries', () => {
+  it('requires a device ID and accepts token length boundaries', () => {
     expect(registerPushTokenRequestSchema.safeParse({ platform: 'ios', provider: 'expo', token: 't' }).success).toBe(
-      true,
+      false,
     );
     expect(
       registerPushTokenRequestSchema.safeParse({

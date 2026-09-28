@@ -14,6 +14,13 @@ const okResponseSchema: RuntimeSchema<{ ok: true }> = {
 };
 
 export const authApi = {
+  revokeSession: (refreshToken: string) =>
+    request<{ ok: true }>('/auth/revoke', okResponseSchema, {
+      body: { refreshToken },
+      detachedSession: true,
+      allowAuthRefresh: false,
+      method: 'POST',
+    }),
   loginWithApple: (body: AppleLoginRequest) =>
     request<AuthResponse>('/auth/apple', authResponseSchema, { body, method: 'POST' }),
   logout: (token: string, refreshToken?: string | null) =>

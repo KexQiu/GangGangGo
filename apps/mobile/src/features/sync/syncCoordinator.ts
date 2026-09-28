@@ -4,6 +4,7 @@ import { queryClient } from '../../api/queryClient';
 import { accountQueryKeys } from '../account/accountQueryKeys';
 import { getCachedEntitlements, refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
+import { flushPendingSessionRevocations } from '../account/sessionRevocation';
 import { syncWatchTodayState } from '../watch/watchSyncService';
 import { subscribeToLocalDataChanges } from './localDataEvents';
 import { syncCompleteHealthData } from './fullDataSync';
@@ -26,8 +27,18 @@ export const syncCoordinator = new SyncCoordinator({
   registerPushToken: registerPushTokenIfAllowed,
   syncData: syncCompleteHealthData,
   subscribeAppState: (listener) => {
-    const subscription = AppState.addEventListener('change', (state) => listener(normalizeAppState(state)));
-    return () => subscription.remove();
+    // Retry offline logout while the app remains foreground, including anonymous state.
+    const retry = setInterval(() => {
+      if (AppState.currentState === 'active') void flushPendingSessionRevocations().catch(() => undefined);
+    }, 60_000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void flushPendingSessionRevocations().catch(() => undefined);
+      listener(normalizeAppState(state));
+    });
+    return () => {
+      clearInterval(retry);
+      subscription.remove();
+    };
   },
   subscribeAuthChanges: (listener) => {
     let previousEntitlements = entitlementsFingerprint();

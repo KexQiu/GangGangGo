@@ -15,7 +15,7 @@ import { cancelToiletStageNotifications, syncToiletStageNotifications } from '..
 import { useToiletStore } from '../toilet/toiletStore';
 import { persistWatchTimerAction, useToiletTimerSessionStore } from '../toilet/toiletTimerSessionStore';
 import { useTrainingStore } from '../training/trainingStore';
-import { type WatchEvent, type WatchEventAck } from './watchTypes';
+import { type WatchEvent, type WatchEventAck, type WatchEventOwner } from './watchTypes';
 import { trackGrowthEvent } from '../growth/growthEventTracker';
 
 export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck> {
@@ -42,7 +42,7 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
   try {
     if (await hasWatchReceipt(options)) {
       if (event.type === 'toilet_timer_action' && event.payload.action === 'finish') {
-        await finishPersistedTimer(event.payload.sessionId, event.payload.elapsedSeconds);
+        await finishPersistedTimer(event.payload.sessionId, event.payload.elapsedSeconds, event.owner);
       }
       return ack('duplicate');
     }
@@ -118,7 +118,12 @@ async function handleToiletTimerAction(
   const sessionStore = useToiletTimerSessionStore.getState();
   const activeSession = sessionStore.session;
 
-  if (!activeSession || activeSession.id !== event.payload.sessionId) {
+  if (
+    !activeSession ||
+    activeSession.id !== event.payload.sessionId ||
+    activeSession.owner?.userId !== event.owner.userId ||
+    activeSession.owner?.profileId !== event.owner.profileId
+  ) {
     throw new PermanentMutationError('这次计时已结束或已变更，旧操作未执行。');
   }
 
@@ -170,13 +175,18 @@ async function handleToiletTimerAction(
       },
     },
   );
-  await finishPersistedTimer(activeSession.id, durationSeconds);
+  await finishPersistedTimer(activeSession.id, durationSeconds, event.owner);
   return result;
 }
 
-async function finishPersistedTimer(sessionId: string, durationSeconds: number) {
+async function finishPersistedTimer(sessionId: string, durationSeconds: number, owner: WatchEventOwner) {
   const session = useToiletTimerSessionStore.getState().session;
-  if (session?.id !== sessionId) return;
+  if (
+    session?.id !== sessionId ||
+    session.owner?.userId !== owner.userId ||
+    session.owner?.profileId !== owner.profileId
+  )
+    return;
   await persistWatchTimerAction(sessionId, 'finish', durationSeconds);
   await Promise.allSettled([
     endToiletLiveActivity(session.liveActivityId, durationSeconds),

@@ -66,8 +66,10 @@ final class WatchSessionManager: ObservableObject {
     flushPendingEventsIfPossible()
   }
 
-  func sendTrainingCompleted(mode: String, completedSets: Int, durationSeconds: Int) -> String? {
-    guard ensureActionAllowed(), let owner = todayState.account.owner else {
+  func sendTrainingCompleted(owner: WatchEventOwner, mode: String, completedSets: Int, durationSeconds: Int) -> String? {
+    guard ensureActionAllowed() else { return nil }
+    guard owner == todayState.account.owner else {
+      lastError = "账号已变更，这组训练未写入新账号。"
       return nil
     }
 
@@ -286,6 +288,9 @@ final class WatchSessionManager: ObservableObject {
       lastError = "手表收到的今日状态格式不对。"
       return false
     }
+
+    // Applies to unsolicited state, refresh replies and ACK snapshots alike.
+    guard decodedState.revision > todayState.revision else { return false }
 
     todayState = decodedState
     refreshBackoff.reset()

@@ -3,8 +3,11 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { notifyLocalDataChanged } from '../sync/localDataEvents';
+import { authSessionContext } from '../../api/sessionContext';
+import type { WatchEventOwner } from '../watch/watchTypes';
 
 export type ActiveToiletTimerSession = {
+  owner: WatchEventOwner | null;
   id: string;
   baseElapsedSeconds: number;
   isPaused: boolean;
@@ -77,8 +80,10 @@ export const useToiletTimerSessionStore = create<ToiletTimerSessionState>()(
         notifyLocalDataChanged();
       },
       startSession: (startedAt) => {
+        const owner = authSessionContext.current();
         set({
           session: {
+            owner: owner ? { userId: owner.userId, profileId: owner.profileId } : null,
             id: `timer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
             baseElapsedSeconds: 0,
             isPaused: false,

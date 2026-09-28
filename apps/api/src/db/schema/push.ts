@@ -3,6 +3,7 @@ import { boolean, index, pgTable, text, timestamp, uniqueIndex, uuid } from 'dri
 import { createdAt, updatedAt } from './common.js';
 import { pushPlatformEnum, pushProviderEnum } from './enums.js';
 import { users } from './users.js';
+import { authSessions } from './auth.js';
 
 export const pushTokens = pgTable(
   'push_tokens',
@@ -14,6 +15,7 @@ export const pushTokens = pgTable(
     platform: pushPlatformEnum('platform').notNull(),
     provider: pushProviderEnum('provider').notNull().default('expo'),
     token: text('token').notNull(),
+    sessionId: uuid('session_id').references(() => authSessions.id, { onDelete: 'cascade' }),
     deviceId: text('device_id'),
     enabled: boolean('enabled').notNull().default(true),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),

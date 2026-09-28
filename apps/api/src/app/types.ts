@@ -1,4 +1,5 @@
 import type { MiddlewareHandler } from 'hono';
+import type { RateLimitStore } from '../http/middleware/rateLimitStore.js';
 import type { Logger } from 'pino';
 
 import type { DatabaseHealthChecker } from '../db/health.js';
@@ -30,6 +31,7 @@ export type ApiRouteDependencies = {
 };
 
 export type CreateApiAppOptions = {
+  rateLimitStore?: RateLimitStore;
   accountDataService?: AccountDataService;
   appleAuthService?: AppleAuthService;
   authSessionService?: AuthSessionService;

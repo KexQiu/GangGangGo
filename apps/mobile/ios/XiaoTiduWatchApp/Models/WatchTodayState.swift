@@ -86,6 +86,7 @@ struct WatchTodayState: Codable, Equatable {
   var canUseActions: Bool
   var date: String
   var generatedAt: String
+  var revision: Int
   var habits: Habits
   var pendingEventCount: Int
   var schemaVersion: Int
@@ -100,7 +101,8 @@ struct WatchTodayState: Codable, Equatable {
     generatedAt: String,
     habits: Habits,
     pendingEventCount: Int,
-    schemaVersion: Int = 4,
+    schemaVersion: Int = 5,
+    revision: Int = 0,
     toilet: Toilet,
     training: Training,
     trainingModes: [TrainingModeConfig] = TrainingModeConfig.fallbackModes
@@ -109,6 +111,7 @@ struct WatchTodayState: Codable, Equatable {
     self.canUseActions = canUseActions
     self.date = date
     self.generatedAt = generatedAt
+    self.revision = revision
     self.habits = habits
     self.pendingEventCount = pendingEventCount
     self.schemaVersion = schemaVersion
@@ -123,11 +126,12 @@ struct WatchTodayState: Codable, Equatable {
     account = try container.decode(Account.self, forKey: .account)
     date = try container.decode(String.self, forKey: .date)
     generatedAt = try container.decode(String.self, forKey: .generatedAt)
+    revision = try container.decode(Int.self, forKey: .revision)
     habits = try container.decode(Habits.self, forKey: .habits)
     pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
     canUseActions = try container.decode(Bool.self, forKey: .canUseActions)
     schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
-    guard schemaVersion == 4 else {
+    guard schemaVersion == 5, revision >= 0 else {
       throw DecodingError.dataCorruptedError(
         forKey: .schemaVersion, in: container, debugDescription: "Unsupported Watch state version")
     }

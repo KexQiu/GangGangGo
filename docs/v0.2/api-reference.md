@@ -10,6 +10,7 @@
 
 - `GET /health`：服务健康检查
 - `GET /health/db`：数据库健康检查
+- `POST /auth/revoke`：按原会话凭证补偿离线退出
 - `POST /auth/apple`：Apple 或开发 Mock 登录
 - `POST /auth/refresh`：轮换登录会话
 - `POST /auth/logout`：撤销当前会话
@@ -34,5 +35,6 @@
 - `POST /friends/{friendUserId}/nudges`：发送好友提醒
 - `POST /friend-events/{eventId}/ack`：回复好友提醒
 - `POST /push-tokens`：注册 Push token
+- `DELETE /push-tokens/{deviceId}`：撤销当前设备在本会话中的 Push 绑定
 - `POST /subscriptions/verify`：提交订阅校验
 - `POST /subscriptions/restore`：恢复订阅

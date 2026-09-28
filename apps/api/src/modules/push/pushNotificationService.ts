@@ -1,7 +1,7 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 
 import type { Database } from '../../db/client.js';
-import { pushTokens } from '../../db/schema.js';
+import { authSessions, pushTokens } from '../../db/schema.js';
 
 export type PushNotificationPayload = {
   body: string;
@@ -58,10 +58,21 @@ export function createExpoPushNotificationService(
         .select({
           id: pushTokens.id,
           token: pushTokens.token,
+          sessionId: pushTokens.sessionId,
         })
         .from(pushTokens)
+        .innerJoin(
+          authSessions,
+          and(eq(authSessions.id, pushTokens.sessionId), eq(authSessions.userId, pushTokens.userId)),
+        )
         .where(
-          and(eq(pushTokens.userId, payload.userId), eq(pushTokens.enabled, true), eq(pushTokens.provider, 'expo')),
+          and(
+            eq(pushTokens.userId, payload.userId),
+            eq(pushTokens.enabled, true),
+            eq(pushTokens.provider, 'expo'),
+            isNull(authSessions.revokedAt),
+            gt(authSessions.expiresAt, new Date()),
+          ),
         );
 
       if (tokens.length === 0) {
@@ -109,7 +120,7 @@ export function createExpoPushNotificationService(
               enabled: false,
               updatedAt: new Date(),
             })
-            .where(eq(pushTokens.id, token.id));
+            .where(and(eq(pushTokens.id, token.id), eq(pushTokens.sessionId, token.sessionId!)));
         }),
       );
     },

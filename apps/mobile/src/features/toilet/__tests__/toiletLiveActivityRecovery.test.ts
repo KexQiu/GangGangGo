@@ -143,6 +143,7 @@ function createHarness(
 
 function makeSession(overrides: Partial<ActiveToiletTimerSession> = {}): ActiveToiletTimerSession {
   return {
+    owner: null,
     id: 'test-timer',
     baseElapsedSeconds: 120,
     isPaused: false,

@@ -13,6 +13,12 @@ import { refreshCurrentUserQuery, refreshEntitlementsQuery, seedCurrentUser } fr
 import type { MockUserId } from './accountModel';
 import { clearSecureSession, loadSecureSession, saveSecureSession } from './sessionStorage';
 import {
+  flushPendingSessionRevocations,
+  isSessionRevocationPending,
+  queueSessionRevocation,
+  markLocalRevocationsCleared,
+} from './sessionRevocation';
+import {
   activateAnonymousLocalProfile,
   bindActiveLocalProfileToUser,
   restoreLocalProfile,
@@ -51,11 +57,13 @@ export const useAuthStore = create<AuthState>()(
       hasHydrated: false,
       isLoading: false,
       loginWithApple: async (identityToken, nickname) => {
-        const previous = get();
+        const previous = { ...get(), userId: authSessionContext.current()?.userId };
         const generation = beginTransition();
-        revokeRemoteSession(previous);
+        let revocationQueued = !previous.refreshToken;
         try {
-          await authSessionContext.runExclusive(generation, clearSecureSession);
+          await revokeRemoteSession(previous);
+          revocationQueued = true;
+          await authSessionContext.runExclusive(generation, clearSessionAfterRevocation);
           const response = await authApi.loginWithApple({ identityToken, ...(nickname ? { nickname } : {}) });
           await authSessionContext.runExclusive(generation, async () => {
             const assertCurrent = () => authSessionContext.assertGeneration(generation);
@@ -75,8 +83,14 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           if (!authSessionContext.isGenerationCurrent(generation)) return;
+          if (!revocationQueued) {
+            set({ error: notifyUserError(error), isLoading: false });
+            return;
+          }
           await finishAnonymousSession(generation);
           if (authSessionContext.isGenerationCurrent(generation)) set({ error: notifyUserError(error) });
+        } finally {
+          if (revocationQueued) void flushPendingSessionRevocations().catch(() => undefined);
         }
       },
       loginWithMockApple: async (mockUserId = get().selectedMockUserId) => {
@@ -84,10 +98,17 @@ export const useAuthStore = create<AuthState>()(
         await get().loginWithApple(mockUserId, `模拟用户 ${mockUserId.slice(-1).toUpperCase()}`);
       },
       logout: async () => {
-        const previous = get();
+        const previous = { ...get(), userId: authSessionContext.current()?.userId };
         const generation = beginTransition();
-        revokeRemoteSession(previous);
+        try {
+          await revokeRemoteSession(previous);
+        } catch (error) {
+          if (authSessionContext.isGenerationCurrent(generation))
+            set({ error: notifyUserError(error), isLoading: false });
+          throw error;
+        }
         await finishAnonymousSession(generation);
+        void flushPendingSessionRevocations().catch(() => undefined);
       },
       refreshSession: async (owner = authSessionContext.current() ?? undefined) => {
         if (!owner) return null;
@@ -134,10 +155,15 @@ export const useAuthStore = create<AuthState>()(
         const generation = beginTransition();
         try {
           await authSessionContext.runExclusive(generation, async () => {
-            const stored = await loadSecureSession();
+            let stored = await loadSecureSession();
+            if (stored && (await isSessionRevocationPending(stored.session.refreshToken, stored.user.id))) {
+              await clearSessionAfterRevocation();
+              stored = null;
+            }
             const assertCurrent = () => authSessionContext.assertGeneration(generation);
             assertCurrent();
             if (!stored) {
+              await markLocalRevocationsCleared();
               await activateAnonymousLocalProfile();
               assertCurrent();
               authSessionContext.completeAnonymousTransition(generation);
@@ -162,6 +188,8 @@ export const useAuthStore = create<AuthState>()(
           if (authSessionContext.isGenerationCurrent(generation)) {
             set({ error: notifyUserError(error), hasHydrated: true, isLoading: false });
           }
+        } finally {
+          void flushPendingSessionRevocations().catch(() => undefined);
         }
       },
       selectedMockUserId: 'mock-user-a',
@@ -205,7 +233,7 @@ function publishSession(generation: number, profileId: string, response: AuthRes
 async function finishAnonymousSession(generation: number) {
   try {
     await authSessionContext.runExclusive(generation, async () => {
-      await clearSecureSession();
+      await clearSessionAfterRevocation();
       authSessionContext.assertGeneration(generation);
       await activateAnonymousLocalProfile();
       await resetLocalHealthStores();
@@ -222,18 +250,32 @@ async function finishAnonymousSession(generation: number) {
   }
 }
 
-function revokeRemoteSession(session: Pick<AuthState, 'accessToken' | 'refreshToken'>) {
-  if (session.accessToken) {
-    // 本地退出立即生效，不等待旧账号的网络请求。
-    void authApi.logout(session.accessToken, session.refreshToken).catch(() => undefined);
+async function clearSessionAfterRevocation() {
+  await clearSecureSession();
+  await markLocalRevocationsCleared();
+}
+
+async function revokeRemoteSession(session: Pick<AuthState, 'accessToken' | 'refreshToken'> & { userId?: string }) {
+  if (session.refreshToken) {
+    if (!session.userId) throw new Error('无法确认待退出账号，请重试。');
+    await queueSessionRevocation(session.refreshToken, session.userId);
   }
 }
 
 async function expireSession(owner: SessionSnapshot) {
   authSessionContext.assertCurrent(owner);
+  const previous = { ...useAuthStore.getState(), userId: owner.userId };
   const generation = beginTransition();
+  try {
+    await revokeRemoteSession(previous);
+  } catch (error) {
+    if (authSessionContext.isGenerationCurrent(generation))
+      useAuthStore.setState({ error: notifyUserError(error), isLoading: false });
+    throw error;
+  }
   useAuthStore.setState({ error: '登录状态过期，请重新登录。' });
   await finishAnonymousSession(generation);
+  void flushPendingSessionRevocations().catch(() => undefined);
 }
 
 export function notifyUserError(error: unknown): string {

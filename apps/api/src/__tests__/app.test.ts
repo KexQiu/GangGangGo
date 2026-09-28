@@ -113,6 +113,7 @@ describe('api app', () => {
       create,
       isActive: async () => false,
       revoke: async () => undefined,
+      revokeRefreshToken: async () => undefined,
       rotate: async () => {
         throw new Error('Not used by this test.');
       },

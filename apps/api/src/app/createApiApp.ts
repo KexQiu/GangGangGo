@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 import { createOpenApiRouter } from '../http/openapi.js';
 import { createAuthMiddleware } from '../http/middleware/auth.js';
 import { createRateLimitMiddleware } from '../http/middleware/rateLimit.js';
+import { createMemoryRateLimitStore } from '../http/middleware/rateLimitStore.js';
 import { toErrorResponse } from '../http/responses.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 import { createMockAppleAuthService } from '../modules/auth/appleAuthService.js';
@@ -34,18 +35,22 @@ export function createApiApp(options: CreateApiAppOptions = {}) {
   const userRepository = options.userRepository ?? createMockUserRepository();
   const accountDataService = options.accountDataService ?? createMockAccountDataService(userRepository);
   const app = createOpenApiRouter();
-  const authMiddleware = createAuthMiddleware(userRepository, authSessionService);
+  const limitOptions = {
+    maxRequests: env.API_RATE_LIMIT_MAX,
+    windowMs: env.API_RATE_LIMIT_WINDOW_SECONDS * 1000,
+    trustedProxyIps: env.API_TRUSTED_PROXY_IPS,
+    store: options.rateLimitStore ?? createMemoryRateLimitStore(),
+  };
+  const authMiddleware = createAuthMiddleware(
+    userRepository,
+    authSessionService,
+    createRateLimitMiddleware({ ...limitOptions, identity: (context) => `user:${context.get('currentUser').id}` }),
+  );
 
   app.use('*', requestId());
   app.use('*', createRequestLogger(log));
   app.use('*', secureHeaders());
-  app.use(
-    '*',
-    createRateLimitMiddleware({
-      maxRequests: env.API_RATE_LIMIT_MAX,
-      windowMs: env.API_RATE_LIMIT_WINDOW_SECONDS * 1000,
-    }),
-  );
+  app.use('*', createRateLimitMiddleware(limitOptions));
   app.use(
     '*',
     bodyLimit({

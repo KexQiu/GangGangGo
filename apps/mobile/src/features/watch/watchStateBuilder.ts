@@ -10,6 +10,7 @@ import { getToiletTimerStage } from '../toilet/toiletLogic';
 import { trainingPresets } from '../training/presets';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../training/trainingStore';
 import { type WatchTodayState } from './watchTypes';
+import { nextWatchStateRevision } from './watchStateRevision';
 
 const trainingTarget = 2;
 
@@ -29,10 +30,13 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
   const isLoggedIn = Boolean(auth.accessToken && user && owner?.userId === user.id);
   const canUseActions = isLoggedIn && canAccessFeature(entitlements, 'watchActions');
   const elapsedSeconds = getActiveToiletTimerElapsedSeconds(toiletSession, now);
-  const isRunning = canUseActions && Boolean(toiletSession);
+  const ownsTimer =
+    toiletSession?.owner?.userId === owner?.userId && toiletSession?.owner?.profileId === owner?.profileId;
+  const isRunning = canUseActions && Boolean(toiletSession) && ownsTimer;
 
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
+    revision: nextWatchStateRevision(),
     account: {
       isLoggedIn,
       owner: isLoggedIn && owner ? { userId: owner.userId, profileId: owner.profileId } : null,
@@ -50,8 +54,8 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
     },
     pendingEventCount: 0,
     toilet: {
-      elapsedSeconds: canUseActions ? elapsedSeconds : 0,
-      isPaused: canUseActions ? (toiletSession?.isPaused ?? false) : false,
+      elapsedSeconds: isRunning ? elapsedSeconds : 0,
+      isPaused: isRunning ? (toiletSession?.isPaused ?? false) : false,
       isRunning,
       sessionCount: toiletSessionCount,
       sessionId: isRunning ? (toiletSession?.id ?? null) : null,

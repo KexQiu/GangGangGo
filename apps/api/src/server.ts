@@ -4,9 +4,11 @@ import { env } from './config/env.js';
 import { createApiApp } from './app.js';
 import { createApiDependencies, createDefaultAppleAuthService } from './dependencies.js';
 import { logger } from './lib/logger.js';
+import { createDrizzleRateLimitStore } from './http/middleware/rateLimitStore.js';
 
 const dependencies = createApiDependencies();
 const app = createApiApp({
+  rateLimitStore: dependencies.databaseClient ? createDrizzleRateLimitStore(dependencies.databaseClient.db) : undefined,
   accountDataService: dependencies.accountDataService,
   appleAuthService: createDefaultAppleAuthService(),
   authSessionService: dependencies.authSessionService,

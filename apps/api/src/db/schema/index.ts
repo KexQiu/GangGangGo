@@ -6,5 +6,6 @@ export * from './enums.js';
 export * from './friends.js';
 export * from './growth.js';
 export * from './push.js';
+export * from './rateLimit.js';
 export * from './subscriptions.js';
 export * from './users.js';

@@ -7,6 +7,7 @@ export const authSessions = pgTable(
   'auth_sessions',
   {
     id: uuid('id').defaultRandom().primaryKey(),
+    familyId: uuid('family_id').defaultRandom().notNull(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -16,5 +17,8 @@ export const authSessions = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => [index('auth_sessions_user_active_idx').on(table.userId, table.revokedAt, table.expiresAt)],
+  (table) => [
+    index('auth_sessions_user_active_idx').on(table.userId, table.revokedAt, table.expiresAt),
+    index('auth_sessions_family_idx').on(table.familyId),
+  ],
 );
