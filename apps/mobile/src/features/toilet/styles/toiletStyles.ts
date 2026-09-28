@@ -52,10 +52,8 @@ export function createStyles(colors: ThemeColors, stage: ToiletTimerStage) {
       textAlign: 'center',
     },
     screenContent: {
-      flex: 1,
-      justifyContent: 'space-between',
-      paddingBottom: 24,
-      paddingHorizontal: 24,
+      gap: 16,
+      paddingBottom: 16,
       paddingTop: 18,
     },
     timerCard: {
@@ -73,6 +71,8 @@ export function createStyles(colors: ThemeColors, stage: ToiletTimerStage) {
       justifyContent: 'center',
       marginBottom: 26,
       width: 192,
+      maxWidth: '100%',
+      paddingHorizontal: 8,
     },
     timerText: {
       color: colors.text,
@@ -113,16 +113,12 @@ export function createStyles(colors: ThemeColors, stage: ToiletTimerStage) {
     },
     actions: {
       flexDirection: 'row',
+      gap: 10,
     },
     actionButton: {
       flex: 1,
-      marginHorizontal: 5,
-    },
-    pauseIndicator: {
-      alignItems: 'center',
-      height: 18,
-      justifyContent: 'center',
-      opacity: 0,
+      minWidth: 0,
+      paddingVertical: 12,
     },
   });
 }

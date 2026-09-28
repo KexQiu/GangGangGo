@@ -1,4 +1,5 @@
 import { X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -59,6 +60,7 @@ export function AppSheet({
   visible,
 }: AppSheetProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const styles = createStyles(colors);
   const [isPresented, setIsPresented] = useState(visible);
   const [isPanelReady, setIsPanelReady] = useState(false);
@@ -190,7 +192,9 @@ export function AppSheet({
             <View style={[styles.staticContent, contentContainerStyle]}>{content}</View>
           )}
 
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
+          {footer ? (
+            <View style={[styles.footer, { paddingBottom: Math.max(24, insets.bottom + 12) }]}>{footer}</View>
+          ) : null}
         </Animated.View>
       </View>
     </Modal>
@@ -217,6 +221,7 @@ function createStyles(colors: ThemeColors) {
     dialogRoot: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
     eyebrow: { color: colors.privacy, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
     footer: {
+      flexShrink: 0,
       backgroundColor: colors.surface,
       borderTopColor: colors.border,
       borderTopWidth: StyleSheet.hairlineWidth,

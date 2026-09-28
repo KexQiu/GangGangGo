@@ -1,6 +1,6 @@
 import { createStyles } from '../styles/toiletStyles';
 import { useRouter } from 'expo-router';
-import { Armchair, Pause, Play } from 'lucide-react-native';
+import { Armchair } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
 import { AppButton } from '../../../components/AppButton';
@@ -46,14 +46,29 @@ export default function ToiletScreen() {
   }
 
   return (
-    <Screen bottomSafeArea scroll={false} contentStyle={styles.screenContent}>
+    <Screen
+      bottomSafeArea
+      contentStyle={styles.screenContent}
+      footer={
+        <View style={styles.actions}>
+          <AppButton onPress={timer.endTimer} style={styles.actionButton}>
+            收工
+          </AppButton>
+          <AppButton onPress={timer.togglePause} style={styles.actionButton} variant="secondary">
+            {timer.isPaused ? '继续' : '暂停'}
+          </AppButton>
+        </View>
+      }
+    >
       <AppTopBar fallbackHref={routes.home} onBackPress={timer.confirmDiscardTimer} title="办正事中" variant="close" />
       <View>
         <PageHeader subtitle="小花值班中，办完就收工。" title="办正事中" />
       </View>
       <AppCard style={styles.timerCard}>
         <View style={styles.timerRing}>
-          <Text style={styles.timerText}>{formatToiletDuration(timer.elapsedSeconds)}</Text>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.timerText}>
+            {formatToiletDuration(timer.elapsedSeconds)}
+          </Text>
         </View>
         <Text style={styles.stageTitle}>{timer.stageCopy.title}</Text>
         <Text style={styles.stageDescription}>{timer.stageCopy.description}</Text>
@@ -62,17 +77,6 @@ export default function ToiletScreen() {
         <Text style={styles.warningTitle}>阶段提示</Text>
         <Text style={styles.warningText}>{getStageHintText(timer.stage)}</Text>
       </AppCard>
-      <View style={styles.actions}>
-        <AppButton onPress={timer.endTimer} style={styles.actionButton}>
-          收工
-        </AppButton>
-        <AppButton onPress={timer.togglePause} style={styles.actionButton} variant="secondary">
-          {timer.isPaused ? '继续' : '暂停'}
-        </AppButton>
-      </View>
-      <View style={styles.pauseIndicator}>
-        {timer.isPaused ? <Play color={colors.textSubtle} size={16} /> : <Pause color={colors.textSubtle} size={16} />}
-      </View>
     </Screen>
   );
 }

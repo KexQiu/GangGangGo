@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { UserRoundPlus } from 'lucide-react-native';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
@@ -10,6 +11,7 @@ import { PageStack } from '../../../../src/components/PageStack';
 import { ProfileAvatar } from '../../../../src/components/ProfileAvatar';
 import { Screen } from '../../../../src/components/Screen';
 import { useCurrentUserQuery } from '../../../../src/features/account/accountQueries';
+import { LoginSyncSheet } from '../../../../src/features/account/LoginSyncSheet';
 import { useAuthStore } from '../../../../src/features/account/authStore';
 import {
   useAcceptFriendInviteMutation,
@@ -25,6 +27,7 @@ export default function JoinFriendScreen() {
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
+  const [isLoginSheetOpen, setIsLoginSheetOpen] = useState(false);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const authIsLoading = useAuthStore((state) => state.isLoading);
   const user = useCurrentUserQuery().data;
@@ -33,6 +36,8 @@ export default function JoinFriendScreen() {
   const preview = previewQuery.data;
 
   async function handleLogin() {
+    if (!isLoginSheetOpen || authIsLoading) return;
+    setIsLoginSheetOpen(false);
     await loginWithMockApple();
     if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'friend' });
   }
@@ -60,7 +65,7 @@ export default function JoinFriendScreen() {
             <Text style={styles.description}>三类数据查看权限、我收工时通知 TA、允许接收 TA 的收工通知。</Text>
           </View>
           {!user && preview ? (
-            <AppButton disabled={authIsLoading} onPress={() => void handleLogin()}>
+            <AppButton disabled={authIsLoading} onPress={() => setIsLoginSheetOpen(true)}>
               {authIsLoading ? '登录中...' : '先登录小提督'}
             </AppButton>
           ) : (
@@ -77,6 +82,11 @@ export default function JoinFriendScreen() {
           {previewQuery.error ? <Text style={styles.error}>{previewQuery.error.message}</Text> : null}
         </AppCard>
       </PageStack>
+      <LoginSyncSheet
+        visible={isLoginSheetOpen}
+        onClose={() => setIsLoginSheetOpen(false)}
+        onConfirm={() => void handleLogin()}
+      />
     </Screen>
   );
 }

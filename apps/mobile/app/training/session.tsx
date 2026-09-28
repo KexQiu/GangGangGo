@@ -129,7 +129,32 @@ export default function TrainingSessionScreen() {
   }
 
   return (
-    <Screen bottomSafeArea contentStyle={styles.screenContent}>
+    <Screen
+      bottomSafeArea
+      contentStyle={styles.screenContent}
+      footer={
+        <View style={styles.actions}>
+          <AppButton
+            disabled={isSaving || finishedRef.current}
+            onPress={() => setIsPaused((current) => !current)}
+            style={styles.actionButton}
+            variant="secondary"
+          >
+            {isPaused ? '继续' : '暂停'}
+          </AppButton>
+          <AppButton
+            disabled={isSaving}
+            onPress={() => {
+              void finishSession(false);
+            }}
+            style={styles.actionButton}
+            variant="warning"
+          >
+            {isSaving ? '保存中…' : saveError ? '重试保存' : '结束'}
+          </AppButton>
+        </View>
+      }
+    >
       <AppTopBar fallbackHref={routes.training} onBackPress={confirmDiscardTraining} title="菊花抬中" variant="close" />
 
       <View style={styles.topBar}>
@@ -147,7 +172,9 @@ export default function TrainingSessionScreen() {
       <AppCard muted style={styles.timerCard}>
         <View style={styles.timerRing}>
           <View style={[styles.timerCore, currentStep.phase === 'relax' && styles.timerCoreRelax]}>
-            <Text style={styles.countdown}>{stepRemainingSeconds}</Text>
+            <Text adjustsFontSizeToFit numberOfLines={1} style={styles.countdown}>
+              {stepRemainingSeconds}
+            </Text>
           </View>
         </View>
 
@@ -174,26 +201,6 @@ export default function TrainingSessionScreen() {
           </Text>
         </AppCard>
       ) : null}
-      <View style={styles.actions}>
-        <AppButton
-          disabled={isSaving || finishedRef.current}
-          onPress={() => setIsPaused((current) => !current)}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {isPaused ? '继续' : '暂停'}
-        </AppButton>
-        <AppButton
-          disabled={isSaving}
-          onPress={() => {
-            void finishSession(false);
-          }}
-          style={styles.actionButton}
-          variant="warning"
-        >
-          {isSaving ? '保存中…' : saveError ? '重试保存' : '结束'}
-        </AppButton>
-      </View>
     </Screen>
   );
 }
@@ -203,15 +210,15 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     screenContent: {
-      flexGrow: 1,
-      justifyContent: 'space-between',
-      paddingBottom: 24,
-      paddingHorizontal: 24,
+      gap: 16,
+      paddingBottom: 16,
       paddingTop: 18,
     },
     topBar: {
       alignItems: 'flex-start',
       flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
       justifyContent: 'space-between',
     },
     eyebrow: {
@@ -249,6 +256,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       marginBottom: 26,
       width: 200,
+      maxWidth: '100%',
     },
     timerCore: {
       alignItems: 'center',
@@ -259,6 +267,8 @@ function createStyles(colors: ThemeColors) {
       height: 152,
       justifyContent: 'center',
       width: 152,
+      maxWidth: '100%',
+      paddingHorizontal: 8,
     },
     timerCoreRelax: {
       borderColor: colors.info,
@@ -318,10 +328,12 @@ function createStyles(colors: ThemeColors) {
     },
     actions: {
       flexDirection: 'row',
+      gap: 10,
     },
     actionButton: {
       flex: 1,
-      marginHorizontal: 5,
+      minWidth: 0,
+      paddingVertical: 12,
     },
   });
 }

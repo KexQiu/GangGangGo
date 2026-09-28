@@ -10,12 +10,14 @@ type ScreenProps = PropsWithChildren<{
   scroll?: boolean;
   scrollEnabled?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
+  footer?: ReactNode;
 }>;
 
 export function Screen({
   bottomSafeArea = false,
   children,
   contentStyle,
+  footer,
   scroll = true,
   scrollEnabled = true,
 }: ScreenProps) {
@@ -37,6 +39,7 @@ export function Screen({
           {fixedTopBar ? <View style={styles.fixedTopBar}>{fixedTopBar}</View> : null}
           {scrollChildren}
         </View>
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
       </View>
     );
   }
@@ -49,9 +52,11 @@ export function Screen({
         contentContainerStyle={[styles.content, contentStyle]}
         scrollEnabled={scrollEnabled}
         showsVerticalScrollIndicator={false}
+        style={styles.scroll}
       >
         {scrollChildren}
       </ScrollView>
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>
   );
 }
@@ -107,5 +112,7 @@ function createStyles(backgroundColor: string) {
     nonScrollContent: {
       flex: 1,
     },
+    scroll: { flex: 1, minHeight: 0 },
+    footer: { flexShrink: 0, paddingHorizontal: 24, paddingVertical: 12 },
   });
 }

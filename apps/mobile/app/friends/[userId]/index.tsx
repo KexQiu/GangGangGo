@@ -10,6 +10,7 @@ import { AppSheet } from '../../../src/components/AppSheet';
 import { PageSection, PageStack } from '../../../src/components/PageStack';
 import { ProfileAvatar } from '../../../src/components/ProfileAvatar';
 import { Screen } from '../../../src/components/Screen';
+import { describeDisclosureFields, friendDisclosureFields } from '../../../src/features/account/dataDisclosure';
 import { FriendDataCalendar } from '../../../src/features/friends/FriendDataCalendar';
 import { FriendDataDetailModal } from '../../../src/features/friends/FriendDataDetailModal';
 import {
@@ -31,15 +32,15 @@ const nudgeLimits: FriendSettings['nudgeDailyLimit'][] = [0, 3, 5, 8];
 
 type PermissionField = 'habitLevel' | 'toiletLevel' | 'trainingLevel';
 
-const permissionItems: Array<{
-  description: string;
+const permissionItems = [
+  { fields: friendDisclosureFields.training, field: 'trainingLevel', title: '菊花抬' },
+  { fields: friendDisclosureFields.habit, field: 'habitLevel', title: '小账本' },
+  { fields: friendDisclosureFields.toilet, field: 'toiletLevel', title: '蹲会儿' },
+] satisfies Array<{
+  fields: { summary: Record<string, string>; detailed: Record<string, string> };
   field: PermissionField;
   title: string;
-}> = [
-  { description: '是否达标，或完整次数与训练时长。', field: 'trainingLevel', title: '菊花抬' },
-  { description: '完成度与连续天数，或四项习惯等级。', field: 'habitLevel', title: '小账本' },
-  { description: '是否记录，或完整时长与感受明细。', field: 'toiletLevel', title: '蹲会儿' },
-];
+}>;
 
 export default function FriendDetailScreen() {
   const router = useRouter();
@@ -257,24 +258,32 @@ function DataPrivacySheet({
       accessibilityLabel="关闭数据共享权限"
       eyebrow="只影响这一位好友"
       onClose={onClose}
-      subtitle="未授权字段不会同步给 TA。"
+      subtitle="个人云端同步与好友共享分别管理。"
       title="数据共享权限"
       visible={visible}
     >
       <View style={styles.sheetNote}>
         <SlidersHorizontal color={colors.privacy} size={18} strokeWidth={2.4} />
-        <Text style={styles.sheetNoteText}>低敏只提供状态概览；完整模式才包含具体次数、时长或等级。</Text>
+        <Text style={styles.sheetNoteText}>
+          不可见：不向 TA
+          提供该类健康数据。低敏与完整均按天展示；修改权限立即保存，仅影响这一位好友，不会停止自己的云端同步。
+        </Text>
       </View>
 
       {permissionItems.map((item) => (
         <View key={item.field} style={styles.permissionControl}>
           <View style={styles.permissionHeader}>
-            <View>
-              <Text style={styles.permissionTitle}>{item.title}</Text>
-              <Text style={styles.permissionDescription}>{item.description}</Text>
-            </View>
+            <Text style={styles.permissionTitle}>{item.title}</Text>
             <Text style={styles.permissionCurrent}>{dataLevelLabel(settings[item.field])}</Text>
           </View>
+          <Text style={styles.permissionDescription}>低敏：{describeDisclosureFields(item.fields.summary)}。</Text>
+          <Text style={styles.permissionDescription}>完整：{describeDisclosureFields(item.fields.detailed)}。</Text>
+          {item.field === 'toiletLevel' ? (
+            <Text style={styles.permissionDescription}>
+              “需留意”包括便血、不适、颜色需留意或有小信号的记录。完整模式会披露你填写的小信号原文，请确认这些文字适合让
+              TA 看到。
+            </Text>
+          ) : null}
           <View style={styles.choiceRow}>
             {dataLevels.map((level) => (
               <ChoiceButton
@@ -292,7 +301,10 @@ function DataPrivacySheet({
       <View style={styles.historyControl}>
         <View>
           <Text style={styles.permissionTitle}>历史可见范围</Text>
-          <Text style={styles.permissionDescription}>TA 只能查看该范围内你授权的数据。</Text>
+          <Text style={styles.permissionDescription}>
+            TA 只能查看该范围内你授权的每日汇总。关闭后，TA
+            无法再从服务端读取该类数据，但已看过或自行保存的内容无法收回。
+          </Text>
         </View>
         <View style={styles.choiceRow}>
           {historyDays.map((days) => (
@@ -653,8 +665,14 @@ function createStyles(colors: ThemeColors) {
     optionControl: { backgroundColor: colors.surfaceMuted, borderRadius: 18, gap: 10, padding: 14 },
     permissionControl: { backgroundColor: colors.surfaceMuted, borderRadius: 18, gap: 12, padding: 14 },
     permissionCurrent: { color: colors.privacy, fontSize: 12, fontWeight: '900' },
-    permissionDescription: { color: colors.textMuted, fontSize: 12, fontWeight: '600', lineHeight: 17, marginTop: 3 },
-    permissionHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+    permissionDescription: { color: colors.textMuted, fontSize: 14, fontWeight: '500', lineHeight: 21 },
+    permissionHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      justifyContent: 'space-between',
+    },
     permissionTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
     pressed: { opacity: 0.78, transform: [{ scale: 0.99 }] },
     profileHero: { alignItems: 'center', flexDirection: 'row', gap: 14, paddingBottom: 4, paddingTop: 14 },

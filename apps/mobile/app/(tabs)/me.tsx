@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Href } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ import {
   useDeleteAccountMutation,
   useExportAccountDataMutation,
 } from '../../src/features/account/accountQueries';
+import { LoginSyncSheet } from '../../src/features/account/LoginSyncSheet';
 import { mockUserIds, useAuthStore } from '../../src/features/account/authStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
@@ -49,6 +51,7 @@ export default function MeScreen() {
   const authIsLoading = useAuthStore((state) => state.isLoading);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const logout = useAuthStore((state) => state.logout);
+  const [pendingLoginUserId, setPendingLoginUserId] = useState<(typeof mockUserIds)[number] | null>(null);
   const selectedMockUserId = useAuthStore((state) => state.selectedMockUserId);
   const deleteAccount = useDeleteAccountMutation();
   const exportAccountData = useExportAccountDataMutation();
@@ -59,7 +62,10 @@ export default function MeScreen() {
     void refetchCurrentUser();
   }
 
-  async function handleLogin(mockUserId?: (typeof mockUserIds)[number]) {
+  async function handleLogin() {
+    if (!pendingLoginUserId || isLoading) return;
+    const mockUserId = pendingLoginUserId;
+    setPendingLoginUserId(null);
     await loginWithMockApple(mockUserId);
     if (useAuthStore.getState().accessToken) trackGrowthEvent('login_completed', { source: 'settings' });
   }
@@ -98,7 +104,7 @@ export default function MeScreen() {
               <Text numberOfLines={1} style={styles.profileName}>
                 {user?.nickname ?? '还没登录小提督'}
               </Text>
-              <Text style={styles.profileStatus}>{user ? '云端同步已连接' : '登录后同步云端能力'}</Text>
+              <Text style={styles.profileStatus}>{user ? '云端同步已连接' : '登录后同步完整健康记录'}</Text>
             </View>
           </View>
 
@@ -114,8 +120,8 @@ export default function MeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.loginHint}>开发期可以先用 Mock 账号验证云端同步、好友和手表联动。</Text>
-              <AppButton disabled={isLoading} onPress={() => void handleLogin()}>
+              <Text style={styles.loginHint}>登录前可查看同步内容、历史范围与保留期。好友共享需单独授权。</Text>
+              <AppButton disabled={isLoading} onPress={() => setPendingLoginUserId(selectedMockUserId)}>
                 开发 Mock 登录
               </AppButton>
             </>
@@ -129,7 +135,7 @@ export default function MeScreen() {
                 <AppButton
                   disabled={isLoading}
                   key={mockUserId}
-                  onPress={() => void handleLogin(mockUserId)}
+                  onPress={() => setPendingLoginUserId(mockUserId)}
                   style={styles.mockUserButton}
                   variant={selectedMockUserId === mockUserId && user ? 'primary' : 'secondary'}
                 >
@@ -194,6 +200,11 @@ export default function MeScreen() {
           </PageSection>
         ) : null}
       </PageStack>
+      <LoginSyncSheet
+        visible={pendingLoginUserId !== null}
+        onClose={() => setPendingLoginUserId(null)}
+        onConfirm={() => void handleLogin()}
+      />
     </Screen>
   );
 }
