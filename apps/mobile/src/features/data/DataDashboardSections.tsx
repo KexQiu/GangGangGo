@@ -5,6 +5,7 @@ import { PanResponder, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import { AppCard } from '../../components/AppCard';
+import { AppButton } from '../../components/AppButton';
 import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
 import { getToiletStoolColorLabel, getToiletStoolShapeLabel } from '../toilet/toiletRecordLogic';
@@ -403,11 +404,13 @@ export function DailyDataDetailModal({
   date,
   details,
   onClose,
+  onEditToiletRecord,
   section,
 }: {
   date: string | null;
   details: DailyDataDetails | null;
   onClose: () => void;
+  onEditToiletRecord: (id: string) => void;
   section: DailyDataDetailSection | null;
 }) {
   const { colors } = useAppTheme();
@@ -454,6 +457,7 @@ export function DailyDataDetailModal({
               {section === null || section === 'toilet' ? (
                 <ToiletDetails
                   details={details}
+                  onEdit={onEditToiletRecord}
                   expandedId={expandedId}
                   onToggle={(id) => setExpandedId((current) => (current === id ? null : id))}
                 />
@@ -476,10 +480,12 @@ function ToiletDetails({
   details,
   expandedId,
   onToggle,
+  onEdit,
 }: {
   details: DailyDataDetails;
   expandedId: string | null;
   onToggle: (id: string) => void;
+  onEdit: (id: string) => void;
 }) {
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
@@ -494,6 +500,7 @@ function ToiletDetails({
             expanded={expandedId === session.id}
             key={session.id}
             onToggle={() => onToggle(session.id)}
+            onEdit={() => onEdit(session.id)}
             session={session}
           />
         ))
@@ -577,10 +584,12 @@ function TrainingDetails({ details }: { details: DailyDataDetails }) {
 function ToiletDetailCard({
   expanded,
   onToggle,
+  onEdit,
   session,
 }: {
   expanded: boolean;
   onToggle: () => void;
+  onEdit: () => void;
   session: ToiletSession;
 }) {
   const { colors } = useAppTheme();
@@ -614,16 +623,23 @@ function ToiletDetailCard({
     </>
   );
 
-  if (labels.length === 0) return <View style={styles.sessionCard}>{content}</View>;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ expanded }}
-      onPress={onToggle}
-      style={styles.sessionCard}
-    >
-      {content}
-    </Pressable>
+    <View style={styles.sessionCard}>
+      {labels.length ? (
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={onToggle}>
+          {content}
+        </Pressable>
+      ) : (
+        <View>{content}</View>
+      )}
+      <AppButton
+        onPress={onEdit}
+        variant="secondary"
+        accessibilityLabel={`${formatTime(session.endedAt)} 的记录，编辑或删除`}
+      >
+        编辑或删除
+      </AppButton>
+    </View>
   );
 }
 

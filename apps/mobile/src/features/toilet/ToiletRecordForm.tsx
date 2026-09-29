@@ -1,5 +1,5 @@
 import { AlertTriangle, CircleDot, Frown, Pencil, Plus, Smile, Trash2 } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '../../components/AppButton';
@@ -66,10 +66,19 @@ type ToiletRecordFormProps = {
   initialValue: ToiletRecordDraft;
   onOpenSafety?: () => void;
   onSubmit: (draft: ToiletRecordDraft) => Promise<void>;
+  onDraftChange?: (draft: ToiletRecordDraft) => void;
+  disabled?: boolean;
   submitLabel: string;
 };
 
-export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitLabel }: ToiletRecordFormProps) {
+export function ToiletRecordForm({
+  initialValue,
+  onOpenSafety,
+  onSubmit,
+  onDraftChange,
+  disabled = false,
+  submitLabel,
+}: ToiletRecordFormProps) {
   const { colors } = useAppTheme();
   const styles = createToiletRecordFormStyles(colors);
   const [durationSeconds, setDurationSeconds] = useState(initialValue.durationSeconds);
@@ -95,6 +104,7 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
   const [customSignalLabel, setCustomSignalLabel] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const saving = useRef(false);
   const [isDetailSheetVisible, setIsDetailSheetVisible] = useState(false);
   const availableSignals = useMemo(() => [...builtInToiletSignals, ...customSignals], [customSignals]);
   const durationMinuteOptions = useMemo(() => createDurationMinuteOptions(durationSeconds), [durationSeconds]);
@@ -108,6 +118,10 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
     : supplementalCount > 0
       ? `已补充 ${supplementalCount} 项，可随时再改`
       : '形状、颜色、小信号与需要留意';
+
+  useEffect(() => {
+    onDraftChange?.({ bleeding, discomfort, durationSeconds, feeling, signals, stoolColor, stoolShape });
+  }, [bleeding, discomfort, durationSeconds, feeling, onDraftChange, signals, stoolColor, stoolShape]);
 
   useEffect(() => {
     let active = true;
@@ -213,12 +227,14 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
   }
 
   async function submit() {
+    if (saving.current || disabled) return;
     const nextDuration = durationSeconds;
     if (!nextDuration) {
       setFormError('时长请填写为大于 0 的分钟和秒数');
       return;
     }
 
+    saving.current = true;
     setIsSaving(true);
     setFormError(null);
     try {
@@ -235,12 +251,13 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
     } catch (error) {
       setFormError(error instanceof Error ? error.message : '记录保存失败');
     } finally {
+      saving.current = false;
       setIsSaving(false);
     }
   }
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} pointerEvents={disabled || isSaving ? 'none' : 'auto'}>
       <Text style={styles.groupTitle}>本次时长</Text>
       <AppCard muted style={styles.durationCard}>
         <View>
@@ -307,7 +324,7 @@ export function ToiletRecordForm({ initialValue, onOpenSafety, onSubmit, submitL
           {formError}
         </Text>
       ) : null}
-      <AppButton disabled={isSaving} onPress={() => void submit()}>
+      <AppButton disabled={isSaving || disabled} onPress={() => void submit()}>
         {isSaving ? '保存中…' : submitLabel}
       </AppButton>
 

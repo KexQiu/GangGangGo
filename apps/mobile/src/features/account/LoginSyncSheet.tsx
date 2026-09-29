@@ -70,6 +70,9 @@ export function LoginSyncSheet({
       <View style={styles.section}>
         <Text style={styles.title}>上传哪些内容</Text>
         <Text style={styles.body}>以下完整记录会上传至服务端，用于多设备同步和生成每日汇总。</Text>
+        <Text style={styles.body}>
+          待补充草稿仅保存在本机；登录后归入所选账号，点“记好了”保存为正式记录后才会同步。
+        </Text>
         {recordKinds.map(({ title, fields }) => (
           <Text key={title} style={styles.body}>
             {title}：{describeDisclosureFields(fields)}。

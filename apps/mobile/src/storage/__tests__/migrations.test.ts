@@ -18,7 +18,7 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(2);
+    expect(getUserVersion(harness.database)).toBe(3);
     expect(getTableNames(harness.database)).toEqual([
       'app_metadata',
       'daily_activity_summaries',
@@ -28,6 +28,7 @@ describe('SQLite migrations', () => {
       'habit_checkins',
       'local_data_profiles',
       'reminder_settings',
+      'toilet_record_drafts',
       'toilet_sessions',
       'toilet_signal_presets',
       'training_sessions',
@@ -60,7 +61,7 @@ describe('SQLite migrations', () => {
 
     await runMigrations(harness.db);
 
-    expect(getUserVersion(harness.database)).toBe(2);
+    expect(getUserVersion(harness.database)).toBe(3);
     expect(getIds(harness.database, 'reminder_settings')).toEqual(['default']);
     expect(harness.database.prepare('SELECT sql FROM sqlite_master ORDER BY name').all()).toEqual(schema);
     expect(getColumnNames(harness.database, 'reminder_settings')).not.toContain('quiet_hours_start');
@@ -74,7 +75,7 @@ describe('SQLite migrations', () => {
     expect(getTableNames(harness.database)).toEqual([]);
 
     await runMigrations(harness.db);
-    expect(getUserVersion(harness.database)).toBe(2);
+    expect(getUserVersion(harness.database)).toBe(3);
     expect(getTableNames(harness.database)).toContain('reminder_settings');
   });
 
@@ -89,12 +90,23 @@ describe('SQLite migrations', () => {
   it('adds Watch receipts to version 1 without losing existing records', async () => {
     const harness = createDatabaseHarness();
     await runMigrations(harness.db);
-    harness.database.exec(`DROP TABLE watch_event_receipts; PRAGMA user_version = 1;
+    harness.database.exec(`DROP TABLE toilet_record_drafts; DROP TABLE watch_event_receipts; PRAGMA user_version = 1;
       INSERT INTO habit_checkins (date, water, updated_at) VALUES ('2026-09-28', 'good', '2026-09-28T00:00:00Z');`);
     await runMigrations(harness.db);
-    expect(getUserVersion(harness.database)).toBe(2);
+    expect(getUserVersion(harness.database)).toBe(3);
     expect(harness.database.prepare('SELECT water FROM habit_checkins').get()?.water).toBe('good');
     expect(getTableNames(harness.database)).toContain('watch_event_receipts');
+  });
+
+  it('adds drafts to version 2 without replacing existing health records', async () => {
+    const harness = createDatabaseHarness();
+    await runMigrations(harness.db);
+    harness.database.exec(`DROP TABLE toilet_record_drafts; PRAGMA user_version = 2;
+      INSERT INTO habit_checkins (date, water, updated_at) VALUES ('2026-09-28', 'good', '2026-09-28T00:00:00Z');`);
+    await runMigrations(harness.db);
+    expect(getUserVersion(harness.database)).toBe(3);
+    expect(harness.database.prepare('SELECT water FROM habit_checkins').get()?.water).toBe('good');
+    expect(getTableNames(harness.database)).toContain('toilet_record_drafts');
   });
 
   it('queues existing profile records once for the first account sync', async () => {

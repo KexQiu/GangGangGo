@@ -13,15 +13,16 @@ import { useAppTheme } from '../../../theme/themeProvider';
 import { useToiletTimerScreen } from '../hooks/useToiletTimerScreen';
 import { formatToiletDuration } from '../toiletLogic';
 import type { ToiletTimerStage } from '../toiletTypes';
+import { PendingToiletRecords } from '../components/PendingToiletRecords';
 
 export default function ToiletScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const timer = useToiletTimerScreen({
-    onComplete: ({ durationSeconds, startedAt }) => {
+    onComplete: ({ draftId }) => {
       router.push({
         pathname: routes.toiletComplete,
-        params: { durationSeconds: durationSeconds.toString(), startedAt },
+        params: { draftId },
       });
     },
     onDiscard: () => router.replace(routes.home),
@@ -33,6 +34,7 @@ export default function ToiletScreen() {
       <Screen>
         <AppTopBar fallbackHref={routes.home} title="蹲会儿" />
         <PageHeader subtitle="开始后小花只负责计时和轻提醒。" title="蹲会儿" />
+        <PendingToiletRecords />
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
             <Armchair color={colors.info} size={38} strokeWidth={2.4} />
@@ -51,10 +53,15 @@ export default function ToiletScreen() {
       contentStyle={styles.screenContent}
       footer={
         <View style={styles.actions}>
-          <AppButton onPress={timer.endTimer} style={styles.actionButton}>
-            收工
+          <AppButton disabled={timer.isFinishing} onPress={() => void timer.endTimer()} style={styles.actionButton}>
+            {timer.isFinishing ? '保存草稿中…' : '收工'}
           </AppButton>
-          <AppButton onPress={timer.togglePause} style={styles.actionButton} variant="secondary">
+          <AppButton
+            disabled={timer.isFinishing}
+            onPress={timer.togglePause}
+            style={styles.actionButton}
+            variant="secondary"
+          >
             {timer.isPaused ? '继续' : '暂停'}
           </AppButton>
         </View>
@@ -64,6 +71,7 @@ export default function ToiletScreen() {
       <View>
         <PageHeader subtitle="小花值班中，办完就收工。" title="办正事中" />
       </View>
+      <PendingToiletRecords />
       <AppCard style={styles.timerCard}>
         <View style={styles.timerRing}>
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.timerText}>

@@ -49,13 +49,39 @@ export type ToiletSessionPageOptions = {
   toDateTimeExclusive?: string;
 };
 
-export async function insertToiletSession(session: ToiletSession, options: LocalMutationOptions = {}) {
+export type InsertToiletSessionOptions = LocalMutationOptions & { completedTimerId?: string };
+
+export async function insertToiletSession(session: ToiletSession, options: InsertToiletSessionOptions = {}) {
+  return commitLocalMutation(options, async (db, profileId) => {
+    // 手表结束也与事实一起写入完成标记，防止清理 KV 前手机再次生成草稿。
+    if (options.completedTimerId) {
+      await db.runAsync(
+        `INSERT INTO toilet_record_drafts (id, profile_id, started_at, ended_at, state, record_json, updated_at)
+         VALUES ($id, $profileId, $startedAt, $endedAt, 'saved', NULL, $now);`,
+        {
+          $id: options.completedTimerId,
+          $profileId: profileId,
+          $startedAt: session.startedAt,
+          $endedAt: session.endedAt,
+          $now: new Date().toISOString(),
+        },
+      );
+    }
+    await insertToiletSessionRow(db, profileId, session);
+  });
+}
+
+/** 调用方负责事务，供正式保存和草稿完成共享事实、outbox、汇总的提交边界。 */
+export async function insertToiletSessionRow(
+  db: Awaited<ReturnType<typeof initializeDatabase>>,
+  profileId: string,
+  session: ToiletSession,
+) {
   const localDate = getLocalDateKey(new Date(session.endedAt));
   const updatedAt = new Date().toISOString();
 
-  return commitLocalMutation(options, async (db, profileId) => {
-    await db.runAsync(
-      `
+  await db.runAsync(
+    `
       INSERT INTO toilet_sessions (
         id,
         started_at,
@@ -86,34 +112,33 @@ export async function insertToiletSession(session: ToiletSession, options: Local
         $updatedAt
       );
     `,
-      {
-        $bleeding: session.bleeding ? 1 : 0,
-        $discomfort: session.discomfort ? 1 : 0,
-        $durationSeconds: session.durationSeconds,
-        $endedAt: session.endedAt,
-        $feeling: session.feeling,
-        $id: session.id,
-        $localDate: localDate,
-        $profileId: profileId,
-        $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
-        $startedAt: session.startedAt,
-        $stoolColor: session.stoolColor ?? null,
-        $stoolShape: session.stoolShape ?? null,
-        $updatedAt: updatedAt,
-      },
-    );
-    await enqueueDataMutation(
-      {
-        entityId: session.id,
-        entityType: 'toilet_session',
-        operation: 'upsert',
-        payload: toSyncPayload(session, localDate),
-      },
-      db,
-      profileId,
-    );
-    await rebuildDailySummary(localDate, db, profileId);
-  });
+    {
+      $bleeding: session.bleeding ? 1 : 0,
+      $discomfort: session.discomfort ? 1 : 0,
+      $durationSeconds: session.durationSeconds,
+      $endedAt: session.endedAt,
+      $feeling: session.feeling,
+      $id: session.id,
+      $localDate: localDate,
+      $profileId: profileId,
+      $signalsJson: JSON.stringify(normalizeToiletSignals(session.signals)),
+      $startedAt: session.startedAt,
+      $stoolColor: session.stoolColor ?? null,
+      $stoolShape: session.stoolShape ?? null,
+      $updatedAt: updatedAt,
+    },
+  );
+  await enqueueDataMutation(
+    {
+      entityId: session.id,
+      entityType: 'toilet_session',
+      operation: 'upsert',
+      payload: toSyncPayload(session, localDate),
+    },
+    db,
+    profileId,
+  );
+  await rebuildDailySummary(localDate, db, profileId);
 }
 
 export async function updateToiletSession(session: ToiletSession, options: LocalMutationOptions = {}): Promise<void> {

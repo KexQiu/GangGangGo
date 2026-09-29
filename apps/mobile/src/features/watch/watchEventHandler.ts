@@ -14,6 +14,7 @@ import { endToiletLiveActivity, pauseToiletLiveActivity, resumeToiletLiveActivit
 import { cancelToiletStageNotifications, syncToiletStageNotifications } from '../toilet/toiletStageNotificationService';
 import { useToiletStore } from '../toilet/toiletStore';
 import { persistWatchTimerAction, useToiletTimerSessionStore } from '../toilet/toiletTimerSessionStore';
+import { isToiletTimerCompleted } from '../toilet/toiletDraftService';
 import { useTrainingStore } from '../training/trainingStore';
 import { type WatchEvent, type WatchEventAck, type WatchEventOwner } from './watchTypes';
 import { trackGrowthEvent } from '../growth/growthEventTracker';
@@ -118,6 +119,9 @@ async function handleToiletTimerAction(
   const sessionStore = useToiletTimerSessionStore.getState();
   const activeSession = sessionStore.session;
 
+  if (await isToiletTimerCompleted(event.payload.sessionId))
+    throw new PermanentMutationError('这次计时已结束，请在手机查看记录或待补充草稿。');
+
   if (
     !activeSession ||
     activeSession.id !== event.payload.sessionId ||
@@ -169,6 +173,7 @@ async function handleToiletTimerAction(
     },
     {
       ...options,
+      completedTimerId: activeSession.id,
       assertMutationTarget: () => {
         if (useToiletTimerSessionStore.getState().session?.id !== activeSession.id)
           throw new PermanentMutationError('计时已变更。');

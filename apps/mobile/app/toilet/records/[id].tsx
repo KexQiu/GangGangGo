@@ -1,8 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text } from 'react-native';
 
 import { AppCard } from '../../../src/components/AppCard';
+import { AppButton } from '../../../src/components/AppButton';
+import { authSessionContext } from '../../../src/api/sessionContext';
+import { useAuthStore } from '../../../src/features/account/authStore';
 import { AppTopBar } from '../../../src/components/AppTopBar';
 import { PageHeader } from '../../../src/components/PageHeader';
 import { Screen } from '../../../src/components/Screen';
@@ -22,42 +25,68 @@ export default function ToiletRecordScreen() {
   const deleteSession = useToiletStore((state) => state.deleteSession);
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const [session, setSession] = useState<ToiletSession | null>(null);
+  const [loaded, setLoaded] = useState<{ record: ToiletSession; generation: number } | null>(null);
+  const session = loaded?.record ?? null;
+  const token = useAuthStore((state) => state.accessToken);
+  const authLoading = useAuthStore((state) => state.isLoading || !state.hasHydrated);
+  const [retry, setRetry] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const operation = useRef(false);
+  const focused = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      focused.current = true;
       setIsLoading(true);
+      setLoaded(null);
       setError(null);
 
-      void getToiletSession(recordId)
-        .then((record) => {
-          if (active) setSession(record);
-        })
-        .catch((reason) => {
-          if (active) setError(reason instanceof Error ? reason.message : '记录加载失败');
-        })
-        .finally(() => {
-          if (active) setIsLoading(false);
-        });
+      const load = async () => {
+        const generation = authSessionContext.captureLocalGeneration();
+        const record = await getToiletSession(recordId);
+        authSessionContext.assertGeneration(generation);
+        return record ? { record, generation } : null;
+      };
+      if (!authLoading)
+        void load()
+          .then((record) => {
+            if (active) setLoaded(record);
+          })
+          .catch((reason) => {
+            if (active) setError(reason instanceof Error ? reason.message : '记录加载失败');
+          })
+          .finally(() => {
+            if (active) setIsLoading(false);
+          });
 
       return () => {
         active = false;
+        focused.current = false;
       };
-    }, [recordId]),
+      // 凭证变化与手动重试必须重新读取当前资料，即使查询不直接使用 token。
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [recordId, token, authLoading, retry]),
   );
 
   async function saveSession(draft: ReturnType<typeof createToiletRecordDraft>) {
-    if (!session) return;
-    const nextSession: ToiletSession = { ...session, ...draft };
-    await updateSession(nextSession);
-    router.back();
+    if (!loaded || operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    try {
+      await updateSession({ ...loaded.record, ...draft }, { generation: loaded.generation });
+      authSessionContext.assertGeneration(loaded.generation);
+      if (focused.current) router.back();
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
   }
 
   function confirmDelete() {
-    if (!session) return;
+    if (!session || operation.current) return;
     Alert.alert('删除本次记录？', '删除后无法恢复，这不会影响其他日期的记录。', [
       { style: 'cancel', text: '保留' },
       {
@@ -71,13 +100,19 @@ export default function ToiletRecordScreen() {
   }
 
   async function removeSession() {
-    if (!session) return;
+    if (!loaded || operation.current) return;
+    operation.current = true;
+    setBusy(true);
 
     try {
-      await deleteSession(session.id);
-      router.back();
+      await deleteSession(loaded.record.id, { generation: loaded.generation });
+      authSessionContext.assertGeneration(loaded.generation);
+      if (focused.current) router.back();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '记录删除失败');
+    } finally {
+      operation.current = false;
+      setBusy(false);
     }
   }
 
@@ -86,10 +121,12 @@ export default function ToiletRecordScreen() {
       <AppTopBar
         fallbackHref={routes.trends}
         right={
-          session ? (
+          session && !authLoading ? (
             <Pressable
               accessibilityLabel="删除本次记录"
               accessibilityRole="button"
+              disabled={busy}
+              accessibilityState={{ disabled: busy }}
               onPress={confirmDelete}
               style={({ pressed }) => [styles.headerDeleteButton, pressed ? styles.headerDeleteButtonPressed : null]}
             >
@@ -107,15 +144,22 @@ export default function ToiletRecordScreen() {
 
       {!isLoading && !session ? (
         <AppCard style={styles.statusCard}>
-          <Text style={styles.statusTitle}>这条记录已不在本机</Text>
+          <Text style={styles.statusTitle}>{error ? '记录读取失败' : '这条记录已不在本机'}</Text>
           <Text style={styles.statusBody}>{error ?? '可能已在其他页面删除。'}</Text>
+          {error ? (
+            <AppButton variant="secondary" onPress={() => setRetry((value) => value + 1)}>
+              重新读取
+            </AppButton>
+          ) : null}
         </AppCard>
       ) : null}
 
-      {session ? (
+      {session && !isLoading && !authLoading ? (
         <>
           <PageHeader subtitle={`${formatSessionDate(session.endedAt)} · 开始时间不支持修改`} title="把这趟记清楚" />
           <ToiletRecordForm
+            key={`${loaded?.generation}:${session.id}`}
+            disabled={busy}
             initialValue={createToiletRecordDraft(session)}
             onOpenSafety={() => router.push(routes.safety)}
             onSubmit={saveSession}

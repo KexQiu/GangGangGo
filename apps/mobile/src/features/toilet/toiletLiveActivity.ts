@@ -6,6 +6,7 @@ import { useAppSettingsStore } from '../settings/appSettingsStore';
 import { getToiletLiveActivitySnapshot } from './toiletLogic';
 import { recoverToiletLiveActivityState } from './toiletLiveActivityRecovery';
 import { getActiveToiletTimerElapsedSeconds, useToiletTimerSessionStore } from './toiletTimerSessionStore';
+import { recoverCompletedToiletTimer } from './toiletDraftService';
 
 const nativeModule = Platform.OS === 'ios' ? liveActivityModule : null;
 let launchRecoveryPromise: Promise<void> | null = null;
@@ -161,6 +162,7 @@ async function runLaunchRecovery(): Promise<void> {
         waitForHydration(useAppSettingsStore.persist),
         waitForHydration(useToiletTimerSessionStore.persist),
       ]);
+      await recoverCompletedToiletTimer();
     },
   });
 }

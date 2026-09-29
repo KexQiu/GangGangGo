@@ -1,5 +1,5 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -22,8 +22,10 @@ import {
 import { subscribeToLocalDataChanges } from '../../sync/localDataEvents';
 import { getLocalDateKey } from '../../habits/habitLogic';
 import { createDataStyles } from '../../data/styles/dataStyles';
+import { routes } from '../../../navigation/routes';
 
 export default function TrendsScreen() {
+  const router = useRouter();
   const [summaries, setSummaries] = useState<DailyActivitySummary[]>(createInitialSummaries);
   const [activeDate, setActiveDate] = useState(getLocalDateKey);
   const [detailDate, setDetailDate] = useState<string | null>(null);
@@ -105,6 +107,13 @@ export default function TrendsScreen() {
       <DailyDataDetailModal
         date={detailDate}
         details={details}
+        onEditToiletRecord={(id) => {
+          detailRequestRef.current += 1;
+          setDetailDate(null);
+          setDetails(null);
+          setDetailSection(null);
+          router.push(routes.toiletRecord(id));
+        }}
         onClose={() => {
           detailRequestRef.current += 1;
           setDetailDate(null);

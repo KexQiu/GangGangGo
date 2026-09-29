@@ -11,6 +11,10 @@ export async function mergeAnonymousProfile(db: SQLiteDatabase, sourceProfileId:
     parameters,
   );
   await db.runAsync(
+    'UPDATE toilet_record_drafts SET profile_id = $targetProfileId WHERE profile_id = $sourceProfileId;',
+    parameters,
+  );
+  await db.runAsync(
     `
       INSERT INTO habit_checkins (
         profile_id, date, water, fiber, movement, bowel, updated_at, deleted_at, sync_version

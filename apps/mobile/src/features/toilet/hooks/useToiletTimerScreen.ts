@@ -2,6 +2,10 @@ import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState, type AppStateStatus } from 'react-native';
+import { showToast } from '../../../components/toast/AppToast';
+import { authSessionContext } from '../../../api/sessionContext';
+import { useAuthStore } from '../../account/authStore';
+import { finishToiletTimer, recoverCompletedToiletTimer } from '../toiletDraftService';
 
 import { useAppSettingsStore } from '../../settings/appSettingsStore';
 import { getToiletStageCopy, getToiletTimerStage } from '../toiletLogic';
@@ -30,8 +34,7 @@ import {
 } from '../toiletStageSoundService';
 
 type CompletedTimer = {
-  durationSeconds: number;
-  startedAt: string;
+  draftId: string;
 };
 
 type ToiletTimerScreenOptions = {
@@ -41,6 +44,9 @@ type ToiletTimerScreenOptions = {
 
 export function useToiletTimerScreen({ onComplete, onDiscard }: ToiletTimerScreenOptions) {
   const [, setTick] = useState(0);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const finishing = useRef(false);
+  const authLoading = useAuthStore((state) => state.isLoading || !state.hasHydrated);
   const session = useToiletTimerSessionStore((state) => state.session);
   const startSession = useToiletTimerSessionStore((state) => state.startSession);
   const pauseSession = useToiletTimerSessionStore((state) => state.pauseSession);
@@ -93,6 +99,21 @@ export function useToiletTimerScreen({ onComplete, onDiscard }: ToiletTimerScree
   notificationsEnabledRef.current = toiletStageNotificationEnabled;
 
   useEffect(() => () => stopToiletStageSound(soundPlayers), [soundPlayers]);
+  useEffect(() => {
+    if (authLoading) return;
+    let active = true;
+    const recover = () => {
+      void recoverCompletedToiletTimer().catch(() => {
+        if (active) showToast('计时恢复失败，请重新打开。', { type: 'error' });
+      });
+    };
+    const unsubscribe = useToiletTimerSessionStore.persist.onFinishHydration(recover);
+    if (useToiletTimerSessionStore.persist.hasHydrated()) recover();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [authLoading]);
 
   useEffect(() => {
     if (!hasStarted || isPaused) return;
@@ -176,13 +197,25 @@ export function useToiletTimerScreen({ onComplete, onDiscard }: ToiletTimerScree
     }
   }
 
-  function endTimer() {
-    if (!session) return;
-    stopToiletStageSound(soundPlayers);
-    void cancelToiletStageNotifications();
-    void endToiletLiveActivity(session.liveActivityId, elapsedSeconds);
-    clearSession();
-    onComplete({ durationSeconds: elapsedSeconds, startedAt: session.startedAt });
+  async function endTimer() {
+    if (!session || finishing.current) return;
+    finishing.current = true;
+    setIsFinishing(true);
+    try {
+      const generation = authSessionContext.captureLocalGeneration();
+      const draftId = await finishToiletTimer(session.id, new Date());
+      stopToiletStageSound(soundPlayers);
+      void cancelToiletStageNotifications();
+      void endToiletLiveActivity(session.liveActivityId, elapsedSeconds);
+      authSessionContext.assertGeneration(generation);
+      if (draftId) onComplete({ draftId });
+      else showToast('这次计时已经处理完成，可在数据页查看已保存记录。');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '草稿保存失败，请重试。', { type: 'error' });
+    } finally {
+      finishing.current = false;
+      setIsFinishing(false);
+    }
   }
 
   function discardTimer() {
@@ -194,6 +227,7 @@ export function useToiletTimerScreen({ onComplete, onDiscard }: ToiletTimerScree
   }
 
   function confirmDiscardTimer() {
+    if (finishing.current) return;
     const wasPaused = session?.isPaused ?? false;
     const activityId = session?.liveActivityId ?? null;
     const pausedElapsedSeconds = elapsedSeconds;
@@ -219,7 +253,7 @@ export function useToiletTimerScreen({ onComplete, onDiscard }: ToiletTimerScree
   }
 
   function togglePause() {
-    if (!session) return;
+    if (!session || finishing.current) return;
     const currentElapsedSeconds = elapsedSeconds;
     void Haptics.selectionAsync();
     if (session.isPaused) {
@@ -238,6 +272,7 @@ export function useToiletTimerScreen({ onComplete, onDiscard }: ToiletTimerScree
     endTimer,
     hasStarted,
     isPaused,
+    isFinishing,
     stage,
     stageCopy: getToiletStageCopy(stage),
     startTimer,

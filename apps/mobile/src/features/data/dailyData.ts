@@ -160,6 +160,10 @@ export async function purgeExpiredLocalHealthData(now = new Date()) {
         $cutoff: range.fromDate,
         $profileId: profileId,
       }),
+      db.runAsync('DELETE FROM toilet_record_drafts WHERE profile_id = $profileId AND ended_at < $cutoff;', {
+        $cutoff: range.fromDateTime,
+        $profileId: profileId,
+      }),
       db.runAsync('DELETE FROM daily_activity_summaries WHERE profile_id = $profileId AND date < $cutoff;', {
         $cutoff: range.fromDate,
         $profileId: profileId,

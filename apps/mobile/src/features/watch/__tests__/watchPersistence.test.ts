@@ -8,6 +8,7 @@ import { useHabitStore } from '../../habits/habitStore';
 import { subscribeToLocalDataChanges } from '../../sync/localDataEvents';
 import { useToiletStore } from '../../toilet/toiletStore';
 import { useToiletTimerSessionStore } from '../../toilet/toiletTimerSessionStore';
+import { finishToiletTimer } from '../../toilet/toiletDraftService';
 import { useTrainingStore } from '../../training/trainingStore';
 import { handleWatchEvent } from '../watchEventHandler';
 import type { WatchEvent } from '../watchTypes';
@@ -313,6 +314,43 @@ describe('save -> SQLite -> visible state -> Watch ACK', () => {
     useToiletTimerSessionStore.getState().resumeSession();
     expect(await handleWatchEvent(event)).toMatchObject({ status: 'duplicate' });
     expect(useToiletTimerSessionStore.getState().session?.isPaused).toBe(false);
+  });
+
+  it('rejects a late Watch finish after a phone draft was committed, including stale restored KV state', async () => {
+    startTimer('timer-A');
+    const previous = useToiletTimerSessionStore.getState().session;
+    await finishToiletTimer('timer-A', new Date(now));
+    useToiletTimerSessionStore.setState({ session: previous });
+    expect(await handleWatchEvent(finishEvent())).toMatchObject({ status: 'rejected' });
+    expect(rows('toilet_sessions')).toHaveLength(0);
+    expect(rows('toilet_record_drafts')).toHaveLength(1);
+  });
+
+  it('does not create a phone draft after Watch committed but timer cleanup failed', async () => {
+    startTimer('timer-A');
+    mocks.storage.setItem.mockRejectedValueOnce(new Error('storage unavailable'));
+    expect(await handleWatchEvent(finishEvent())).toMatchObject({ status: 'retryable' });
+    expect(useToiletTimerSessionStore.getState().session?.id).toBe('timer-A');
+    expect(await finishToiletTimer('timer-A', new Date(now))).toBeNull();
+    expect(useToiletTimerSessionStore.getState().session).toBeNull();
+    expect(rows('toilet_sessions')).toHaveLength(1);
+    expect(rows('toilet_record_drafts')).toMatchObject([{ id: 'timer-A', state: 'saved', record_json: null }]);
+    expect(rows('data_sync_outbox')).toHaveLength(1);
+    expect(await handleWatchEvent(finishEvent())).toMatchObject({ status: 'duplicate' });
+  });
+
+  it('rolls back the Watch completion marker with the record and receipt when saving fails', async () => {
+    startTimer('timer-A');
+    writeHook = async (sql) => {
+      if (sql.includes('INSERT INTO watch_event_receipts')) throw new Error('disk full');
+    };
+    expect(await handleWatchEvent(finishEvent())).toMatchObject({ status: 'retryable' });
+    for (const table of ['toilet_record_drafts', 'toilet_sessions', 'data_sync_outbox', 'watch_event_receipts'])
+      expect(rows(table)).toHaveLength(0);
+    expect(useToiletTimerSessionStore.getState().session?.id).toBe('timer-A');
+    writeHook = async () => undefined;
+    expect(await finishToiletTimer('timer-A', new Date(now))).toBe('timer-A');
+    expect(rows('toilet_record_drafts')).toMatchObject([{ state: 'pending' }]);
   });
 
   it('blocks anonymous writes during a profile transition and allows them after it completes', async () => {

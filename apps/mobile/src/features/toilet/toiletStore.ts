@@ -9,14 +9,15 @@ import {
   insertToiletSession,
   listToiletSessionsPage,
   updateToiletSession,
+  type InsertToiletSessionOptions,
   type ToiletSessionCursor,
 } from '../../storage/repositories/toiletRepository';
 import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { type ToiletSession } from './toiletTypes';
 
 type ToiletState = {
-  addSession: (session: ToiletSession, options?: LocalMutationOptions) => Promise<LocalMutationResult>;
-  deleteSession: (id: string) => Promise<void>;
+  addSession: (session: ToiletSession, options?: InsertToiletSessionOptions) => Promise<LocalMutationResult>;
+  deleteSession: (id: string, options?: LocalMutationOptions) => Promise<void>;
   error: string | null;
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
@@ -24,7 +25,7 @@ type ToiletState = {
   isHydrating: boolean;
   revision: number;
   sessions: ToiletSession[];
-  updateSession: (session: ToiletSession) => Promise<void>;
+  updateSession: (session: ToiletSession, options?: LocalMutationOptions) => Promise<void>;
 };
 
 let hydrationRevision = 0;
@@ -49,10 +50,10 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
       throw error;
     }
   },
-  deleteSession: async (id) => {
-    const generation = authSessionContext.captureLocalGeneration();
+  deleteSession: async (id, options = {}) => {
+    const generation = options.generation ?? authSessionContext.captureLocalGeneration();
     try {
-      await deleteToiletSession(id, { generation });
+      await deleteToiletSession(id, { ...options, generation });
       if (authSessionContext.isGenerationCurrent(generation)) {
         set((state) => ({
           error: null,
@@ -105,10 +106,10 @@ export const useToiletStore = create<ToiletState>((set, get) => ({
   isHydrating: false,
   revision: 0,
   sessions: [],
-  updateSession: async (session) => {
-    const generation = authSessionContext.captureLocalGeneration();
+  updateSession: async (session, options = {}) => {
+    const generation = options.generation ?? authSessionContext.captureLocalGeneration();
     try {
-      await updateToiletSession(session, { generation });
+      await updateToiletSession(session, { ...options, generation });
       if (authSessionContext.isGenerationCurrent(generation)) {
         set((state) => ({
           error: null,
