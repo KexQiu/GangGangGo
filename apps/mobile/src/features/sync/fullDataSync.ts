@@ -14,6 +14,7 @@ import {
   listPendingDataMutations,
   removeAcceptedDataMutations,
   setDataSyncCursor,
+  markDataSyncCompleted,
 } from '../../storage/dataSyncOutbox';
 import { rebuildDailySummary } from '../data/dailyData';
 import { trackGrowthEvent } from '../growth/growthEventTracker';
@@ -21,17 +22,19 @@ import { useHabitStore } from '../habits/habitStore';
 import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
 import { notifyLocalDataChanged } from './localDataEvents';
+import type { SyncTaskResult } from './syncTaskResult';
 
-let inFlight: { generation: number; promise: Promise<boolean> } | null = null;
+let inFlight: { generation: number; promise: Promise<SyncTaskResult> } | null = null;
 
-export function syncCompleteHealthData(): Promise<boolean> {
+export function syncCompleteHealthData(): Promise<SyncTaskResult> {
   const owner = authSessionContext.current();
-  if (!owner) return Promise.resolve(false);
+  if (!owner) return Promise.resolve({ outcome: 'skipped', reason: '登录后才能同步完整记录。' });
   if (inFlight?.generation === owner.generation) return inFlight.promise;
   const pending = {
     generation: owner.generation,
     promise: performCompleteHealthDataSync(owner).catch((error: unknown) => {
-      if (error instanceof SessionChangedError) return false;
+      if (error instanceof SessionChangedError)
+        return { outcome: 'skipped' as const, reason: '账号已变更，本轮同步已停止。' };
       trackGrowthEvent('sync_failed', { domain: 'full_data' });
       throw error;
     }),
@@ -99,7 +102,20 @@ async function performCompleteHealthDataSync(owner: SessionSnapshot) {
   }
   await authSessionContext.runExclusive(generation, reloadLocalStores);
   authSessionContext.assertCurrent(owner);
-  return true;
+  const completed = await authSessionContext.runExclusive(generation, async () => {
+    const db = await initializeDatabase();
+    let marked = false;
+    await db.withTransactionAsync(async () => {
+      authSessionContext.assertCurrent(owner);
+      marked = await markDataSyncCompleted(profileId, db);
+      authSessionContext.assertCurrent(owner);
+    });
+    return marked;
+  });
+  authSessionContext.assertCurrent(owner);
+  return completed
+    ? { outcome: 'success' as const }
+    : { outcome: 'skipped' as const, reason: '有新增更改等待下一轮同步。' };
 }
 
 function entityKey(entity: Pick<DataSyncChange, 'entityType' | 'entityId'>) {

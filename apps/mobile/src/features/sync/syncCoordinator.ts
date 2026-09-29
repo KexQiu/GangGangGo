@@ -1,6 +1,7 @@
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { queryClient } from '../../api/queryClient';
+import { authSessionContext } from '../../api/sessionContext';
 import { accountQueryKeys } from '../account/accountQueryKeys';
 import { getCachedEntitlements, refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
@@ -21,7 +22,12 @@ export const syncCoordinator = new SyncCoordinator({
     const accessToken = useAuthStore.getState().accessToken;
     return {
       accessToken,
-      refreshEntitlements: () => (accessToken ? refreshEntitlementsQuery(accessToken) : Promise.resolve()),
+      sessionKey: authSessionContext.current()?.generation ?? null,
+      refreshEntitlements: async () => {
+        if (!accessToken) return { outcome: 'skipped', reason: '尚未登录。' };
+        await refreshEntitlementsQuery(accessToken);
+        return { outcome: 'success' };
+      },
     };
   },
   registerPushToken: registerPushTokenIfAllowed,
@@ -44,7 +50,10 @@ export const syncCoordinator = new SyncCoordinator({
     let previousEntitlements = entitlementsFingerprint();
     const unsubscribeAuth = useAuthStore.subscribe((state, previous) =>
       listener({
-        accessTokenChanged: state.accessToken !== previous.accessToken,
+        accessTokenChanged:
+          state.accessToken !== previous.accessToken ||
+          state.isLoading !== previous.isLoading ||
+          state.hasHydrated !== previous.hasHydrated,
         entitlementsChanged: false,
       }),
     );
@@ -64,7 +73,13 @@ export const syncCoordinator = new SyncCoordinator({
     subscribeToLocalDataChanges((_revision, source) => {
       if (source === 'local') listener();
     }),
-  syncWatch: syncWatchTodayState,
+  syncWatch: async (now, reason) => {
+    const result = await syncWatchTodayState(now, reason);
+    if (result.sent) return { outcome: 'success' };
+    if (result.reason === 'watch_connectivity_unavailable')
+      return { outcome: 'skipped', reason: '当前设备不支持手表连接。' };
+    throw new Error(result.reason || '手表状态发送未完成。');
+  },
 });
 
 function entitlementsFingerprint() {

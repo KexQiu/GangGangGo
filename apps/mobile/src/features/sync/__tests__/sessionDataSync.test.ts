@@ -6,6 +6,7 @@ import { authSessionContext } from '../../../api/sessionContext';
 import { runMigrations } from '../../../storage/migrations';
 import { bindActiveLocalProfileToUser, restoreLocalProfile } from '../../../storage/localDataProfile';
 import { syncCompleteHealthData } from '../fullDataSync';
+import { readDataSyncOverview } from '../../../storage/dataSyncOutbox';
 
 const mocks = vi.hoisted(() => ({
   db: vi.fn(),
@@ -55,6 +56,76 @@ beforeEach(async () => {
 afterEach(() => database.close());
 
 describe('complete sync session boundaries with SQLite', () => {
+  it('counts every pending change in the current profile, not just the first upload page', async () => {
+    seedOutbox('B');
+    for (let index = 0; index < 105; index++)
+      database
+        .prepare(
+          `INSERT INTO data_sync_outbox (mutation_id, profile_id, entity_type, entity_id, operation, changed_at)
+       VALUES (?, 'profile-A', 'habit_checkin', ?, 'delete', ?);`,
+        )
+        .run(`many-${index}`, date, timestamp);
+    expect(await readDataSyncOverview('profile-A')).toEqual({ pendingCount: 105, lastCompletedAt: null });
+    await syncCompleteHealthData();
+    expect(await readDataSyncOverview('profile-A')).toMatchObject({
+      pendingCount: 0,
+      lastCompletedAt: expect.any(String),
+    });
+    expect(await readDataSyncOverview('profile-B')).toEqual({ pendingCount: 1, lastCompletedAt: null });
+  });
+
+  it('does not record completion when a later pull page fails, and retry completes the round', async () => {
+    mocks.pull
+      .mockResolvedValueOnce({ ...pullResponse(true), hasMore: true })
+      .mockRejectedValueOnce(new Error('offline'));
+    await expect(syncCompleteHealthData()).rejects.toThrow('offline');
+    expect(rows('data_sync_state')).toMatchObject([{ cursor: '1', last_completed_at: null }]);
+    await syncCompleteHealthData();
+    const completed = (await readDataSyncOverview('profile-A')).lastCompletedAt;
+    expect(completed).not.toBeNull();
+    mocks.pull.mockRejectedValueOnce(new Error('offline again'));
+    await expect(syncCompleteHealthData()).rejects.toThrow('offline again');
+    expect((await readDataSyncOverview('profile-A')).lastCompletedAt).toBe(completed);
+  });
+
+  it('does not stamp completion if a new local change appears before the final transaction', async () => {
+    mocks.hydrate.mockImplementationOnce(async () => seedOutbox('A'));
+    expect(await syncCompleteHealthData()).toMatchObject({ outcome: 'skipped' });
+    expect(await readDataSyncOverview('profile-A')).toEqual({ pendingCount: 1, lastCompletedAt: null });
+    await syncCompleteHealthData();
+    expect(await readDataSyncOverview('profile-A')).toMatchObject({
+      pendingCount: 0,
+      lastCompletedAt: expect.any(String),
+    });
+  });
+
+  it('surfaces sync-status read errors instead of reporting zero pending changes', async () => {
+    const read = adapter.getFirstAsync;
+    adapter.getFirstAsync = async () => {
+      throw new Error('SQLite unavailable');
+    };
+    await expect(readDataSyncOverview('profile-A')).rejects.toThrow('SQLite unavailable');
+    adapter.getFirstAsync = read;
+    expect(await readDataSyncOverview('profile-A')).toEqual({ pendingCount: 0, lastCompletedAt: null });
+  });
+
+  it.each(['write failure', 'account change'] as const)(
+    'does not persist completion on %s in the final transaction',
+    async (failure) => {
+      const run = adapter.runAsync.getMockImplementation()!;
+      adapter.runAsync.mockImplementation(async (sql, params) => {
+        const result = await run(sql, params);
+        if (sql.includes('last_completed_at')) {
+          if (failure === 'write failure') throw new Error('disk full');
+          authSessionContext.beginTransition();
+        }
+        return result;
+      });
+      if (failure === 'write failure') await expect(syncCompleteHealthData()).rejects.toThrow('disk full');
+      else await expect(syncCompleteHealthData()).resolves.toMatchObject({ outcome: 'skipped' });
+      expect(rows('data_sync_state')).toMatchObject([{ last_completed_at: null }]);
+    },
+  );
   it.each([
     ['A', 'B'],
     ['B', 'A'],
@@ -72,7 +143,7 @@ describe('complete sync session boundaries with SQLite', () => {
     await vi.waitFor(() => expect(adapter.getAllAsync).toHaveBeenCalled());
     activate(newUser);
     reading.resolve();
-    await expect(syncing).resolves.toBe(false);
+    await expect(syncing).resolves.toMatchObject({ outcome: 'skipped' });
     expect(mocks.push).not.toHaveBeenCalled();
     expect(rows('data_sync_outbox')).toHaveLength(2);
   });
@@ -86,7 +157,7 @@ describe('complete sync session boundaries with SQLite', () => {
     expect(mocks.push.mock.calls[0][1]).toBe('A');
     activate('B');
     pending.resolve({ acceptedMutationIds: ['mutation-A'], changes: [] });
-    await expect(syncing).resolves.toBe(false);
+    await expect(syncing).resolves.toMatchObject({ outcome: 'skipped' });
     expect(rows('data_sync_outbox')).toHaveLength(1);
     expect(mocks.pull).not.toHaveBeenCalled();
     expect(mocks.hydrate).not.toHaveBeenCalled();
@@ -99,7 +170,7 @@ describe('complete sync session boundaries with SQLite', () => {
     await vi.waitFor(() => expect(mocks.pull).toHaveBeenCalledOnce());
     activate('B');
     pending.resolve(pullResponse(true));
-    await expect(syncing).resolves.toBe(false);
+    await expect(syncing).resolves.toMatchObject({ outcome: 'skipped' });
     expect(rows('habit_checkins')).toHaveLength(0);
     expect(rows('data_sync_state')).toHaveLength(0);
     expect(mocks.hydrate).not.toHaveBeenCalled();
@@ -112,7 +183,7 @@ describe('complete sync session boundaries with SQLite', () => {
       return { acceptedMutationIds: ['mutation-A'], changes: [] };
     });
     mocks.pull.mockResolvedValue(pullResponse(true));
-    await expect(syncCompleteHealthData()).resolves.toBe(true);
+    await expect(syncCompleteHealthData()).resolves.toEqual({ outcome: 'success' });
     expect(rows('data_sync_outbox')).toHaveLength(0);
     expect(rows('habit_checkins')).toMatchObject([{ profile_id: 'profile-A', water: 'good' }]);
     expect(rows('data_sync_state')).toMatchObject([{ profile_id: 'profile-A', cursor: '1' }]);
@@ -121,7 +192,7 @@ describe('complete sync session boundaries with SQLite', () => {
   it('pauses cloud sync while an identity transition has no published owner', async () => {
     seedOutbox('A');
     authSessionContext.beginTransition();
-    await expect(syncCompleteHealthData()).resolves.toBe(false);
+    await expect(syncCompleteHealthData()).resolves.toMatchObject({ outcome: 'skipped' });
     expect(mocks.push).not.toHaveBeenCalled();
     expect(mocks.pull).not.toHaveBeenCalled();
   });

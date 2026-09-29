@@ -1,9 +1,14 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { Text, View } from 'react-native';
 
 import { PageHeader } from '../../../components/PageHeader';
+import { AppCard } from '../../../components/AppCard';
+import { AppButton } from '../../../components/AppButton';
+import { authSessionContext } from '../../../api/sessionContext';
+import { LocalReadResource } from '../../../storage/localReadResource';
+import { useAuthStore } from '../../account/authStore';
 import { Screen } from '../../../components/Screen';
 import { useAppTheme } from '../../../theme/themeProvider';
 import {
@@ -26,112 +31,161 @@ import { routes } from '../../../navigation/routes';
 
 export default function TrendsScreen() {
   const router = useRouter();
-  const [summaries, setSummaries] = useState<DailyActivitySummary[]>(createInitialSummaries);
+  const [summaryReader] = useState(
+    () =>
+      new LocalReadResource<DailyActivitySummary[]>((items) =>
+        items.every(
+          (item) => !item.toilet.sessionCount && !item.training.totalDurationSeconds && !item.habit.completionCount,
+        ),
+      ),
+  );
+  const [detailReader] = useState(() => new LocalReadResource<DailyDataDetails>());
+  const summaryState = useSyncExternalStore(summaryReader.subscribe, summaryReader.getSnapshot);
+  const detailState = useSyncExternalStore(detailReader.subscribe, detailReader.getSnapshot);
+  const token = useAuthStore((state) => state.accessToken);
+  const authLoading = useAuthStore((state) => state.isLoading || !state.hasHydrated);
   const [activeDate, setActiveDate] = useState(getLocalDateKey);
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [detailSection, setDetailSection] = useState<DailyDataDetailSection | null>(null);
-  const [details, setDetails] = useState<DailyDataDetails | null>(null);
   const [trendGestureActive, setTrendGestureActive] = useState(false);
-  const detailRequestRef = useRef(0);
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
+      if (authLoading) {
+        summaryReader.reset();
+        detailReader.reset();
+        setDetailDate(null);
+        return;
+      }
       const refresh = () => {
-        void listDailyActivitySummaries(90)
-          .then((next) => {
-            if (active) setSummaries(next);
-          })
-          .catch(() => undefined);
+        void summaryReader.load('overview', () => listDailyActivitySummaries(90));
       };
 
       refresh();
       const unsubscribe = subscribeToLocalDataChanges(refresh);
       return () => {
-        active = false;
+        summaryReader.cancel();
         unsubscribe();
       };
-    }, []),
+      // 身份恢复及 token 更新后需要重新读取当前资料。
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [summaryReader, detailReader, token, authLoading]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!detailDate || authLoading) return;
+      const refresh = () => {
+        void detailReader.load(detailDate, () => getDailyDataDetails(detailDate));
+      };
+      refresh();
+      const unsubscribe = subscribeToLocalDataChanges(refresh);
+      return () => {
+        detailReader.cancel();
+        unsubscribe();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [detailReader, detailDate, token, authLoading]),
   );
 
   const openDateDetails = (date: string, section: DailyDataDetailSection | null = null) => {
-    const requestId = detailRequestRef.current + 1;
-    detailRequestRef.current = requestId;
     setActiveDate(date);
     setDetailDate(date);
     setDetailSection(section);
-    setDetails(null);
-    void getDailyDataDetails(date)
-      .then((next) => {
-        if (detailRequestRef.current === requestId) setDetails(next);
-      })
-      .catch(() => {
-        if (detailRequestRef.current === requestId) setDetails(null);
-      });
   };
-  const today = summaries.at(-1) ?? emptyDailySummary(getLocalDateKey());
+  const summaryCurrent =
+    !authLoading && summaryState.generation !== null && authSessionContext.isGenerationCurrent(summaryState.generation);
+  const detailCurrent =
+    !authLoading &&
+    detailState.generation !== null &&
+    authSessionContext.isGenerationCurrent(detailState.generation) &&
+    detailState.key === detailDate;
+  const summaries = summaryCurrent ? summaryState.data : null;
+  const today = summaries?.at(-1) ?? emptyDailySummary(getLocalDateKey());
 
   return (
     <Screen scrollEnabled={!trendGestureActive}>
       <PageHeader subtitle="从今天的细节，到 90 天的身体节奏。" title="数据回看" />
 
-      <TodayDataOverview onOpenDetails={(section) => openDateDetails(today.date, section)} summary={today} />
+      {!summaryCurrent || summaryState.phase !== 'ready' ? (
+        <AppCard>
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ color: summaryCurrent && summaryState.error ? colors.danger : colors.textMuted }}
+          >
+            {!summaryCurrent || summaryState.phase === 'loading'
+              ? summaries
+                ? '正在更新记录…'
+                : '正在读取记录…'
+              : summaryState.phase === 'error'
+                ? `记录读取失败：${summaryState.error}${summaries ? ' 当前保留上次读取的数据。' : ''}`
+                : '最近 90 天还没有记录。'}
+          </Text>
+          {summaryCurrent && summaryState.phase === 'error' ? (
+            <AppButton
+              variant="secondary"
+              onPress={() => void summaryReader.load('overview', () => listDailyActivitySummaries(90))}
+            >
+              重新读取
+            </AppButton>
+          ) : null}
+        </AppCard>
+      ) : null}
 
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionCopy}>
-          <Text style={styles.sectionTitle}>90 天日历</Text>
-          <Text style={styles.sectionCaption}>点选日期，查看当天训练、小账本和蹲会儿明细</Text>
-        </View>
-        <View style={styles.privacyPill}>
-          <Text style={styles.privacyPillText}>保留 90 天</Text>
-        </View>
-      </View>
-      <DailyDataCalendar onSelectDate={openDateDetails} selectedDate={activeDate} summaries={summaries} />
+      {summaries ? (
+        <>
+          <TodayDataOverview onOpenDetails={(section) => openDateDetails(today.date, section)} summary={today} />
 
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionCopy}>
-          <Text style={styles.sectionTitle}>趋势折线</Text>
-          <Text style={styles.sectionCaption}>切换 7、30、90 天，左右滑动查看单日数据</Text>
-        </View>
-      </View>
-      <DataTrendChart
-        onGestureActiveChange={setTrendGestureActive}
-        onOpenDate={openDateDetails}
-        onSelectDate={setActiveDate}
-        selectedDate={activeDate}
-        summaries={summaries}
-      />
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionCopy}>
+              <Text style={styles.sectionTitle}>90 天日历</Text>
+              <Text style={styles.sectionCaption}>点选日期，查看当天训练、小账本和蹲会儿明细</Text>
+            </View>
+            <View style={styles.privacyPill}>
+              <Text style={styles.privacyPillText}>保留 90 天</Text>
+            </View>
+          </View>
+          <DailyDataCalendar onSelectDate={openDateDetails} selectedDate={activeDate} summaries={summaries} />
+
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionCopy}>
+              <Text style={styles.sectionTitle}>趋势折线</Text>
+              <Text style={styles.sectionCaption}>切换 7、30、90 天，左右滑动查看单日数据</Text>
+            </View>
+          </View>
+          <DataTrendChart
+            onGestureActiveChange={setTrendGestureActive}
+            onOpenDate={openDateDetails}
+            onSelectDate={setActiveDate}
+            selectedDate={activeDate}
+            summaries={summaries}
+          />
+        </>
+      ) : null}
 
       <DailyDataDetailModal
         date={detailDate}
-        details={details}
+        details={detailCurrent ? detailState.data : null}
+        loading={!detailCurrent || detailState.phase === 'loading'}
+        error={detailCurrent ? detailState.error : null}
+        onRetry={() => {
+          if (detailDate) void detailReader.load(detailDate, () => getDailyDataDetails(detailDate));
+        }}
         onEditToiletRecord={(id) => {
-          detailRequestRef.current += 1;
+          detailReader.reset();
           setDetailDate(null);
-          setDetails(null);
           setDetailSection(null);
           router.push(routes.toiletRecord(id));
         }}
         onClose={() => {
-          detailRequestRef.current += 1;
+          detailReader.reset();
           setDetailDate(null);
-          setDetails(null);
           setDetailSection(null);
         }}
         section={detailSection}
       />
     </Screen>
   );
-}
-
-function createInitialSummaries() {
-  const now = new Date();
-  return Array.from({ length: 90 }, (_, index) => {
-    const date = new Date(now);
-    date.setHours(12, 0, 0, 0);
-    date.setDate(date.getDate() - (89 - index));
-    return emptyDailySummary(getLocalDateKey(date));
-  });
 }

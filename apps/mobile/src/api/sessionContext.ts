@@ -35,6 +35,10 @@ export class SessionContext {
     return this.generation;
   }
 
+  getGeneration() {
+    return this.generation;
+  }
+
   completeAnonymousTransition(generation: number) {
     this.assertGeneration(generation);
     this.transitioning = false;

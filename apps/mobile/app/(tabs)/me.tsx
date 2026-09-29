@@ -24,6 +24,7 @@ import { mockUserIds, useAuthStore } from '../../src/features/account/authStore'
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 import { trackGrowthEvent } from '../../src/features/growth/growthEventTracker';
+import { DataSyncStatusCard } from '../../src/features/sync/DataSyncStatusCard';
 
 const accountLinks = [
   {
@@ -50,6 +51,7 @@ export default function MeScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const authIsLoading = useAuthStore((state) => state.isLoading);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const loginWithMockApple = useAuthStore((state) => state.loginWithMockApple);
   const logout = useAuthStore((state) => state.logout);
   const [pendingLoginUserId, setPendingLoginUserId] = useState<'apple' | (typeof mockUserIds)[number] | null>(null);
@@ -103,21 +105,25 @@ export default function MeScreen() {
             <ProfileAvatar avatarUrl={user?.avatarUrl} nickname={user?.nickname} size="lg" />
             <View style={styles.profileCopy}>
               <Text numberOfLines={1} style={styles.profileName}>
-                {user?.nickname ?? '还没登录小提督'}
+                {user?.nickname ?? (accessToken ? '已登录账号' : '还没登录小提督')}
               </Text>
-              <Text style={styles.profileStatus}>{user ? '云端同步已连接' : '登录后同步完整健康记录'}</Text>
+              <Text style={styles.profileStatus}>
+                {authIsLoading ? '正在处理账号…' : accessToken ? '已登录' : '登录后同步完整健康记录'}
+              </Text>
             </View>
           </View>
 
-          {user ? (
+          {accessToken ? (
             <>
               <View style={styles.userIdBox}>
                 <Text style={styles.userIdLabel}>用户 ID</Text>
                 <Text numberOfLines={1} selectable style={styles.userIdValue}>
-                  {user.id}
+                  {user?.id ?? '账号资料暂未读取，请刷新重试'}
                 </Text>
               </View>
-              <AppButton onPress={() => router.push(routes.meProfile)}>编辑资料</AppButton>
+              <AppButton disabled={!user || isLoading} onPress={() => router.push(routes.meProfile)}>
+                编辑资料
+              </AppButton>
             </>
           ) : (
             <>
@@ -128,6 +134,8 @@ export default function MeScreen() {
             </>
           )}
         </AppCard>
+
+        <DataSyncStatusCard />
 
         {MOCK_LOGIN_ENABLED ? (
           <PageSection title="开发账号">
@@ -175,7 +183,7 @@ export default function MeScreen() {
           </AppCard>
         </PageSection>
 
-        {user ? (
+        {accessToken ? (
           <PageSection title="账号操作">
             <View style={styles.accountActions}>
               <AppButton disabled={isLoading} onPress={handleRefresh} style={styles.actionButton} variant="secondary">

@@ -403,12 +403,18 @@ function Segments<T extends string | number>({
 export function DailyDataDetailModal({
   date,
   details,
+  loading,
+  error,
+  onRetry,
   onClose,
   onEditToiletRecord,
   section,
 }: {
   date: string | null;
   details: DailyDataDetails | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
   onClose: () => void;
   onEditToiletRecord: (id: string) => void;
   section: DailyDataDetailSection | null;
@@ -435,6 +441,18 @@ export function DailyDataDetailModal({
     >
       {date ? (
         <>
+          {loading ? <Text style={styles.emptyText}>{details ? '正在更新当天记录…' : '正在读取当天记录…'}</Text> : null}
+          {error ? (
+            <View style={styles.modalLoading}>
+              <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>
+                当天记录读取失败：{error}
+                {details ? ' 当前保留上次读取的数据。' : ''}
+              </Text>
+              <AppButton variant="secondary" onPress={onRetry}>
+                重新读取
+              </AppButton>
+            </View>
+          ) : null}
           {details ? (
             <>
               <View style={styles.detailSummary}>
@@ -465,11 +483,7 @@ export function DailyDataDetailModal({
               {section === null || section === 'training' ? <TrainingDetails details={details} /> : null}
               {section === null || section === 'habit' ? <HabitDetails summary={details.summary} /> : null}
             </>
-          ) : (
-            <View style={styles.modalLoading}>
-              <Text style={styles.emptyText}>正在读取当天记录…</Text>
-            </View>
-          )}
+          ) : null}
         </>
       ) : null}
     </AppSheet>

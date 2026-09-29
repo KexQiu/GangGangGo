@@ -70,7 +70,7 @@
 - R01：接入真实 Sign in with Apple，验证取消、凭证失效、退出重登和邀请加入。
 - R06、R07：修正同步/共享说明，确保小屏、大字体下始终能暂停和结束。界面修复可提前独立推进。
 - R11–R13：记录纠错入口、草稿恢复与固定事件时间已实现，见[实施与验收记录](./architecture/toilet-record-recovery-acceptance.md)；完成原生恢复与配对设备验收。
-- R17、R18：下一批补齐同步与本地读取失败的状态反馈和重试。
+- R17、R18：同步与本地读取失败反馈、重试及会话隔离已实现，见[实施记录](./architecture/sync-status-read-recovery-acceptance.md)；推进真实断网、双账号和原生视图验收。
 - R14、R15、R19、R20：完成提醒续排、勿扰边界、明确后台计时规则及可读性改进。
 - 验证本次发布包含的 Watch、Live Activity、通知能力与签名安装。
 

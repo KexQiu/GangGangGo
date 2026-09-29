@@ -5,15 +5,16 @@ import Storage from 'expo-sqlite/kv-store';
 
 import { pushApi } from '../../api/client';
 import { useAuthStore } from '../account/authStore';
-import { authSessionContext } from '../../api/sessionContext';
+import { authSessionContext, SessionChangedError } from '../../api/sessionContext';
 import { flushPendingSessionRevocations } from '../account/sessionRevocation';
+import type { SyncTaskResult } from './syncTaskResult';
 
-export async function registerPushTokenIfAllowed(): Promise<boolean> {
+export async function registerPushTokenIfAllowed(): Promise<SyncTaskResult> {
   const accessToken = useAuthStore.getState().accessToken;
   const owner = authSessionContext.current();
 
   if (!accessToken || !owner || Platform.OS === 'web') {
-    return false;
+    return { outcome: 'skipped', reason: '当前账号或平台未启用推送。' };
   }
 
   try {
@@ -24,7 +25,7 @@ export async function registerPushTokenIfAllowed(): Promise<boolean> {
     if (!isNotificationAllowed(permission)) {
       await pushApi.revokeDevice(getPushDeviceId(), accessToken);
       logPushTokenDebug('notification permission is not granted');
-      return false;
+      return { outcome: 'skipped', reason: '系统通知权限未开启。' };
     }
 
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
@@ -41,10 +42,12 @@ export async function registerPushTokenIfAllowed(): Promise<boolean> {
       accessToken,
     );
 
-    return true;
+    authSessionContext.assertCurrent(owner);
+    return { outcome: 'success' };
   } catch (error) {
     logPushTokenDebug('failed to register push token', error);
-    return false;
+    if (error instanceof SessionChangedError) return { outcome: 'skipped', reason: '账号已变更，本次推送注册已停止。' };
+    throw error;
   }
 }
 

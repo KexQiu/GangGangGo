@@ -118,3 +118,34 @@ export async function setDataSyncCursor(
     { $cursor: cursor, $now: new Date().toISOString(), $profileId: profileId },
   );
 }
+
+export type DataSyncOverview = { pendingCount: number; lastCompletedAt: string | null };
+
+/** 调用方持有当前会话的本地队列，避免读到未提交的 outbox。 */
+export async function readDataSyncOverview(profileId: string): Promise<DataSyncOverview> {
+  const db = await initializeDatabase();
+  const count = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM data_sync_outbox WHERE profile_id = $profileId;',
+    { $profileId: profileId },
+  );
+  const state = await db.getFirstAsync<{ last_completed_at: string | null }>(
+    'SELECT last_completed_at FROM data_sync_state WHERE profile_id = $profileId;',
+    { $profileId: profileId },
+  );
+  return { pendingCount: Number(count?.count ?? 0), lastCompletedAt: state?.last_completed_at ?? null };
+}
+
+/** 调用方负责事务；游标推进不等于整轮完成，新增待提交项也不能被标为完成。 */
+export async function markDataSyncCompleted(profileId: string, db: Awaited<ReturnType<typeof initializeDatabase>>) {
+  const pending = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM data_sync_outbox WHERE profile_id = $profileId;',
+    { $profileId: profileId },
+  );
+  if (Number(pending?.count ?? 0) > 0) return false;
+  await db.runAsync(
+    `INSERT INTO data_sync_state (profile_id, last_completed_at) VALUES ($profileId, $now)
+     ON CONFLICT(profile_id) DO UPDATE SET last_completed_at = excluded.last_completed_at;`,
+    { $profileId: profileId, $now: new Date().toISOString() },
+  );
+  return true;
+}

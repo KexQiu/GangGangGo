@@ -1,13 +1,13 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
-const latestVersion = 3;
+const latestVersion = 4;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   const version = row?.user_version ?? 0;
   if (version === latestVersion) return;
-  if (![0, 1, 2].includes(version)) throw new Error(`Unsupported database version: ${version}`);
+  if (![0, 1, 2, 3].includes(version)) throw new Error(`Unsupported database version: ${version}`);
 
   await db.withTransactionAsync(async () => {
     if (version === 0)
@@ -200,7 +200,8 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX idx_watch_event_receipts_processed_at ON watch_event_receipts (processed_at);
       PRAGMA user_version = 2;
     `);
-    await db.execAsync(`
+    if (version < 3)
+      await db.execAsync(`
       CREATE TABLE toilet_record_drafts (
         id TEXT PRIMARY KEY NOT NULL,
         profile_id TEXT NOT NULL REFERENCES local_data_profiles(id) ON DELETE CASCADE,
@@ -213,5 +214,6 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX idx_toilet_record_drafts_profile_state ON toilet_record_drafts (profile_id, state, ended_at DESC);
       PRAGMA user_version = 3;
     `);
+    await db.execAsync('ALTER TABLE data_sync_state ADD COLUMN last_completed_at TEXT; PRAGMA user_version = 4;');
   });
 }

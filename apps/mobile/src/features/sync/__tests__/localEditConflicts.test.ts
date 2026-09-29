@@ -137,7 +137,7 @@ describe('local edits versus in-flight sync, with real SQLite repositories and s
         return push(request);
       });
       gate.release();
-      await expect(syncing).resolves.toBe(true);
+      await expect(syncing).resolves.toEqual({ outcome: 'success' });
       expect(rows(table)).toMatchObject([{ deleted_at: null, sync_version: 3 }]);
       expect(rows('data_sync_outbox')).toHaveLength(0);
       expect(changes.at(-1)).toMatchObject({ entityType, entityId, operation: 'upsert' });

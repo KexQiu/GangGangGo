@@ -1,3 +1,5 @@
+import type { SyncTaskResult } from './syncTaskResult';
+
 export type SyncReason =
   'app_boot' | 'app_foreground' | 'auth_changed' | 'entitlements_changed' | 'local_changed' | 'task_retry';
 
@@ -7,13 +9,16 @@ export type SyncTaskName = (typeof syncTaskNames)[number];
 export type SyncTaskStatus = {
   lastError: string | null;
   lastFinishedAt: string | null;
-  phase: 'error' | 'idle' | 'running' | 'success';
+  lastSucceededAt: string | null;
+  skipReason: string | null;
+  phase: 'error' | 'idle' | 'running' | 'success' | 'skipped';
 };
 export type SyncTaskStatuses = Record<SyncTaskName, SyncTaskStatus>;
 
 type AuthSnapshot = {
   accessToken: string | null;
-  refreshEntitlements: () => Promise<unknown>;
+  sessionKey: number | null;
+  refreshEntitlements: () => Promise<SyncTaskResult>;
 };
 
 type AuthChange = {
@@ -22,18 +27,18 @@ type AuthChange = {
 };
 
 type Unsubscribe = () => void;
-type SyncTask = () => Promise<unknown>;
+type SyncTask = () => Promise<SyncTaskResult>;
 
 export type SyncCoordinatorDependencies = {
   debounceMs?: number;
   getAppState: () => SyncAppState;
   getAuth: () => AuthSnapshot;
-  syncData: () => Promise<unknown>;
-  registerPushToken: () => Promise<unknown>;
+  syncData: SyncTask;
+  registerPushToken: SyncTask;
   subscribeAppState: (listener: (state: SyncAppState) => void) => Unsubscribe;
   subscribeAuthChanges: (listener: (change: AuthChange) => void) => Unsubscribe;
   subscribeLocalChanges: (listener: () => void) => Unsubscribe;
-  syncWatch: (now: Date, reason: string) => Promise<unknown>;
+  syncWatch: (now: Date, reason: string) => Promise<SyncTaskResult>;
 };
 
 export class SyncCoordinator {
@@ -41,7 +46,9 @@ export class SyncCoordinator {
   private readonly debounceMs: number;
   private pendingReasons = new Set<SyncReason>();
   private pendingTaskRetries = new Set<SyncTaskName>();
-  private running = false;
+  private currentRun: object | null = null;
+  private epoch = 0;
+  private sessionKey: number | null;
   private started = false;
   private statusListeners = new Set<(statuses: SyncTaskStatuses) => void>();
   private taskStatuses = createInitialTaskStatuses();
@@ -51,6 +58,7 @@ export class SyncCoordinator {
   constructor(private readonly dependencies: SyncCoordinatorDependencies) {
     this.appState = dependencies.getAppState();
     this.debounceMs = dependencies.debounceMs ?? 750;
+    this.sessionKey = dependencies.getAuth().sessionKey;
   }
 
   start() {
@@ -59,6 +67,7 @@ export class SyncCoordinator {
     this.appState = this.dependencies.getAppState();
     this.unsubscribers.push(
       this.dependencies.subscribeAuthChanges((change) => {
+        this.refreshIdentity();
         if (change.accessTokenChanged) this.schedule('auth_changed', true);
         if (change.entitlementsChanged) this.schedule('entitlements_changed');
       }),
@@ -74,6 +83,8 @@ export class SyncCoordinator {
 
   stop() {
     this.started = false;
+    this.epoch += 1;
+    this.currentRun = null;
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.pendingReasons.clear();
@@ -83,14 +94,18 @@ export class SyncCoordinator {
   }
 
   schedule(reason: SyncReason, immediate = false) {
+    if (!this.started) return;
     this.pendingReasons.add(reason);
-    if (this.running) return;
+    if (this.currentRun) return;
     this.armTimer(immediate ? 0 : this.debounceMs);
   }
 
   getTaskStatuses(): SyncTaskStatuses {
     return cloneTaskStatuses(this.taskStatuses);
   }
+
+  getSnapshot = () => this.taskStatuses;
+  getSessionKey = () => this.sessionKey;
 
   retryTask(taskName: SyncTaskName) {
     this.pendingTaskRetries.add(taskName);
@@ -110,9 +125,12 @@ export class SyncCoordinator {
 
   private async flush() {
     this.timer = null;
-    if (this.running || this.appState !== 'active') return;
+    if (!this.started || this.currentRun || this.appState !== 'active') return;
 
-    this.running = true;
+    this.refreshIdentity();
+    const run = {};
+    this.currentRun = run;
+    const epoch = this.epoch;
     const reasons = new Set(this.pendingReasons);
     this.pendingReasons.clear();
     const taskRetries = new Set(this.pendingTaskRetries);
@@ -144,6 +162,8 @@ export class SyncCoordinator {
         this.updateTaskStatus(taskName, {
           lastError: '登录后才能重试此同步任务。',
           lastFinishedAt: new Date().toISOString(),
+          lastSucceededAt: null,
+          skipReason: null,
           phase: 'error',
         });
         continue;
@@ -153,47 +173,85 @@ export class SyncCoordinator {
 
     try {
       await Promise.allSettled(
-        [...tasks].map(([taskName, task]) => Promise.resolve().then(() => this.runTrackedTask(taskName, task))),
+        [...tasks].map(([taskName, task]) => Promise.resolve().then(() => this.runTrackedTask(taskName, task, epoch))),
       );
     } finally {
-      this.running = false;
-      if (this.started && this.pendingReasons.size > 0) this.armTimer(this.debounceMs);
+      if (this.currentRun === run) {
+        this.currentRun = null;
+        if (this.started && this.pendingReasons.size > 0) this.armTimer(this.debounceMs);
+      }
     }
   }
 
-  private async runTrackedTask(taskName: SyncTaskName, task: SyncTask) {
+  private async runTrackedTask(taskName: SyncTaskName, task: SyncTask, epoch: number) {
+    if (!this.isCurrent(epoch)) return;
     this.updateTaskStatus(taskName, {
       ...this.taskStatuses[taskName],
       phase: 'running',
     });
     try {
       const result = await task();
+      if (!this.isCurrent(epoch)) return;
+      const finishedAt = new Date().toISOString();
       this.updateTaskStatus(taskName, {
         lastError: null,
-        lastFinishedAt: new Date().toISOString(),
-        phase: 'success',
+        lastFinishedAt: finishedAt,
+        lastSucceededAt: result.outcome === 'success' ? finishedAt : this.taskStatuses[taskName].lastSucceededAt,
+        skipReason: result.outcome === 'skipped' ? result.reason : null,
+        phase: result.outcome === 'success' ? 'success' : 'skipped',
       });
       return result;
     } catch (error) {
+      if (!this.isCurrent(epoch)) return;
       this.updateTaskStatus(taskName, {
+        ...this.taskStatuses[taskName],
         lastError: error instanceof Error ? error.message : '同步任务失败。',
         lastFinishedAt: new Date().toISOString(),
+        skipReason: null,
         phase: 'error',
       });
       throw error;
     }
   }
 
+  private isCurrent(epoch: number) {
+    return this.started && epoch === this.epoch && this.sessionKey === this.dependencies.getAuth().sessionKey;
+  }
+
+  private refreshIdentity() {
+    const next = this.dependencies.getAuth().sessionKey;
+    if (next === this.sessionKey) return;
+    this.sessionKey = next;
+    this.epoch += 1;
+    this.currentRun = null;
+    this.pendingTaskRetries.clear();
+    this.taskStatuses = createInitialTaskStatuses();
+    this.notifyStatusListeners();
+  }
+
   private updateTaskStatus(taskName: SyncTaskName, status: SyncTaskStatus) {
     this.taskStatuses = { ...this.taskStatuses, [taskName]: status };
+    this.notifyStatusListeners();
+  }
+
+  private notifyStatusListeners() {
     const snapshot = this.getTaskStatuses();
-    for (const listener of this.statusListeners) listener(snapshot);
+    for (const listener of this.statusListeners) {
+      try {
+        listener(snapshot);
+      } catch {
+        /* 展示订阅失败不能改变同步结果。 */
+      }
+    }
   }
 }
 
 function createInitialTaskStatuses(): SyncTaskStatuses {
   return Object.fromEntries(
-    syncTaskNames.map((taskName) => [taskName, { lastError: null, lastFinishedAt: null, phase: 'idle' }]),
+    syncTaskNames.map((taskName) => [
+      taskName,
+      { lastError: null, lastFinishedAt: null, lastSucceededAt: null, skipReason: null, phase: 'idle' },
+    ]),
   ) as SyncTaskStatuses;
 }
 
