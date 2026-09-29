@@ -320,9 +320,9 @@ private final class LiveActivityClient {
     let stage: (key: String, message: String)
     switch elapsed {
     case targetSeconds...:
-      stage = ("severe_warning", "小花过劳了")
+      stage = ("severe_warning", "请先结束如厕")
     case (15.0 * 60.0)..<targetSeconds:
-      stage = ("overtime", "小花过劳了")
+      stage = ("overtime", "请先结束如厕")
     case (10.0 * 60.0)..<(15.0 * 60.0):
       stage = ("strong_warning", "别再加班了")
     case (5.0 * 60.0)..<(10.0 * 60.0):

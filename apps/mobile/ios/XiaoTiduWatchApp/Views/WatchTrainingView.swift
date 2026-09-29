@@ -188,6 +188,13 @@ private struct TrainingModePicker: View {
           .font(.headline)
           .padding(.horizontal, 2)
 
+        Text("盆底肌练习并非人人适合。已有盆底疼痛、排尿排便困难或盆底过紧时，先咨询专业人员；术后、孕产期按专业建议安排。")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+        Text("正常呼吸，收缩后充分放松。疼痛或不适加重时停练。2 组仅为应用记录目标，不必凑次数。")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+
         ForEach(modes) { mode in
           Button {
             if selectedModeId == mode.id {
@@ -211,7 +218,7 @@ private struct TrainingModePicker: View {
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
 
-        Text("手表只记轻量完成，不记录敏感细节。")
+        Text("手表记录本组节奏、时间和完成次数，并发送到 iPhone。")
           .font(.caption2)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)

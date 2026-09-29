@@ -124,11 +124,11 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
     case "water":
       return "喝水"
     case "fiber":
-      return "纤维"
+      return "蔬果全谷"
     case "movement":
       return "活动"
     case "bowel":
-      return "顺畅"
+      return "排便"
     default:
       return "小账本"
     }

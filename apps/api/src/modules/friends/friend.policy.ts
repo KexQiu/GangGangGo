@@ -20,7 +20,7 @@ const defaultTimezone = 'Asia/Shanghai';
 
 export const nudgeMessages: Record<CreateFriendNudgeRequest['type'], string> = {
   gentle: '轻轻戳一下，今天别空白。',
-  habit_left: '小账本还差一笔，顺手把今天补完整。',
+  habit_left: '有空记一下今天的习惯，按实际情况填写就好。',
   move: '起来走两步，给身体换个档。',
   not_blank: '今天留一点小进展，哪怕很小也算数。',
   posture: '肩颈松一下，别把自己拧住。',

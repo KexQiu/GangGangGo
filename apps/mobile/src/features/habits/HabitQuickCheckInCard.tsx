@@ -22,7 +22,7 @@ import {
 } from './habitLogic';
 import { getHabitLevelStandard, habitStandards } from './habitStandards';
 import { getHabitCheckInForDate, useHabitStore } from './habitStore';
-import { type HabitKey, type HabitLevel } from './habitTypes';
+import { type HabitKey, type HabitRecordLevel } from './habitTypes';
 
 const quickHabitItems: Array<{
   icon: typeof Droplets;
@@ -37,7 +37,7 @@ const quickHabitItems: Array<{
   {
     icon: Leaf,
     key: 'fiber',
-    title: '纤维',
+    title: '蔬果全谷',
   },
   {
     icon: Move,
@@ -130,7 +130,7 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
         <View style={styles.headerCopy}>
           <Text style={styles.title}>今日小账本</Text>
           <Text style={styles.subtitle}>
-            {justCompleted ? '小账本满格，今日营业稳定。' : getHabitPositiveFeedback(todayCheckIn, streak)}
+            {justCompleted ? '今天 4 项都已记录。' : getHabitPositiveFeedback(todayCheckIn, streak)}
           </Text>
         </View>
         <View style={styles.headerSide}>
@@ -162,12 +162,19 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
 
           return (
             <PressableScale
-              accessibilityHint={selected ? '再点一下会撤销这一项。' : '点一下会把这一项记为达标。'}
-              accessibilityLabel={`${item.title}，${stateLabel}，达标参考${targetLabel}`}
+              accessibilityHint={
+                item.key === 'bowel'
+                  ? '打开排便情况，选择感受或今日未排便。'
+                  : selected
+                    ? '再点一下会撤销这一项。'
+                    : `点一下记为${habitStandards[item.key].levels.good.label}，其他分档可在详情中填写。`
+              }
+              accessibilityLabel={`${item.title}，${stateLabel}，快捷记录${targetLabel}`}
               accessibilityState={{ selected }}
               key={item.key}
               onPress={() => {
-                void toggleGood(item.key);
+                if (item.key === 'bowel') router.push(routes.habits);
+                else void toggleGood(item.key);
               }}
               style={[
                 styles.quickButton,
@@ -189,12 +196,8 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
                 <Text style={styles.quickTitle} numberOfLines={1}>
                   {item.title}
                 </Text>
-                <Text style={[styles.quickState, { color: stateTone.textColor }]} numberOfLines={1}>
-                  {stateLabel}
-                </Text>
-                <Text style={styles.quickHint} numberOfLines={1}>
-                  参考 {targetLabel}
-                </Text>
+                <Text style={[styles.quickState, { color: stateTone.textColor }]}>{stateLabel}</Text>
+                <Text style={styles.quickHint}>快捷 {targetLabel}</Text>
               </View>
             </PressableScale>
           );
@@ -395,7 +398,7 @@ function createStyles(colors: ThemeColors, compact: boolean) {
   });
 }
 
-function getHabitLevelTone(colors: ThemeColors, level: HabitLevel | null) {
+function getHabitLevelTone(colors: ThemeColors, level: HabitRecordLevel | null) {
   if (level === 'good') {
     return {
       backgroundColor: colors.primarySoft,

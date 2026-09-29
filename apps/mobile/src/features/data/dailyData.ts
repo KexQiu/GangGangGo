@@ -217,7 +217,7 @@ function buildSummary(date: string, training: TrainingRow[], habit: HabitRow | n
   return {
     date,
     habit: {
-      bowel: toHabitLevel(habit?.bowel),
+      bowel: habit?.bowel === 'not_today' ? 'not_today' : toHabitLevel(habit?.bowel),
       completionCount: [habit?.water, habit?.fiber, habit?.movement, habit?.bowel].filter(Boolean).length,
       fiber: toHabitLevel(habit?.fiber),
       movement: toHabitLevel(habit?.movement),
@@ -324,7 +324,7 @@ function rowToSummary(row: DailySummaryRow): DailyActivitySummary {
   return {
     date: row.date,
     habit: {
-      bowel: toHabitLevel(row.habit_bowel),
+      bowel: row.habit_bowel === 'not_today' ? 'not_today' : toHabitLevel(row.habit_bowel),
       completionCount: row.habit_completion_count,
       fiber: toHabitLevel(row.habit_fiber),
       movement: toHabitLevel(row.habit_movement),

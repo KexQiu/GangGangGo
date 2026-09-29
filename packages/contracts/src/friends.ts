@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { isoDateSchema, isoDateTimeSchema, quietRangeSchema } from './common.js';
+import { bowelStatusSchema } from './dataSync.js';
 import { userSummarySchema } from './users.js';
 
 export const FRIEND_DATA_LEVELS = ['none', 'summary', 'detailed'] as const;
@@ -174,7 +175,7 @@ const summaryHabitSchema = z
 const habitLevelSchema = z.enum(['low', 'medium', 'good']).nullable();
 const detailedHabitSchema = z
   .object({
-    bowel: habitLevelSchema,
+    bowel: bowelStatusSchema.nullable(),
     completionCount: z.number().int().min(0).max(4),
     fiber: habitLevelSchema,
     level: z.literal('detailed'),

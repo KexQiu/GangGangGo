@@ -570,6 +570,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                             "low",
                             "medium",
                             "good",
+                            "not_today",
                             null,
                           ],
                           "type": [
@@ -918,6 +919,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                                 "low",
                                 "medium",
                                 "good",
+                                "not_today",
                                 null,
                               ],
                               "type": [
@@ -1204,6 +1206,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                             "low",
                             "medium",
                             "good",
+                            "not_today",
                             null,
                           ],
                           "type": [
@@ -1899,6 +1902,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                       "low",
                       "medium",
                       "good",
+                      "not_today",
                       null,
                     ],
                     "type": [

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { dailyActivitySummarySchema, dataSyncMutationSchema, dataSyncPushRequestSchema } from '../index.js';
+import {
+  dailyActivitySummarySchema,
+  dataSyncMutationSchema,
+  dataSyncPushRequestSchema,
+  friendHabitDataSchema,
+  habitCheckInSyncPayloadSchema,
+} from '../index.js';
 
 const identity = {
   changedAt: '2026-07-21T08:00:00.000Z',
@@ -10,6 +16,24 @@ const identity = {
 };
 
 describe('full data sync contracts', () => {
+  it('preserves no bowel movement as a recorded state without treating it as a nutrition or activity level', () => {
+    const payload = { date: '2026-09-29', bowel: 'not_today', water: 'low', fiber: 'medium', movement: 'good' };
+    expect(habitCheckInSyncPayloadSchema.parse(payload)).toEqual(payload);
+    expect(
+      friendHabitDataSchema.parse({
+        bowel: 'not_today',
+        water: 'low',
+        fiber: 'medium',
+        movement: 'good',
+        level: 'detailed',
+        completionCount: 4,
+        streakDays: 1,
+      }),
+    ).toMatchObject({ bowel: 'not_today', completionCount: 4 });
+    for (const key of ['water', 'fiber', 'movement']) {
+      expect(habitCheckInSyncPayloadSchema.safeParse({ ...payload, [key]: 'not_today' }).success).toBe(false);
+    }
+  });
   it('validates entity-specific payloads', () => {
     const request = {
       mutations: [

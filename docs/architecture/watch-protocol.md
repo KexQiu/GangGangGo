@@ -8,6 +8,8 @@
 
 所有 `watch_event` 包装的事件包含唯一 `id`、`createdAt`、`owner`、类型和最小 payload。计时操作额外包含 `sessionId`。入队后保留原账号和计时标识，换号不能改写事件归属。习惯清除在 Swift 消息中省略 `level`（WCSession property list 不接受 `NSNull`），手机解析后规范为 `null`。iPhone 校验完整字段、数值范围、事件年龄（最多 24 小时，允许时钟超前 5 分钟）、账号和计时目标。
 
+小账本 `*Done` 布尔值表示已有记录，界面显示“已记录”，不能理解为 `good` 或健康达标。手机填写 `low`、`medium`、`good` 或排便专用的 `not_today` 都会显示已记录。Watch 空项按界面所示分档快捷填写 `good`，已有记录再次点击清除；其他分档和“今日未排便”在手机选择。此处不增加状态协议字段。
+
 ## 保存与回执
 
 | ACK | 含义 | Watch 行为 |

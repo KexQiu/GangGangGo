@@ -77,4 +77,44 @@ describeWithDatabase('postgres friend and data sync integration', () => {
     expect(ack.ack.status).toBe('received');
     expect(timeline.events[0]).toMatchObject({ ack: { status: 'received' }, id: event.id });
   });
+
+  it('preserves no bowel movement in cloud records and authorized daily summaries', async () => {
+    const owner = await createIntegrationUser(client, createdUserIds, 'bowel-owner');
+    const viewer = await createIntegrationUser(client, createdUserIds, 'bowel-viewer');
+    const friends = createDrizzleFriendService(client.db);
+    const sync = createDrizzleDataSyncService(client.db, { friendService: friends });
+    const invite = await friends.createInvite(owner);
+    await friends.acceptInvite(viewer, invite.token);
+    await friends.updateSettings(owner, viewer.id, { historyDays: 7, habitLevel: 'detailed' });
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const payload = {
+      date,
+      bowel: 'not_today' as const,
+      water: 'low' as const,
+      fiber: 'medium' as const,
+      movement: 'good' as const,
+    };
+    await sync.push(
+      owner,
+      [
+        {
+          changedAt: now.toISOString(),
+          entityId: date,
+          entityType: 'habit_checkin',
+          mutationId: randomUUID(),
+          operation: 'upsert',
+          payload,
+        },
+      ],
+      owner.timezone,
+    );
+    expect((await sync.pull(owner, '0')).changes[0]?.payload).toEqual(payload);
+    const shared = await friends.getFriendData(viewer, owner.id);
+    expect(shared.days.find((day) => day.date === date)?.habit).toMatchObject({
+      level: 'detailed',
+      bowel: 'not_today',
+      completionCount: 4,
+    });
+  });
 });

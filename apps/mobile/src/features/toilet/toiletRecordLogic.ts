@@ -17,8 +17,8 @@ export const toiletStoolShapeOptions: Array<{ label: string; value: ToiletStoolS
 ];
 
 export const toiletStoolColorOptions: Array<{ label: string; value: ToiletStoolColor }> = [
-  { label: '常见颜色', value: 'normal' },
-  { label: '需要留意', value: 'attention' },
+  { label: '棕色', value: 'normal' },
+  { label: '其他或不确定', value: 'attention' },
 ];
 
 export const builtInToiletSignals: ToiletSignal[] = [
@@ -31,8 +31,8 @@ export const builtInToiletSignals: ToiletSignal[] = [
 const toiletStoolShapes = new Set<ToiletStoolShape>(toiletStoolShapeOptions.map((option) => option.value));
 const toiletStoolColors = new Set<ToiletStoolColor>(['normal', 'attention']);
 const toiletStoolColorLabels: Record<ToiletStoolColor, string> = {
-  attention: '需要留意',
-  normal: '常见颜色',
+  attention: '其他或不确定',
+  normal: '棕色',
 };
 
 export function createToiletRecordDraft(session: ToiletSession): ToiletRecordDraft {

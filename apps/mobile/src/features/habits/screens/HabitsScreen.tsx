@@ -11,6 +11,7 @@ import { Text, View } from 'react-native';
 
 import { showToast } from '../../../components/toast/AppToast';
 import { AppCard } from '../../../components/AppCard';
+import { AppButton } from '../../../components/AppButton';
 import { AppTopBar } from '../../../components/AppTopBar';
 import { PressableScale } from '../../../components/feedback/PressableScale';
 import { PageHeader } from '../../../components/PageHeader';
@@ -27,7 +28,8 @@ import {
 import { habitStandards } from '../../../features/habits/habitStandards';
 import { getHabitStateLabel } from '../../../features/habits/habitPresentation';
 import { getHabitCheckInForDate, useHabitStore } from '../../../features/habits/habitStore';
-import { type HabitKey, type HabitLevel } from '../../../features/habits/habitTypes';
+import { type HabitKey, type HabitRecordLevel } from '../../../features/habits/habitTypes';
+import { emergencyGuidance, medicalGuidance } from '../../safety/healthGuidance';
 import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
 
@@ -48,6 +50,7 @@ export default function HabitsScreen() {
   const today = getLocalDateKey();
   const checkIns = useHabitStore((state) => state.checkIns);
   const setHabitLevel = useHabitStore((state) => state.setHabitLevel);
+  const clearHabitLevel = useHabitStore((state) => state.clearHabitLevel);
   const todayCheckIn = getHabitCheckInForDate(checkIns, today) ?? createEmptyHabitCheckIn(today);
   const completion = calculateHabitCompletion(todayCheckIn);
   const streak = calculateHabitStreak(checkIns);
@@ -55,10 +58,11 @@ export default function HabitsScreen() {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
-  async function selectHabitLevel(key: HabitKey, level: HabitLevel) {
+  async function selectHabitLevel(key: HabitKey, level: HabitRecordLevel | null) {
     void Haptics.selectionAsync().catch(() => undefined);
     try {
-      await setHabitLevel(today, key, level);
+      if (level === null) await clearHabitLevel(today, key);
+      else await setHabitLevel(today, key, level);
     } catch (error) {
       showToast(error instanceof Error ? error.message : '保存失败，请重试。', { type: 'error' });
     }
@@ -119,7 +123,14 @@ export default function HabitsScreen() {
                 </View>
               </View>
 
-              {activeLevel ? (
+              {activeLevel === 'not_today' ? (
+                <>
+                  <SelectedStandardNote habitKey={item.key} level={activeLevel} />
+                  <AppButton variant="secondary" onPress={() => void selectHabitLevel('bowel', 'medium')}>
+                    排过便，先记为一般
+                  </AppButton>
+                </>
+              ) : activeLevel ? (
                 <>
                   <HabitLevelSlider
                     level={activeLevel}
@@ -133,7 +144,7 @@ export default function HabitsScreen() {
                 </>
               ) : (
                 <PressableScale
-                  accessibilityLabel={`${standard.title}，未记录，按一般开始记录`}
+                  accessibilityLabel={`${standard.title}，未记录，按${standard.levels.medium.label}开始记录`}
                   onPress={() => {
                     void selectHabitLevel(item.key, 'medium');
                   }}
@@ -143,18 +154,29 @@ export default function HabitsScreen() {
                     <PlusCircle color={colors.textMuted} size={19} strokeWidth={2.4} />
                   </View>
                   <View style={styles.emptyCopy}>
-                    <Text style={styles.emptyTitle}>先按一般记</Text>
-                    <Text style={styles.emptyText}>点一下展开滑块，再改成不足或达标。</Text>
+                    <Text style={styles.emptyTitle}>先记为{standard.levels.medium.label}</Text>
+                    <Text style={styles.emptyText}>再按实际情况调整记录分档。</Text>
                   </View>
                 </PressableScale>
               )}
+              {item.key === 'bowel' && activeLevel !== 'not_today' ? (
+                <AppButton variant="secondary" onPress={() => void selectHabitLevel('bowel', 'not_today')}>
+                  今日未排便
+                </AppButton>
+              ) : null}
+              {item.key === 'bowel' && activeLevel ? (
+                <AppButton variant="secondary" onPress={() => void selectHabitLevel('bowel', null)}>
+                  清除此项
+                </AppButton>
+              ) : null}
             </AppCard>
           );
         })}
       </View>
 
       <Text style={styles.footnote}>
-        标准只是日常记录参考；如果医生有安排，听医生的。明显便血、疼痛加重或不适持续时，先看小花说明书。
+        分档仅用于日常记录，不是健康评分或医学达标标准。{medicalGuidance}
+        {emergencyGuidance}
       </Text>
     </Screen>
   );

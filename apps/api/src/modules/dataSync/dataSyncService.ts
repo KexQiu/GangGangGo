@@ -443,7 +443,7 @@ function buildDailySummary(
   return {
     date,
     habit: {
-      bowel: toHabitLevel(habit?.bowel),
+      bowel: habit?.bowel === 'not_today' ? 'not_today' : toHabitLevel(habit?.bowel),
       completionCount: [habit?.water, habit?.fiber, habit?.movement, habit?.bowel].filter(Boolean).length,
       fiber: toHabitLevel(habit?.fiber),
       movement: toHabitLevel(habit?.movement),

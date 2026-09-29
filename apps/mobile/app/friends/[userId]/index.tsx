@@ -280,7 +280,7 @@ function DataPrivacySheet({
           <Text style={styles.permissionDescription}>完整：{describeDisclosureFields(item.fields.detailed)}。</Text>
           {item.field === 'toiletLevel' ? (
             <Text style={styles.permissionDescription}>
-              “需留意”包括便血、不适、颜色需留意或有小信号的记录。完整模式会披露你填写的小信号原文，请确认这些文字适合让
+              “需留意”包括便血、不适、颜色为其他或不确定或有小信号的记录。完整模式会披露你填写的小信号原文，请确认这些文字适合让
               TA 看到。
             </Text>
           ) : null}
@@ -525,13 +525,13 @@ function TodayMetric({
 
 function todayTrainingValue(day: FriendSharedDay) {
   if (day.training.level === 'none') return '未授权';
-  if (day.training.level === 'summary') return day.training.trainingDone ? '已达标' : '未达标';
+  if (day.training.level === 'summary') return day.training.trainingDone ? '记录目标完成' : '记录目标未完成';
   return `${day.training.completedSessionCount} 次`;
 }
 
 function todayTrainingDetail(day: FriendSharedDay) {
   if (day.training.level === 'none') return '等待 TA 授权';
-  if (day.training.level === 'summary') return '完成建议量即可达标';
+  if (day.training.level === 'summary') return '应用记录目标：每天 2 组，非医学标准';
   return `${day.training.completedRepetitions} 下`;
 }
 

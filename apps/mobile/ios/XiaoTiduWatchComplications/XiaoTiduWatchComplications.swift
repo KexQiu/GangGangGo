@@ -198,7 +198,7 @@ private struct XiaoTiduComplicationPresentation {
     }
 
     let completion = max(0, min(state.habits.completion, 4))
-    let trainingText = state.training.done ? "菊花抬完成" : "菊花抬 \(state.training.completedSets) 组"
+    let trainingText = state.training.done ? "训练记录目标完成" : "菊花抬 \(state.training.completedSets) 组"
 
     accent = completion >= 4 ? .green : .mint
     circularText = "\(completion)/4"

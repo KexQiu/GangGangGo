@@ -40,7 +40,7 @@ export default function ToiletScreen() {
             <Armchair color={colors.info} size={38} strokeWidth={2.4} />
           </View>
           <Text style={styles.startTitle}>小花开始值班</Text>
-          <Text style={styles.startText}>5 分钟看一眼，10 分钟准备收工，时间久了就先结束。</Text>
+          <Text style={styles.startText}>办完就离开，不必等提醒。5/10/15/20 分钟是应用提醒节点，不是医学安全线。</Text>
         </AppCard>
         <AppButton onPress={timer.startTimer}>开始计时</AppButton>
       </Screen>
@@ -94,11 +94,11 @@ function getStageHintText(stage: ToiletTimerStage): string {
     case 'gentle_warning':
       return '小花该下班了。如果已经办完，点收工就好。';
     case 'strong_warning':
-      return '别再加班了。继续久蹲可能不舒服。';
+      return '已持续 10 分钟，请先结束，避免长时间坐着。';
     case 'overtime':
-      return '小花过劳了。先结束，站起来活动一下。';
+      return '已持续 15 分钟，请先结束，避免持续用力。';
     case 'severe_warning':
-      return '小花过劳了。请先结束，休息一下再说。';
+      return '已持续 20 分钟，请先结束，稍后有便意再尝试。';
     case 'normal':
     default:
       return '小花值班中。5 分钟后提醒你看一眼时间。';

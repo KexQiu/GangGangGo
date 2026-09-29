@@ -23,7 +23,7 @@ export function ReminderSetupPrompt({ onPress }: ReminderSetupPromptProps) {
       </View>
       <View style={styles.rowCopy}>
         <Text style={styles.reminderPromptTitle}>小暗号还没安排</Text>
-        <Text style={styles.reminderPromptText}>设置一下，App 会用隐私文案轻轻提醒，不在通知栏大声广播。</Text>
+        <Text style={styles.reminderPromptText}>为训练和久坐安排提醒，可选择含蓄通知文案。</Text>
       </View>
       <View style={styles.reminderPromptCta}>
         <Text style={styles.reminderPromptCtaText}>去安排</Text>
@@ -100,7 +100,7 @@ export function TrainingQuickStartCard({ completedCount, onPress, target }: Trai
           </Text>
         </Text>
         <Text style={styles.trainingDescription}>
-          {isComplete ? '建议量已完成，今天让肌肉轻轻下班。' : '轻抬轻放，给肌肉一点呼吸。'}
+          {isComplete ? '今日记录目标已完成，不必为凑次数加练。' : '先确认是否适合练习，记录目标不代表医学建议量。'}
         </Text>
       </View>
       <ChevronRight color={colors.textSubtle} size={19} strokeWidth={2.4} />

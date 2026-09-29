@@ -1,5 +1,5 @@
 import type { useAppTheme } from '../../theme/themeProvider';
-import type { HabitLevel } from './habitTypes';
+import type { HabitLevel, HabitRecordLevel } from './habitTypes';
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
@@ -8,13 +8,14 @@ export type HabitLevelOption = {
   level: HabitLevel;
 };
 
-export function getHabitStateLabel(options: HabitLevelOption[], level: HabitLevel): string {
+export function getHabitStateLabel(options: HabitLevelOption[], level: HabitRecordLevel): string {
+  if (level === 'not_today') return '当前：今日未排便';
   return `当前：${options.find((option) => option.level === level)?.label ?? '已记录'}`;
 }
 
 export function getLevelTone(
   colors: ThemeColors,
-  level: HabitLevel,
+  level: HabitRecordLevel,
 ): {
   color: string;
   iconBackground: string;
@@ -26,6 +27,10 @@ export function getLevelTone(
       iconBackground: colors.surface,
       softColor: colors.primarySoft,
     };
+  }
+
+  if (level === 'not_today') {
+    return { color: colors.textMuted, iconBackground: colors.surface, softColor: colors.surfaceMuted };
   }
 
   if (level === 'medium') {

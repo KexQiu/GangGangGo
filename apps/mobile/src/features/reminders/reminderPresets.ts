@@ -9,7 +9,7 @@ export const kegelReminderCounts = [1, 2, 3];
 
 export const quietOptions = [
   {
-    description: '夜里让小暗号闭麦',
+    description: '夜间暂停训练和久坐提醒',
     ranges: [{ end: DEFAULT_QUIET_HOURS_END, id: 'night', start: DEFAULT_QUIET_HOURS_START }],
     title: '夜间勿扰',
   },

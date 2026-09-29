@@ -70,11 +70,11 @@ export function getReminderCopy(kind: ReminderKind, privacyMode: boolean) {
   if (kind === 'kegel') {
     return privacyMode
       ? {
-          body: '1 分钟，暗号已到。',
+          body: '练习提醒到了，按适合自己的节奏安排。',
           title: '小花锻炼时间',
         }
       : {
-          body: '轻提轻放，1 分钟就好。',
+          body: '按适合自己的节奏练习，收缩后充分放松。',
           title: '菊花抬时间',
         };
   }

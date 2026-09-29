@@ -20,10 +20,10 @@ export const syncDisclosureFields = {
   } satisfies Record<keyof TrainingSessionSyncPayload, string>,
   habit: {
     date: '记录日期',
-    water: '饮水等级',
-    fiber: '膳食纤维等级',
-    movement: '活动等级',
-    bowel: '排便习惯等级',
+    water: '饮水记录分档',
+    fiber: '蔬果与全谷记录分档',
+    movement: '活动时长分档',
+    bowel: '排便情况（含今日未排便）',
   } satisfies Record<keyof HabitCheckInSyncPayload, string>,
   toilet: {
     startedAt: '起止时间',
@@ -50,9 +50,12 @@ type SharedFields<Kind extends 'training' | 'habit' | 'toilet', Level extends 's
 
 export const friendDisclosureFields = {
   training: {
-    summary: { trainingDone: '当天是否达标' } satisfies SharedFields<'training', 'summary'>,
+    summary: { trainingDone: '当天是否完成应用记录目标（2 组，非医学标准）' } satisfies SharedFields<
+      'training',
+      'summary'
+    >,
     detailed: {
-      trainingDone: '当天是否达标',
+      trainingDone: '当天是否完成应用记录目标（2 组，非医学标准）',
       completedSessionCount: '完成组数',
       completedRepetitions: '完成次数',
       totalDurationSeconds: '总训练时长',
@@ -66,10 +69,10 @@ export const friendDisclosureFields = {
     detailed: {
       completionCount: '当天记录项数',
       streakDays: '连续记满四项的天数',
-      water: '饮水等级',
-      fiber: '膳食纤维等级',
-      movement: '活动等级',
-      bowel: '排便习惯等级',
+      water: '饮水记录分档',
+      fiber: '蔬果与全谷记录分档',
+      movement: '活动时长分档',
+      bowel: '排便情况（含今日未排便）',
     } satisfies SharedFields<'habit', 'detailed'>,
   },
   toilet: {

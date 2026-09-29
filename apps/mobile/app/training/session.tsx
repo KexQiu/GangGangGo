@@ -1,3 +1,4 @@
+import { trainingSafetyGuidance } from '../../src/features/safety/healthGuidance';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -189,7 +190,7 @@ export default function TrainingSessionScreen() {
 
       <AppCard style={styles.tipsCard}>
         <Text style={styles.tipsTitle}>小花使用说明</Text>
-        <Text style={styles.tipsText}>这是提肛训练：轻提轻放，呼吸在线。别夹臀、别收腹，疼了或更不舒服就停。</Text>
+        <Text style={styles.tipsText}>{trainingSafetyGuidance}</Text>
       </AppCard>
 
       {saveError || training.error ? (

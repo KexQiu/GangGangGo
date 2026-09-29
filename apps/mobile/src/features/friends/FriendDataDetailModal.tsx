@@ -7,19 +7,13 @@ import type { FriendDataLevel, FriendSharedDay } from '@xiaotidu/contracts';
 
 import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
+import { getHabitLevelStandard } from '../habits/habitStandards';
 
 const levelCopy: Record<FriendDataLevel, string> = {
   detailed: '完整数据',
   none: '未授权',
   summary: '低敏概览',
 };
-
-const habitLevelCopy = {
-  good: '不错',
-  low: '偏少',
-  medium: '一般',
-  null: '未记录',
-} as const;
 
 const toiletShapeCopy: Record<string, string> = {
   formed: '成形',
@@ -28,8 +22,8 @@ const toiletShapeCopy: Record<string, string> = {
 };
 
 const toiletColorCopy: Record<string, string> = {
-  attention: '需要留意',
-  normal: '常见颜色',
+  attention: '其他或不确定',
+  normal: '棕色',
   other: '其他',
 };
 
@@ -81,7 +75,9 @@ export function FriendDataDetailModal({ day, onClose }: Props) {
               <LockedState />
             ) : displayedDay.training.level === 'summary' ? (
               <Text style={styles.summaryCopy}>
-                {displayedDay.training.trainingDone ? '今天已完成建议训练量。' : '今天还未完成建议训练量。'}
+                {displayedDay.training.trainingDone
+                  ? '今天已完成应用记录目标（2 组），不代表医学达标。'
+                  : '今天尚未记满应用目标（2 组），不代表需要加练。'}
               </Text>
             ) : (
               <View style={styles.metricRow}>
@@ -97,31 +93,47 @@ export function FriendDataDetailModal({ day, onClose }: Props) {
               <LockedState />
             ) : displayedDay.habit.level === 'summary' ? (
               <View style={styles.summaryMetricRow}>
-                <SummaryMetric label="今日完成" value={`${displayedDay.habit.completionCount}/4`} />
+                <SummaryMetric label="今日已记录" value={`${displayedDay.habit.completionCount}/4`} />
                 <SummaryMetric label="连续记录" value={`${displayedDay.habit.streakDays} 天`} />
               </View>
             ) : (
               <>
                 <View style={styles.summaryMetricRow}>
-                  <SummaryMetric label="今日完成" value={`${displayedDay.habit.completionCount}/4`} />
+                  <SummaryMetric label="今日已记录" value={`${displayedDay.habit.completionCount}/4`} />
                   <SummaryMetric label="连续记录" value={`${displayedDay.habit.streakDays} 天`} />
                 </View>
                 <View style={styles.factList}>
                   <FactRow
                     label="饮水"
-                    value={habitLevelCopy[String(displayedDay.habit.water) as keyof typeof habitLevelCopy]}
+                    value={
+                      displayedDay.habit.water
+                        ? getHabitLevelStandard('water', displayedDay.habit.water).label
+                        : '未记录'
+                    }
                   />
                   <FactRow
-                    label="纤维"
-                    value={habitLevelCopy[String(displayedDay.habit.fiber) as keyof typeof habitLevelCopy]}
+                    label="蔬果与全谷"
+                    value={
+                      displayedDay.habit.fiber
+                        ? getHabitLevelStandard('fiber', displayedDay.habit.fiber).label
+                        : '未记录'
+                    }
                   />
                   <FactRow
                     label="活动"
-                    value={habitLevelCopy[String(displayedDay.habit.movement) as keyof typeof habitLevelCopy]}
+                    value={
+                      displayedDay.habit.movement
+                        ? getHabitLevelStandard('movement', displayedDay.habit.movement).label
+                        : '未记录'
+                    }
                   />
                   <FactRow
                     label="排便"
-                    value={habitLevelCopy[String(displayedDay.habit.bowel) as keyof typeof habitLevelCopy]}
+                    value={
+                      displayedDay.habit.bowel
+                        ? getHabitLevelStandard('bowel', displayedDay.habit.bowel).label
+                        : '未记录'
+                    }
                   />
                 </View>
               </>
@@ -143,7 +155,7 @@ export function FriendDataDetailModal({ day, onClose }: Props) {
                   <Metric label="最长一次" value={formatMinutes(displayedDay.toilet.maxDurationSeconds)} />
                 </View>
                 <View style={styles.noticeRow}>
-                  <Text style={styles.noticeText}>较久记录 {displayedDay.toilet.longSessionCount} 次</Text>
+                  <Text style={styles.noticeText}>达到10分钟 {displayedDay.toilet.longSessionCount} 次</Text>
                   <View style={styles.noticeDivider} />
                   <Text style={styles.noticeText}>需留意 {displayedDay.toilet.attentionCount} 次</Text>
                 </View>
@@ -288,7 +300,7 @@ function countEntries(counts: Record<string, number>, labels: Record<string, str
 
 function trainingOverview(day: FriendSharedDay) {
   if (day.training.level === 'none') return '未授权';
-  if (day.training.level === 'summary') return day.training.trainingDone ? '已达标' : '未达标';
+  if (day.training.level === 'summary') return day.training.trainingDone ? '记录目标完成' : '记录目标未完成';
   return `${day.training.completedSessionCount} 次`;
 }
 

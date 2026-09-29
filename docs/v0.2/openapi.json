@@ -419,6 +419,7 @@
                             "low",
                             "medium",
                             "good",
+                            "not_today",
                             null
                           ]
                         },
@@ -760,6 +761,7 @@
                                 "low",
                                 "medium",
                                 "good",
+                                "not_today",
                                 null
                               ]
                             },
@@ -1040,6 +1042,7 @@
                             "low",
                             "medium",
                             "good",
+                            "not_today",
                             null
                           ]
                         },
@@ -2344,6 +2347,7 @@
                       "low",
                       "medium",
                       "good",
+                      "not_today",
                       null
                     ]
                   },

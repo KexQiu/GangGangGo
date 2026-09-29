@@ -40,10 +40,10 @@ export function addMinutesToTime(time: string, deltaMinutes: number): string {
 
 export function getRangeTitle(range: QuietHoursRange, index: number): string {
   if (range.start === DEFAULT_LUNCH_QUIET_HOURS_START && range.end === DEFAULT_LUNCH_QUIET_HOURS_END) {
-    return '午休闭麦';
+    return '午休勿扰';
   }
   if (range.start === DEFAULT_QUIET_HOURS_START && range.end === DEFAULT_QUIET_HOURS_END) {
-    return '夜间闭麦';
+    return '夜间勿扰';
   }
-  return `闭麦 ${index + 1}`;
+  return `勿扰时段 ${index + 1}`;
 }

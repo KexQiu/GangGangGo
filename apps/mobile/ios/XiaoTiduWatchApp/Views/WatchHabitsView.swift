@@ -5,10 +5,10 @@ struct WatchHabitsView: View {
   @EnvironmentObject private var session: WatchSessionManager
 
   private let items: [WatchHabitItem] = [
-    WatchHabitItem(key: "water", title: "喝水", detail: "8 杯"),
-    WatchHabitItem(key: "fiber", title: "纤维", detail: "2 餐+"),
-    WatchHabitItem(key: "movement", title: "活动", detail: "30 分钟"),
-    WatchHabitItem(key: "bowel", title: "顺畅", detail: "少用力"),
+    WatchHabitItem(key: "water", title: "喝水", detail: "8 杯及以上"),
+    WatchHabitItem(key: "fiber", title: "蔬果全谷", detail: "较丰富"),
+    WatchHabitItem(key: "movement", title: "活动", detail: "至少30分钟"),
+    WatchHabitItem(key: "bowel", title: "排便", detail: "顺畅"),
   ]
 
   var body: some View {
@@ -16,27 +16,33 @@ struct WatchHabitsView: View {
       if !session.todayState.canUseActions {
         WatchActionLockedContent()
       } else {
-        List(items) { item in
-          let isDone = item.isDone(in: session.todayState)
+        List {
+          Section {
+            ForEach(items) { item in
+              let isDone = item.isDone(in: session.todayState)
 
-          Button {
-            WKInterfaceDevice.current().play(.click)
-            session.sendHabitToggle(habitKey: item.key, level: isDone ? nil : "good")
-          } label: {
-            HStack {
-              VStack(alignment: .leading, spacing: 3) {
-                Text(item.title)
-                  .fontWeight(.semibold)
-                Text(isDone ? "已达标" : item.detail)
-                  .font(.caption2)
-                  .foregroundStyle(.secondary)
+              Button {
+                WKInterfaceDevice.current().play(.click)
+                session.sendHabitToggle(habitKey: item.key, level: isDone ? nil : "good")
+              } label: {
+                HStack {
+                  VStack(alignment: .leading, spacing: 3) {
+                    Text(item.title)
+                      .fontWeight(.semibold)
+                    Text(isDone ? "已记录" : item.detail)
+                      .font(.caption2)
+                      .foregroundStyle(.secondary)
+                  }
+
+                  Spacer()
+
+                  Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isDone ? .green : .secondary)
+                }
               }
-
-              Spacer()
-
-              Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isDone ? .green : .secondary)
             }
+          } footer: {
+            Text("已记录不代表健康达标。空项按所示分档快捷记录，已记录项点按撤销；其他分档及今日未排便请在手机填写。")
           }
         }
       }

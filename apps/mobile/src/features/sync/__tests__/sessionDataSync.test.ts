@@ -56,6 +56,27 @@ beforeEach(async () => {
 afterEach(() => database.close());
 
 describe('complete sync session boundaries with SQLite', () => {
+  it('keeps a downloaded no-bowel-movement record distinct from a missing or difficult record', async () => {
+    mocks.pull.mockResolvedValue({
+      changes: [
+        {
+          entityId: date,
+          entityType: 'habit_checkin',
+          operation: 'upsert',
+          serverUpdatedAt: timestamp,
+          version: 1,
+          payload: { date, bowel: 'not_today', water: 'low', fiber: 'medium', movement: 'good' },
+        },
+      ],
+      nextCursor: '1',
+      resetRequired: false,
+      hasMore: false,
+    } satisfies DataSyncPullResponse);
+    await syncCompleteHealthData();
+    expect(
+      database.prepare("SELECT bowel, water FROM habit_checkins WHERE profile_id = 'profile-A'").get(),
+    ).toMatchObject({ bowel: 'not_today', water: 'low' });
+  });
   it('counts every pending change in the current profile, not just the first upload page', async () => {
     seedOutbox('B');
     for (let index = 0; index < 105; index++)

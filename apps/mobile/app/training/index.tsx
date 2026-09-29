@@ -6,6 +6,7 @@ import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
+import { trainingEligibilityGuidance } from '../../src/features/safety/healthGuidance';
 import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { trainingPresets } from '../../src/features/training/presets';
 import { formatTrainingDuration } from '../../src/features/training/trainingLogic';
@@ -33,11 +34,19 @@ export default function TrainingScreen() {
 
       <PageHeader subtitle="选个节奏轻抬轻放。有未完成训练时，点击开始会恢复上次进度。" title="小花今日营业" />
 
+      <AppCard style={styles.guidanceCard}>
+        <Text style={styles.summaryTitle}>开始前确认是否适合</Text>
+        <Text style={styles.summaryText}>{trainingEligibilityGuidance}</Text>
+        <AppButton variant="secondary" onPress={() => router.push(routes.safety)}>
+          查看安全与就医说明
+        </AppButton>
+      </AppCard>
+
       <AppCard muted style={styles.summaryCard}>
         <Text style={styles.summaryValue}>{todayCount}/2</Text>
         <View style={styles.summaryCopy}>
-          <Text style={styles.summaryTitle}>{todayCount >= 2 ? '今日建议量已完成' : '今日菊花抬进度'}</Text>
-          <Text style={styles.summaryText}>菊花抬不靠卷，完成建议量后就让肌肉下班。</Text>
+          <Text style={styles.summaryTitle}>{todayCount >= 2 ? '今日记录目标已完成' : '今日菊花抬进度'}</Text>
+          <Text style={styles.summaryText}>每天 2 组是应用记录目标，不是医学建议量，不必为凑目标加练。</Text>
         </View>
       </AppCard>
 
@@ -90,6 +99,7 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    guidanceCard: { marginBottom: 18, gap: 12 },
     summaryCard: {
       alignItems: 'center',
       flexDirection: 'row',

@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.me} title="设置" />
 
-      <PageHeader subtitle="外观、提醒和安全边界放这里。" title="设置" />
+      <PageHeader subtitle="管理外观、提醒，查看安全与就医说明。" title="设置" />
 
       <Text style={styles.groupTitle}>外观模式</Text>
       <View style={styles.optionGroup}>
@@ -76,7 +76,7 @@ export default function SettingsScreen() {
           <Bell color={theme.colors.privacy} size={20} strokeWidth={2.3} />
           <View style={styles.settingText}>
             <Text style={styles.settingTitle}>小暗号设置</Text>
-            <Text style={styles.settingDescription}>安排菊花抬、起身透气、闭麦时间和通知暗号。</Text>
+            <Text style={styles.settingDescription}>安排菊花抬、起身透气、勿扰时段和通知暗号。</Text>
           </View>
         </View>
         <AppButton onPress={() => router.push(routes.reminders)} style={styles.inlineButton} variant="secondary">
@@ -89,7 +89,7 @@ export default function SettingsScreen() {
           <ShieldCheck color={theme.colors.info} size={20} strokeWidth={2.3} />
           <View style={styles.settingText}>
             <Text style={styles.settingTitle}>安全说明</Text>
-            <Text style={styles.settingDescription}>轻松练可以，明显便血、剧烈疼痛或不适加重要认真处理。</Text>
+            <Text style={styles.settingDescription}>查看练习适用范围、停练条件和需要及时就医的情况。</Text>
           </View>
         </View>
         <AppButton onPress={() => router.push(routes.safety)} style={styles.inlineButton} variant="secondary">
@@ -103,7 +103,7 @@ export default function SettingsScreen() {
           <View style={styles.settingText}>
             <Text style={styles.settingTitle}>灵动岛计时</Text>
             <Text style={styles.settingDescription}>
-              开启后，锁屏和灵动岛会显示蹲会儿计时。适合真机开发包，不在 Expo Go 生效。
+              开启后会在受支持的 iPhone 锁屏和灵动岛显示计时，旁人可能看到。如不希望显示，可关闭。
             </Text>
           </View>
           <Switch

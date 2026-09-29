@@ -49,7 +49,7 @@ export default function RemindersScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.settings} title="提醒设置" />
 
-      <PageHeader subtitle="通知栏尽量说人话、留面子，不把尴尬词写满屏。" title="提醒小秘书" />
+      <PageHeader subtitle="安排训练和起身提醒，选择通知文案与勿扰时段。" title="提醒小秘书" />
 
       <AppCard muted style={styles.summaryCard}>
         <View style={styles.summaryIcon}>
@@ -104,7 +104,7 @@ export default function RemindersScreen() {
       <Text style={styles.groupTitle}>菊花抬提醒</Text>
       <AppCard style={styles.settingsCard}>
         <SettingHeader
-          description="学名提肛训练，App 里叫菊花抬。到点轻轻敲门，不公开处刑。"
+          description="菊花抬是盆底肌收缩与放松练习。提醒频率不等于适合个人的训练量。"
           icon={FlowerLiftIcon}
           onValueChange={(enabled) => void setKegelEnabled(enabled)}
           title="到点小暗号"
@@ -159,12 +159,12 @@ export default function RemindersScreen() {
       <Text style={styles.groupTitle}>隐私和勿扰</Text>
       <AppCard style={styles.settingsCard}>
         <SettingHeader
-          description="开启后通知只显示小花、小提督、换个姿势这类暗号。"
+          description="仅训练和久坐提醒使用含蓄文案；不影响好友通知、蹲会儿提醒、锁屏或灵动岛内容。"
           icon={Bell}
           onValueChange={(enabled) => {
             void updateSettings({ privacyMode: enabled });
           }}
-          title="通知暗号模式"
+          title="训练与久坐通知暗号"
           value={settings.privacyMode}
         />
 
@@ -175,7 +175,7 @@ export default function RemindersScreen() {
             <Moon color={colors.info} size={20} strokeWidth={2.3} />
           </View>
           <View style={styles.quietCopy}>
-            <Text style={styles.quietTitle}>闭麦时间</Text>
+            <Text style={styles.quietTitle}>勿扰时段</Text>
             <Text style={styles.quietText}>当前：{getQuietHoursLabel(settings)}</Text>
           </View>
         </View>
@@ -215,7 +215,7 @@ export default function RemindersScreen() {
 
         <View style={styles.manualQuietHeader}>
           <View style={styles.manualQuietCopy}>
-            <Text style={styles.manualQuietTitle}>手动闭麦范围</Text>
+            <Text style={styles.manualQuietTitle}>自定义勿扰时段</Text>
             <Text style={styles.manualQuietText}>
               可同时保留午休、夜间或其他自定义时间段，最多 {MAX_QUIET_HOURS_RANGES} 段。
             </Text>

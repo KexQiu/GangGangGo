@@ -19,11 +19,11 @@ struct WatchTrainingMode: Identifiable {
   var title: String {
     switch id {
     case "beginner":
-      return "新手"
+      return "3 秒节奏"
     case "standard":
-      return "标准"
+      return "5 秒节奏"
     case "quick":
-      return "快速"
+      return "短收缩"
     default:
       return "自定义"
     }
@@ -34,9 +34,9 @@ struct WatchTrainingMode: Identifiable {
     case "beginner":
       return "轻轻来，慢一点"
     case "standard":
-      return "日常节奏"
+      return "按个人情况选择"
     case "quick":
-      return "短促收放"
+      return "收缩后充分放松"
     default:
       return "\(holdSeconds) 秒抬 · \(restSeconds) 秒放"
     }

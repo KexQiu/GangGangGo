@@ -6,7 +6,7 @@ import { buildLocalDateRange } from '../../storage/dateRange';
 import { listHabitCheckInsPage, saveHabitLevel } from '../../storage/repositories/habitRepository';
 import { notifyLocalDataChanged } from '../sync/localDataEvents';
 import { getLocalDateKey } from './habitLogic';
-import { type HabitCheckIn, type HabitKey, type HabitLevel } from './habitTypes';
+import { type HabitCheckIn, type HabitKey, type HabitRecordLevel } from './habitTypes';
 
 type HabitState = {
   checkIns: HabitCheckIn[];
@@ -23,7 +23,7 @@ type HabitState = {
   setHabitLevel: (
     date: string,
     key: HabitKey,
-    level: HabitLevel,
+    level: HabitRecordLevel,
     options?: LocalMutationOptions,
   ) => Promise<LocalMutationResult<HabitCheckIn>>;
 };
@@ -73,7 +73,12 @@ export function getHabitCheckInForDate(checkIns: HabitCheckIn[], date = getLocal
   return checkIns.find((checkIn) => checkIn.date === date) ?? null;
 }
 
-async function persistLevel(date: string, key: HabitKey, level: HabitLevel | null, options: LocalMutationOptions = {}) {
+async function persistLevel(
+  date: string,
+  key: HabitKey,
+  level: HabitRecordLevel | null,
+  options: LocalMutationOptions = {},
+) {
   const generation = options.generation ?? authSessionContext.captureLocalGeneration();
   try {
     const result = await saveHabitLevel(date, key, level, { ...options, generation });

@@ -39,23 +39,23 @@ export function getToiletStageCopy(stage: ToiletTimerStage): {
   switch (stage) {
     case 'severe_warning':
       return {
-        description: '超过 20 分钟了，建议先结束。',
-        title: '小花过劳了',
+        description: '已持续 20 分钟，请先结束，避免持续用力。',
+        title: '请先结束如厕',
       };
     case 'gentle_warning':
       return {
-        description: '5 分钟到了，如果已经办完，可以收工。',
+        description: '已持续 5 分钟，办完就离开；没有便意时不必继续等。',
         title: '小花该下班了',
       };
     case 'strong_warning':
       return {
-        description: '10 分钟到了，建议准备结束。',
+        description: '已持续 10 分钟，请先结束，避免长时间坐着或用力。',
         title: '别再加班了',
       };
     case 'overtime':
       return {
-        description: '时间偏久，先站起来活动一下。',
-        title: '小花过劳了',
+        description: '已持续 15 分钟，请先结束，稍后有便意再尝试。',
+        title: '请先结束如厕',
       };
     case 'normal':
     default:
@@ -81,7 +81,7 @@ export function getToiletLiveActivitySnapshot(durationSeconds: number): ToiletLi
 }
 
 export function isLongToiletSession(durationSeconds: number): boolean {
-  return durationSeconds >= 15 * 60;
+  return durationSeconds >= 10 * 60;
 }
 
 export function formatToiletDuration(seconds: number): string {
@@ -98,8 +98,8 @@ function getToiletLiveActivityStageCopy(stage: ToiletTimerStage): {
   switch (stage) {
     case 'severe_warning':
       return {
-        stageMessage: '小花过劳了',
-        stageTitle: '小花过劳了',
+        stageMessage: '请先结束如厕',
+        stageTitle: '请先结束如厕',
       };
     case 'gentle_warning':
       return {
@@ -113,8 +113,8 @@ function getToiletLiveActivityStageCopy(stage: ToiletTimerStage): {
       };
     case 'overtime':
       return {
-        stageMessage: '小花过劳了',
-        stageTitle: '小花过劳了',
+        stageMessage: '请先结束如厕',
+        stageTitle: '请先结束如厕',
       };
     case 'normal':
     default:

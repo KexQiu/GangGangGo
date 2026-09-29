@@ -26,8 +26,8 @@ describe('toilet record logic', () => {
 
   it('accepts only the current color choices', () => {
     expect(toiletStoolColorOptions).toEqual([
-      { label: '常见颜色', value: 'normal' },
-      { label: '需要留意', value: 'attention' },
+      { label: '棕色', value: 'normal' },
+      { label: '其他或不确定', value: 'attention' },
     ]);
     expect(isToiletStoolColor('other')).toBe(false);
 

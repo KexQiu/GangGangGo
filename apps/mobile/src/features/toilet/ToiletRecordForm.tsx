@@ -11,6 +11,7 @@ import {
   listToiletSignalPresets,
 } from '../../storage/repositories/toiletRepository';
 import { useAppTheme } from '../../theme/themeProvider';
+import { emergencyGuidance, medicalGuidance, stoolColorGuidance } from '../safety/healthGuidance';
 import {
   DurationPickerSheet,
   OptionalChoiceRow,
@@ -110,6 +111,12 @@ export function ToiletRecordForm({
   const durationMinuteOptions = useMemo(() => createDurationMinuteOptions(durationSeconds), [durationSeconds]);
   const currentDuration = durationSeconds;
   const hasRedFlag = bleeding || discomfort;
+  const needsColorGuidance = stoolColor === 'attention';
+  const safetyText = hasRedFlag
+    ? `${medicalGuidance}${emergencyGuidance}`
+    : needsColorGuidance
+      ? `${stoolColorGuidance}${emergencyGuidance}`
+      : null;
   const hasLongToilet = isLongToiletSession(currentDuration);
   const supplementalCount =
     Number(Boolean(stoolShape)) + Number(Boolean(stoolColor)) + signals.length + Number(discomfort) + Number(bleeding);
@@ -319,6 +326,15 @@ export function ToiletRecordForm({
         <Text style={[styles.supplementAction, hasRedFlag ? styles.supplementActionDanger : null]}>填写</Text>
       </Pressable>
 
+      {safetyText ? (
+        <SafetyCard
+          buttonLabel="安全与就医说明"
+          onOpenSafety={onOpenSafety}
+          text={safetyText}
+          tone={hasRedFlag ? 'danger' : 'warning'}
+        />
+      ) : null}
+
       {formError ? (
         <Text accessibilityLiveRegion="polite" style={styles.formError}>
           {formError}
@@ -373,6 +389,8 @@ export function ToiletRecordForm({
             value={stoolColor}
           />
         </AppCard>
+
+        <Text style={styles.signalCaption}>{stoolColorGuidance}</Text>
 
         <View style={styles.signalHeader}>
           <View style={styles.signalHeaderCopy}>
@@ -456,31 +474,31 @@ export function ToiletRecordForm({
         <Text style={styles.sheetSectionTitle}>需要优先留意</Text>
         <View style={styles.priorityGrid}>
           <PrioritySignalChoice
-            description="不舒服就先让小花休息。"
+            description="记录疼痛或不适；剧烈或持续加重时及时就医。"
             onPress={() => setDiscomfort((current) => !current)}
             selected={discomfort}
-            title="明显不舒服"
+            title="疼痛或不适"
           />
           <PrioritySignalChoice
-            description="这类信号建议问医生。"
+            description="包括纸上或便中的血迹，不必等到出血量大才记录。"
             onPress={() => setBleeding((current) => !current)}
             selected={bleeding}
-            title="明显便血"
+            title="便血或血迹"
           />
         </View>
 
-        {hasRedFlag ? (
+        {safetyText ? (
           <SafetyCard
             buttonLabel="查看安全说明"
             onOpenSafety={onOpenSafety}
-            text="这类信号别靠意志力硬扛。小提督不能判断病因，建议尽快咨询肛肠科、消化科或专业医生。"
-            tone="danger"
+            text={safetyText}
+            tone={hasRedFlag ? 'danger' : 'warning'}
           />
         ) : hasLongToilet ? (
           <SafetyCard
-            buttonLabel="看看怎么少开长会"
+            buttonLabel="查看如厕注意事项"
             onOpenSafety={onOpenSafety}
-            text="这趟坐得有点久。先收工，手机小剧场下次再播。"
+            text="这次如厕已达到 10 分钟。避免长时间坐着或持续用力；提醒时间不是医学安全线。"
             tone="warning"
           />
         ) : null}

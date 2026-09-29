@@ -1,6 +1,6 @@
 import { commitLocalMutation, type LocalMutationOptions } from '../localMutation';
-import { isHabitLevel } from '../../features/habits/habitLogic';
-import { type HabitCheckIn, type HabitKey, type HabitLevel } from '../../features/habits/habitTypes';
+import { isBowelStatus, isHabitLevel } from '../../features/habits/habitLogic';
+import { type HabitCheckIn, type HabitKey, type HabitRecordLevel } from '../../features/habits/habitTypes';
 import { rebuildDailySummary } from '../../features/data/dailyData';
 import { enqueueDataMutation } from '../dataSyncOutbox';
 import { initializeDatabase } from '../db';
@@ -26,9 +26,10 @@ export type HabitCheckInPageOptions = {
 export async function saveHabitLevel(
   date: string,
   key: HabitKey,
-  level: HabitLevel | null,
+  level: HabitRecordLevel | null,
   options: LocalMutationOptions = {},
 ) {
+  if (level === 'not_today' && key !== 'bowel') throw new Error('今日未排便仅适用于排便记录。');
   return commitLocalMutation(options, async (db, profileId) => {
     const previous = await db.getFirstAsync<HabitCheckInRow>(
       'SELECT date, water, fiber, movement, bowel, updated_at FROM habit_checkins WHERE profile_id = $profileId AND date = $date AND deleted_at IS NULL;',
@@ -118,7 +119,7 @@ export async function listHabitCheckInsPage(
 
 function rowToHabitCheckIn(row: HabitCheckInRow): HabitCheckIn {
   return {
-    bowel: isHabitLevel(row.bowel) ? row.bowel : null,
+    bowel: isBowelStatus(row.bowel) ? row.bowel : null,
     date: row.date,
     fiber: isHabitLevel(row.fiber) ? row.fiber : null,
     movement: isHabitLevel(row.movement) ? row.movement : null,

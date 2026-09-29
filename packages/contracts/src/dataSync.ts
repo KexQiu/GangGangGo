@@ -12,6 +12,7 @@ export type DataSyncEntityType = z.infer<typeof dataSyncEntityTypeSchema>;
 
 const trainingPresetIdSchema = z.enum(['beginner', 'standard', 'quick']);
 const habitLevelSchema = z.enum(['low', 'medium', 'good']);
+export const bowelStatusSchema = z.enum(['low', 'medium', 'good', 'not_today']);
 const toiletFeelingSchema = z.enum(['smooth', 'normal', 'difficult']);
 const toiletStoolShapeSchema = z.enum(['hard', 'formed', 'loose']);
 const toiletStoolColorSchema = z.enum(['normal', 'attention']);
@@ -33,7 +34,7 @@ export type TrainingSessionSyncPayload = z.infer<typeof trainingSessionSyncPaylo
 
 export const habitCheckInSyncPayloadSchema = z
   .object({
-    bowel: habitLevelSchema.nullable(),
+    bowel: bowelStatusSchema.nullable(),
     date: isoDateSchema,
     fiber: habitLevelSchema.nullable(),
     movement: habitLevelSchema.nullable(),
@@ -142,7 +143,7 @@ export const dailyActivitySummarySchema = z
     date: isoDateSchema,
     habit: z
       .object({
-        bowel: habitLevelSchema.nullable(),
+        bowel: bowelStatusSchema.nullable(),
         completionCount: z.number().int().min(0).max(4),
         fiber: habitLevelSchema.nullable(),
         movement: habitLevelSchema.nullable(),

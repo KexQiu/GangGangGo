@@ -1,4 +1,4 @@
-import { type HabitCheckIn, type HabitKey, type HabitLevel } from './habitTypes';
+import { type HabitCheckIn, type HabitKey, type HabitLevel, type BowelStatus } from './habitTypes';
 
 export const habitKeys: HabitKey[] = ['water', 'fiber', 'movement', 'bowel'];
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -84,6 +84,10 @@ export function isHabitLevel(value: string | null | undefined): value is HabitLe
   return value === 'low' || value === 'medium' || value === 'good';
 }
 
+export function isBowelStatus(value: string | null | undefined): value is BowelStatus {
+  return value === 'not_today' || isHabitLevel(value);
+}
+
 export function getHabitFeedback(checkIn: HabitCheckIn | null | undefined): string {
   const completion = calculateHabitCompletion(checkIn);
 
@@ -92,7 +96,7 @@ export function getHabitFeedback(checkIn: HabitCheckIn | null | undefined): stri
   }
 
   if (completion > 0) {
-    return `已完成 ${completion}/4，剩下的晚点补，不急。`;
+    return `已记录 ${completion}/4 项，剩下的可按实际情况补充。`;
   }
 
   return '先点一项开张，不需要填精确数字。';
@@ -102,11 +106,11 @@ export function getHabitPositiveFeedback(checkIn: HabitCheckIn | null | undefine
   const completion = calculateHabitCompletion(checkIn);
 
   if (completion === habitKeys.length && streak > 1) {
-    return `小账本满格，连续 ${streak} 天都很稳。`;
+    return `已连续 ${streak} 天完整记录。记录完整不代表健康达标。`;
   }
 
   if (completion === habitKeys.length) {
-    return '小账本满格，今天的习惯状态很清楚。';
+    return '今天 4 项都已记录，按实际情况填写就好。';
   }
 
   if (completion >= 2) {
@@ -117,7 +121,7 @@ export function getHabitPositiveFeedback(checkIn: HabitCheckIn | null | undefine
     return '已经开张，再补几项会更清楚。';
   }
 
-  return '点一下就记为达标，详情页还能改成一般或不足。';
+  return '按实际情况记录。快捷记录使用卡片所示分档，排便可单独填写。';
 }
 
 function addDays(date: Date, days: number): Date {

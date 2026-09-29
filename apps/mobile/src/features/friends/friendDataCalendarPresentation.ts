@@ -77,7 +77,7 @@ function buildAccessibilityLabel(day: FriendSharedDay) {
 
 function trainingLabel(day: FriendSharedDay) {
   if (day.training.level === 'none') return '菊花抬未授权';
-  return day.training.trainingDone ? '菊花抬已达标' : '菊花抬未达标';
+  return day.training.trainingDone ? '菊花抬记录目标已完成' : '菊花抬记录目标未完成';
 }
 
 function habitLabel(day: FriendSharedDay) {

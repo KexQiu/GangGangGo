@@ -10,6 +10,7 @@ import { AppTopBar } from '../../src/components/AppTopBar';
 import { SuccessBurst } from '../../src/components/feedback/SuccessBurst';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
+import { emergencyGuidance, medicalGuidance } from '../../src/features/safety/healthGuidance';
 import { getTrainingPreset } from '../../src/features/training/presets';
 import { formatTrainingDuration } from '../../src/features/training/trainingLogic';
 import { routes } from '../../src/navigation/routes';
@@ -50,8 +51,12 @@ export default function TrainingCompleteScreen() {
       <AppTopBar fallbackHref={routes.home} title="菊花抬结果" variant="close" />
 
       <PageHeader
-        subtitle={isCompleted ? '建议量会慢慢累积，休息和放松也算训练。' : '本次先收工，身体反馈比凑满次数更重要。'}
-        title={isCompleted ? '抬得刚刚好' : '先收工'}
+        subtitle={
+          isCompleted
+            ? '本次按所选节奏完成。记录不代表动作质量或训练量适合个人。'
+            : '本次先收工，身体反馈比凑满次数更重要。'
+        }
+        title={isCompleted ? '本组已完成' : '先收工'}
       />
 
       <AppCard muted style={styles.resultCard}>
@@ -85,16 +90,15 @@ export default function TrainingCompleteScreen() {
 
       <AppCard style={styles.safetyCard}>
         <HeartPulse color={colors.info} size={22} strokeWidth={2.4} />
-        <Text style={styles.safetyText}>如果抬完疼痛、出血或不适加重，先停，别硬练，建议咨询医生。</Text>
+        <Text style={styles.safetyText}>
+          练习后疼痛或不适加重时停止训练。{medicalGuidance}
+          {emergencyGuidance}
+        </Text>
       </AppCard>
 
       <View style={styles.actions}>
-        <AppButton
-          onPress={() => router.replace(`${routes.trainingSession}?presetId=${preset.id}`)}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          再抬一组
+        <AppButton onPress={() => router.replace(routes.training)} style={styles.actionButton} variant="secondary">
+          返回选择节奏
         </AppButton>
         <AppButton onPress={() => router.replace(routes.home)} style={styles.actionButton}>
           回到首页

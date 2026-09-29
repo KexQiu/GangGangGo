@@ -8,6 +8,7 @@ import { AppCard } from '../../components/AppCard';
 import { AppButton } from '../../components/AppButton';
 import { AppSheet } from '../../components/AppSheet';
 import { useAppTheme } from '../../theme/themeProvider';
+import { getHabitLevelStandard, habitStandards } from '../habits/habitStandards';
 import { getToiletStoolColorLabel, getToiletStoolShapeLabel } from '../toilet/toiletRecordLogic';
 import type { ToiletSession } from '../toilet/toiletTypes';
 import { getTrainingPreset } from '../training/presets';
@@ -559,18 +560,18 @@ function HabitDetails({ summary }: { summary: DailyActivitySummary }) {
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
   const items = [
-    ['饮水', summary.habit.water],
-    ['膳食纤维', summary.habit.fiber],
-    ['活动', summary.habit.movement],
-    ['排便习惯', summary.habit.bowel],
+    ['water', summary.habit.water],
+    ['fiber', summary.habit.fiber],
+    ['movement', summary.habit.movement],
+    ['bowel', summary.habit.bowel],
   ] as const;
   return (
     <View style={styles.detailSection}>
       <Text style={styles.detailTitle}>小账本细节</Text>
-      {items.map(([label, value]) => (
-        <View key={label} style={styles.detailRow}>
-          <Text style={styles.detailRowLabel}>{label}</Text>
-          <Text style={styles.detailRowValue}>{habitLabel(value)}</Text>
+      {items.map(([key, value]) => (
+        <View key={key} style={styles.detailRow}>
+          <Text style={styles.detailRowLabel}>{habitStandards[key].title}</Text>
+          <Text style={styles.detailRowValue}>{value ? getHabitLevelStandard(key, value).label : '未记录'}</Text>
         </View>
       ))}
     </View>
@@ -627,8 +628,8 @@ function ToiletDetailCard({
     getToiletStoolShapeLabel(session.stoolShape),
     getToiletStoolColorLabel(session.stoolColor),
     ...(session.signals ?? []).map((signal) => signal.label),
-    ...(session.discomfort ? ['明显不舒服'] : []),
-    ...(session.bleeding ? ['明显便血'] : []),
+    ...(session.discomfort ? ['疼痛或不适'] : []),
+    ...(session.bleeding ? ['便血或血迹'] : []),
   ].filter(Boolean) as string[];
   const content = (
     <>
@@ -691,9 +692,6 @@ function emptyTrendMessage(category: TrendCategory) {
     : category === 'habit'
       ? '这段时间还没有小账本记录'
       : '这段时间还没有蹲会儿记录';
-}
-function habitLabel(value: string | null) {
-  return value === 'good' ? '达标' : value === 'medium' ? '一般' : value === 'low' ? '偏少' : '未记录';
 }
 function feelingLabel(value: ToiletSession['feeling']) {
   return { difficult: '困难', normal: '一般', smooth: '顺畅' }[value];

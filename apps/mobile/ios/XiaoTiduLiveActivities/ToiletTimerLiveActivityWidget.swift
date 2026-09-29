@@ -374,9 +374,9 @@ private func stagePillText(for state: ToiletTimerAttributes.ContentState) -> Str
 
   switch currentStageKey(for: state) {
   case "severe_warning":
-    return "过劳中"
+    return "请结束"
   case "overtime":
-    return "过劳中"
+    return "请结束"
   case "strong_warning":
     return "加班中"
   case "gentle_warning":
@@ -393,9 +393,9 @@ private func compactStageText(for state: ToiletTimerAttributes.ContentState) -> 
 
   switch currentStageKey(for: state) {
   case "severe_warning":
-    return "过劳中"
+    return "请结束"
   case "overtime":
-    return "过劳中"
+    return "请结束"
   case "strong_warning":
     return "加班中"
   case "gentle_warning":
@@ -481,9 +481,9 @@ private func stageKey(for elapsedSeconds: Double) -> String {
 private func fallbackStageTitle(for stageKey: String) -> String {
   switch stageKey {
   case "severe_warning":
-    return "小花过劳了"
+    return "请先结束如厕"
   case "overtime":
-    return "小花过劳了"
+    return "请先结束如厕"
   case "strong_warning":
     return "别再加班了"
   case "gentle_warning":
@@ -496,9 +496,9 @@ private func fallbackStageTitle(for stageKey: String) -> String {
 private func fallbackStageMessage(for stageKey: String) -> String {
   switch stageKey {
   case "severe_warning":
-    return "小花过劳了"
+    return "请先结束如厕"
   case "overtime":
-    return "小花过劳了"
+    return "请先结束如厕"
   case "strong_warning":
     return "别再加班了"
   case "gentle_warning":

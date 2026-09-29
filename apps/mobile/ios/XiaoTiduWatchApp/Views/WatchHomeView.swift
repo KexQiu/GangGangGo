@@ -182,7 +182,7 @@ struct WatchHomeView: View {
 
   private var trainingValue: String {
     session.todayState.training.done
-      ? "已完成"
+      ? "记录目标完成"
       : "\(session.todayState.training.completedSets) 组"
   }
 }

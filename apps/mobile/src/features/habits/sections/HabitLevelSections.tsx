@@ -1,11 +1,11 @@
 import * as Haptics from 'expo-haptics';
-import { Frown, Meh, Smile } from 'lucide-react-native';
+import { CircleMinus, Frown, Meh, Smile } from 'lucide-react-native';
 import { type ComponentType, useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, type TextStyle, View } from 'react-native';
 
 import { getHabitLevelStandard, habitStandards } from '../habitStandards';
 import { clamp, getLevelTone, type HabitLevelOption } from '../habitPresentation';
-import type { HabitKey, HabitLevel } from '../habitTypes';
+import type { HabitKey, HabitLevel, HabitRecordLevel } from '../habitTypes';
 import { useAppTheme } from '../../../theme/themeProvider';
 import { createStyles } from '../styles/habitsStyles';
 
@@ -18,10 +18,11 @@ export const habitLevelOptions: Record<HabitKey, HabitLevelOption[]> = {
   water: createHabitLevelOptions('water'),
 };
 
-const levelIcons: Record<HabitLevel, ComponentType<IconProps>> = {
+const levelIcons: Record<HabitRecordLevel, ComponentType<IconProps>> = {
   good: Smile,
   low: Frown,
   medium: Meh,
+  not_today: CircleMinus,
 };
 
 type IconProps = {
@@ -181,7 +182,7 @@ export function HabitLevelSlider({ level, onChange, options, title }: HabitLevel
 
 type SelectedStandardNoteProps = {
   habitKey: HabitKey;
-  level: HabitLevel;
+  level: HabitRecordLevel;
 };
 
 export function SelectedStandardNote({ habitKey, level }: SelectedStandardNoteProps) {
@@ -200,7 +201,7 @@ export function SelectedStandardNote({ habitKey, level }: SelectedStandardNotePr
 
 type AnimatedLevelIconProps = {
   label: string;
-  level: HabitLevel;
+  level: HabitRecordLevel;
 };
 
 export function AnimatedLevelIcon({ label, level }: AnimatedLevelIconProps) {

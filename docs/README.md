@@ -12,12 +12,13 @@ packages/contracts   # 跨端 Zod schema 与 TypeScript 类型
 
 工程结构详见：[项目结构说明](./project-structure.md)。
 
-当前文档入口（2026-09-28 更新）：
+当前文档入口（2026-09-29 更新）：
 
 - [开发路线图](./development-roadmap.md)：增长免费版本的阶段依赖与发布范围。
 - [Architecture v2 后续待办](./architecture/architecture-v2-follow-up-todo.md)：当前执行清单，统一优先级与关闭条件。
 - [全项目审查报告（2026-09-28 修订）](./audits/2026-09-22-full-review.md)：R01–R21 的依据、修复要求、历史验证结果和隔离复现步骤。
 - [隐私与数据边界](./architecture/privacy-boundaries.md)：当前个人完整同步、好友授权、保留和删除规则。
+- [健康内容与文案规范](./health-content.md)：当前健康说明、记录分档、适用范围与资料来源（2026-09-29 核对）。
 
 已具备实现不等于发布验收完成；当前待修复、待验证和待真机验收事项以执行清单为准。旧版文档中的小队、共享快照、Pro 发布计划和优先级只作历史参考。
 
