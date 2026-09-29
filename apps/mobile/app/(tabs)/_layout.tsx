@@ -15,7 +15,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.navigationActive,
         tabBarInactiveTintColor: colors.navigationInactive,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '800',
           marginTop: 1,
         },

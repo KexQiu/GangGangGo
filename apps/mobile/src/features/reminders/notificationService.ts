@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { buildSedentaryReminderDates, getKegelReminderTimesOutsideQuietHours, getReminderCopy } from './reminderLogic';
+import { getSedentaryReminderTimes, getKegelReminderTimesOutsideQuietHours, getReminderCopy } from './reminderLogic';
 import { type NotificationPermissionState, type ReminderKind, type ReminderSettings } from './reminderTypes';
 
 const NOTIFICATION_APP_KEY = 'xiaotidu';
@@ -51,55 +51,51 @@ export async function requestReminderPermission(): Promise<NotificationPermissio
   }
 }
 
-export async function syncReminderNotifications(settings: ReminderSettings): Promise<number> {
+export type ReminderSchedule = { scheduledCount: number; nextReminderAt: number | null };
+
+export async function syncReminderNotifications(settings: ReminderSettings): Promise<ReminderSchedule> {
   configureNotificationHandler();
   await cancelReminderNotifications();
   await ensureAndroidNotificationChannel();
-
   let scheduledCount = 0;
-
-  if (settings.kegelEnabled) {
-    const times = getKegelReminderTimesOutsideQuietHours(settings);
-
-    for (const time of times) {
-      const [hour, minute] = time.split(':').map(Number);
-      await scheduleReminderNotification('kegel', settings, {
-        identifier: `xiaotidu-kegel-${time}`,
-        trigger: {
+  let nextReminderAt: number | null = null;
+  const groups: Array<[ReminderKind, string[]]> = [
+    ['kegel', settings.kegelEnabled ? getKegelReminderTimesOutsideQuietHours(settings) : []],
+    ['sedentary', getSedentaryReminderTimes(settings)],
+  ];
+  try {
+    for (const [kind, times] of groups) {
+      for (const time of new Set(times)) {
+        const [hour, minute] = time.split(':').map(Number);
+        const trigger: Notifications.DailyTriggerInput = {
           channelId: NOTIFICATION_CHANNEL_ID,
           hour,
           minute,
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        },
-      });
-      scheduledCount += 1;
+        };
+        await scheduleReminderNotification(kind, settings, {
+          identifier: `xiaotidu-${kind}-${time}`,
+          trigger,
+        });
+        const next = await Notifications.getNextTriggerDateAsync(trigger);
+        if (next === null) throw new Error('系统未返回下次提醒时间，请重试。');
+        nextReminderAt = Math.min(nextReminderAt ?? next, next);
+        scheduledCount += 1;
+      }
     }
+    return { scheduledCount, nextReminderAt };
+  } catch (error) {
+    // 不把只排入部分的计划展示为成功；下一次校准会重新清理。
+    await cancelReminderNotifications().catch(() => undefined);
+    throw error;
   }
-
-  if (settings.sedentaryEnabled) {
-    const dates = buildSedentaryReminderDates(settings);
-
-    for (const date of dates) {
-      await scheduleReminderNotification('sedentary', settings, {
-        identifier: `xiaotidu-sedentary-${date.getTime()}`,
-        trigger: {
-          channelId: NOTIFICATION_CHANNEL_ID,
-          date,
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-        },
-      });
-      scheduledCount += 1;
-    }
-  }
-
-  return scheduledCount;
 }
 
 export async function cancelReminderNotifications(): Promise<void> {
   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
   const appNotifications = scheduledNotifications.filter((notification) => {
     const data = notification.content.data;
-    return data && data.app === NOTIFICATION_APP_KEY;
+    return data && data.app === NOTIFICATION_APP_KEY && (data.kind === 'kegel' || data.kind === 'sedentary');
   });
 
   await Promise.all(

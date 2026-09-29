@@ -12,6 +12,7 @@ import { purgeExpiredLocalHealthData, rebuildRecentDailySummaries } from '../src
 import { useHabitStore } from '../src/features/habits/habitStore';
 import { subscribeToFriendNotificationResponses } from '../src/features/friends/friendNotificationNavigation';
 import { configureNotificationHandler } from '../src/features/reminders/notificationService';
+import { startReminderLifecycle } from '../src/features/reminders/reminderLifecycle';
 import { useReminderStore } from '../src/features/reminders/reminderStore';
 import { subscribeToLocalDataChanges } from '../src/features/sync/localDataEvents';
 import { syncCoordinator } from '../src/features/sync/syncCoordinator';
@@ -33,6 +34,7 @@ function RootStack() {
   const authHasHydrated = useAuthStore((state) => state.hasHydrated);
 
   useEffect(() => {
+    const stopReminders = startReminderLifecycle();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') void flushGrowthEvents();
     });
@@ -41,6 +43,7 @@ function RootStack() {
     });
     return () => {
       subscription.remove();
+      stopReminders();
       unsubscribeDataChanges();
     };
   }, []);

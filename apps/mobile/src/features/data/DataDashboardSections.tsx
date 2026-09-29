@@ -1,7 +1,7 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
 import { Database } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, Text, View } from 'react-native';
+import { PanResponder, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import { AppCard } from '../../components/AppCard';
@@ -101,6 +101,10 @@ export function DataTrendChart({
 }) {
   const { colors } = useAppTheme();
   const styles = createDataStyles(colors);
+  const { fontScale } = useWindowDimensions();
+  const [chartWidth, setChartWidth] = useState<number>(trendChartFrame.width);
+  const showInlineAxes = fontScale < 1.5 && chartWidth >= 280;
+  const chartLabelSize = (12 * fontScale * trendChartFrame.width) / Math.max(1, chartWidth);
   const [range, setRange] = useState<TrendRange>(7);
   const [category, setCategory] = useState<TrendCategory>('toilet');
   const [selected, setSelected] = useState(6);
@@ -198,10 +202,8 @@ export function DataTrendChart({
       </View>
       <View style={styles.chartValueRow}>
         <View style={styles.chartValueCopy}>
-          <Text numberOfLines={1} style={styles.chartValue}>
-            {formatTrendValue(selectedPoint?.rawValue ?? null, category)}
-          </Text>
-          <Text numberOfLines={1} style={styles.chartDate}>
+          <Text style={styles.chartValue}>{formatTrendValue(selectedPoint?.rawValue ?? null, category)}</Text>
+          <Text style={styles.chartDate}>
             {selectedSummary ? `${formatFullDate(selectedSummary.date)} · ${trendMetricLabel(category)}` : '暂无记录'}
           </Text>
         </View>
@@ -212,9 +214,7 @@ export function DataTrendChart({
             onPress={() => onOpenDate(selectedSummary.date)}
             style={styles.chartDetailAction}
           >
-            <Text numberOfLines={1} style={styles.chartDetailActionText}>
-              查看详情
-            </Text>
+            <Text style={styles.chartDetailActionText}>查看详情</Text>
           </Pressable>
         ) : null}
       </View>
@@ -222,6 +222,7 @@ export function DataTrendChart({
         collapsable={false}
         onLayout={(event) => {
           widthRef.current = event.nativeEvent.layout.width;
+          setChartWidth(widthRef.current);
           measureChartPosition();
         }}
         onTouchStart={measureChartPosition}
@@ -267,18 +268,19 @@ export function DataTrendChart({
                 y2={tick.y}
               />
             ))}
-            {model.yTicks.map((tick) => (
-              <SvgText
-                fill={colors.textSubtle}
-                fontSize="9"
-                key={`y-label-${tick.value}`}
-                textAnchor="end"
-                x={trendChartFrame.plotLeft - 6}
-                y={tick.y + 3}
-              >
-                {formatTrendAxisValue(tick.value, category)}
-              </SvgText>
-            ))}
+            {showInlineAxes &&
+              model.yTicks.map((tick) => (
+                <SvgText
+                  fill={colors.textSubtle}
+                  fontSize={chartLabelSize}
+                  key={`y-label-${tick.value}`}
+                  textAnchor="end"
+                  x={trendChartFrame.plotLeft - 6}
+                  y={tick.y + 3}
+                >
+                  {formatTrendAxisValue(tick.value, category)}
+                </SvgText>
+              ))}
             {category === 'toilet' ? (
               <>
                 <Line
@@ -290,16 +292,18 @@ export function DataTrendChart({
                   y1={toiletReferenceY(model.yMax)}
                   y2={toiletReferenceY(model.yMax)}
                 />
-                <SvgText
-                  fill={colors.warning}
-                  fontSize="9"
-                  fontWeight="700"
-                  textAnchor="end"
-                  x={trendChartFrame.plotRight}
-                  y={toiletReferenceY(model.yMax) - 4}
-                >
-                  10 分钟
-                </SvgText>
+                {showInlineAxes ? (
+                  <SvgText
+                    fill={colors.warning}
+                    fontSize={chartLabelSize}
+                    fontWeight="700"
+                    textAnchor="end"
+                    x={trendChartFrame.plotRight}
+                    y={toiletReferenceY(model.yMax) - 4}
+                  >
+                    10 分钟
+                  </SvgText>
+                ) : null}
               </>
             ) : null}
             {model.paths.map((path, index) => (
@@ -341,18 +345,19 @@ export function DataTrendChart({
                   ),
                 )
               : null}
-            {model.xLabels.map((label, index) => (
-              <SvgText
-                fill={colors.textSubtle}
-                fontSize="9"
-                key={`${label.date}-${label.index}`}
-                textAnchor={index === 0 ? 'start' : index === model.xLabels.length - 1 ? 'end' : 'middle'}
-                x={label.x}
-                y={178}
-              >
-                {formatTrendShortDate(label.date)}
-              </SvgText>
-            ))}
+            {showInlineAxes &&
+              model.xLabels.map((label) => (
+                <SvgText
+                  fill={colors.textSubtle}
+                  fontSize={chartLabelSize}
+                  key={`${label.date}-${label.index}`}
+                  textAnchor={label.index === 0 ? 'start' : label.index === model.days.length - 1 ? 'end' : 'middle'}
+                  x={label.x}
+                  y={178}
+                >
+                  {formatTrendShortDate(label.date)}
+                </SvgText>
+              ))}
           </Svg>
           {!model.hasAnyRecord ? (
             <Text pointerEvents="none" style={styles.chartEmpty}>
@@ -361,6 +366,13 @@ export function DataTrendChart({
           ) : null}
         </Pressable>
       </View>
+      {!showInlineAxes ? (
+        <Text style={styles.sectionCaption}>
+          日期：{model.days[0]?.date} 至 {model.days.at(-1)?.date}。纵轴刻度：
+          {model.yTicks.map((tick) => formatTrendAxisValue(tick.value, category)).join('、')}。
+          {category === 'toilet' ? '参考线：10 分钟。' : ''}
+        </Text>
+      ) : null}
     </AppCard>
   );
 }
@@ -386,6 +398,8 @@ function Segments<T extends string | number>({
         <Pressable
           accessibilityRole="button"
           key={item}
+          accessibilityState={{ selected: item === selected, disabled: disabled(item) }}
+          disabled={disabled(item)}
           onPress={() => onSelect(item)}
           style={[
             styles.segment,

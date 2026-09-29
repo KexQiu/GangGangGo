@@ -1,6 +1,6 @@
 # 小提督整体开发路线图
 
-更新日期：2026-09-28
+更新日期：2026-09-29
 阶段：增长免费版本的缺陷修复、生产准备与人工验收
 
 当前执行清单以 [Architecture v2 后续待办](./architecture/architecture-v2-follow-up-todo.md) 为准，问题与证据见[全项目审查报告](./audits/2026-09-22-full-review.md)。本路线图说明阶段依赖，不重复维护缺陷完成状态。
@@ -71,7 +71,7 @@
 - R06、R07：修正同步/共享说明，确保小屏、大字体下始终能暂停和结束。界面修复可提前独立推进。
 - R11–R13：记录纠错入口、草稿恢复与固定事件时间已实现，见[实施与验收记录](./architecture/toilet-record-recovery-acceptance.md)；完成原生恢复与配对设备验收。
 - R17、R18：同步与本地读取失败反馈、重试及会话隔离已实现，见[实施记录](./architecture/sync-status-read-recovery-acceptance.md)；推进真实断网、双账号和原生视图验收。
-- R14、R15、R19、R20：完成提醒续排、勿扰边界、明确后台计时规则及可读性改进。
+- R14、R15、R19、R20：每日重复提醒、勿扰边界、前台训练/后台暂停与可读性改进已实现，见[实施记录](./architecture/reminders-training-readability-acceptance.md)；通知投递、锁屏恢复、浅深色/大字体仍待真机验收。
 - 验证本次发布包含的 Watch、Live Activity、通知能力与签名安装。
 
 Apple Developer 权限、配对设备与签名是相关验收的外部依赖。设备结果写入[真机验收总清单](./architecture/physical-device-acceptance-checklist.md)，未验证保持待验收；若功能延期，应同步缩小入口和用户承诺。

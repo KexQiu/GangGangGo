@@ -1,4 +1,4 @@
-import { commitLocalMutation, type LocalMutationOptions } from '../localMutation';
+import { commitLocalMutation, PermanentMutationError, type LocalMutationOptions } from '../localMutation';
 import { initializeDatabase } from '../db';
 import { isTrainingPresetId } from '../../features/training/presets';
 import { type TrainingSession } from '../../features/training/trainingTypes';
@@ -36,6 +36,22 @@ export async function insertTrainingSession(session: TrainingSession, options: L
   const updatedAt = new Date().toISOString();
 
   return commitLocalMutation(options, async (db, profileId) => {
+    // 保存成功后、清理计时快照前退出进程，重启重试仍使用原 ID，不重复累计或上传。
+    const existing = await db.getFirstAsync<TrainingSessionRow & { profile_id: string }>(
+      'SELECT * FROM training_sessions WHERE id = $id;',
+      { $id: session.id },
+    );
+    if (existing) {
+      if (existing.profile_id !== profileId) throw new PermanentMutationError('训练记录不属于当前账号。');
+      const previous = rowToTrainingSession(existing);
+      if (
+        !previous ||
+        (Object.keys(session) as Array<keyof TrainingSession>).some((key) => session[key] !== previous[key])
+      ) {
+        throw new PermanentMutationError('训练记录编号相同但内容不同，请重新打开训练。');
+      }
+      return;
+    }
     await db.runAsync(
       `
       INSERT INTO training_sessions (

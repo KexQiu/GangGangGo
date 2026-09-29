@@ -11,8 +11,6 @@ export const SEDENTARY_INTERVAL_OPTIONS = [45, 60, 90] as const;
 const MINUTES_PER_DAY = 24 * 60;
 const DEFAULT_ACTIVE_START_MINUTES = 9 * 60;
 const DEFAULT_ACTIVE_END_MINUTES = 21 * 60;
-const SEDENTARY_SCHEDULE_DAYS = 2;
-const MAX_SEDENTARY_NOTIFICATIONS = 40;
 
 export const defaultReminderSettings: ReminderSettings = {
   kegelEnabled: false,
@@ -68,54 +66,6 @@ export function getKegelReminderTimesOutsideQuietHours(settings: ReminderSetting
   return settings.kegelTimes.filter((time) => !isTimeInQuietHoursRanges(time, settings));
 }
 
-export function getNextKegelReminderTime(settings: ReminderSettings, now = new Date()): string | null {
-  if (!settings.kegelEnabled) {
-    return null;
-  }
-
-  const availableTimes = getKegelReminderTimesOutsideQuietHours(settings).sort();
-  if (availableTimes.length === 0) {
-    return null;
-  }
-
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  return (
-    availableTimes.find((time) => {
-      const reminderMinutes = parseTimeToMinutes(time);
-      return reminderMinutes !== null && reminderMinutes > currentMinutes;
-    }) ?? availableTimes[0]
-  );
-}
-
-export function getReminderHomeSummary(settings: ReminderSettings, now = new Date()) {
-  if (!hasAnyReminderEnabled(settings)) {
-    return {
-      subtitle: '开启后只用小暗号提醒，不在通知栏大声广播。',
-      title: '小暗号还没开',
-    };
-  }
-
-  const nextKegelTime = getNextKegelReminderTime(settings, now);
-  if (settings.kegelEnabled && nextKegelTime) {
-    return {
-      subtitle: settings.privacyMode ? `下一次小花锻炼 ${nextKegelTime}` : `下一次菊花抬 ${nextKegelTime}`,
-      title: settings.privacyMode ? '小暗号已开启' : '菊花抬已安排',
-    };
-  }
-
-  if (settings.sedentaryEnabled) {
-    return {
-      subtitle: `每 ${settings.sedentaryIntervalMinutes} 分钟提醒身体换个姿势`,
-      title: settings.privacyMode ? '动一动暗号已开启' : '久坐提醒已安排',
-    };
-  }
-
-  return {
-    subtitle: '提醒都撞上勿扰时间了，换个时段就能开工。',
-    title: '暗号暂时发不出去',
-  };
-}
-
 export function getReminderCopy(kind: ReminderKind, privacyMode: boolean) {
   if (kind === 'kegel') {
     return privacyMode
@@ -140,32 +90,20 @@ export function getReminderCopy(kind: ReminderKind, privacyMode: boolean) {
       };
 }
 
-export function buildSedentaryReminderDates(settings: ReminderSettings, now = new Date()): Date[] {
-  if (!settings.sedentaryEnabled) {
-    return [];
-  }
-
-  const dates: Date[] = [];
-  const windows = getActiveMinuteWindows(settings);
+/** 每天重复的本地时刻。活动窗口和勿扰统一使用 [开始, 结束)。 */
+export function getSedentaryReminderTimes(settings: ReminderSettings): string[] {
+  if (!settings.sedentaryEnabled) return [];
+  const times = new Set<string>();
   const interval = normalizeSedentaryInterval(settings.sedentaryIntervalMinutes);
-
-  for (let dayOffset = 0; dayOffset < SEDENTARY_SCHEDULE_DAYS; dayOffset += 1) {
-    for (const [windowStart, windowEnd] of windows) {
-      for (let minute = windowStart + interval; minute <= windowEnd; minute += interval) {
-        const date = buildDateAtMinute(now, dayOffset, minute);
-
-        if (date.getTime() > now.getTime() + 60 * 1000) {
-          dates.push(date);
-        }
-
-        if (dates.length >= MAX_SEDENTARY_NOTIFICATIONS) {
-          return dates;
-        }
-      }
+  for (const [start, end] of getActiveMinuteWindows(settings)) {
+    for (let minute = start + interval; minute < end; minute += interval) {
+      const time = `${Math.floor(minute / 60)
+        .toString()
+        .padStart(2, '0')}:${(minute % 60).toString().padStart(2, '0')}`;
+      if (!isTimeInQuietHoursRanges(time, settings)) times.add(time);
     }
   }
-
-  return dates;
+  return [...times].sort();
 }
 
 export function isQuietHoursDisabled(settings: ReminderSettings): boolean {
@@ -281,12 +219,4 @@ function subtractMinuteWindow(activeWindows: Array<[number, number]>, quietWindo
       [Math.min(activeEnd, quietEnd), activeEnd] as [number, number],
     ].filter(([start, end]) => end > start);
   });
-}
-
-function buildDateAtMinute(now: Date, dayOffset: number, minute: number): Date {
-  const date = new Date(now);
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + dayOffset);
-  date.setMinutes(minute);
-  return date;
 }

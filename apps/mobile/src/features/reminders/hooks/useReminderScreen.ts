@@ -1,4 +1,4 @@
-import { getReminderHomeSummary, MAX_QUIET_HOURS_RANGES } from '../reminderLogic';
+import { MAX_QUIET_HOURS_RANGES } from '../reminderLogic';
 import { addMinutesToTime } from '../reminderPresentation';
 import { useReminderStore } from '../reminderStore';
 import type { QuietHoursRange } from '../reminderTypes';
@@ -11,7 +11,8 @@ export function useReminderScreen() {
   const scheduledCount = useReminderStore((state) => state.scheduledCount);
   const settings = useReminderStore((state) => state.settings);
   const updateSettings = useReminderStore((state) => state.updateSettings);
-  const summary = getReminderHomeSummary(settings);
+  const nextReminderAt = useReminderStore((state) => state.nextReminderAt);
+  const syncSchedule = useReminderStore((state) => state.syncSchedule);
   const needsPermission = (settings.kegelEnabled || settings.sedentaryEnabled) && permissionStatus !== 'granted';
 
   async function setKegelEnabled(enabled: boolean) {
@@ -70,7 +71,8 @@ export function useReminderScreen() {
     setKegelEnabled,
     setSedentaryEnabled,
     settings,
-    summary,
+    nextReminderAt,
+    syncSchedule,
     updateSettings,
   };
 }

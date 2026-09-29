@@ -7,6 +7,7 @@
 - [R01 Apple 登录实施与验收](./apple-login-acceptance.md)
 - [R11–R13 记录纠错与草稿恢复](./toilet-record-recovery-acceptance.md)
 - [R17/R18 同步状态与读取恢复](./sync-status-read-recovery-acceptance.md)
+- [R14/R15/R19/R20 提醒、训练计时与可读性](./reminders-training-readability-acceptance.md)
 - [移动端同步](./mobile-sync.md)
 - [上线前数据库基线](./database-baseline.md)
 - [移动端图片资产审计](./mobile-assets.md)

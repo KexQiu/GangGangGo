@@ -31,7 +31,7 @@ export default function TrainingScreen() {
     <Screen>
       <AppTopBar fallbackHref={routes.home} title="菊花抬" />
 
-      <PageHeader subtitle="也就是提肛训练。选个节奏，跟着轻抬轻放就行。" title="小花今日营业" />
+      <PageHeader subtitle="选个节奏轻抬轻放。有未完成训练时，点击开始会恢复上次进度。" title="小花今日营业" />
 
       <AppCard muted style={styles.summaryCard}>
         <Text style={styles.summaryValue}>{todayCount}/2</Text>

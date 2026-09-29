@@ -57,6 +57,8 @@ export function SegmentOption({ label, onPress, selected }: SegmentOptionProps) 
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && styles.pressed]}
     >

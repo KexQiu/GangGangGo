@@ -40,7 +40,7 @@ export function AppButton({
         style,
       ]}
     >
-      <Text style={styles.text}>{children}</Text>
+      <Text style={[styles.text, disabled && styles.disabledText]}>{children}</Text>
     </Pressable>
   );
 }
@@ -51,7 +51,7 @@ function createStyles(colors: ThemeColors, variant: NonNullable<AppButtonProps['
   const variants = {
     primary: {
       backgroundColor: colors.primary,
-      color: '#FFFFFF',
+      color: colors.primaryForeground,
       pressedColor: colors.primaryPressed,
     },
     secondary: {
@@ -77,16 +77,20 @@ function createStyles(colors: ThemeColors, variant: NonNullable<AppButtonProps['
       justifyContent: 'center',
       minHeight: 54,
       paddingHorizontal: 18,
+      paddingVertical: 12,
     },
     pressed: {
       backgroundColor: active.pressedColor,
       transform: [{ scale: 0.99 }],
     },
     disabled: {
-      opacity: 0.55,
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.border,
     },
+    disabledText: { color: colors.textMuted },
     text: {
       color: active.color,
+      textAlign: 'center',
       fontSize: 16,
       fontWeight: '800',
     },

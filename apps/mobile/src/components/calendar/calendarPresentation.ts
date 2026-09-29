@@ -47,6 +47,6 @@ export function createCalendarSurfaceStyles(colors: ThemeColors) {
     calendarViewport: { overflow: 'hidden' },
     legendDot: { borderRadius: 3, height: 6, width: 6 },
     legendItem: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-    legendText: { color: colors.textMuted, fontSize: 10, fontWeight: '700' },
+    legendText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   });
 }

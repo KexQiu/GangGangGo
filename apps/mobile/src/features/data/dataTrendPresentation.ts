@@ -6,7 +6,7 @@ export type TrendRange = 7 | 30 | 90;
 export const trendChartFrame = {
   height: 190,
   plotBottom: 148,
-  plotLeft: 36,
+  plotLeft: 52,
   plotRight: 308,
   plotTop: 18,
   width: 320,

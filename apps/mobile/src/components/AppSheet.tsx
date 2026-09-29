@@ -219,7 +219,7 @@ function createStyles(colors: ThemeColors) {
     closeText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
     dialog: { borderRadius: 24, maxHeight: '82%', maxWidth: 360, width: '100%' },
     dialogRoot: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
-    eyebrow: { color: colors.privacy, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
+    eyebrow: { color: colors.privacy, fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
     footer: {
       flexShrink: 0,
       backgroundColor: colors.surface,

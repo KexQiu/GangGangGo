@@ -40,7 +40,8 @@ export default function RemindersScreen() {
     setKegelEnabled,
     setSedentaryEnabled,
     settings,
-    summary,
+    nextReminderAt,
+    syncSchedule,
     updateSettings,
   } = useReminderScreen();
 
@@ -55,11 +56,21 @@ export default function RemindersScreen() {
           <BellRing color={colors.privacy} size={28} strokeWidth={2.4} />
         </View>
         <View style={styles.summaryCopy}>
-          <Text style={styles.summaryTitle}>{summary.title}</Text>
+          <Text style={styles.summaryTitle}>
+            {isSyncing
+              ? '正在校准提醒…'
+              : error
+                ? '提醒需要重试'
+                : needsPermission
+                  ? '等待系统通知权限'
+                  : scheduledCount > 0
+                    ? '每日提醒已安排'
+                    : '暂无已安排的提醒'}
+          </Text>
           <Text style={styles.summaryText}>
-            {permissionStatus === 'granted'
-              ? `${summary.subtitle}，已排班 ${scheduledCount} 个小暗号。`
-              : summary.subtitle}
+            {nextReminderAt && permissionStatus === 'granted' && !isSyncing && !error
+              ? `下次预计 ${new Date(nextReminderAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}，每天重复 ${scheduledCount} 个时段。`
+              : '开启提醒并允许系统通知后，这里会显示已安排的下一次时间。'}
           </Text>
         </View>
       </AppCard>
@@ -81,7 +92,12 @@ export default function RemindersScreen() {
 
       {error ? (
         <AppCard style={styles.errorCard}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text accessibilityRole="alert" style={styles.errorText}>
+            {error}
+          </Text>
+          <AppButton disabled={isSyncing} onPress={() => void syncSchedule()} variant="secondary">
+            重试安排
+          </AppButton>
         </AppCard>
       ) : null}
 
@@ -114,7 +130,7 @@ export default function RemindersScreen() {
       <Text style={styles.groupTitle}>久坐提醒</Text>
       <AppCard style={styles.settingsCard}>
         <SettingHeader
-          description="只按时间喊你动一动，不偷看坐姿，也不审判坐姿。"
+          description="每天 09:00–21:00，按固定时段提醒；每段可提醒时间开始后，间隔指定分钟再发出。"
           icon={Move}
           onValueChange={(enabled) => void setSedentaryEnabled(enabled)}
           title="起身透气提醒"
@@ -135,6 +151,10 @@ export default function RemindersScreen() {
           ))}
         </View>
       </AppCard>
+
+      <Text style={styles.fieldNote}>
+        提醒每天重复，无需每天打开 App。系统专注模式、省电或通知权限可能影响实际送达；回到 App 时会重新校准。
+      </Text>
 
       <Text style={styles.groupTitle}>隐私和勿扰</Text>
       <AppCard style={styles.settingsCard}>
@@ -208,7 +228,7 @@ export default function RemindersScreen() {
         {settings.quietHoursRanges.length === 0 ? (
           <View style={styles.quietEmpty}>
             <Coffee color={colors.textMuted} size={20} strokeWidth={2.3} />
-            <Text style={styles.quietEmptyText}>现在全天都能收到小暗号。想午休不被打扰，可以先加一段。</Text>
+            <Text style={styles.quietEmptyText}>当前没有额外勿扰限制；久坐提醒仍仅在 09:00–21:00 安排。</Text>
           </View>
         ) : (
           <View style={styles.rangeList}>

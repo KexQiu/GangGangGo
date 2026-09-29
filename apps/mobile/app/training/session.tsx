@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { authSessionContext } from '../../src/api/sessionContext';
+import { useTrainingClock } from '../../src/features/training/useTrainingClock';
 import { createTrainingCompletion } from '../../src/features/training/trainingCompletion';
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
@@ -13,14 +14,12 @@ import { getTrainingPreset } from '../../src/features/training/presets';
 import {
   buildTrainingTimeline,
   formatTrainingDuration,
-  getCompletedRepetitions,
   getCurrentTrainingStep,
   getPhaseCopy,
   getStepRemainingSeconds,
   getTimelineTotalSeconds,
 } from '../../src/features/training/trainingLogic';
 import { useTrainingStore } from '../../src/features/training/trainingStore';
-import { type TrainingSession } from '../../src/features/training/trainingTypes';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
@@ -28,17 +27,21 @@ export default function TrainingSessionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ presetId?: string }>();
   const addSession = useTrainingStore((state) => state.addSession);
-  const preset = getTrainingPreset(params.presetId);
+  const training = useTrainingClock(params.presetId);
+  const preset = training.clock?.preset ?? getTrainingPreset(params.presetId);
   const timeline = useMemo(() => buildTrainingTimeline(preset), [preset]);
   const totalSeconds = getTimelineTotalSeconds(timeline);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const { elapsedSeconds, isPaused } = training;
   const finishedRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const completion = useRef<ReturnType<typeof createTrainingCompletion> | null>(null);
   completion.current ??= createTrainingCompletion(
-    ({ session, generation }) => addSession(session, { generation }),
+    async ({ session, generation }) => {
+      await addSession(session, { generation });
+      authSessionContext.assertGeneration(generation);
+      training.clear();
+    },
     (session) =>
       router.replace({
         pathname: routes.trainingComplete,
@@ -51,31 +54,22 @@ export default function TrainingSessionScreen() {
       }),
     (error) => setSaveError(error instanceof Error ? error.message : '保存失败，请重试。'),
   );
-  const startedAtRef = useRef(new Date().toISOString());
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
   const currentStep = getCurrentTrainingStep(elapsedSeconds, timeline);
   const phaseCopy = getPhaseCopy(currentStep.phase);
   const stepRemainingSeconds = getStepRemainingSeconds(elapsedSeconds, currentStep);
-  const completedRepetitions = getCompletedRepetitions(elapsedSeconds, timeline);
   const progress = totalSeconds === 0 ? 0 : Math.min(1, elapsedSeconds / totalSeconds);
 
   useEffect(() => {
-    if (isPaused || finishedRef.current) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setElapsedSeconds((current) => Math.min(current + 1, totalSeconds));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isPaused, totalSeconds]);
-
-  useEffect(() => {
-    if (elapsedSeconds >= totalSeconds && !finishedRef.current) {
-      void finishSession(true);
+    if (
+      training.ready &&
+      !training.error &&
+      (elapsedSeconds >= totalSeconds || training.clock?.finished) &&
+      !finishedRef.current
+    ) {
+      void finishSession();
     }
   });
 
@@ -85,25 +79,17 @@ export default function TrainingSessionScreen() {
     }
   }, [currentStep.phase, currentStep.repetition, isPaused]);
 
-  async function finishSession(isCompleted: boolean) {
+  async function finishSession() {
     finishedRef.current = true;
-    setIsPaused(true);
+    training.setPaused(true);
     setSaveError(null);
     setIsSaving(true);
     try {
-      await completion.current!.finish(() => ({
-        generation: authSessionContext.captureLocalGeneration(),
-        session: {
-          id: createSessionId(),
-          presetId: preset.id,
-          startedAt: startedAtRef.current,
-          endedAt: new Date().toISOString(),
-          durationSeconds: elapsedSeconds,
-          completedRepetitions: isCompleted ? preset.repetitions : completedRepetitions,
-          isCompleted,
-          discomfortReported: false,
-        } satisfies TrainingSession,
-      }));
+      await completion.current!.finish(() => {
+        if (!training.clock || training.generation === undefined) throw new Error('训练尚未准备完成，请返回后重试。');
+        authSessionContext.assertGeneration(training.generation);
+        return { generation: training.generation, session: training.clock.finish() };
+      });
     } finally {
       setIsSaving(false);
     }
@@ -112,16 +98,23 @@ export default function TrainingSessionScreen() {
   function confirmDiscardTraining() {
     if (isSaving) return;
     const wasPaused = isPaused;
-    setIsPaused(true);
+    training.setPaused(true);
 
     Alert.alert('这组先撤？', '放弃后不会保存本次记录，小花当作没上班。', [
       {
-        onPress: () => setIsPaused(wasPaused),
+        onPress: () => training.setPaused(wasPaused),
         style: 'cancel',
         text: '继续抬',
       },
       {
-        onPress: () => router.replace(routes.training),
+        onPress: () => {
+          try {
+            training.clear();
+            router.replace(routes.training);
+          } catch (error) {
+            setSaveError(error instanceof Error ? error.message : '放弃失败，请重试。');
+          }
+        },
         style: 'destructive',
         text: '放弃',
       },
@@ -135,17 +128,17 @@ export default function TrainingSessionScreen() {
       footer={
         <View style={styles.actions}>
           <AppButton
-            disabled={isSaving || finishedRef.current}
-            onPress={() => setIsPaused((current) => !current)}
+            disabled={!training.ready || isSaving || finishedRef.current}
+            onPress={() => training.setPaused(!isPaused)}
             style={styles.actionButton}
             variant="secondary"
           >
-            {isPaused ? '继续' : '暂停'}
+            {!training.ready ? (training.error ? '未能开始' : '准备中…') : isPaused ? '继续' : '暂停'}
           </AppButton>
           <AppButton
-            disabled={isSaving}
+            disabled={!training.ready || isSaving}
             onPress={() => {
-              void finishSession(false);
+              void finishSession();
             }}
             style={styles.actionButton}
             variant="warning"
@@ -178,7 +171,12 @@ export default function TrainingSessionScreen() {
           </View>
         </View>
 
-        <Text style={styles.phaseTitle}>{phaseCopy.title}</Text>
+        <Text style={styles.phaseTitle}>{isPaused ? '已暂停' : phaseCopy.title}</Text>
+        <Text style={styles.tipsText}>
+          {training.clock?.recovered && isPaused
+            ? '已恢复上次训练，请点击继续。'
+            : '锁屏、来电或切到后台会自动暂停，返回后请手动继续。'}
+        </Text>
         <Text style={styles.safetyHint}>{phaseCopy.safetyHint}</Text>
 
         <View style={styles.progressTrack}>
@@ -194,10 +192,10 @@ export default function TrainingSessionScreen() {
         <Text style={styles.tipsText}>这是提肛训练：轻提轻放，呼吸在线。别夹臀、别收腹，疼了或更不舒服就停。</Text>
       </AppCard>
 
-      {saveError ? (
+      {saveError || training.error ? (
         <AppCard muted>
           <Text accessibilityRole="alert" style={styles.safetyHint}>
-            保存失败：{saveError} 本次训练仍可重试保存。
+            {saveError ?? training.error} 训练已暂停；可重试继续或保存。
           </Text>
         </AppCard>
       ) : null}
@@ -336,8 +334,4 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 12,
     },
   });
-}
-
-function createSessionId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

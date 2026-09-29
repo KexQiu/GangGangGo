@@ -113,7 +113,7 @@ export function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceMuted,
       borderRadius: 12,
       color: colors.textMuted,
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       lineHeight: 16,
       padding: 12,
@@ -138,7 +138,7 @@ export function createStyles(colors: ThemeColors) {
     },
     logTime: {
       color: colors.textSubtle,
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
     },
     logTitle: {

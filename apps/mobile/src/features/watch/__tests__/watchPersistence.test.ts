@@ -111,6 +111,24 @@ afterEach(() => {
 });
 
 describe('save -> SQLite -> visible state -> Watch ACK', () => {
+  it('retries a saved phone training after restart without duplicating summary or outbox', async () => {
+    await useTrainingStore.getState().addSession(training);
+    useTrainingStore.getState().reset();
+    await useTrainingStore.getState().addSession(training);
+    expect(rows('training_sessions')).toHaveLength(1);
+    expect(rows('data_sync_outbox')).toHaveLength(1);
+    expect(rows('daily_activity_summaries')).toMatchObject([{ training_completed_count: 1 }]);
+  });
+
+  it('rejects a reused training ID with different content instead of reporting it saved', async () => {
+    await useTrainingStore.getState().addSession(training);
+    await expect(useTrainingStore.getState().addSession({ ...training, durationSeconds: 60 })).rejects.toThrow(
+      '内容不同',
+    );
+    expect(rows('training_sessions')).toMatchObject([{ duration_seconds: 120 }]);
+    expect(rows('data_sync_outbox')).toHaveLength(1);
+  });
+
   it('rejects a timer owned by another account even when its ID is known', async () => {
     startTimer('timer-A');
     const timer = useToiletTimerSessionStore.getState().session!;

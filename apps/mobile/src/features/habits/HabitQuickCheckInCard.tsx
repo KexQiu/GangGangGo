@@ -380,7 +380,7 @@ function createStyles(colors: ThemeColors, compact: boolean) {
     },
     statLabel: {
       color: colors.textMuted,
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
     },
     statDivider: {

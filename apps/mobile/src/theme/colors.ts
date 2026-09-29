@@ -9,6 +9,7 @@ export type ThemeColors = {
   textMuted: string;
   textSubtle: string;
   primary: string;
+  primaryForeground: string;
   primaryPressed: string;
   primarySoft: string;
   info: string;
@@ -29,19 +30,20 @@ export const themeColors: Record<ResolvedColorScheme, ThemeColors> = {
     surfaceMuted: '#EEF6F1',
     border: '#DDE8E1',
     text: '#1F2A24',
-    textMuted: '#65746B',
-    textSubtle: '#94A39A',
-    primary: '#2FB77D',
-    primaryPressed: '#1E8F62',
+    textMuted: '#59695F',
+    textSubtle: '#647269',
+    primary: '#147D50',
+    primaryForeground: '#FFFFFF',
+    primaryPressed: '#10663F',
     primarySoft: '#DDF5E9',
-    info: '#3C7DF0',
+    info: '#2664CE',
     infoSoft: '#E4EEFF',
     navigationActive: '#0B6B47',
-    navigationInactive: '#65746B',
-    privacy: '#8D6BE8',
-    warning: '#F59E0B',
+    navigationInactive: '#59695F',
+    privacy: '#7350BB',
+    warning: '#925B00',
     warningSoft: '#FFF3D6',
-    danger: '#E5484D',
+    danger: '#C42E36',
     dangerSoft: '#FFE5E7',
   },
   dark: {
@@ -51,8 +53,9 @@ export const themeColors: Record<ResolvedColorScheme, ThemeColors> = {
     border: '#2C4036',
     text: '#F1F7F3',
     textMuted: '#B9C8BF',
-    textSubtle: '#819188',
+    textSubtle: '#A0B3A7',
     primary: '#41D492',
+    primaryForeground: '#0F1713',
     primaryPressed: '#2FB77D',
     primarySoft: '#173D2C',
     info: '#73A3FF',
