@@ -11,15 +11,8 @@ import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { trainingPresets } from '../../src/features/training/presets';
 import { formatTrainingDuration } from '../../src/features/training/trainingLogic';
 import { getTodayCompletedTrainingCount, useTrainingStore } from '../../src/features/training/trainingStore';
-import { type TrainingPresetId } from '../../src/features/training/trainingTypes';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
-
-const presetIconVariants: Record<TrainingPresetId, 'quick' | 'soft' | 'steady'> = {
-  beginner: 'soft',
-  standard: 'steady',
-  quick: 'quick',
-};
 
 export default function TrainingScreen() {
   const router = useRouter();
@@ -52,22 +45,13 @@ export default function TrainingScreen() {
 
       <View style={styles.list}>
         {trainingPresets.map((preset) => {
-          const iconVariant = presetIconVariants[preset.id];
           const totalSeconds = preset.repetitions * (preset.contractSeconds + preset.relaxSeconds);
 
           return (
             <AppCard key={preset.id} style={styles.presetCard}>
               <View style={styles.presetHeader}>
                 <View style={styles.iconBadge}>
-                  <FlowerLiftIcon
-                    info={colors.primaryPressed}
-                    primary={colors.primary}
-                    privacy={colors.primaryPressed}
-                    size={34}
-                    strokeWidth={2.35}
-                    surface={colors.surface}
-                    variant={iconVariant}
-                  />
+                  <FlowerLiftIcon color={colors.primaryPressed} presetId={preset.id} size={32} />
                 </View>
                 <View style={styles.presetCopy}>
                   <Text style={styles.presetTitle}>{preset.name}</Text>

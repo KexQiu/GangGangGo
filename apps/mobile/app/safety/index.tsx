@@ -1,4 +1,12 @@
-import { Ban, CheckCircle2, CircleHelp, HeartPulse, ShieldCheck, Stethoscope } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  Ban,
+  CheckCircle2,
+  CircleHelp,
+  HeartPulse,
+  ShieldCheck,
+  Stethoscope,
+} from 'lucide-react-native';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { showToast } from '../../src/components/toast/AppToast';
@@ -88,7 +96,7 @@ export default function SafetyScreen() {
         </View>
       </AppCard>
 
-      <GuidanceSection icon={Stethoscope} items={emergencyItems} title="立即寻求急诊帮助" tone="danger" />
+      <GuidanceSection icon={AlertTriangle} items={emergencyItems} title="立即寻求急诊帮助" tone="danger" />
 
       <GuidanceSection icon={Stethoscope} items={medicalItems} title="及时就医或咨询" tone="warning" />
 

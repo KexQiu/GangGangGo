@@ -1,80 +1,40 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
-type FlowerLiftIconProps = {
-  color?: string;
-  info?: string;
-  primary?: string;
-  privacy?: string;
-  showLiftLine?: boolean;
-  size?: number;
-  strokeWidth?: number;
-  surface?: string;
-  variant?: 'quick' | 'soft' | 'steady';
+import type { AppIconProps } from '../../components/icons/iconTypes';
+import type { TrainingPresetId } from './trainingTypes';
+
+type FlowerLiftIconProps = AppIconProps & {
+  presetId?: TrainingPresetId;
 };
 
-export function FlowerLiftIcon({
-  color,
-  info = '#3C7DF0',
-  primary,
-  privacy = '#8D6BE8',
-  showLiftLine = true,
-  size = 24,
-  strokeWidth = 2.4,
-  surface = '#FFFFFF',
-  variant = 'soft',
-}: FlowerLiftIconProps) {
-  const petalColor = primary ?? color ?? '#2FB77D';
-  const curvePath =
-    variant === 'quick'
-      ? 'M8 17 C10.5 13.6 14.5 12.7 18.4 13.8'
-      : variant === 'steady'
-        ? 'M6.6 16.2 C9 13.7 12.4 12.9 18 14'
-        : 'M8.3 16.8 C10 15.3 12.2 14.8 15 15.2';
-  const curveOpacity = variant === 'soft' ? 0.5 : 1;
-  const petalScale = variant === 'soft' ? 0.9 : 1;
+const liftArcPath = 'M4 16.5C5.5 19.3 8.5 21 12 21C15.5 21 18.5 19.3 20 16.5';
+const accentPaths: Record<TrainingPresetId | 'default', string> = {
+  default: `M3 12.5C2.3 11.7 2 10.8 2 9.5M21 10.5C21.7 9.7 22 8.8 22 7.5 ${liftArcPath}`,
+  beginner: liftArcPath,
+  standard:
+    'M7 16.5C8.4 17.6 10.1 18 12 18C13.9 18 15.6 17.6 17 16.5M4 17.5C5.8 20.1 8.6 21.5 12 21.5C15.4 21.5 18.2 20.1 20 17.5',
+  quick: `M2 12C2.25 11.3 2.65 10.6 3.1 10M20.9 8.8C21.35 8.2 21.75 7.5 22 6.8 ${liftArcPath}`,
+};
 
+// Keep the flower and default accents in sync with ios/Shared/FeatureIcons.swift.
+export function FlowerLiftIcon({ color = 'currentColor', size = 24, strokeWidth = 2, presetId }: FlowerLiftIconProps) {
   return (
     <Svg
       accessibilityElementsHidden
+      accessible={false}
       height={size}
       importantForAccessibility="no-hide-descendants"
-      viewBox="3 1.8 18 17.5"
+      viewBox="0 0 24 24"
       width={size}
+      fill="none"
+      stroke={color}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={strokeWidth}
     >
-      {showLiftLine ? (
-        <Path
-          d={curvePath}
-          fill="none"
-          opacity={curveOpacity}
-          stroke={privacy}
-          strokeLinecap="round"
-          strokeWidth={variant === 'soft' ? strokeWidth * 0.85 : strokeWidth}
-        />
-      ) : null}
-
-      {showLiftLine && variant === 'steady' ? (
-        <>
-          <Circle cx="9.2" cy="17.3" fill={info} r="0.72" />
-          <Circle cx="12" cy="16.4" fill={info} r="0.72" />
-          <Circle cx="14.8" cy="15.9" fill={info} r="0.72" />
-        </>
-      ) : null}
-
-      {showLiftLine && variant === 'quick' ? (
-        <>
-          <Path d="M18.2 7.2h2.2" fill="none" stroke={info} strokeLinecap="round" strokeWidth={1.8} />
-          <Path d="M17.8 10.1h3.1" fill="none" stroke={info} strokeLinecap="round" strokeWidth={1.8} />
-        </>
-      ) : null}
-
-      <Circle cx="12" cy="8" fill={petalColor} r={2.2 * petalScale} />
-      <Circle cx="12" cy="4.8" fill={petalColor} r={2.4 * petalScale} />
-      <Circle cx="15" cy="6.5" fill={petalColor} r={2.4 * petalScale} />
-      <Circle cx="14.6" cy="10" fill={petalColor} r={2.3 * petalScale} />
-      <Circle cx="9.4" cy="10" fill={petalColor} r={2.3 * petalScale} />
-      <Circle cx="9" cy="6.5" fill={petalColor} r={2.4 * petalScale} />
-
-      <Circle cx="12" cy="7.8" fill={surface} r={1.6 * petalScale} />
+      <Path d="M10 5C9.3 1.3 14.7 1.3 14 5C16.9 2.5 19.7 7.1 16.4 8.6C19.7 10.1 16.9 14.7 14 12.2C14.7 15.9 9.3 15.9 10 12.2C7.1 14.7 4.3 10.1 7.6 8.6C4.3 7.1 7.1 2.5 10 5Z" />
+      <Circle cx="12" cy="8.6" r="1" fill={color} stroke="none" />
+      <Path d={accentPaths[presetId ?? 'default']} />
     </Svg>
   );
 }

@@ -9,10 +9,10 @@ export function createFriendStyles(colors: ThemeColors) {
     actionButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
-      borderRadius: 18,
-      height: 36,
+      borderRadius: 22,
+      height: 44,
       justifyContent: 'center',
-      width: 36,
+      width: 44,
     },
     badge: {
       alignItems: 'center',

@@ -1,9 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Droplets, Leaf, ListChecks, Move, Smile } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { ChevronRight, Droplets, Footprints, Leaf, ListChecks } from 'lucide-react-native';
+import { type ComponentType, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { SquatIcon } from '../../components/icons/SquatIcon';
+import type { AppIconProps } from '../../components/icons/iconTypes';
 import { showToast } from '../../components/toast/AppToast';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
@@ -20,12 +22,13 @@ import {
   getHabitPositiveFeedback,
   getLocalDateKey,
 } from './habitLogic';
+import { getQuickHabitAction } from './habitPresentation';
 import { getHabitLevelStandard, habitStandards } from './habitStandards';
 import { getHabitCheckInForDate, useHabitStore } from './habitStore';
 import { type HabitKey, type HabitRecordLevel } from './habitTypes';
 
 const quickHabitItems: Array<{
-  icon: typeof Droplets;
+  icon: ComponentType<AppIconProps>;
   key: HabitKey;
   title: string;
 }> = [
@@ -40,12 +43,12 @@ const quickHabitItems: Array<{
     title: '蔬果全谷',
   },
   {
-    icon: Move,
+    icon: Footprints,
     key: 'movement',
     title: '活动',
   },
   {
-    icon: Smile,
+    icon: SquatIcon,
     key: 'bowel',
     title: '排便',
   },
@@ -73,13 +76,26 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
   const savingKeys = useRef(new Set<HabitKey>());
   const justCompletedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function toggleGood(key: HabitKey) {
+  useEffect(
+    () => () => {
+      if (justCompletedTimerRef.current) clearTimeout(justCompletedTimerRef.current);
+    },
+    [],
+  );
+
+  async function handleQuickAction(key: HabitKey) {
     if (savingKeys.current.has(key)) return;
     savingKeys.current.add(key);
     try {
       const activeLevel = todayCheckIn[key];
 
-      if (activeLevel === 'good') {
+      const action = getQuickHabitAction(key, activeLevel);
+      if (action === 'edit') {
+        router.push(routes.habits);
+        return;
+      }
+
+      if (action === 'clear') {
         void Haptics.selectionAsync().catch(() => undefined);
         await clearHabitLevel(today, key);
         setJustCompleted(false);
@@ -154,7 +170,7 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
         {quickHabitItems.map((item) => {
           const Icon = item.icon;
           const activeLevel = todayCheckIn[item.key];
-          const selected = activeLevel === 'good';
+          const action = getQuickHabitAction(item.key, activeLevel);
           const recorded = Boolean(activeLevel);
           const stateTone = getHabitLevelTone(colors, activeLevel);
           const stateLabel = activeLevel ? getHabitLevelStandard(item.key, activeLevel).label : '未记录';
@@ -163,19 +179,16 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
           return (
             <PressableScale
               accessibilityHint={
-                item.key === 'bowel'
-                  ? '打开排便情况，选择感受或今日未排便。'
-                  : selected
+                action === 'edit'
+                  ? '打开详情，按实际情况修改或清除记录。'
+                  : action === 'clear'
                     ? '再点一下会撤销这一项。'
                     : `点一下记为${habitStandards[item.key].levels.good.label}，其他分档可在详情中填写。`
               }
-              accessibilityLabel={`${item.title}，${stateLabel}，快捷记录${targetLabel}`}
-              accessibilityState={{ selected }}
+              accessibilityLabel={`${item.title}，${recorded ? `已记录，${stateLabel}` : stateLabel}`}
+              accessibilityState={{ selected: recorded }}
               key={item.key}
-              onPress={() => {
-                if (item.key === 'bowel') router.push(routes.habits);
-                else void toggleGood(item.key);
-              }}
+              onPress={() => void handleQuickAction(item.key)}
               style={[
                 styles.quickButton,
                 recorded && {
@@ -185,10 +198,10 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
               ]}
             >
               <View style={[styles.quickIcon, { backgroundColor: stateTone.iconBackgroundColor }]}>
-                <Icon color={stateTone.iconColor} size={18} strokeWidth={2.4} />
-                {selected ? (
+                <Icon color={stateTone.iconColor} size={20} strokeWidth={2} />
+                {recorded ? (
                   <View style={styles.checkBadge}>
-                    <AnimatedCheckBadge active={selected} size={12} />
+                    <AnimatedCheckBadge active={recorded} size={12} />
                   </View>
                 ) : null}
               </View>
@@ -197,7 +210,15 @@ export function HabitQuickCheckInCard({ compact = false, showDetailsButton = tru
                   {item.title}
                 </Text>
                 <Text style={[styles.quickState, { color: stateTone.textColor }]}>{stateLabel}</Text>
-                <Text style={styles.quickHint}>快捷 {targetLabel}</Text>
+                <Text style={styles.quickHint}>
+                  {action === 'edit'
+                    ? recorded
+                      ? '修改记录'
+                      : '按实际填写'
+                    : action === 'clear'
+                      ? '撤销记录'
+                      : `快捷 ${targetLabel}`}
+                </Text>
               </View>
             </PressableScale>
           );
@@ -399,33 +420,13 @@ function createStyles(colors: ThemeColors, compact: boolean) {
 }
 
 function getHabitLevelTone(colors: ThemeColors, level: HabitRecordLevel | null) {
-  if (level === 'good') {
+  if (level !== null) {
     return {
       backgroundColor: colors.primarySoft,
       borderColor: colors.primary,
       iconBackgroundColor: colors.surface,
       iconColor: colors.primaryPressed,
       textColor: colors.primaryPressed,
-    };
-  }
-
-  if (level === 'medium') {
-    return {
-      backgroundColor: colors.infoSoft,
-      borderColor: colors.info,
-      iconBackgroundColor: colors.surface,
-      iconColor: colors.info,
-      textColor: colors.info,
-    };
-  }
-
-  if (level === 'low') {
-    return {
-      backgroundColor: colors.warningSoft,
-      borderColor: colors.warning,
-      iconBackgroundColor: colors.surface,
-      iconColor: colors.warning,
-      textColor: colors.warning,
     };
   }
 

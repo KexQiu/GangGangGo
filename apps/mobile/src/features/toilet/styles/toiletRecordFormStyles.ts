@@ -330,7 +330,7 @@ export function createToiletRecordFormStyles(colors: ThemeColors) {
     removeSignalButton: {
       alignItems: 'center',
       flexDirection: 'row',
-      minHeight: 36,
+      minHeight: 44,
       paddingHorizontal: 4,
     },
     removeSignalText: {

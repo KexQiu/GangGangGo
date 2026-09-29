@@ -41,7 +41,7 @@ export function AppTopBar({ fallbackHref, onBackPress, right, title, variant = '
         onPress={handleBackPress}
         style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
       >
-        <Icon color={colors.text} size={22} strokeWidth={2.5} />
+        <Icon color={colors.text} size={24} strokeWidth={2} />
       </Pressable>
 
       <Text numberOfLines={1} style={styles.title}>
@@ -63,15 +63,15 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       flexDirection: 'row',
       marginBottom: 10,
-      minHeight: 40,
+      minHeight: 44,
     },
     backButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
-      borderRadius: 20,
-      height: 40,
+      borderRadius: 22,
+      height: 44,
       justifyContent: 'center',
-      width: 40,
+      width: 44,
     },
     pressed: {
       opacity: 0.78,
@@ -88,7 +88,7 @@ function createStyles(colors: ThemeColors) {
     rightSlot: {
       alignItems: 'center',
       justifyContent: 'center',
-      minWidth: 40,
+      minWidth: 44,
     },
   });
 }

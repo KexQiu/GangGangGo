@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D10000000000000000000201 /* FeatureIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000201 /* FeatureIcons.swift */; };
+		D10000000000000000000202 /* FeatureIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000201 /* FeatureIcons.swift */; };
+		D10000000000000000000203 /* FeatureIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000201 /* FeatureIcons.swift */; };
 		045FF9E6A11DE75CF0FF5FFB /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C96063CA83CB50FBFC5446C /* ExpoModulesProvider.swift */; };
 		09F0E342BB1AEBE9DF460F24 /* GangGangGoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A02DE072FBAF90723761B5 /* GangGangGoUITests.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
@@ -107,6 +110,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D20000000000000000000201 /* FeatureIcons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureIcons.swift; sourceTree = "<group>"; };
 		04DB67958511EC65B657530A /* appUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = appUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1237EEB76090072E7D1A0659 /* Pods-XiaoTiduLiveActivities.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-XiaoTiduLiveActivities.debug.xcconfig"; path = "Target Support Files/Pods-XiaoTiduLiveActivities/Pods-XiaoTiduLiveActivities.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = app.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -192,6 +196,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D40000000000000000000201 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D20000000000000000000201 /* FeatureIcons.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* app */ = {
 			isa = PBXGroup;
 			children = (
@@ -227,6 +239,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07FAE1A68108700A75B9A /* app */,
+				D40000000000000000000201 /* Shared */,
 				A40000000000000000000001 /* XiaoTiduLiveActivities */,
 				B40000000000000000000100 /* XiaoTiduWatchApp */,
 				C40000000000000000000100 /* XiaoTiduWatchComplications */,
@@ -692,6 +705,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000005 /* ToiletTimerLiveActivityWidget.swift in Sources */,
+				D10000000000000000000201 /* FeatureIcons.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -700,6 +714,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B10000000000000000000103 /* XiaoTiduWatchApp.swift in Sources */,
+				D10000000000000000000202 /* FeatureIcons.swift in Sources */,
 				B10000000000000000000111 /* WatchConnectivityClient.swift in Sources */,
 				B10000000000000000000112 /* WatchOfflineEventQueue.swift in Sources */,
 				B10000000000000000000116 /* WatchRefreshBackoff.swift in Sources */,
@@ -720,6 +735,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C10000000000000000000101 /* XiaoTiduWatchComplications.swift in Sources */,
+				D10000000000000000000203 /* FeatureIcons.swift in Sources */,
 				C10000000000000000000103 /* WatchTodayState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

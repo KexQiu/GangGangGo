@@ -295,10 +295,10 @@ function createStyles(colors: ThemeColors) {
     iconButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
-      borderRadius: 20,
-      height: 40,
+      borderRadius: 22,
+      height: 44,
       justifyContent: 'center',
-      width: 40,
+      width: 44,
     },
     loadingText: { color: colors.textMuted, fontSize: 13, fontWeight: '700', textAlign: 'center' },
     metaRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },

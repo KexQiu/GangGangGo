@@ -1,5 +1,6 @@
+import type { AppIconProps } from '../../../components/icons/iconTypes';
 import * as Haptics from 'expo-haptics';
-import { CircleMinus, Frown, Meh, Smile } from 'lucide-react-native';
+import { Check, Circle, CircleCheck, CircleMinus, Frown, Meh, Smile } from 'lucide-react-native';
 import { type ComponentType, useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, type TextStyle, View } from 'react-native';
 
@@ -18,17 +19,11 @@ export const habitLevelOptions: Record<HabitKey, HabitLevelOption[]> = {
   water: createHabitLevelOptions('water'),
 };
 
-const levelIcons: Record<HabitRecordLevel, ComponentType<IconProps>> = {
+const levelIcons: Record<HabitRecordLevel, ComponentType<AppIconProps>> = {
   good: Smile,
   low: Frown,
   medium: Meh,
   not_today: CircleMinus,
-};
-
-type IconProps = {
-  color?: string;
-  size?: number;
-  strokeWidth?: number;
 };
 
 function createHabitLevelOptions(key: HabitKey): HabitLevelOption[] {
@@ -39,13 +34,14 @@ function createHabitLevelOptions(key: HabitKey): HabitLevelOption[] {
 }
 
 type HabitLevelSliderProps = {
+  habitKey: HabitKey;
   level: HabitLevel;
   onChange: (level: HabitLevel) => void;
   options: HabitLevelOption[];
   title: string;
 };
 
-export function HabitLevelSlider({ level, onChange, options, title }: HabitLevelSliderProps) {
+export function HabitLevelSlider({ habitKey, level, onChange, options, title }: HabitLevelSliderProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -54,7 +50,7 @@ export function HabitLevelSlider({ level, onChange, options, title }: HabitLevel
   const trackWidthRef = useRef(trackWidth);
   const segmentWidth = trackWidth > 0 ? trackWidth / levelOrder.length : 0;
   const activeOption = options.find((option) => option.level === level) ?? options[1];
-  const activeTone = getLevelTone(colors, level);
+  const activeTone = getLevelTone(colors, level, habitKey);
   const horizontalPadding = 4;
   const thumbWidth = segmentWidth > 0 ? Math.max(segmentWidth - horizontalPadding * 2, 0) : 0;
   const maxTranslateX = trackWidth > 0 ? trackWidth - horizontalPadding * 2 - thumbWidth : 0;
@@ -156,8 +152,8 @@ export function HabitLevelSlider({ level, onChange, options, title }: HabitLevel
 
         {options.map((option) => {
           const selected = option.level === level;
-          const OptionIcon = levelIcons[option.level];
-          const tone = getLevelTone(colors, option.level);
+          const OptionIcon = habitKey === 'bowel' ? levelIcons[option.level] : selected ? CircleCheck : Circle;
+          const tone = getLevelTone(colors, option.level, habitKey);
 
           return (
             <Pressable
@@ -188,7 +184,7 @@ type SelectedStandardNoteProps = {
 export function SelectedStandardNote({ habitKey, level }: SelectedStandardNoteProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const tone = getLevelTone(colors, level);
+  const tone = getLevelTone(colors, level, habitKey);
   const standard = getHabitLevelStandard(habitKey, level);
 
   return (
@@ -200,16 +196,17 @@ export function SelectedStandardNote({ habitKey, level }: SelectedStandardNotePr
 }
 
 type AnimatedLevelIconProps = {
+  habitKey: HabitKey;
   label: string;
   level: HabitRecordLevel;
 };
 
-export function AnimatedLevelIcon({ label, level }: AnimatedLevelIconProps) {
+export function AnimatedLevelIcon({ habitKey, label, level }: AnimatedLevelIconProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
   const progress = useRef(new Animated.Value(1)).current;
-  const tone = getLevelTone(colors, level);
-  const Icon = levelIcons[level];
+  const tone = getLevelTone(colors, level, habitKey);
+  const Icon = habitKey === 'bowel' ? levelIcons[level] : Check;
 
   useEffect(() => {
     progress.setValue(0.72);
@@ -223,7 +220,7 @@ export function AnimatedLevelIcon({ label, level }: AnimatedLevelIconProps) {
 
   return (
     <Animated.View
-      accessibilityLabel={`当前状态：${label}`}
+      accessibilityLabel={label}
       style={[
         styles.headerStateIcon,
         {

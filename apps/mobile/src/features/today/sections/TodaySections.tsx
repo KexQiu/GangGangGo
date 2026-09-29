@@ -1,9 +1,10 @@
 import { Text, View } from 'react-native';
-import { Bell, ChevronRight, Hourglass } from 'lucide-react-native';
+import { Bell, ChevronRight } from 'lucide-react-native';
 
 import { AppButton } from '../../../components/AppButton';
 import { AppCard } from '../../../components/AppCard';
 import { PressableScale } from '../../../components/feedback/PressableScale';
+import { SquatIcon } from '../../../components/icons/SquatIcon';
 import { FlowerLiftIcon } from '../../training/FlowerLiftIcon';
 import { useAppTheme } from '../../../theme/themeProvider';
 import { createStyles } from '../styles/todayStyles';
@@ -49,7 +50,7 @@ export function ToiletPriorityCard({ onPress }: ToiletPriorityCardProps) {
         </View>
         <View style={styles.toiletRing}>
           <View style={styles.toiletRingInner}>
-            <Hourglass color={colors.primaryPressed} size={34} strokeWidth={2.5} />
+            <SquatIcon color={colors.primaryPressed} size={32} />
           </View>
         </View>
       </View>
@@ -83,14 +84,7 @@ export function TrainingQuickStartCard({ completedCount, onPress, target }: Trai
       style={styles.trainingQuickCard}
     >
       <View style={styles.trainingIcon}>
-        <FlowerLiftIcon
-          info={colors.info}
-          primary={colors.primary}
-          privacy={colors.primaryPressed}
-          size={30}
-          surface={colors.surface}
-          variant="steady"
-        />
+        <FlowerLiftIcon color={colors.primaryPressed} size={32} />
       </View>
       <View style={styles.rowCopy}>
         <Text style={styles.rowTitle}>

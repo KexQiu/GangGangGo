@@ -1,6 +1,6 @@
 import { createStyles } from '../styles/toiletStyles';
 import { useRouter } from 'expo-router';
-import { Armchair } from 'lucide-react-native';
+import { SquatIcon } from '../../../components/icons/SquatIcon';
 import { Text, View } from 'react-native';
 
 import { AppButton } from '../../../components/AppButton';
@@ -37,7 +37,7 @@ export default function ToiletScreen() {
         <PendingToiletRecords />
         <AppCard muted style={styles.startCard}>
           <View style={styles.startIcon}>
-            <Armchair color={colors.info} size={38} strokeWidth={2.4} />
+            <SquatIcon color={colors.info} size={40} />
           </View>
           <Text style={styles.startTitle}>小花开始值班</Text>
           <Text style={styles.startText}>办完就离开，不必等提醒。5/10/15/20 分钟是应用提醒节点，不是医学安全线。</Text>

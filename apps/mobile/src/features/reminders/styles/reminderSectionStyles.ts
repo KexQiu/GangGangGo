@@ -50,9 +50,9 @@ export function createReminderSectionStyles(colors: ThemeColors) {
     removeRangeButton: {
       alignItems: 'center',
       borderRadius: 16,
-      height: 32,
+      height: 44,
       justifyContent: 'center',
-      width: 32,
+      width: 44,
     },
     segment: {
       alignItems: 'center',
@@ -105,9 +105,9 @@ export function createReminderSectionStyles(colors: ThemeColors) {
     timeButton: {
       alignItems: 'center',
       borderRadius: 13,
-      height: 26,
+      height: 44,
       justifyContent: 'center',
-      width: 28,
+      width: 44,
     },
     timeRow: {
       alignItems: 'center',
@@ -129,7 +129,7 @@ export function createReminderSectionStyles(colors: ThemeColors) {
       borderRadius: 16,
       borderWidth: 1,
       flexDirection: 'row',
-      minHeight: 34,
+      minHeight: 44,
       paddingHorizontal: 4,
     },
     timeValue: {

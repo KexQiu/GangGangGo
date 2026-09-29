@@ -1,3 +1,4 @@
+import type { AppIconProps } from '../../../components/icons/iconTypes';
 import type { ComponentType } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { Clock3, Minus, Plus, Trash2 } from 'lucide-react-native';
@@ -7,15 +8,9 @@ import type { QuietHoursRange } from '../reminderTypes';
 import { useAppTheme } from '../../../theme/themeProvider';
 import { createReminderSectionStyles } from '../styles/reminderSectionStyles';
 
-type IconProps = {
-  color?: string;
-  size?: number;
-  strokeWidth?: number;
-};
-
 type SettingHeaderProps = {
   description: string;
-  icon: ComponentType<IconProps>;
+  icon: ComponentType<AppIconProps>;
   onValueChange: (value: boolean) => void;
   title: string;
   value: boolean;
@@ -28,7 +23,7 @@ export function SettingHeader({ description, icon: Icon, onValueChange, title, v
   return (
     <View style={styles.settingHeader}>
       <View style={styles.settingIcon}>
-        <Icon color={value ? colors.primaryPressed : colors.textMuted} size={21} strokeWidth={2.4} />
+        <Icon color={value ? colors.primaryPressed : colors.textMuted} size={24} strokeWidth={2} />
       </View>
       <View style={styles.settingCopy}>
         <Text style={styles.settingTitle}>{title}</Text>
@@ -96,7 +91,7 @@ export function QuietRangeEditor({ index, onMove, onRemove, range }: QuietRangeE
           accessibilityRole="button"
           style={({ pressed }) => [styles.removeRangeButton, pressed && styles.pressed]}
         >
-          <Trash2 color={colors.textMuted} size={17} strokeWidth={2.3} />
+          <Trash2 color={colors.textMuted} size={20} strokeWidth={2} />
         </Pressable>
       </View>
 
@@ -147,7 +142,7 @@ function TimeAdjustRow({ label, onDecrease, onIncrease, value }: TimeAdjustRowPr
           accessibilityRole="button"
           style={({ pressed }) => [styles.timeButton, pressed && styles.pressed]}
         >
-          <Minus color={colors.textMuted} size={15} strokeWidth={2.5} />
+          <Minus color={colors.textMuted} size={20} strokeWidth={2} />
         </Pressable>
         <Text style={styles.timeValue}>{value}</Text>
         <Pressable
@@ -156,7 +151,7 @@ function TimeAdjustRow({ label, onDecrease, onIncrease, value }: TimeAdjustRowPr
           accessibilityRole="button"
           style={({ pressed }) => [styles.timeButton, pressed && styles.pressed]}
         >
-          <Plus color={colors.textMuted} size={15} strokeWidth={2.5} />
+          <Plus color={colors.textMuted} size={20} strokeWidth={2} />
         </Pressable>
       </View>
     </View>

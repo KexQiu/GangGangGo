@@ -52,7 +52,7 @@ struct ToiletTimerLiveActivityWidget: Widget {
       } compactTrailing: {
         CompactTimerView(state: context.state)
       } minimal: {
-        FlowerBadgeView(state: context.state, size: 22, isCompact: true)
+        ToiletBadgeView(state: context.state, size: 22, isCompact: true)
           .accessibilityLabel(compactAccessibilityLabel(for: context.state))
       }
       .widgetURL(appDeepLink)
@@ -68,7 +68,7 @@ private struct CompactStageView: View {
     let compactText = compactStageText(for: state)
 
     HStack(spacing: 2) {
-      FlowerBadgeView(state: state, size: 18, isCompact: true)
+      ToiletBadgeView(state: state, size: 18, isCompact: true)
 
       if !compactText.isEmpty {
         Text(compactText)
@@ -106,7 +106,7 @@ private struct LockScreenLiveActivityView: View {
 
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .center, spacing: 12) {
-        FlowerBadgeView(state: state, size: 50)
+        ToiletBadgeView(state: state, size: 50)
 
         VStack(alignment: .leading, spacing: 5) {
           HStack(spacing: 7) {
@@ -164,7 +164,7 @@ private struct IslandSummaryView: View {
     let cue = cueText(for: state)
 
     HStack(alignment: .center, spacing: 8) {
-      FlowerBadgeView(state: state, size: 28)
+      ToiletBadgeView(state: state, size: 28)
 
       VStack(alignment: .leading, spacing: 2) {
         if !titleText.isEmpty {
@@ -202,7 +202,7 @@ private struct IslandStatusView: View {
     let titleText = displayedTitle(for: state)
 
     HStack(spacing: 8) {
-      FlowerBadgeView(state: state, size: 32)
+      ToiletBadgeView(state: state, size: 32)
 
       VStack(alignment: .leading, spacing: 2) {
         Text("蹲会儿计时")
@@ -263,47 +263,32 @@ private struct IslandBottomView: View {
   }
 }
 
-private struct FlowerBadgeView: View {
+private struct ToiletBadgeView: View {
   let state: ToiletTimerAttributes.ContentState
   let size: CGFloat
   var isCompact = false
 
   var body: some View {
     let accent = toiletAccentColor(for: state)
-    let petalSize = size * 0.34
-    let petalDistance = size * 0.22
 
     ZStack {
-      Circle()
-        .fill(accent.opacity(isCompact ? 0.12 : 0.16))
-        .frame(width: size, height: size)
-
-      ForEach(0..<6, id: \.self) { index in
-        let angle = (Double(index) / 6.0) * Double.pi * 2.0
-
+      if !isCompact {
         Circle()
-          .fill(accent.opacity(state.isPaused ? 0.36 : 0.58))
-          .frame(width: petalSize, height: petalSize)
-          .offset(
-            x: CGFloat(cos(angle)) * petalDistance,
-            y: CGFloat(sin(angle)) * petalDistance
-          )
+          .fill(accent.opacity(0.12))
       }
 
-      Circle()
-        .fill(accent)
-        .frame(width: size * 0.32, height: size * 0.32)
-
+      // At 18–22 points, show a full-size state glyph instead of a tiny overlay.
       if state.isPaused {
         Image(systemName: "pause.fill")
-          .font(.system(size: max(size * 0.20, 7), weight: .heavy))
-          .foregroundStyle(.white)
+          .font(.system(size: size * 0.65, weight: .bold))
       } else if currentStageKey(for: state) == "severe_warning" {
-        Text("!")
-          .font(.system(size: max(size * 0.24, 8), weight: .heavy))
-          .foregroundStyle(.white)
+        Image(systemName: "exclamationmark.triangle.fill")
+          .font(.system(size: size * 0.65, weight: .bold))
+      } else {
+        SquatIcon(size: isCompact ? size : size * 0.72)
       }
     }
+    .foregroundStyle(accent)
     .frame(width: size, height: size)
   }
 }

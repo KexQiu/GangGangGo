@@ -1,5 +1,5 @@
 import type { useAppTheme } from '../../theme/themeProvider';
-import type { HabitLevel, HabitRecordLevel } from './habitTypes';
+import type { HabitKey, HabitLevel, HabitRecordLevel } from './habitTypes';
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
@@ -16,12 +16,13 @@ export function getHabitStateLabel(options: HabitLevelOption[], level: HabitReco
 export function getLevelTone(
   colors: ThemeColors,
   level: HabitRecordLevel,
+  habitKey: HabitKey,
 ): {
   color: string;
   iconBackground: string;
   softColor: string;
 } {
-  if (level === 'good') {
+  if (habitKey !== 'bowel' || level === 'good') {
     return {
       color: colors.primaryPressed,
       iconBackground: colors.surface,
@@ -50,4 +51,10 @@ export function getLevelTone(
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+// Keep quick-fill from overwriting an existing, more precise record.
+export function getQuickHabitAction(key: HabitKey, level: HabitRecordLevel | null): 'edit' | 'clear' | 'record' {
+  if (key === 'bowel' || (level !== null && level !== 'good')) return 'edit';
+  return level === 'good' ? 'clear' : 'record';
 }

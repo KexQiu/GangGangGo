@@ -1,5 +1,5 @@
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
-import { Database } from 'lucide-react-native';
+import { ClipboardList } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
@@ -50,7 +50,7 @@ export function TodayDataOverview({
     <AppCard muted style={styles.todayCard}>
       <View style={styles.todayTop}>
         <View style={styles.todayIcon}>
-          <Database color={colors.primaryPressed} size={19} strokeWidth={2.4} />
+          <ClipboardList color={colors.primaryPressed} size={19} strokeWidth={2.4} />
         </View>
         <View>
           <Text style={styles.todayTitle}>今日总览</Text>

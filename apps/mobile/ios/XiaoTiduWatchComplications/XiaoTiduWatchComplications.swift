@@ -85,8 +85,7 @@ private struct XiaoTiduComplicationView: View {
       .tint(presentation.accent)
 
       VStack(spacing: 0) {
-        Image(systemName: presentation.iconName)
-          .font(.system(size: 13, weight: .semibold))
+        statusIcon(size: 16)
           .foregroundStyle(presentation.accent)
 
         Text(presentation.circularText)
@@ -104,8 +103,7 @@ private struct XiaoTiduComplicationView: View {
         RoundedRectangle(cornerRadius: 5, style: .continuous)
           .fill(presentation.accent.opacity(0.18))
 
-        Image(systemName: presentation.iconName)
-          .font(.system(size: 15, weight: .semibold))
+        statusIcon(size: 20)
           .foregroundStyle(presentation.accent)
       }
       .frame(width: 28, height: 28)
@@ -129,6 +127,17 @@ private struct XiaoTiduComplicationView: View {
     }
   }
 
+  @ViewBuilder
+  private func statusIcon(size: CGFloat) -> some View {
+    switch presentation.icon {
+    case .squat:
+      SquatIcon(size: size)
+    case .system(let name):
+      Image(systemName: name)
+        .font(.system(size: size, weight: .semibold))
+    }
+  }
+
   private var presentation: XiaoTiduComplicationPresentation {
     XiaoTiduComplicationPresentation(entry: entry)
   }
@@ -142,12 +151,17 @@ private struct XiaoTiduComplicationView: View {
   }
 }
 
+private enum ComplicationIcon {
+  case squat
+  case system(String)
+}
+
 private struct XiaoTiduComplicationPresentation {
   let accent: Color
   let circularText: String
   let detail: String
   let footnote: String
-  let iconName: String
+  let icon: ComplicationIcon
   let inlineText: String
   let progress: Double
   let title: String
@@ -159,7 +173,7 @@ private struct XiaoTiduComplicationPresentation {
       circularText = "同步"
       detail = "打开手表同步"
       footnote = "等待状态"
-      iconName = "arrow.clockwise"
+      icon = .system("arrow.clockwise")
       inlineText = "小提督 打开同步"
       progress = 0.12
       title = "小提督"
@@ -172,7 +186,7 @@ private struct XiaoTiduComplicationPresentation {
       circularText = state.account.isLoggedIn ? "同步" : "登录"
       detail = state.account.isLoggedIn ? "手表操作暂不可用" : "先登录小提督"
       footnote = state.account.isLoggedIn ? "请在 iPhone 刷新" : "打开 iPhone 登录"
-      iconName = "lock.fill"
+      icon = .system("lock.fill")
       inlineText = state.account.isLoggedIn ? "小提督 手表暂不可用" : "小提督 请先登录"
       progress = 0
       title = "小提督"
@@ -189,7 +203,7 @@ private struct XiaoTiduComplicationPresentation {
       circularText = elapsedMinutes > 0 ? "\(elapsedMinutes)m" : "计时"
       detail = "\(minuteText) · \(stateText)"
       footnote = "点按继续处理"
-      iconName = state.toilet.isPaused ? "pause.fill" : "timer"
+      icon = state.toilet.isPaused ? .system("pause.fill") : .squat
       inlineText = "小提督 蹲会儿 \(stateText)"
       progress = min(Double(state.currentToiletElapsedSeconds(now: entry.date)) / Double(20 * 60), 1)
       title = "蹲会儿"
@@ -204,7 +218,7 @@ private struct XiaoTiduComplicationPresentation {
     circularText = "\(completion)/4"
     detail = "小账本 \(completion)/4"
     footnote = trainingText
-    iconName = completion >= 4 ? "checkmark.circle.fill" : "leaf.fill"
+    icon = .system(completion >= 4 ? "checkmark.circle.fill" : "list.bullet")
     inlineText = "小提督 小账本 \(completion)/4"
     progress = Double(completion) / 4
     title = "今日状态"

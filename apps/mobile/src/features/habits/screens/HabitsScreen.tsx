@@ -1,3 +1,6 @@
+import type { ComponentType } from 'react';
+import { SquatIcon } from '../../../components/icons/SquatIcon';
+import type { AppIconProps } from '../../../components/icons/iconTypes';
 import {
   AnimatedLevelIcon,
   HabitLevelSlider,
@@ -6,7 +9,7 @@ import {
 } from '../sections/HabitLevelSections';
 import { createStyles } from '../styles/habitsStyles';
 import * as Haptics from 'expo-haptics';
-import { Droplets, Leaf, ListChecks, Move, PlusCircle, Smile } from 'lucide-react-native';
+import { Droplets, Footprints, Leaf, ListChecks, PlusCircle } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
 import { showToast } from '../../../components/toast/AppToast';
@@ -34,13 +37,13 @@ import { routes } from '../../../navigation/routes';
 import { useAppTheme } from '../../../theme/themeProvider';
 
 const habitItems: Array<{
-  icon: typeof Droplets;
+  icon: ComponentType<AppIconProps>;
   key: HabitKey;
 }> = habitKeys.map((key) => ({
   icon: {
-    bowel: Smile,
+    bowel: SquatIcon,
     fiber: Leaf,
-    movement: Move,
+    movement: Footprints,
     water: Droplets,
   }[key],
   key,
@@ -110,13 +113,17 @@ export default function HabitsScreen() {
             <AppCard key={item.key} style={styles.habitCard}>
               <View style={styles.habitHeader}>
                 <View style={styles.iconBadge}>
-                  <Icon color={colors.primaryPressed} size={21} strokeWidth={2.4} />
+                  <Icon color={colors.primaryPressed} size={24} strokeWidth={2} />
                 </View>
                 <View style={styles.habitHeaderCopy}>
                   <View style={styles.habitTitleRow}>
                     <Text style={styles.habitTitle}>{standard.title}</Text>
                     {activeLevel ? (
-                      <AnimatedLevelIcon level={activeLevel} label={getHabitStateLabel(options, activeLevel)} />
+                      <AnimatedLevelIcon
+                        habitKey={item.key}
+                        level={activeLevel}
+                        label={getHabitStateLabel(options, activeLevel)}
+                      />
                     ) : null}
                   </View>
                   <Text style={styles.habitSubtitle}>{standard.goodReference}</Text>
@@ -133,6 +140,7 @@ export default function HabitsScreen() {
               ) : activeLevel ? (
                 <>
                   <HabitLevelSlider
+                    habitKey={item.key}
                     level={activeLevel}
                     options={options}
                     title={standard.title}
@@ -164,8 +172,8 @@ export default function HabitsScreen() {
                   今日未排便
                 </AppButton>
               ) : null}
-              {item.key === 'bowel' && activeLevel ? (
-                <AppButton variant="secondary" onPress={() => void selectHabitLevel('bowel', null)}>
+              {activeLevel ? (
+                <AppButton variant="secondary" onPress={() => void selectHabitLevel(item.key, null)}>
                   清除此项
                 </AppButton>
               ) : null}

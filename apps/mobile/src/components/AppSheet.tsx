@@ -170,11 +170,10 @@ export function AppSheet({
             <Pressable
               accessibilityLabel={closeLabel}
               accessibilityRole="button"
-              hitSlop={10}
               onPress={onClose}
               style={styles.closeButton}
             >
-              <X color={colors.textMuted} size={17} strokeWidth={2.5} />
+              <X color={colors.textMuted} size={20} strokeWidth={2} />
               <Text style={styles.closeText}>{closeLabel}</Text>
             </Pressable>
           </View>
@@ -210,10 +209,10 @@ function createStyles(colors: ThemeColors) {
     closeButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceMuted,
-      borderRadius: 18,
+      borderRadius: 22,
       flexDirection: 'row',
       gap: 3,
-      minHeight: 36,
+      minHeight: 44,
       paddingHorizontal: 10,
     },
     closeText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },

@@ -114,20 +114,20 @@ struct WatchHomeView: View {
   private var statusRows: some View {
     if session.todayState.canUseActions {
       NavigationLink(value: WatchRoute.training) {
-        StatusTile(title: "菊花抬", value: trainingValue)
+        StatusTile(route: .training, title: "菊花抬", value: trainingValue)
       }
 
       NavigationLink(value: WatchRoute.habits) {
-        StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
+        StatusTile(route: .habits, title: "小账本", value: "\(session.todayState.habits.completion)/4")
       }
 
       NavigationLink(value: WatchRoute.toilet) {
-        StatusTile(title: "蹲会儿", value: toiletValue)
+        StatusTile(route: .toilet, title: "蹲会儿", value: toiletValue)
       }
     } else {
-      StatusTile(title: "菊花抬", value: trainingValue)
-      StatusTile(title: "小账本", value: "\(session.todayState.habits.completion)/4")
-      StatusTile(title: "蹲会儿", value: toiletValue)
+      StatusTile(route: .training, title: "菊花抬", value: trainingValue)
+      StatusTile(route: .habits, title: "小账本", value: "\(session.todayState.habits.completion)/4")
+      StatusTile(route: .toilet, title: "蹲会儿", value: toiletValue)
     }
   }
 
@@ -188,11 +188,26 @@ struct WatchHomeView: View {
 }
 
 private struct StatusTile: View {
+  var route: WatchRoute
   var title: String
   var value: String
 
   var body: some View {
-    HStack {
+    HStack(spacing: 8) {
+      Group {
+        switch route {
+        case .training:
+          FlowerLiftIcon(size: 22)
+        case .toilet:
+          SquatIcon(size: 22)
+        case .habits:
+          Image(systemName: "list.bullet")
+            .font(.system(size: 18, weight: .semibold))
+        }
+      }
+      .foregroundStyle(.mint)
+      .frame(width: 24, height: 24)
+      .accessibilityHidden(true)
       Text(title)
       Spacer()
       Text(value)

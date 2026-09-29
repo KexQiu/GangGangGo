@@ -3,7 +3,7 @@ import { areQuietRangesEqual, formatRange } from '../reminderPresentation';
 import { kegelReminderCounts, quietOptions } from '../reminderPresets';
 import { useReminderScreen } from '../hooks/useReminderScreen';
 import { createStyles } from '../styles/remindersStyles';
-import { Bell, BellRing, Check, Coffee, Moon, Move, Plus, ShieldCheck } from 'lucide-react-native';
+import { Bell, BellRing, Check, Coffee, Moon, PersonStanding, Plus, ShieldCheck } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { AppButton } from '../../../components/AppButton';
@@ -131,7 +131,7 @@ export default function RemindersScreen() {
       <AppCard style={styles.settingsCard}>
         <SettingHeader
           description="每天 09:00–21:00，按固定时段提醒；每段可提醒时间开始后，间隔指定分钟再发出。"
-          icon={Move}
+          icon={PersonStanding}
           onValueChange={(enabled) => void setSedentaryEnabled(enabled)}
           title="起身透气提醒"
           value={settings.sedentaryEnabled}
