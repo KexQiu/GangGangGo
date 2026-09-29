@@ -1,144 +1,128 @@
+import { useAuthStore } from '../../src/features/account/authStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { CheckCircle2, HeartPulse } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
-
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../../src/components/AppButton';
 import { AppCard } from '../../src/components/AppCard';
 import { AppTopBar } from '../../src/components/AppTopBar';
-import { SuccessBurst } from '../../src/components/feedback/SuccessBurst';
 import { PageHeader } from '../../src/components/PageHeader';
 import { Screen } from '../../src/components/Screen';
-import { emergencyGuidance, medicalGuidance } from '../../src/features/safety/healthGuidance';
+import { trainingSafetyGuidance } from '../../src/features/safety/healthGuidance';
 import { getTrainingPreset } from '../../src/features/training/presets';
-import { formatTrainingDuration } from '../../src/features/training/trainingLogic';
+import { formatTrainingDuration, formatTrainingEndReason } from '../../src/features/training/trainingLogic';
+import type { TrainingSession } from '../../src/features/training/trainingTypes';
+import { getTrainingSession } from '../../src/storage/repositories/trainingRepository';
+import { useReminderStore } from '../../src/features/reminders/reminderStore';
+import { authSessionContext } from '../../src/api/sessionContext';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
 export default function TrainingCompleteScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    completedRepetitions?: string;
-    durationSeconds?: string;
-    isCompleted?: string;
-    presetId?: string;
-  }>();
-  const preset = getTrainingPreset(params.presetId);
-  const isCompleted = params.isCompleted === 'true';
-  const durationSeconds = toNumber(params.durationSeconds);
-  const completedRepetitions = toNumber(params.completedRepetitions);
-  const iconScale = useRef(new Animated.Value(isCompleted ? 0.72 : 1)).current;
-  const [burstKey, setBurstKey] = useState(0);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const [session, setSession] = useState<TrainingSession | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reminder = useReminderStore();
   const { colors } = useAppTheme();
-  const styles = createStyles(colors, isCompleted);
-
+  const styles = createStyles(colors);
   useEffect(() => {
-    if (isCompleted) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setBurstKey((current) => current + 1);
-      Animated.spring(iconScale, {
-        friction: 6,
-        tension: 180,
-        toValue: 1,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [iconScale, isCompleted]);
-
+    let cancelled = false;
+    const generation = authSessionContext.getGeneration();
+    setSession(null);
+    setError(null);
+    const unsubscribe = useAuthStore.subscribe(() => {
+      if (!authSessionContext.isGenerationCurrent(generation)) {
+        setSession(null);
+        setError('账号已切换，请返回后查看当前资料。');
+      }
+    });
+    void getTrainingSession(id ?? '')
+      .then((record) => {
+        if (!cancelled && authSessionContext.isGenerationCurrent(generation)) {
+          setSession(record);
+          if (!record) setError('未找到这条记录。');
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setError(error instanceof Error ? error.message : '读取失败');
+      });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [id]);
   return (
     <Screen>
-      <AppTopBar fallbackHref={routes.home} title="菊花抬结果" variant="close" />
-
+      <AppTopBar fallbackHref={routes.home} title="菊花抬记录" variant="close" />
       <PageHeader
-        subtitle={
-          isCompleted
-            ? '本次按所选节奏完成。记录不代表动作质量或训练量适合个人。'
-            : '本次先收工，身体反馈比凑满次数更重要。'
-        }
-        title={isCompleted ? '本组已完成' : '先收工'}
+        title={session ? '记录已保存' : error ? '暂时无法显示记录' : '读取记录中'}
+        subtitle="记录不代表动作质量或训练量适合个人，不必为凑次数加练。"
       />
-
-      <AppCard muted style={styles.resultCard}>
-        {isCompleted ? (
-          <View style={styles.burstAnchor}>
-            <SuccessBurst playKey={burstKey} size={140} />
+      {session && (
+        <AppCard muted style={styles.resultCard}>
+          <Text style={styles.resultTitle}>{getTrainingPreset(session.presetId).name}</Text>
+          <Text style={styles.resultText}>
+            收缩 {session.plan.contractSeconds} 秒 · 放松 {session.plan.relaxSeconds} 秒
+          </Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{formatTrainingDuration(session.durationSeconds)}</Text>
+              <Text style={styles.statLabel}>有效用时</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>
+                {session.completedRepetitions}/{session.plan.repetitions}
+              </Text>
+              <Text style={styles.statLabel}>完整次数</Text>
+            </View>
           </View>
-        ) : null}
-
-        <Animated.View style={[styles.resultIcon, { transform: [{ scale: iconScale }] }]}>
-          <CheckCircle2 color={isCompleted ? colors.primaryPressed : colors.warning} size={42} strokeWidth={2.4} />
-        </Animated.View>
-        <Text style={styles.resultTitle}>{preset.name}</Text>
-        <Text style={styles.resultText}>
-          {isCompleted
-            ? '本次菊花抬按计划完成，小花可以下班一会儿。'
-            : `已完成 ${completedRepetitions}/${preset.repetitions} 次，没必要硬凑，身体说了算。`}
-        </Text>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatTrainingDuration(durationSeconds)}</Text>
-            <Text style={styles.statLabel}>用时</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{completedRepetitions}</Text>
-            <Text style={styles.statLabel}>完成次数</Text>
-          </View>
-        </View>
-      </AppCard>
-
+          <Text style={styles.resultText}>
+            {formatTrainingEndReason(session.endReason)} ·{' '}
+            {session.feedback === 'reported' ? '有不适' : session.feedback === 'none' ? '无不适' : '未反馈'}
+          </Text>
+        </AppCard>
+      )}
       <AppCard style={styles.safetyCard}>
-        <HeartPulse color={colors.info} size={22} strokeWidth={2.4} />
-        <Text style={styles.safetyText}>
-          练习后疼痛或不适加重时停止训练。{medicalGuidance}
-          {emergencyGuidance}
-        </Text>
+        <Text style={styles.safetyText}>{trainingSafetyGuidance}</Text>
       </AppCard>
-
+      {session?.feedback === 'reported' && (
+        <AppButton
+          disabled={reminder.isSyncing || !reminder.settings.kegelEnabled}
+          variant="warning"
+          onPress={() => void reminder.updateSettings({ kegelEnabled: false })}
+        >
+          {reminder.settings.kegelEnabled ? '暂停训练提醒' : '训练提醒已关闭，需手动开启'}
+        </AppButton>
+      )}
+      {(error || reminder.error) && (
+        <Text accessibilityRole="alert" style={styles.safetyText}>
+          {error ?? reminder.error}
+        </Text>
+      )}
+      <AppButton onPress={() => router.push(routes.safety)} variant="secondary">
+        查看安全与就医说明
+      </AppButton>
       <View style={styles.actions}>
         <AppButton onPress={() => router.replace(routes.training)} style={styles.actionButton} variant="secondary">
-          返回选择节奏
+          返回训练
         </AppButton>
         <AppButton onPress={() => router.replace(routes.home)} style={styles.actionButton}>
           回到首页
         </AppButton>
       </View>
-
-      <AppButton onPress={() => router.push(routes.safety)} variant="secondary">
-        查看安全指导
-      </AppButton>
     </Screen>
   );
 }
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
-function createStyles(colors: ThemeColors, isCompleted: boolean) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     resultCard: {
       alignItems: 'center',
       marginBottom: 16,
       overflow: 'hidden',
       paddingVertical: 32,
-    },
-    burstAnchor: {
-      alignItems: 'center',
-      height: 0,
-      justifyContent: 'center',
-      position: 'absolute',
-      top: 68,
-      width: '100%',
-      zIndex: 2,
-    },
-    resultIcon: {
-      alignItems: 'center',
-      backgroundColor: isCompleted ? colors.primarySoft : colors.warningSoft,
-      borderRadius: 36,
-      height: 72,
-      justifyContent: 'center',
-      marginBottom: 20,
-      width: 72,
     },
     resultTitle: {
       color: colors.text,
@@ -199,9 +183,4 @@ function createStyles(colors: ThemeColors, isCompleted: boolean) {
       marginHorizontal: 5,
     },
   });
-}
-
-function toNumber(value: string | undefined): number {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : 0;
 }

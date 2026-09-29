@@ -1,3 +1,4 @@
+import { createDefaultTrainingPreferences } from '@xiaotidu/contracts';
 import { randomUUID } from 'node:crypto';
 
 import type { DataSyncMutation } from '@xiaotidu/contracts';
@@ -25,6 +26,73 @@ describeWithDatabase('postgres friend and data sync integration', () => {
     await cleanupIntegrationUsers(client, createdUserIds);
   });
 
+  it('shares partial training as recorded while keeping preferences and symptoms private', async () => {
+    const owner = await createIntegrationUser(client, createdUserIds, 'partial-owner');
+    const viewer = await createIntegrationUser(client, createdUserIds, 'partial-viewer');
+    const friends = createDrizzleFriendService(client.db);
+    const sync = createDrizzleDataSyncService(client.db, { friendService: friends });
+    const invite = await friends.createInvite(owner);
+    await friends.acceptInvite(viewer, invite.token);
+    await friends.updateSettings(owner, viewer.id, { historyDays: 7, trainingLevel: 'detailed' });
+    const now = new Date().toISOString();
+    const preferences = createDefaultTrainingPreferences();
+    preferences.dailyTarget = 2;
+    const result = await sync.push(
+      owner,
+      [
+        {
+          mutationId: randomUUID(),
+          entityId: 'preferences',
+          entityType: 'training_preferences',
+          operation: 'upsert',
+          changedAt: now,
+          payload: preferences,
+        },
+        {
+          mutationId: randomUUID(),
+          entityId: randomUUID(),
+          entityType: 'training_session',
+          operation: 'upsert',
+          changedAt: now,
+          payload: {
+            presetId: 'beginner',
+            startedAt: now,
+            endedAt: now,
+            localDate: now.slice(0, 10),
+            durationSeconds: 7,
+            completedRepetitions: 1,
+            isCompleted: false,
+            feedback: 'reported',
+            endReason: 'discomfort',
+            plan: { contractSeconds: 1, relaxSeconds: 6, repetitions: 2 },
+          },
+        },
+      ],
+      owner.timezone,
+    );
+    expect(result.acceptedMutationIds).toHaveLength(2);
+    const shared = await friends.getFriendData(viewer, owner.id);
+    expect(shared.days.at(-1)?.training).toEqual({
+      level: 'detailed',
+      trainingRecorded: true,
+      sessionCount: 1,
+      completedSessionCount: 0,
+      completedRepetitions: 1,
+      totalDurationSeconds: 7,
+    });
+    const serialized = JSON.stringify(shared);
+    for (const privateField of ['feedback', 'endReason', 'dailyTarget', 'contractSeconds'])
+      expect(serialized).not.toContain(privateField);
+    await friends.updateSettings(owner, viewer.id, { trainingLevel: 'summary' });
+    expect((await friends.getFriendData(viewer, owner.id)).days.at(-1)?.training).toEqual({
+      level: 'summary',
+      trainingRecorded: true,
+    });
+    expect(
+      (await sync.pull(owner, '0')).changes.find((change) => change.entityType === 'training_preferences')?.payload,
+    ).toEqual(preferences);
+  });
+
   it('persists friendship permissions, synced summaries, nudges, and acknowledgements', async () => {
     const owner = await createIntegrationUser(client, createdUserIds, 'friend-owner');
     const viewer = await createIntegrationUser(client, createdUserIds, 'friend-viewer');
@@ -47,12 +115,14 @@ describeWithDatabase('postgres friend and data sync integration', () => {
       operation: 'upsert',
       payload: {
         completedRepetitions: 12,
-        discomfortReported: false,
+        feedback: 'unanswered' as const,
+        endReason: 'completed' as const,
+        plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
         durationSeconds: 120,
         endedAt,
         isCompleted: true,
         localDate,
-        presetId: 'quick',
+        presetId: 'standard',
         startedAt,
       },
     };
@@ -67,6 +137,7 @@ describeWithDatabase('postgres friend and data sync integration', () => {
     expect(shared.days.at(-1)?.training).toMatchObject({
       completedRepetitions: 12,
       completedSessionCount: 1,
+      sessionCount: 1,
       level: 'detailed',
     });
 

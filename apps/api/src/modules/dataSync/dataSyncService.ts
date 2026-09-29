@@ -5,6 +5,7 @@ import {
   toiletSessionSyncPayloadSchema,
   toiletSignalPresetSyncPayloadSchema,
   trainingSessionSyncPayloadSchema,
+  trainingPreferencesSchema,
   type DataSyncChange,
   type DataSyncEntityType,
   type DataSyncMutation,
@@ -21,6 +22,7 @@ import {
   syncedToiletSessions,
   syncedToiletSignalPresets,
   syncedTrainingSessions,
+  syncedTrainingPreferences,
 } from '../../db/schema.js';
 import type { CurrentUser } from '../users/userTypes.js';
 import type { FriendService, ToiletFinishedSyncEvent } from '../friends/friendService.js';
@@ -79,7 +81,8 @@ export function createDrizzleDataSyncService(
           const localDate = await getMutationLocalDate(transaction, currentUser.id, mutation);
           const expiresAt = localDate
             ? expirationForLocalDate(localDate, timeZone)
-            : mutation.entityType === 'toilet_signal_preset' && mutation.operation === 'upsert'
+            : (mutation.entityType === 'toilet_signal_preset' || mutation.entityType === 'training_preferences') &&
+                mutation.operation === 'upsert'
               ? null
               : new Date(acceptedAt.getTime() + retentionDays * 24 * 60 * 60 * 1000);
           if (expiresAt && expiresAt <= acceptedAt) {
@@ -128,7 +131,10 @@ export function createDrizzleDataSyncService(
           }
 
           await applyMutation(transaction, currentUser.id, mutation, changeRow.version, expiresAt);
-          if (mutation.entityType === 'toilet_signal_preset' && mutation.operation === 'delete') {
+          if (
+            (mutation.entityType === 'toilet_signal_preset' || mutation.entityType === 'training_preferences') &&
+            mutation.operation === 'delete'
+          ) {
             await transaction
               .update(dataSyncChanges)
               .set({ expiresAt })
@@ -236,6 +242,19 @@ async function applyMutation(
   version: number,
   expiresAt: Date | null,
 ) {
+  if (mutation.entityType === 'training_preferences') {
+    if (mutation.operation === 'upsert') {
+      const value = trainingPreferencesSchema.parse(mutation.payload);
+      await transaction
+        .insert(syncedTrainingPreferences)
+        .values({ userId, recordId: mutation.entityId, value, syncVersion: version })
+        .onConflictDoUpdate({
+          target: syncedTrainingPreferences.userId,
+          set: { value, syncVersion: version, updatedAt: new Date(), expiresAt: null, deletedAt: null },
+        });
+    }
+    return;
+  }
   if (mutation.operation === 'delete') {
     const values = { deletedAt: new Date(), expiresAt, syncVersion: version, updatedAt: new Date() };
     if (mutation.entityType === 'training_session') {
@@ -466,6 +485,7 @@ function buildDailySummary(
     },
     training: {
       completedRepetitions: training.reduce((total, session) => total + session.completedRepetitions, 0),
+      sessionCount: training.length,
       completedSessionCount: training.filter((session) => session.isCompleted).length,
       totalDurationSeconds: training.reduce((total, session) => total + session.durationSeconds, 0),
     },

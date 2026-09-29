@@ -75,9 +75,10 @@ function sharedDay(date: string): FriendSharedDay {
     training: {
       completedRepetitions: 40,
       completedSessionCount: 2,
+      sessionCount: 2,
       level: 'detailed',
       totalDurationSeconds: 300,
-      trainingDone: true,
+      trainingRecorded: true,
     },
   };
 }

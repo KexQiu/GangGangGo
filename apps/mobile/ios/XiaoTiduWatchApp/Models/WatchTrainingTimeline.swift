@@ -1,8 +1,9 @@
 import Foundation
 
-struct WatchTrainingMode: Identifiable {
+struct WatchTrainingMode: Identifiable, Codable {
   static let standardId = "standard"
-  static let standard = WatchTrainingMode(config: .init(id: standardId, holdSeconds: 5, restSeconds: 5, rounds: 12))
+  static let standard = WatchTrainingMode(
+    config: .init(id: standardId, holdSeconds: 5, restSeconds: 5, rounds: 12))
 
   var id: String
   var holdSeconds: Int
@@ -29,18 +30,13 @@ struct WatchTrainingMode: Identifiable {
     }
   }
 
-  var subtitle: String {
-    switch id {
-    case "beginner":
-      return "轻轻来，慢一点"
-    case "standard":
-      return "按个人情况选择"
-    case "quick":
-      return "收缩后充分放松"
-    default:
-      return "\(holdSeconds) 秒抬 · \(restSeconds) 秒放"
-    }
+  var isAdjusted: Bool {
+    guard let base = WatchTodayState.TrainingModeConfig.fallbackModes.first(where: { $0.id == id })
+    else { return true }
+    return holdSeconds != base.holdSeconds || restSeconds != base.restSeconds
+      || rounds != base.rounds
   }
+  var subtitle: String { "\(holdSeconds) 秒抬 · \(restSeconds) 秒放 · \(rounds) 次" }
 
   var totalDurationSeconds: Int {
     (holdSeconds + restSeconds) * rounds
@@ -52,151 +48,167 @@ struct WatchTrainingMode: Identifiable {
   }
 }
 
-enum WatchTrainingPhase {
-  case hold
-  case rest
-
+enum WatchTrainingPhase: String, Codable {
+  case prepare, hold, rest, ended
   var title: String {
     switch self {
-    case .hold:
-      return "轻轻抬"
-    case .rest:
-      return "放松"
+    case .prepare: return "准备，正常呼吸"
+    case .hold: return "轻轻向上收缩"
+    case .rest: return "充分放松"
+    case .ended: return "本次已结束"
     }
   }
-
-  var key: String {
-    switch self {
-    case .hold:
-      return "hold"
-    case .rest:
-      return "rest"
-    }
-  }
+  var key: String { rawValue }
 }
 
-struct WatchTrainingSession {
+struct WatchTrainingSession: Codable {
   let owner: WatchEventOwner
   let mode: WatchTrainingMode
   let startedAt: Date
-  var pausedAt: Date?
-  var accumulatedPausedDuration: TimeInterval = 0
-  var lastNotifiedBoundaryKey: String
+  let id: String
+  var updatedAt: Date
+  var phase: WatchTrainingPhase = .prepare
+  var elapsedDuration: TimeInterval = 0
+  var phaseElapsed: TimeInterval = 0
+  var completedRepetitions = 0
+  var contractionComplete = false
+  var interrupted = false
+  var submissionLocked = false
+  var runningSince: TimeInterval?
+  var record: WatchTrainingRecord?
 
-  init(owner: WatchEventOwner, mode: WatchTrainingMode, startedAt: Date = Date()) {
+  init(
+    owner: WatchEventOwner, mode: WatchTrainingMode, startedAt: Date = Date(),
+    uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) {
     self.owner = owner
     self.mode = mode
     self.startedAt = startedAt
-    lastNotifiedBoundaryKey = Self.phaseKey(roundIndex: 0, phase: .hold)
+    self.updatedAt = startedAt
+    id = "watch-" + UUID().uuidString
+    runningSince = uptime
   }
-
-  var isPaused: Bool {
-    pausedAt != nil
-  }
-
-  mutating func togglePause(at date: Date) {
-    if let pausedAt {
-      accumulatedPausedDuration += max(date.timeIntervalSince(pausedAt), 0)
-      self.pausedAt = nil
-    } else {
-      pausedAt = date
+  var isPaused: Bool { runningSince == nil }
+  var isFinished: Bool { phase == .ended }
+  private var phaseDuration: TimeInterval {
+    switch phase {
+    case .prepare: return 3
+    case .hold: return TimeInterval(mode.holdSeconds)
+    case .rest: return TimeInterval(mode.restSeconds)
+    case .ended: return 0
     }
   }
-
-  func snapshot(at date: Date) -> WatchTrainingSnapshot {
-    let totalDurationSeconds = mode.totalDurationSeconds
-    let elapsedSeconds = min(
-      max(Int(activeElapsedDuration(at: date).rounded(.down)), 0),
-      totalDurationSeconds
-    )
-
-    if elapsedSeconds >= totalDurationSeconds {
-      return WatchTrainingSnapshot(
-        elapsedSeconds: totalDurationSeconds,
-        isFinished: true,
-        phase: .rest,
-        phaseKey: "finished",
-        progress: 1,
-        remainingSeconds: 0,
-        roundIndex: max(mode.rounds - 1, 0)
-      )
+  private func delta(_ uptime: TimeInterval) -> TimeInterval {
+    runningSince.map { max(0, uptime - $0) } ?? 0
+  }
+  private func observed(_ uptime: TimeInterval) -> TimeInterval {
+    min(delta(uptime), max(0, phaseDuration - phaseElapsed))
+  }
+  private mutating func accumulate(_ value: TimeInterval) {
+    if phase == .hold || phase == .rest { elapsedDuration += value }
+    phaseElapsed += value
+  }
+  mutating func sample(
+    at date: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) {
+    guard !isPaused, !isFinished else { return }
+    let delay = delta(uptime)
+    let remaining = phaseDuration - phaseElapsed
+    accumulate(min(delay, remaining))
+    runningSince = uptime
+    updatedAt = date
+    if delay > remaining + 0.25 {
+      runningSince = nil
+      interrupted = true
+      if phase == .hold { contractionComplete = false }
+      return
     }
-
-    let cycleSeconds = mode.holdSeconds + mode.restSeconds
-    let roundIndex = min(elapsedSeconds / cycleSeconds, max(mode.rounds - 1, 0))
-    let cycleElapsedSeconds = elapsedSeconds % cycleSeconds
-
-    let phase: WatchTrainingPhase
-    let remainingSeconds: Int
-    if cycleElapsedSeconds < mode.holdSeconds {
-      phase = .hold
-      remainingSeconds = mode.holdSeconds - cycleElapsedSeconds
-    } else {
+    guard delay >= remaining else { return }
+    switch phase {
+    case .prepare: phase = .hold
+    case .hold:
+      contractionComplete = true
       phase = .rest
-      remainingSeconds = cycleSeconds - cycleElapsedSeconds
+    case .rest:
+      if contractionComplete { completedRepetitions += 1 }
+      contractionComplete = false
+      if completedRepetitions == mode.rounds {
+        finish(reason: "completed", at: date, uptime: uptime)
+      } else {
+        phase = .hold
+      }
+    case .ended: break
     }
-
+    phaseElapsed = 0
+  }
+  // 写入检查点之后实际发出提示，再从此刻开始完整阶段。
+  mutating func confirmPrompt(
+    at date: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) {
+    guard !isPaused, !isFinished, phaseElapsed == 0 else { return }
+    runningSince = uptime
+    updatedAt = date
+  }
+  mutating func pause(
+    at date: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) {
+    if !isPaused && !isFinished {
+      accumulate(observed(uptime))
+      updatedAt = date
+    }
+    runningSince = nil
+  }
+  mutating func resume(
+    at date: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) {
+    guard isPaused, !isFinished, Calendar.current.isDate(updatedAt, inSameDayAs: date) else {
+      return
+    }
+    phase = .rest
+    phaseElapsed = 0
+    interrupted = false
+    runningSince = uptime
+    updatedAt = date
+  }
+  mutating func finish(
+    reason: String, at date: Date = Date(),
+    uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) {
+    guard record == nil else { return }
+    pause(at: date, uptime: uptime)
+    phase = .ended
+    let completed = completedRepetitions == mode.rounds
+    let formatter = ISO8601DateFormatter()
+    record = WatchTrainingRecord(
+      id: id, presetId: mode.id,
+      plan: .init(
+        contractSeconds: mode.holdSeconds, relaxSeconds: mode.restSeconds, repetitions: mode.rounds),
+      startedAt: formatter.string(from: startedAt), endedAt: formatter.string(from: date),
+      durationSeconds: Int(elapsedDuration.rounded(.down)),
+      completedRepetitions: completedRepetitions,
+      isCompleted: completed, feedback: reason == "discomfort" ? "reported" : "unanswered",
+      endReason: completed ? "completed" : reason)
+  }
+  func snapshot(at date: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime)
+    -> WatchTrainingSnapshot
+  {
+    let observed = observed(uptime)
     return WatchTrainingSnapshot(
-      elapsedSeconds: elapsedSeconds,
-      isFinished: false,
-      phase: phase,
-      phaseKey: Self.phaseKey(roundIndex: roundIndex, phase: phase),
-      progress: min(Double(elapsedSeconds) / Double(totalDurationSeconds), 1),
-      remainingSeconds: remainingSeconds,
-      roundIndex: roundIndex
-    )
+      elapsedSeconds: Int(
+        (elapsedDuration + ((phase == .hold || phase == .rest) ? observed : 0)).rounded(.down)),
+      isFinished: isFinished, phase: phase, phaseKey: "\(completedRepetitions)-\(phase.key)",
+      progress: Double(completedRepetitions) / Double(mode.rounds),
+      remainingSeconds: Int(max(0, phaseDuration - phaseElapsed - observed).rounded(.up)),
+      roundIndex: min(completedRepetitions, mode.rounds - 1))
   }
-
-  func nextBoundary(after date: Date) -> WatchTrainingBoundary? {
-    guard !isPaused else {
-      return nil
-    }
-
-    let elapsed = activeElapsedDuration(at: date)
-    let totalDuration = TimeInterval(mode.totalDurationSeconds)
-    guard elapsed < totalDuration else {
-      return nil
-    }
-
-    let cycleDuration = TimeInterval(mode.holdSeconds + mode.restSeconds)
-    let cycleIndex = Int(elapsed / cycleDuration)
-    let cycleStart = TimeInterval(cycleIndex) * cycleDuration
-    let elapsedInCycle = elapsed - cycleStart
-    let holdDuration = TimeInterval(mode.holdSeconds)
-
-    let boundaryElapsed: TimeInterval
-    let boundaryPhase: WatchTrainingPhase?
-    let boundaryKey: String
-    if elapsedInCycle < holdDuration {
-      boundaryElapsed = min(cycleStart + holdDuration, totalDuration)
-      boundaryPhase = boundaryElapsed >= totalDuration ? nil : .rest
-      boundaryKey = boundaryPhase.map { Self.phaseKey(roundIndex: cycleIndex, phase: $0) } ?? "finished"
-    } else {
-      boundaryElapsed = min(cycleStart + cycleDuration, totalDuration)
-      let nextRoundIndex = min(cycleIndex + 1, max(mode.rounds - 1, 0))
-      boundaryPhase = boundaryElapsed >= totalDuration ? nil : .hold
-      boundaryKey = boundaryPhase.map { Self.phaseKey(roundIndex: nextRoundIndex, phase: $0) } ?? "finished"
-    }
-
-    return WatchTrainingBoundary(
-      date: date.addingTimeInterval(max(boundaryElapsed - elapsed, 0)),
-      isFinished: boundaryElapsed >= totalDuration,
-      key: boundaryKey,
-      phase: boundaryPhase
-    )
-  }
-
-  private func activeElapsedDuration(at date: Date) -> TimeInterval {
-    let referenceDate = pausedAt ?? date
-    let elapsed = referenceDate.timeIntervalSince(startedAt) - accumulatedPausedDuration
-    return min(max(elapsed, 0), TimeInterval(mode.totalDurationSeconds))
-  }
-
-  private static func phaseKey(roundIndex: Int, phase: WatchTrainingPhase) -> String {
-    "\(roundIndex)-\(phase.key)"
+  func nextBoundary(
+    after date: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) -> WatchTrainingBoundary? {
+    guard !isPaused, !isFinished else { return nil }
+    let delay = max(0, phaseDuration - phaseElapsed - delta(uptime))
+    return WatchTrainingBoundary(date: date.addingTimeInterval(delay), delay: delay)
   }
 }
-
 struct WatchTrainingSnapshot {
   var elapsedSeconds: Int
   var isFinished: Bool
@@ -206,10 +218,29 @@ struct WatchTrainingSnapshot {
   var remainingSeconds: Int
   var roundIndex: Int
 }
-
 struct WatchTrainingBoundary {
   var date: Date
-  var isFinished: Bool
-  var key: String
-  var phase: WatchTrainingPhase?
+  var delay: TimeInterval
+}
+
+// 以账号归属保存活动快照和结束草稿；进程重启后绝不延续 uptime。
+enum WatchTrainingDraftStore {
+  private static func key(_ owner: WatchEventOwner) -> String {
+    return "xiaotidu-training-v2-" + Data(owner.userId.utf8).base64EncodedString() + "."
+      + Data(owner.profileId.utf8).base64EncodedString()
+  }
+  static func save(_ session: WatchTrainingSession) {
+    guard let data = try? JSONEncoder().encode(session) else { return }
+    UserDefaults.standard.set(data, forKey: key(session.owner))
+  }
+  static func load(_ owner: WatchEventOwner) -> WatchTrainingSession? {
+    guard let data = UserDefaults.standard.data(forKey: key(owner)),
+      var session = try? JSONDecoder().decode(WatchTrainingSession.self, from: data)
+    else { return nil }
+    session.runningSince = nil
+    return session
+  }
+  static func clear(_ owner: WatchEventOwner) {
+    UserDefaults.standard.removeObject(forKey: key(owner))
+  }
 }

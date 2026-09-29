@@ -11,7 +11,9 @@ const draft: TrainingCompletionDraft = {
     durationSeconds: 120,
     completedRepetitions: 12,
     isCompleted: true,
-    discomfortReported: false,
+    feedback: 'unanswered' as const,
+    endReason: 'completed' as const,
+    plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
   },
 };
 

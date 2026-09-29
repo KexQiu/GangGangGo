@@ -1,3 +1,4 @@
+import { useTrainingPreferencesStore } from '../training/trainingPreferencesStore';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -220,6 +221,7 @@ function beginTransition() {
   const generation = authSessionContext.beginTransition();
   clearCloudQueryCache(queryClient);
   useTrainingStore.getState().reset();
+  useTrainingPreferencesStore.getState().reset();
   useToiletStore.getState().reset();
   useHabitStore.getState().reset();
   useAuthStore.setState({ ...emptySession, error: null, isLoading: true });
@@ -303,10 +305,12 @@ setApiUnauthorizedHandler((owner) => {
 
 async function resetLocalHealthStores() {
   useTrainingStore.getState().reset();
+  useTrainingPreferencesStore.getState().reset();
   useToiletStore.getState().reset();
   useHabitStore.getState().reset();
   await Promise.all([
     useTrainingStore.getState().hydrate(),
+    useTrainingPreferencesStore.getState().hydrate(),
     useToiletStore.getState().hydrate(),
     useHabitStore.getState().hydrate(),
     rebuildRecentDailySummaries(),

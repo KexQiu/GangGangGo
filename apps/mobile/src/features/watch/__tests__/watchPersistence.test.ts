@@ -59,7 +59,9 @@ const training = {
   durationSeconds: 120,
   completedRepetitions: 12,
   isCompleted: true,
-  discomfortReported: false,
+  feedback: 'unanswered' as const,
+  endReason: 'completed' as const,
+  plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
 };
 
 beforeEach(async () => {
@@ -238,7 +240,9 @@ describe('save -> SQLite -> visible state -> Watch ACK', () => {
   it('rejects a reused ID with different content and an event belonging to another account', async () => {
     const event = trainingEvent();
     await handleWatchEvent(event);
-    expect(await handleWatchEvent({ ...event, payload: { ...event.payload, durationSeconds: 121 } })).toMatchObject({
+    expect(
+      await handleWatchEvent({ ...event, payload: { session: { ...event.payload.session, durationSeconds: 121 } } }),
+    ).toMatchObject({
       status: 'rejected',
     });
     expect(
@@ -252,7 +256,7 @@ describe('save -> SQLite -> visible state -> Watch ACK', () => {
     expect(await handleWatchEvent(trainingEvent())).toMatchObject({ status: 'retryable' });
     mocks.entitlements.mockReturnValue({});
     mocks.access.mockReturnValue(false);
-    expect(await handleWatchEvent(trainingEvent())).toMatchObject({ status: 'rejected' });
+    expect(await handleWatchEvent(trainingEvent())).toMatchObject({ status: 'retryable' });
     authSessionContext.beginTransition();
     mocks.loading = true;
     expect(await handleWatchEvent(trainingEvent())).toMatchObject({ status: 'retryable' });
@@ -384,20 +388,20 @@ describe('save -> SQLite -> visible state -> Watch ACK', () => {
 function rows(table: string) {
   return database.prepare(`SELECT * FROM ${table}`).all();
 }
-function trainingEvent(): Extract<WatchEvent, { type: 'training_completed' }> {
+function trainingEvent(): Extract<WatchEvent, { type: 'training_finished' }> {
   return {
-    id: 'event-1',
-    schemaVersion: 3,
-    type: 'training_completed',
+    id: 'watch-event-1',
+    schemaVersion: 4,
+    type: 'training_finished',
     createdAt: now,
     owner,
-    payload: { mode: 'standard', completedSets: 12, durationSeconds: 120 },
+    payload: { session: { ...training, id: 'watch-event-1' } },
   };
 }
 function finishEvent(): Extract<WatchEvent, { type: 'toilet_timer_action' }> {
   return {
     id: 'finish-1',
-    schemaVersion: 3,
+    schemaVersion: 4,
     type: 'toilet_timer_action',
     createdAt: now,
     owner,

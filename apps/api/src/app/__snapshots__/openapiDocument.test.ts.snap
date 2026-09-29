@@ -130,6 +130,13 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                 },
                 "type": "array",
               },
+              "trainingPreferences": {
+                "items": {
+                  "additionalProperties": {},
+                  "type": "object",
+                },
+                "type": "array",
+              },
               "trainingSessions": {
                 "items": {
                   "additionalProperties": {},
@@ -157,6 +164,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               "toiletSessions",
               "toiletSignalPresets",
               "trainingSessions",
+              "trainingPreferences",
             ],
             "type": "object",
           },
@@ -500,6 +508,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                 "entityType": {
                   "enum": [
                     "training_session",
+                    "training_preferences",
                     "habit_checkin",
                     "toilet_session",
                     "toilet_signal_preset",
@@ -522,21 +531,61 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                           "minimum": 0,
                           "type": "integer",
                         },
-                        "discomfortReported": {
-                          "type": "boolean",
-                        },
                         "durationSeconds": {
                           "minimum": 0,
                           "type": "integer",
                         },
+                        "endReason": {
+                          "enum": [
+                            "completed",
+                            "user_stopped",
+                            "discomfort",
+                            "interrupted",
+                          ],
+                          "type": "string",
+                        },
                         "endedAt": {
                           "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "feedback": {
+                          "enum": [
+                            "unanswered",
+                            "none",
+                            "reported",
+                          ],
+                          "type": "string",
                         },
                         "isCompleted": {
                           "type": "boolean",
                         },
                         "localDate": {
                           "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "plan": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "contractSeconds": {
+                              "maximum": 5,
+                              "minimum": 1,
+                              "type": "integer",
+                            },
+                            "relaxSeconds": {
+                              "maximum": 30,
+                              "minimum": 1,
+                              "type": "integer",
+                            },
+                            "repetitions": {
+                              "maximum": 16,
+                              "minimum": 1,
+                              "type": "integer",
+                            },
+                          },
+                          "required": [
+                            "contractSeconds",
+                            "relaxSeconds",
+                            "repetitions",
+                          ],
+                          "type": "object",
                         },
                         "presetId": {
                           "enum": [
@@ -552,13 +601,137 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                       },
                       "required": [
                         "completedRepetitions",
-                        "discomfortReported",
+                        "feedback",
+                        "endReason",
+                        "plan",
                         "durationSeconds",
                         "endedAt",
                         "isCompleted",
                         "localDate",
                         "presetId",
                         "startedAt",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "dailyTarget": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                1,
+                              ],
+                              "type": "number",
+                            },
+                            {
+                              "enum": [
+                                2,
+                              ],
+                              "type": "number",
+                            },
+                            {
+                              "type": "null",
+                            },
+                          ],
+                        },
+                        "onboardingSeen": {
+                          "type": "boolean",
+                        },
+                        "presets": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "beginner": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
+                            },
+                            "quick": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
+                            },
+                            "standard": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
+                            },
+                          },
+                          "required": [
+                            "beginner",
+                            "standard",
+                            "quick",
+                          ],
+                          "type": "object",
+                        },
+                      },
+                      "required": [
+                        "presets",
+                        "dailyTarget",
+                        "onboardingSeen",
                       ],
                       "type": "object",
                     },
@@ -800,6 +973,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                     "entityType": {
                       "enum": [
                         "training_session",
+                        "training_preferences",
                         "habit_checkin",
                         "toilet_session",
                         "toilet_signal_preset",
@@ -845,6 +1019,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                     "entityType": {
                       "enum": [
                         "training_session",
+                        "training_preferences",
                         "habit_checkin",
                         "toilet_session",
                         "toilet_signal_preset",
@@ -871,21 +1046,61 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                               "minimum": 0,
                               "type": "integer",
                             },
-                            "discomfortReported": {
-                              "type": "boolean",
-                            },
                             "durationSeconds": {
                               "minimum": 0,
                               "type": "integer",
                             },
+                            "endReason": {
+                              "enum": [
+                                "completed",
+                                "user_stopped",
+                                "discomfort",
+                                "interrupted",
+                              ],
+                              "type": "string",
+                            },
                             "endedAt": {
                               "$ref": "#/components/schemas/IsoDateTime",
+                            },
+                            "feedback": {
+                              "enum": [
+                                "unanswered",
+                                "none",
+                                "reported",
+                              ],
+                              "type": "string",
                             },
                             "isCompleted": {
                               "type": "boolean",
                             },
                             "localDate": {
                               "$ref": "#/components/schemas/IsoDate",
+                            },
+                            "plan": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
                             },
                             "presetId": {
                               "enum": [
@@ -901,13 +1116,137 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                           },
                           "required": [
                             "completedRepetitions",
-                            "discomfortReported",
+                            "feedback",
+                            "endReason",
+                            "plan",
                             "durationSeconds",
                             "endedAt",
                             "isCompleted",
                             "localDate",
                             "presetId",
                             "startedAt",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "dailyTarget": {
+                              "anyOf": [
+                                {
+                                  "enum": [
+                                    1,
+                                  ],
+                                  "type": "number",
+                                },
+                                {
+                                  "enum": [
+                                    2,
+                                  ],
+                                  "type": "number",
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "onboardingSeen": {
+                              "type": "boolean",
+                            },
+                            "presets": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "beginner": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "contractSeconds": {
+                                      "maximum": 5,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                    "relaxSeconds": {
+                                      "maximum": 30,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                    "repetitions": {
+                                      "maximum": 16,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                  },
+                                  "required": [
+                                    "contractSeconds",
+                                    "relaxSeconds",
+                                    "repetitions",
+                                  ],
+                                  "type": "object",
+                                },
+                                "quick": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "contractSeconds": {
+                                      "maximum": 5,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                    "relaxSeconds": {
+                                      "maximum": 30,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                    "repetitions": {
+                                      "maximum": 16,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                  },
+                                  "required": [
+                                    "contractSeconds",
+                                    "relaxSeconds",
+                                    "repetitions",
+                                  ],
+                                  "type": "object",
+                                },
+                                "standard": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "contractSeconds": {
+                                      "maximum": 5,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                    "relaxSeconds": {
+                                      "maximum": 30,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                    "repetitions": {
+                                      "maximum": 16,
+                                      "minimum": 1,
+                                      "type": "integer",
+                                    },
+                                  },
+                                  "required": [
+                                    "contractSeconds",
+                                    "relaxSeconds",
+                                    "repetitions",
+                                  ],
+                                  "type": "object",
+                                },
+                              },
+                              "required": [
+                                "beginner",
+                                "standard",
+                                "quick",
+                              ],
+                              "type": "object",
+                            },
+                          },
+                          "required": [
+                            "presets",
+                            "dailyTarget",
+                            "onboardingSeen",
                           ],
                           "type": "object",
                         },
@@ -1136,6 +1475,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                 "entityType": {
                   "enum": [
                     "training_session",
+                    "training_preferences",
                     "habit_checkin",
                     "toilet_session",
                     "toilet_signal_preset",
@@ -1158,21 +1498,61 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                           "minimum": 0,
                           "type": "integer",
                         },
-                        "discomfortReported": {
-                          "type": "boolean",
-                        },
                         "durationSeconds": {
                           "minimum": 0,
                           "type": "integer",
                         },
+                        "endReason": {
+                          "enum": [
+                            "completed",
+                            "user_stopped",
+                            "discomfort",
+                            "interrupted",
+                          ],
+                          "type": "string",
+                        },
                         "endedAt": {
                           "$ref": "#/components/schemas/IsoDateTime",
+                        },
+                        "feedback": {
+                          "enum": [
+                            "unanswered",
+                            "none",
+                            "reported",
+                          ],
+                          "type": "string",
                         },
                         "isCompleted": {
                           "type": "boolean",
                         },
                         "localDate": {
                           "$ref": "#/components/schemas/IsoDate",
+                        },
+                        "plan": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "contractSeconds": {
+                              "maximum": 5,
+                              "minimum": 1,
+                              "type": "integer",
+                            },
+                            "relaxSeconds": {
+                              "maximum": 30,
+                              "minimum": 1,
+                              "type": "integer",
+                            },
+                            "repetitions": {
+                              "maximum": 16,
+                              "minimum": 1,
+                              "type": "integer",
+                            },
+                          },
+                          "required": [
+                            "contractSeconds",
+                            "relaxSeconds",
+                            "repetitions",
+                          ],
+                          "type": "object",
                         },
                         "presetId": {
                           "enum": [
@@ -1188,13 +1568,137 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                       },
                       "required": [
                         "completedRepetitions",
-                        "discomfortReported",
+                        "feedback",
+                        "endReason",
+                        "plan",
                         "durationSeconds",
                         "endedAt",
                         "isCompleted",
                         "localDate",
                         "presetId",
                         "startedAt",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "dailyTarget": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                1,
+                              ],
+                              "type": "number",
+                            },
+                            {
+                              "enum": [
+                                2,
+                              ],
+                              "type": "number",
+                            },
+                            {
+                              "type": "null",
+                            },
+                          ],
+                        },
+                        "onboardingSeen": {
+                          "type": "boolean",
+                        },
+                        "presets": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "beginner": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
+                            },
+                            "quick": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
+                            },
+                            "standard": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "contractSeconds": {
+                                  "maximum": 5,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "relaxSeconds": {
+                                  "maximum": 30,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                                "repetitions": {
+                                  "maximum": 16,
+                                  "minimum": 1,
+                                  "type": "integer",
+                                },
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions",
+                              ],
+                              "type": "object",
+                            },
+                          },
+                          "required": [
+                            "beginner",
+                            "standard",
+                            "quick",
+                          ],
+                          "type": "object",
+                        },
+                      },
+                      "required": [
+                        "presets",
+                        "dailyTarget",
+                        "onboardingSeen",
                       ],
                       "type": "object",
                     },
@@ -1493,7 +1997,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
               "null",
             ],
           },
-          "trainingDone": {
+          "trainingRecorded": {
             "type": [
               "boolean",
               "null",
@@ -1505,7 +2009,7 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
           "habitCompletion",
           "streakDays",
           "toiletRecorded",
-          "trainingDone",
+          "trainingRecorded",
         ],
         "type": "object",
       },
@@ -2120,13 +2624,13 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                     ],
                     "type": "string",
                   },
-                  "trainingDone": {
+                  "trainingRecorded": {
                     "type": "boolean",
                   },
                 },
                 "required": [
                   "level",
-                  "trainingDone",
+                  "trainingRecorded",
                 ],
                 "type": "object",
               },
@@ -2147,20 +2651,25 @@ exports[`OpenAPI document > matches the registered route and contract schema sna
                     ],
                     "type": "string",
                   },
+                  "sessionCount": {
+                    "minimum": 0,
+                    "type": "integer",
+                  },
                   "totalDurationSeconds": {
                     "minimum": 0,
                     "type": "integer",
                   },
-                  "trainingDone": {
+                  "trainingRecorded": {
                     "type": "boolean",
                   },
                 },
                 "required": [
                   "completedRepetitions",
                   "completedSessionCount",
+                  "sessionCount",
                   "level",
                   "totalDurationSeconds",
-                  "trainingDone",
+                  "trainingRecorded",
                 ],
                 "type": "object",
               },

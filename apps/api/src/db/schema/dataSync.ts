@@ -14,7 +14,12 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import type { DataSyncPayload, DailyActivitySummary } from '@xiaotidu/contracts';
+import type {
+  DataSyncPayload,
+  DailyActivitySummary,
+  TrainingParameters,
+  TrainingPreferences,
+} from '@xiaotidu/contracts';
 
 import { createdAt, updatedAt } from './common.js';
 import { users } from './users.js';
@@ -38,7 +43,9 @@ export const syncedTrainingSessions = pgTable(
   {
     ...ownedRecord,
     completedRepetitions: integer('completed_repetitions').notNull(),
-    discomfortReported: boolean('discomfort_reported').notNull().default(false),
+    feedback: text('feedback').notNull().default('unanswered'),
+    endReason: text('end_reason').notNull(),
+    plan: jsonb('plan').$type<TrainingParameters>().notNull(),
     durationSeconds: integer('duration_seconds').notNull(),
     endedAt: timestamp('ended_at', { withTimezone: true }).notNull(),
     isCompleted: boolean('is_completed').notNull(),
@@ -157,4 +164,15 @@ export const dataSyncChanges = pgTable(
     index('data_sync_changes_expires_idx').on(table.expiresAt),
     check('data_sync_changes_operation_check', sql`${table.operation} in ('upsert', 'delete')`),
   ],
+);
+
+export const syncedTrainingPreferences = pgTable(
+  'synced_training_preferences',
+  {
+    ...ownedRecord,
+    value: jsonb('value').$type<TrainingPreferences>().notNull(),
+    ...syncMetadata,
+    createdAt,
+  },
+  (table) => [uniqueIndex('synced_training_preferences_user_unique').on(table.userId)],
 );

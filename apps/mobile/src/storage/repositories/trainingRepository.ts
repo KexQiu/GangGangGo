@@ -10,7 +10,9 @@ import { trainingSessionPageSql } from './pageQueries';
 
 type TrainingSessionRow = {
   completed_repetitions: number;
-  discomfort_reported: number;
+  feedback: TrainingSession['feedback'];
+  end_reason: TrainingSession['endReason'];
+  plan_json: string;
   duration_seconds: number;
   ended_at: string;
   id: string;
@@ -46,7 +48,13 @@ export async function insertTrainingSession(session: TrainingSession, options: L
       const previous = rowToTrainingSession(existing);
       if (
         !previous ||
-        (Object.keys(session) as Array<keyof TrainingSession>).some((key) => session[key] !== previous[key])
+        (Object.keys(session) as Array<keyof TrainingSession>).some((key) =>
+          key === 'plan'
+            ? session.plan.contractSeconds !== previous.plan.contractSeconds ||
+              session.plan.relaxSeconds !== previous.plan.relaxSeconds ||
+              session.plan.repetitions !== previous.plan.repetitions
+            : session[key] !== previous[key],
+        )
       ) {
         throw new PermanentMutationError('训练记录编号相同但内容不同，请重新打开训练。');
       }
@@ -62,7 +70,7 @@ export async function insertTrainingSession(session: TrainingSession, options: L
         duration_seconds,
         completed_repetitions,
         is_completed,
-        discomfort_reported,
+        feedback, end_reason, plan_json,
         profile_id,
         local_date,
         updated_at
@@ -74,7 +82,7 @@ export async function insertTrainingSession(session: TrainingSession, options: L
         $durationSeconds,
         $completedRepetitions,
         $isCompleted,
-        $discomfortReported,
+        $feedback, $endReason, $planJson,
         $profileId,
         $localDate,
         $updatedAt
@@ -82,7 +90,9 @@ export async function insertTrainingSession(session: TrainingSession, options: L
     `,
       {
         $completedRepetitions: session.completedRepetitions,
-        $discomfortReported: session.discomfortReported ? 1 : 0,
+        $feedback: session.feedback,
+        $endReason: session.endReason,
+        $planJson: JSON.stringify(session.plan),
         $durationSeconds: session.durationSeconds,
         $endedAt: session.endedAt,
         $id: session.id,
@@ -101,7 +111,9 @@ export async function insertTrainingSession(session: TrainingSession, options: L
         operation: 'upsert',
         payload: {
           completedRepetitions: session.completedRepetitions,
-          discomfortReported: session.discomfortReported,
+          feedback: session.feedback,
+          endReason: session.endReason,
+          plan: session.plan,
           durationSeconds: session.durationSeconds,
           endedAt: session.endedAt,
           isCompleted: session.isCompleted,
@@ -151,7 +163,9 @@ function rowToTrainingSession(row: TrainingSessionRow): TrainingSession | null {
 
   return {
     completedRepetitions: row.completed_repetitions,
-    discomfortReported: Boolean(row.discomfort_reported),
+    feedback: row.feedback,
+    endReason: row.end_reason,
+    plan: JSON.parse(row.plan_json),
     durationSeconds: row.duration_seconds,
     endedAt: row.ended_at,
     id: row.id,
@@ -159,4 +173,14 @@ function rowToTrainingSession(row: TrainingSessionRow): TrainingSession | null {
     presetId: row.preset_id,
     startedAt: row.started_at,
   };
+}
+
+export async function getTrainingSession(id: string): Promise<TrainingSession | null> {
+  const db = await initializeDatabase();
+  const row = await db.getFirstAsync<TrainingSessionRow>(
+    `SELECT * FROM training_sessions WHERE id = $id
+    AND profile_id = (SELECT value FROM app_metadata WHERE key = 'active_profile_id') AND deleted_at IS NULL;`,
+    { $id: id },
+  );
+  return row ? rowToTrainingSession(row) : null;
 }

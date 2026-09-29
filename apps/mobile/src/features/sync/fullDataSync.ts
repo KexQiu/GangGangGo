@@ -4,6 +4,7 @@ import type {
   ToiletSessionSyncPayload,
   ToiletSignalPresetSyncPayload,
   TrainingSessionSyncPayload,
+  TrainingPreferences,
 } from '@xiaotidu/contracts';
 
 import { dataSyncApi } from '../../api/client';
@@ -21,6 +22,7 @@ import { trackGrowthEvent } from '../growth/growthEventTracker';
 import { useHabitStore } from '../habits/habitStore';
 import { useToiletStore } from '../toilet/toiletStore';
 import { useTrainingStore } from '../training/trainingStore';
+import { useTrainingPreferencesStore } from '../training/trainingPreferencesStore';
 import { notifyLocalDataChanged } from './localDataEvents';
 import type { SyncTaskResult } from './syncTaskResult';
 
@@ -169,6 +171,23 @@ async function applyRemoteChange(
   db: Awaited<ReturnType<typeof initializeDatabase>>,
 ) {
   const now = change.serverUpdatedAt;
+  if (change.entityType === 'training_preferences') {
+    if (change.operation === 'upsert' && change.payload) {
+      await db.runAsync(
+        `INSERT INTO training_preferences (profile_id, value_json, updated_at, sync_version)
+        VALUES ($profileId, $value, $now, $version) ON CONFLICT(profile_id) DO UPDATE SET
+        value_json = excluded.value_json, updated_at = excluded.updated_at, sync_version = excluded.sync_version
+        WHERE training_preferences.sync_version < excluded.sync_version;`,
+        {
+          $profileId: profileId,
+          $value: JSON.stringify(change.payload as TrainingPreferences),
+          $now: now,
+          $version: change.version,
+        },
+      );
+    }
+    return null;
+  }
   if (change.operation === 'delete') {
     if (change.entityType === 'training_session') {
       const row = await db.getFirstAsync<{ local_date: string | null }>(
@@ -210,12 +229,14 @@ async function applyRemoteChange(
   if (change.entityType === 'training_session') {
     const payload = change.payload as TrainingSessionSyncPayload;
     await db.runAsync(
-      `INSERT INTO training_sessions (id, profile_id, preset_id, started_at, ended_at, duration_seconds, completed_repetitions, is_completed, discomfort_reported, local_date, updated_at, deleted_at, sync_version)
-       VALUES ($id, $profileId, $presetId, $startedAt, $endedAt, $duration, $repetitions, $completed, $discomfort, $localDate, $updatedAt, NULL, $version)
-       ON CONFLICT(id) DO UPDATE SET preset_id = excluded.preset_id, started_at = excluded.started_at, ended_at = excluded.ended_at, duration_seconds = excluded.duration_seconds, completed_repetitions = excluded.completed_repetitions, is_completed = excluded.is_completed, discomfort_reported = excluded.discomfort_reported, local_date = excluded.local_date, updated_at = excluded.updated_at, deleted_at = NULL, sync_version = excluded.sync_version WHERE training_sessions.profile_id = excluded.profile_id AND training_sessions.sync_version < excluded.sync_version;`,
+      `INSERT INTO training_sessions (id, profile_id, preset_id, started_at, ended_at, duration_seconds, completed_repetitions, is_completed, feedback, end_reason, plan_json, local_date, updated_at, deleted_at, sync_version)
+       VALUES ($id, $profileId, $presetId, $startedAt, $endedAt, $duration, $repetitions, $completed, $feedback, $endReason, $plan, $localDate, $updatedAt, NULL, $version)
+       ON CONFLICT(id) DO UPDATE SET preset_id = excluded.preset_id, started_at = excluded.started_at, ended_at = excluded.ended_at, duration_seconds = excluded.duration_seconds, completed_repetitions = excluded.completed_repetitions, is_completed = excluded.is_completed, feedback = excluded.feedback, end_reason = excluded.end_reason, plan_json = excluded.plan_json, local_date = excluded.local_date, updated_at = excluded.updated_at, deleted_at = NULL, sync_version = excluded.sync_version WHERE training_sessions.profile_id = excluded.profile_id AND training_sessions.sync_version < excluded.sync_version;`,
       {
         $completed: payload.isCompleted ? 1 : 0,
-        $discomfort: payload.discomfortReported ? 1 : 0,
+        $feedback: payload.feedback,
+        $endReason: payload.endReason,
+        $plan: JSON.stringify(payload.plan),
         $duration: payload.durationSeconds,
         $endedAt: payload.endedAt,
         $id: change.entityId,
@@ -308,6 +329,7 @@ async function applyRemoteChange(
 }
 
 async function reloadLocalStores() {
+  await useTrainingPreferencesStore.getState().hydrate();
   useTrainingStore.getState().reset();
   useToiletStore.getState().reset();
   useHabitStore.getState().reset();

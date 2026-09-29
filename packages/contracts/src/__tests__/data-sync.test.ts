@@ -42,7 +42,9 @@ describe('full data sync contracts', () => {
           entityType: 'training_session',
           payload: {
             completedRepetitions: 12,
-            discomfortReported: false,
+            feedback: 'unanswered' as const,
+            endReason: 'completed' as const,
+            plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
             durationSeconds: 120,
             endedAt: '2026-07-21T08:02:00.000Z',
             isCompleted: true,
@@ -101,7 +103,7 @@ describe('full data sync contracts', () => {
           signalCounts: { 腹胀: 1 },
           totalDurationSeconds: 360,
         },
-        training: { completedRepetitions: 12, completedSessionCount: 1, totalDurationSeconds: 120 },
+        training: { completedRepetitions: 12, completedSessionCount: 1, sessionCount: 1, totalDurationSeconds: 120 },
       }).success,
     ).toBe(true);
   });
@@ -121,7 +123,7 @@ describe('full data sync contracts', () => {
         signalCounts: {},
         totalDurationSeconds: 0,
       },
-      training: { completedRepetitions: 0, completedSessionCount: 0, totalDurationSeconds: 0 },
+      training: { completedRepetitions: 0, completedSessionCount: 0, sessionCount: 0, totalDurationSeconds: 0 },
     });
 
     expect(result.success).toBe(true);

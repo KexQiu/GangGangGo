@@ -1,3 +1,5 @@
+import { createDefaultTrainingPreferences } from '@xiaotidu/contracts';
+import { useTrainingPreferencesStore } from '../../training/trainingPreferencesStore';
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,7 +31,9 @@ const training = {
   durationSeconds: 120,
   presetId: 'standard' as const,
   isCompleted: true,
-  discomfortReported: false,
+  feedback: 'unanswered' as const,
+  endReason: 'completed' as const,
+  plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
   completedRepetitions: 12,
 };
 const toilet: ToiletSession = {
@@ -89,6 +93,7 @@ beforeEach(async () => {
   useHabitStore.getState().reset();
   useToiletStore.getState().reset();
   useTrainingStore.getState().reset();
+  useTrainingPreferencesStore.getState().reset();
   mocks.push.mockImplementation(async (request: DataSyncPushRequest) => push(request));
   mocks.pull.mockImplementation(async (cursor: string) => pull(cursor));
 });
@@ -492,3 +497,50 @@ function deferred() {
   });
   return { promise, resolve };
 }
+
+it('keeps training preferences per profile, defaults target off, and syncs local changes over a stale pull', async () => {
+  const store = useTrainingPreferencesStore;
+  await store.getState().hydrate();
+  expect(store.getState().preferences.dailyTarget).toBeNull();
+  remote({
+    entityType: 'training_preferences',
+    entityId: 'preferences',
+    operation: 'upsert',
+    payload: createDefaultTrainingPreferences(),
+  });
+  const gate = holdPull();
+  const syncing = syncCompleteHealthData();
+  await gate.started;
+  const presets = createDefaultTrainingPreferences().presets;
+  presets.beginner = { contractSeconds: 1, relaxSeconds: 30, repetitions: 2 };
+  await store.getState().update({ presets, dailyTarget: 1, onboardingSeen: true });
+  gate.release();
+  await syncing;
+  expect(store.getState().preferences).toMatchObject({ dailyTarget: 1, presets: { beginner: presets.beginner } });
+  expect(changes.at(-1)).toMatchObject({ entityType: 'training_preferences', payload: { dailyTarget: 1 } });
+  expect(rows('data_sync_outbox')).toHaveLength(0);
+  database.exec(`INSERT INTO local_data_profiles (id,user_id,created_at,updated_at) VALUES ('profile-B','B','${endedAt}','${endedAt}');
+    UPDATE app_metadata SET value = 'profile-B' WHERE key = 'active_profile_id';`);
+  authSessionContext.activate({
+    generation: authSessionContext.beginTransition(),
+    userId: 'B',
+    profileId: 'profile-B',
+    accessToken: 'B',
+  });
+  store.getState().reset();
+  await store.getState().hydrate();
+  expect(store.getState().preferences).toEqual(createDefaultTrainingPreferences());
+  await store.getState().update({ dailyTarget: 2 });
+  const configurations = rows('training_preferences');
+  expect(configurations).toHaveLength(2);
+  expect(JSON.parse(String(configurations.find((row) => row.profile_id === 'profile-A')?.value_json)).dailyTarget).toBe(
+    1,
+  );
+});
+
+it('rolls back preferences and their outbox together when persistence fails', async () => {
+  failOnce('INSERT INTO data_sync_outbox');
+  await expect(useTrainingPreferencesStore.getState().update({ dailyTarget: 2 })).rejects.toThrow('disk full');
+  expect(rows('training_preferences')).toHaveLength(0);
+  expect(rows('data_sync_outbox')).toHaveLength(0);
+});

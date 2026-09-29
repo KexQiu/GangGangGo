@@ -82,6 +82,10 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   },
 }));
 
+export function getTodayTrainingRecordCount(sessions: TrainingSession[], now = new Date()): number {
+  return sessions.filter((session) => isSameLocalDate(new Date(session.endedAt), now)).length;
+}
+
 export function getTodayCompletedTrainingCount(sessions: TrainingSession[], now = new Date()): number {
   return sessions.filter((session) => session.isCompleted && isSameLocalDate(new Date(session.endedAt), now)).length;
 }

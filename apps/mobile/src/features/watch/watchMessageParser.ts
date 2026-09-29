@@ -1,3 +1,4 @@
+import { trainingSessionSyncPayloadSchema } from '@xiaotidu/contracts';
 import { type WatchEvent, type WatchEventAck } from './watchTypes';
 
 type ObjectValue = Record<string, unknown>;
@@ -18,7 +19,7 @@ export function extractWatchEvent(payload: unknown): WatchEvent | null {
     !id(event.id) ||
     typeof event.createdAt !== 'string' ||
     !Number.isFinite(Date.parse(event.createdAt)) ||
-    event.schemaVersion !== 3
+    event.schemaVersion !== 4
   )
     return null;
   if (!object(event.owner) || !id(event.owner.userId) || !id(event.owner.profileId) || !object(event.payload))
@@ -26,21 +27,22 @@ export function extractWatchEvent(payload: unknown): WatchEvent | null {
   const base = {
     id: event.id,
     createdAt: event.createdAt,
-    schemaVersion: 3 as const,
+    schemaVersion: 4 as const,
     owner: { userId: event.owner.userId, profileId: event.owner.profileId },
   };
   const data = event.payload;
-  if (
-    event.type === 'training_completed' &&
-    (data.mode === 'beginner' || data.mode === 'standard' || data.mode === 'quick') &&
-    integer(data.completedSets, 1000) &&
-    integer(data.durationSeconds, 86400)
-  ) {
-    return {
-      ...base,
-      type: event.type,
-      payload: { mode: data.mode, completedSets: data.completedSets, durationSeconds: data.durationSeconds },
-    };
+  if (event.type === 'training_finished' && object(data.session) && id(data.session.id)) {
+    const { id: sessionId, ...record } = data.session;
+    const result = trainingSessionSyncPayloadSchema.safeParse({ ...record, localDate: '2000-01-01' });
+    if (
+      !result.success ||
+      sessionId !== event.id ||
+      !sessionId.startsWith('watch-') ||
+      result.data.isCompleted !== (result.data.completedRepetitions === result.data.plan.repetitions)
+    )
+      return null;
+    const { localDate: _localDate, ...session } = result.data;
+    return { ...base, type: 'training_finished', payload: { session: { id: sessionId, ...session } } };
   }
   if (
     event.type === 'habit_toggled' &&

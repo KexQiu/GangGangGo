@@ -41,7 +41,7 @@ describe('friend contracts', () => {
           date: '2026-07-22',
           habit: { completionCount: 3, level: 'summary', streakDays: 4 },
           toilet: { level: 'summary', toiletRecorded: true },
-          training: { level: 'summary', trainingDone: true },
+          training: { level: 'summary', trainingRecorded: true },
         },
       ],
       friend: USER_B,

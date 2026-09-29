@@ -60,20 +60,21 @@ export async function rebuildDailySummary(
     `
       INSERT INTO daily_activity_summaries (
         profile_id, date,
-        training_completed_count, training_total_duration_seconds, training_completed_repetitions,
+        training_session_count, training_completed_count, training_total_duration_seconds, training_completed_repetitions,
         habit_water, habit_fiber, habit_movement, habit_bowel, habit_completion_count,
         toilet_session_count, toilet_total_duration_seconds, toilet_median_duration_seconds, toilet_max_duration_seconds,
         toilet_long_session_count, toilet_attention_count, toilet_feeling_counts_json,
         toilet_shape_counts_json, toilet_color_counts_json, toilet_signal_counts_json, computed_at
       ) VALUES (
         $profileId, $date,
-        $trainingCompletedCount, $trainingTotalDurationSeconds, $trainingCompletedRepetitions,
+        $trainingSessionCount, $trainingCompletedCount, $trainingTotalDurationSeconds, $trainingCompletedRepetitions,
         $habitWater, $habitFiber, $habitMovement, $habitBowel, $habitCompletionCount,
         $toiletSessionCount, $toiletTotalDurationSeconds, $toiletMedianDurationSeconds, $toiletMaxDurationSeconds,
         $toiletLongSessionCount, $toiletAttentionCount, $toiletFeelingCountsJson,
         $toiletShapeCountsJson, $toiletColorCountsJson, $toiletSignalCountsJson, $computedAt
       )
       ON CONFLICT(profile_id, date) DO UPDATE SET
+        training_session_count = excluded.training_session_count,
         training_completed_count = excluded.training_completed_count,
         training_total_duration_seconds = excluded.training_total_duration_seconds,
         training_completed_repetitions = excluded.training_completed_repetitions,
@@ -208,7 +209,7 @@ export function emptyDailySummary(date: string): DailyActivitySummary {
       signalCounts: {},
       totalDurationSeconds: 0,
     },
-    training: { completedRepetitions: 0, completedSessionCount: 0, totalDurationSeconds: 0 },
+    training: { completedRepetitions: 0, completedSessionCount: 0, sessionCount: 0, totalDurationSeconds: 0 },
   };
 }
 
@@ -243,6 +244,7 @@ function buildSummary(date: string, training: TrainingRow[], habit: HabitRow | n
     },
     training: {
       completedRepetitions: training.reduce((total, row) => total + row.completed_repetitions, 0),
+      sessionCount: training.length,
       completedSessionCount: training.filter((row) => Boolean(row.is_completed)).length,
       totalDurationSeconds: training.reduce((total, row) => total + row.duration_seconds, 0),
     },
@@ -269,6 +271,7 @@ function summaryParameters(profileId: string, summary: DailyActivitySummary) {
     $toiletShapeCountsJson: JSON.stringify(summary.toilet.shapeCounts),
     $toiletSignalCountsJson: JSON.stringify(summary.toilet.signalCounts),
     $toiletTotalDurationSeconds: summary.toilet.totalDurationSeconds,
+    $trainingSessionCount: summary.training.sessionCount,
     $trainingCompletedCount: summary.training.completedSessionCount,
     $trainingCompletedRepetitions: summary.training.completedRepetitions,
     $trainingTotalDurationSeconds: summary.training.totalDurationSeconds,
@@ -277,7 +280,9 @@ function summaryParameters(profileId: string, summary: DailyActivitySummary) {
 
 type TrainingRow = {
   completed_repetitions: number;
-  discomfort_reported: number;
+  feedback: TrainingSession['feedback'];
+  end_reason: TrainingSession['endReason'];
+  plan_json: string;
   duration_seconds: number;
   ended_at: string;
   id: string;
@@ -315,6 +320,7 @@ type DailySummaryRow = {
   toilet_shape_counts_json: string;
   toilet_signal_counts_json: string;
   toilet_total_duration_seconds: number;
+  training_session_count: number;
   training_completed_count: number;
   training_completed_repetitions: number;
   training_total_duration_seconds: number;
@@ -344,6 +350,7 @@ function rowToSummary(row: DailySummaryRow): DailyActivitySummary {
     },
     training: {
       completedRepetitions: row.training_completed_repetitions,
+      sessionCount: row.training_session_count,
       completedSessionCount: row.training_completed_count,
       totalDurationSeconds: row.training_total_duration_seconds,
     },
@@ -353,7 +360,9 @@ function rowToSummary(row: DailySummaryRow): DailyActivitySummary {
 function rowToTrainingSession(row: TrainingRow): TrainingSession {
   return {
     completedRepetitions: row.completed_repetitions,
-    discomfortReported: Boolean(row.discomfort_reported),
+    feedback: row.feedback,
+    endReason: row.end_reason,
+    plan: JSON.parse(row.plan_json),
     durationSeconds: row.duration_seconds,
     endedAt: row.ended_at,
     id: row.id,

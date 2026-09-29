@@ -3,6 +3,7 @@ import Foundation
 @main
 struct WatchCoreTestMain {
   static func main() async throws {
+    try await testLegacyQueueMigration()
     try await testOfflineQueueLifecycle()
     try await testOfflineQueueLimitsAndAuthorization()
     try await testBusinessAcknowledgements()
@@ -15,12 +16,49 @@ struct WatchCoreTestMain {
 
   private static let owner = WatchEventOwner(userId: "user-A", profileId: "profile-A")
 
+  private static func testLegacyQueueMigration() async throws {
+    let (defaults, suiteName) = makeDefaults()
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let ended = ISO8601DateFormatter().string(from: Date())
+    let old: [String: Any] = [
+      "type": "watch_event", "schemaVersion": 3,
+      "event": [
+        "id": "legacy-training", "type": "training_completed", "schemaVersion": 3,
+        "owner": ["userId": owner.userId, "profileId": owner.profileId], "createdAt": ended,
+        "payload": ["mode": "standard", "durationSeconds": 120, "completedSets": 1],
+      ],
+    ]
+    let data = try JSONSerialization.data(withJSONObject: old)
+    defaults.set([String(decoding: data, as: UTF8.self)], forKey: "xiaotidu-watch-pending-events")
+    let queue = WatchOfflineEventQueue(defaults: defaults)
+    let batch = await queue.beginReplay(allowDelivery: true, owner: owner)
+    try expect(batch.events.count == 1, "upgrade must preserve queued training")
+    let event = batch.events[0]
+    try expect(
+      event.id == "watch-legacy-training" && event.event.schemaVersion == 4,
+      "upgrade must keep the original database record identity")
+    try expect(
+      event.event.payload.session?.completedRepetitions == 12,
+      "one old completed set must become twelve actual repetitions")
+    try expect(
+      event.event.payload.session?.feedback == "unanswered",
+      "old unchecked discomfort was not an explicit answer")
+    let restarted = WatchOfflineEventQueue(defaults: defaults)
+    try expect(
+      await restarted.snapshot().count == 1, "one-off migration must not duplicate a record")
+    let record = event.event.payload.session!
+    let first = WatchOutboundEvent.trainingFinished(owner: owner, session: record)
+    let retry = WatchOutboundEvent.trainingFinished(owner: owner, session: record)
+    try expect(
+      first == retry && retry.event.createdAt == record.endedAt,
+      "recreating an outbound event must preserve identical receipt content")
+  }
+
   private static func testOfflineQueueLifecycle() async throws {
     let (defaults, suiteName) = makeDefaults()
     defer { defaults.removePersistentDomain(forName: suiteName) }
 
-    let event = WatchOutboundEvent.trainingCompleted(
-      owner: owner, mode: "standard", completedSets: 1, durationSeconds: 120)
+    let event = WatchOutboundEvent.trainingFinished(owner: owner, session: makeRecord())
     let queue = WatchOfflineEventQueue(defaults: defaults)
 
     _ = await queue.enqueue(event)
@@ -68,13 +106,18 @@ struct WatchCoreTestMain {
       "temporary unavailable authorization must preserve the queue")
     let newOwner = WatchEventOwner(userId: "user-B", profileId: "profile-B")
     let changedAccountBatch = await queue.beginReplay(allowDelivery: true, owner: newOwner)
-    try expect(changedAccountBatch.events.count == 1, "replay must deliver in order one at a time")
     try expect(
-      changedAccountBatch.events.first?.event.owner == owner,
-      "replay must never retarget the original owner")
+      changedAccountBatch.events.isEmpty,
+      "old owner events must stay queued instead of being sent under a different login")
+    try expect(
+      changedAccountBatch.snapshot.count == 25, "switching accounts must retain the original queue")
+    let originalAccountBatch = await queue.beginReplay(allowDelivery: true, owner: owner)
+    try expect(
+      originalAccountBatch.events.count == 1, "restoring the original owner resumes serial delivery"
+    )
     let rejected = await queue.resolve(
-      eventId: changedAccountBatch.events[0].id, disposition: .rejected)
-    try expect(rejected.count == 24, "only explicit rejection should remove an unauthorized event")
+      eventId: originalAccountBatch.events[0].id, disposition: .rejected)
+    try expect(rejected.count == 24, "explicit rejection only removes the targeted event")
 
     var expiredEvent = WatchOutboundEvent.habitToggled(
       owner: owner, habitKey: "water", level: "good")
@@ -122,54 +165,77 @@ struct WatchCoreTestMain {
   }
 
   private static func testTrainingTimeline() throws {
-    let mode = WatchTrainingMode(
-      config: .init(id: "test", holdSeconds: 5, restSeconds: 3, rounds: 2))
-    let start = Date(timeIntervalSince1970: 1_000)
-    var session = WatchTrainingSession(owner: owner, mode: mode, startedAt: start)
-
-    let initial = session.snapshot(at: start)
+    var slowPrompt = WatchTrainingSession(
+      owner: owner,
+      mode: WatchTrainingMode(
+        config: .init(id: "quick", holdSeconds: 1, restSeconds: 1, rounds: 16)), uptime: 0)
+    slowPrompt.sample(uptime: 3)
+    slowPrompt.confirmPrompt(uptime: 3.8)
     try expect(
-      initial.phase == .hold && initial.remainingSeconds == 5, "training must begin in hold phase")
-
-    let firstBoundary = try require(
-      session.nextBoundary(after: start), "first training boundary is missing")
-    try expect(firstBoundary.phase == .rest, "first boundary must enter rest phase")
+      slowPrompt.nextBoundary(uptime: 3.8)?.delay == 1,
+      "a slow checkpoint write must not shorten the issued contraction")
+    slowPrompt.sample(uptime: 4.8)
+    slowPrompt.confirmPrompt(uptime: 5.6)
     try expect(
-      abs(firstBoundary.date.timeIntervalSince(start) - 5) < 0.001,
-      "first boundary must occur after hold duration")
+      slowPrompt.nextBoundary(uptime: 5.6)?.delay == 1,
+      "relaxation must run in full from the issued prompt")
 
-    let restSnapshot = session.snapshot(at: start.addingTimeInterval(5))
-    try expect(
-      restSnapshot.phase == .rest && restSnapshot.remainingSeconds == 3,
-      "rest remaining time is incorrect")
-
-    session.togglePause(at: start.addingTimeInterval(6))
-    try expect(
-      session.nextBoundary(after: start.addingTimeInterval(10)) == nil,
-      "paused training must not schedule a boundary")
-    session.togglePause(at: start.addingTimeInterval(10))
-    let resumedBoundary = try require(
-      session.nextBoundary(after: start.addingTimeInterval(10)), "resumed boundary is missing")
-    try expect(
-      abs(resumedBoundary.date.timeIntervalSince(start) - 12) < 0.001,
-      "pause duration must shift the next boundary")
-
-    let finishDate = start.addingTimeInterval(TimeInterval(mode.totalDurationSeconds + 4))
-    let finished = session.snapshot(at: finishDate)
-    try expect(
-      finished.isFinished && finished.remainingSeconds == 0,
-      "training finish derivation is incorrect")
-
-    var boundaryKeys: [String] = []
-    var boundaryDate = start
-    let uninterruptedSession = WatchTrainingSession(owner: owner, mode: mode, startedAt: start)
-    while let boundary = uninterruptedSession.nextBoundary(after: boundaryDate) {
-      boundaryKeys.append(boundary.key)
-      boundaryDate = boundary.date.addingTimeInterval(0.001)
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    for config in WatchTodayState.TrainingModeConfig.fallbackModes {
+      let mode = WatchTrainingMode(config: config)
+      var current = WatchTrainingSession(owner: owner, mode: mode, startedAt: start, uptime: 0)
+      var uptime: TimeInterval = 0
+      try expect(
+        current.snapshot(uptime: 0).phase == .prepare, "training must prepare before contraction")
+      while let boundary = current.nextBoundary(
+        after: start.addingTimeInterval(uptime), uptime: uptime)
+      {
+        uptime += boundary.delay
+        current.sample(at: start.addingTimeInterval(uptime), uptime: uptime)
+      }
+      try expect(
+        current.record?.completedRepetitions == mode.rounds,
+        "all modes must retain their actual repetitions")
+      try expect(
+        current.record?.durationSeconds == mode.totalDurationSeconds,
+        "preparation must not count as activity")
     }
-    try expect(boundaryKeys.count == 4, "two training rounds must have four one-shot boundaries")
+    let quick = WatchTrainingMode(
+      config: .init(id: "quick", holdSeconds: 1, restSeconds: 1, rounds: 16))
+    var delayed = WatchTrainingSession(owner: owner, mode: quick, startedAt: start, uptime: 0)
+    delayed.sample(at: start.addingTimeInterval(3), uptime: 3)
+    delayed.sample(at: start.addingTimeInterval(5.1), uptime: 5.1)
     try expect(
-      Set(boundaryKeys).count == boundaryKeys.count, "training boundary keys must be unique")
+      delayed.isPaused && delayed.interrupted && delayed.completedRepetitions == 0,
+      "late tick must pause without skipping relaxation or credit")
+    delayed.resume(at: start.addingTimeInterval(10), uptime: 10)
+    delayed.sample(at: start.addingTimeInterval(11), uptime: 11)
+    try expect(
+      delayed.phase == .hold && delayed.completedRepetitions == 0,
+      "incomplete contraction needs restart after relaxation")
+    delayed.sample(at: start.addingTimeInterval(12), uptime: 12)
+    delayed.pause(at: start.addingTimeInterval(12.5), uptime: 12.5)
+    delayed.resume(at: start.addingTimeInterval(20), uptime: 20)
+    try expect(
+      delayed.nextBoundary(after: start, uptime: 20)?.delay == 1, "resumed rest must run in full")
+    delayed.sample(at: start.addingTimeInterval(21), uptime: 21)
+    try expect(
+      delayed.completedRepetitions == 1, "previous full contraction must count only after full rest"
+    )
+    delayed.pause(at: start.addingTimeInterval(21), uptime: 21)
+    let elapsed = delayed.snapshot(uptime: 21).elapsedSeconds
+    try expect(
+      delayed.snapshot(uptime: 300).elapsedSeconds == elapsed
+        && delayed.nextBoundary(uptime: 300) == nil, "inactive time must not count or complete")
+    delayed.finish(reason: "user_stopped", at: start.addingTimeInterval(300), uptime: 300)
+    let record = delayed.record
+    delayed.finish(reason: "discomfort", at: start.addingTimeInterval(301), uptime: 301)
+    try expect(
+      delayed.record == record && record?.isCompleted == false,
+      "finish must freeze its ID, timestamps and repetitions")
+    try expect(
+      record?.startedAt == ISO8601DateFormatter().string(from: start),
+      "pause must not shift the recorded start time")
   }
 
   private static func testToiletHapticTimeline() throws {
@@ -227,6 +293,18 @@ struct WatchCoreTestMain {
     try expect(
       (try? JSONDecoder().decode(WatchTodayState.self, from: invalid)) == nil,
       "unsupported state versions must be rejected")
+  }
+
+  private static func makeRecord() -> WatchTrainingRecord {
+    let end = Date()
+    let formatter = ISO8601DateFormatter()
+    return WatchTrainingRecord(
+      id: "watch-" + UUID().uuidString, presetId: "standard",
+      plan: .init(contractSeconds: 5, relaxSeconds: 5, repetitions: 12),
+      startedAt: formatter.string(from: end.addingTimeInterval(-120)),
+      endedAt: formatter.string(from: end),
+      durationSeconds: 120, completedRepetitions: 12, isCompleted: true, feedback: "unanswered",
+      endReason: "completed")
   }
 
   private static func makeDefaults() -> (UserDefaults, String) {

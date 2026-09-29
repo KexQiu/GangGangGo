@@ -12,31 +12,25 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
 
   struct Payload: Codable, Equatable, Sendable {
     var action: String?
-    var completedSets: Int?
-    var durationSeconds: Int?
+    var session: WatchTrainingRecord?
     var elapsedSeconds: Int?
     var habitKey: String?
     var level: String?
-    var mode: String?
     var sessionId: String?
 
     init(
       action: String? = nil,
-      completedSets: Int? = nil,
-      durationSeconds: Int? = nil,
+      session: WatchTrainingRecord? = nil,
       elapsedSeconds: Int? = nil,
       habitKey: String? = nil,
       level: String? = nil,
-      mode: String? = nil,
       sessionId: String? = nil
     ) {
       self.action = action
-      self.completedSets = completedSets
-      self.durationSeconds = durationSeconds
+      self.session = session
       self.elapsedSeconds = elapsedSeconds
       self.habitKey = habitKey
       self.level = level
-      self.mode = mode
       self.sessionId = sessionId
     }
   }
@@ -61,8 +55,8 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
 
   var summary: String {
     switch event.type {
-    case "training_completed":
-      return "菊花抬完成待同步"
+    case "training_finished":
+      return "菊花抬记录待同步"
     case "habit_toggled":
       return "\(habitTitle(for: event.payload.habitKey))待同步"
     case "toilet_timer_action":
@@ -72,18 +66,13 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
     }
   }
 
-  static func trainingCompleted(
-    owner: WatchEventOwner, mode: String, completedSets: Int, durationSeconds: Int
-  ) -> WatchOutboundEvent {
-    make(
-      owner: owner,
-      type: "training_completed",
-      payload: Payload(
-        completedSets: completedSets,
-        durationSeconds: durationSeconds,
-        mode: mode
-      )
-    )
+  static func trainingFinished(owner: WatchEventOwner, session: WatchTrainingRecord)
+    -> WatchOutboundEvent
+  {
+    var event = make(owner: owner, type: "training_finished", payload: Payload(session: session))
+    event.event.id = session.id
+    event.event.createdAt = session.endedAt
+    return event
   }
 
   static func habitToggled(owner: WatchEventOwner, habitKey: String, level: String?)
@@ -111,10 +100,10 @@ struct WatchOutboundEvent: Codable, Equatable, Sendable {
         createdAt: ISO8601DateFormatter().string(from: Date()),
         id: UUID().uuidString,
         payload: payload,
-        schemaVersion: 3,
+        schemaVersion: 4,
         type: type
       ),
-      schemaVersion: 3,
+      schemaVersion: 4,
       type: "watch_event"
     )
   }
@@ -168,6 +157,7 @@ actor WatchOfflineEventQueue {
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
+    Self.migrateStoredEvents(defaults: defaults, storageKey: storageKey)
     events = Self.loadEvents(defaults: defaults, storageKey: storageKey)
   }
 
@@ -205,7 +195,7 @@ actor WatchOfflineEventQueue {
       return WatchPendingReplayBatch(events: [], snapshot: makeSnapshot())
     }
     // 串行发送，失败的旧习惯更新不能晚于新操作写回。
-    let readyEvents = Array(events.prefix(1))
+    let readyEvents = Array(events.filter { $0.event.owner == owner }.prefix(1))
     inFlightEventIds.formUnion(readyEvents.map(\.id))
     persist()
 
@@ -275,6 +265,59 @@ actor WatchOfflineEventQueue {
     }
 
     defaults.set(encodedEvents, forKey: storageKey)
+  }
+
+  // 单次升级本地队列；网络入口只接受 v4，不提供旧协议回退。
+  private static func migrateStoredEvents(defaults: UserDefaults, storageKey: String) {
+    let marker = storageKey + "-v4-migrated"
+    guard !defaults.bool(forKey: marker) else { return }
+    let formatter = ISO8601DateFormatter()
+    let precise = ISO8601DateFormatter()
+    precise.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let converted = (defaults.stringArray(forKey: storageKey) ?? []).map { text -> String in
+      guard let data = text.data(using: .utf8),
+        var envelope = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        var event = envelope["event"] as? [String: Any], event["schemaVersion"] as? Int == 3
+      else { return text }
+      if event["type"] as? String == "training_completed" {
+        guard let payload = event["payload"] as? [String: Any],
+          let mode = payload["mode"] as? String,
+          let config = WatchTodayState.TrainingModeConfig.fallbackModes.first(where: {
+            $0.id == mode
+          }),
+          let duration = payload["durationSeconds"] as? Int,
+          let createdAt = event["createdAt"] as? String,
+          let ended = formatter.date(from: createdAt) ?? precise.date(from: createdAt),
+          let originalId = event["id"] as? String
+        else { return text }
+        let exact = duration == (config.holdSeconds + config.restSeconds) * config.rounds
+        let count =
+          exact ? config.rounds : min(payload["completedSets"] as? Int ?? 0, config.rounds)
+        let record = WatchTrainingRecord(
+          id: "watch-" + originalId, presetId: mode,
+          plan: .init(
+            contractSeconds: config.holdSeconds, relaxSeconds: config.restSeconds,
+            repetitions: config.rounds),
+          // 仅保留旧协议原有的估算口径；新记录直接提供真实开始时间。
+          startedAt: precise.string(from: ended.addingTimeInterval(-TimeInterval(duration))),
+          endedAt: precise.string(from: ended),
+          durationSeconds: duration, completedRepetitions: count, isCompleted: exact,
+          feedback: "unanswered", endReason: exact ? "completed" : "interrupted")
+        guard let recordData = try? JSONEncoder().encode(record),
+          let recordJSON = try? JSONSerialization.jsonObject(with: recordData)
+        else { return text }
+        event["id"] = record.id
+        event["type"] = "training_finished"
+        event["payload"] = ["session": recordJSON]
+      }
+      event["schemaVersion"] = 4
+      envelope["event"] = event
+      envelope["schemaVersion"] = 4
+      guard let data = try? JSONSerialization.data(withJSONObject: envelope) else { return text }
+      return String(decoding: data, as: UTF8.self)
+    }
+    defaults.set(converted, forKey: storageKey)
+    defaults.set(true, forKey: marker)
   }
 
   private static func loadEvents(defaults: UserDefaults, storageKey: String) -> [WatchOutboundEvent]

@@ -3,6 +3,13 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 export async function enqueueUnsyncedProfileData(db: SQLiteDatabase, profileId: string) {
   const parameters = { $profileId: profileId };
   await db.runAsync(
+    `INSERT INTO data_sync_outbox (mutation_id, profile_id, entity_type, entity_id, operation, payload_json, changed_at)
+    SELECT 'bootstrap-' || lower(hex(randomblob(16))), profile_id, 'training_preferences', 'preferences', 'upsert', value_json, updated_at
+    FROM training_preferences record WHERE profile_id = $profileId AND sync_version = 0
+    AND NOT EXISTS (SELECT 1 FROM data_sync_outbox o WHERE o.profile_id = record.profile_id AND o.entity_type = 'training_preferences');`,
+    parameters,
+  );
+  await db.runAsync(
     `
       INSERT INTO data_sync_outbox (
         mutation_id, profile_id, entity_type, entity_id, operation, payload_json, changed_at
@@ -15,7 +22,7 @@ export async function enqueueUnsyncedProfileData(db: SQLiteDatabase, profileId: 
         'upsert',
         json_object(
           'completedRepetitions', completed_repetitions,
-          'discomfortReported', json(CASE WHEN discomfort_reported <> 0 THEN 'true' ELSE 'false' END),
+          'feedback', feedback, 'endReason', end_reason, 'plan', json(plan_json),
           'durationSeconds', duration_seconds,
           'endedAt', ended_at,
           'isCompleted', json(CASE WHEN is_completed <> 0 THEN 'true' ELSE 'false' END),

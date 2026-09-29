@@ -49,9 +49,13 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
     }
     if (getCachedCurrentUser()?.id !== owner.userId || !getCachedEntitlements())
       return ack('retryable', '手机正在恢复账号状态，稍后重试。');
-    if (!getCachedFeatureAccess('watchActions')) return ack('rejected', '当前账号暂不能使用 Apple Watch 操作。');
+    if (!getCachedFeatureAccess('watchActions'))
+      return ack(
+        event.type === 'training_finished' ? 'retryable' : 'rejected',
+        '当前账号暂不能使用 Apple Watch 操作，请恢复权限后重试。',
+      );
     const result =
-      event.type === 'training_completed'
+      event.type === 'training_finished'
         ? await handleTrainingCompleted(event, options)
         : event.type === 'habit_toggled'
           ? await handleHabitToggled(event, options)
@@ -60,7 +64,7 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
     // 统计和设备展示失败不能把已提交的记录报告成未保存。
     try {
       trackGrowthEvent('watch_action_completed', {
-        action: event.type === 'training_completed' ? 'training' : event.type === 'habit_toggled' ? 'habit' : 'toilet',
+        action: event.type === 'training_finished' ? 'training' : event.type === 'habit_toggled' ? 'habit' : 'toilet',
         domain: 'watch',
         source: 'watch',
       });
@@ -77,25 +81,10 @@ export async function handleWatchEvent(event: WatchEvent): Promise<WatchEventAck
 }
 
 async function handleTrainingCompleted(
-  event: Extract<WatchEvent, { type: 'training_completed' }>,
+  event: Extract<WatchEvent, { type: 'training_finished' }>,
   options: LocalMutationOptions,
 ) {
-  const endedAt = new Date(event.createdAt);
-  const startedAt = new Date(endedAt.getTime() - event.payload.durationSeconds * 1000);
-
-  return useTrainingStore.getState().addSession(
-    {
-      completedRepetitions: event.payload.completedSets,
-      discomfortReported: false,
-      durationSeconds: event.payload.durationSeconds,
-      endedAt: endedAt.toISOString(),
-      id: `watch-${event.id}`,
-      isCompleted: true,
-      presetId: event.payload.mode,
-      startedAt: startedAt.toISOString(),
-    },
-    options,
-  );
+  return useTrainingStore.getState().addSession(event.payload.session, options);
 }
 
 async function handleHabitToggled(

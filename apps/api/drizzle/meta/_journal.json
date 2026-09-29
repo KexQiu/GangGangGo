@@ -15,6 +15,13 @@
       "when": 1790586701777,
       "tag": "0001_little_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790667411589,
+      "tag": "0002_orange_puck",
+      "breakpoints": true
     }
   ]
 }

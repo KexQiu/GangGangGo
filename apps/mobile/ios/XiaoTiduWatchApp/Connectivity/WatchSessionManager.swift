@@ -66,21 +66,17 @@ final class WatchSessionManager: ObservableObject {
     flushPendingEventsIfPossible()
   }
 
-  func sendTrainingCompleted(owner: WatchEventOwner, mode: String, completedSets: Int, durationSeconds: Int) -> String? {
-    guard ensureActionAllowed() else { return nil }
-    guard owner == todayState.account.owner else {
-      lastError = "账号已变更，这组训练未写入新账号。"
+  func sendTrainingFinished(owner: WatchEventOwner, record: WatchTrainingRecord) async -> String? {
+    guard ensureActionAllowed(), owner == todayState.account.owner else {
+      lastError = "请恢复原账号的操作权限后保存，这条记录会留在原账号。"
       return nil
     }
-
-    let event = WatchOutboundEvent.trainingCompleted(
-      owner: owner,
-      mode: mode,
-      completedSets: completedSets,
-      durationSeconds: durationSeconds
-    )
+    let event = WatchOutboundEvent.trainingFinished(owner: owner, session: record)
     trainingDelivery = (event.id, .retry)
-    sendOrQueue(event)
+    // 调用方只有在入队完成后才清除草稿。
+    let snapshot = await eventQueue.enqueue(event)
+    applyPendingSnapshot(snapshot)
+    flushPendingEventsIfPossible()
     return event.id
   }
 

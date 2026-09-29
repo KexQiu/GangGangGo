@@ -31,12 +31,14 @@ function mutation(daysAgo: number): DataSyncMutation {
     operation: 'upsert',
     payload: {
       completedRepetitions: 12,
-      discomfortReported: false,
+      feedback: 'unanswered' as const,
+      endReason: 'completed' as const,
+      plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
       durationSeconds: 120,
       endedAt: date.toISOString(),
       isCompleted: true,
       localDate: date.toISOString().slice(0, 10),
-      presetId: 'quick',
+      presetId: 'standard',
       startedAt: new Date(date.getTime() - 120_000).toISOString(),
     },
   };

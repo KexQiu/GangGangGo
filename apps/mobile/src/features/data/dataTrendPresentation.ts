@@ -82,12 +82,12 @@ export function shouldCaptureTrendGesture(dx: number, dy: number) {
 export function formatTrendValue(value: number | null, category: TrendCategory) {
   if (value === null) return '无记录';
   if (category === 'habit') return `${Math.round(value)}/4 项`;
-  if (category === 'training') return `${Math.round(value)} 次`;
+  if (category === 'training') return `${Math.round(value)} 组`;
   return `${value.toFixed(value < 10 ? 1 : 0)} 分钟`;
 }
 
 export function trendMetricLabel(category: TrendCategory) {
-  if (category === 'training') return '完成次数';
+  if (category === 'training') return '完整组数';
   if (category === 'habit') return '记录项数';
   return '最长时长';
 }
@@ -104,11 +104,7 @@ export function formatTrendShortDate(date: string) {
 
 function getTrendValue(summary: DailyActivitySummary, category: TrendCategory) {
   if (category === 'training') {
-    const hasRecord =
-      summary.training.completedSessionCount > 0 ||
-      summary.training.completedRepetitions > 0 ||
-      summary.training.totalDurationSeconds > 0;
-    return hasRecord ? summary.training.completedSessionCount : null;
+    return summary.training.sessionCount > 0 ? summary.training.completedSessionCount : null;
   }
   if (category === 'habit') {
     const hasRecord = [summary.habit.water, summary.habit.fiber, summary.habit.movement, summary.habit.bowel].some(

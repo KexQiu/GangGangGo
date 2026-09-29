@@ -76,6 +76,9 @@ vi.mock('../../habits/habitStore', () => ({
 vi.mock('../../toilet/toiletStore', () => ({
   useToiletStore: { getState: () => ({ hydrate: mocks.hydrate, reset: mocks.reset }) },
 }));
+vi.mock('../../training/trainingPreferencesStore', () => ({
+  useTrainingPreferencesStore: { getState: () => ({ hydrate: mocks.hydrate, reset: mocks.reset }) },
+}));
 vi.mock('../../training/trainingStore', () => ({
   useTrainingStore: { getState: () => ({ hydrate: mocks.hydrate, reset: mocks.reset }) },
 }));

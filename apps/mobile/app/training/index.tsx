@@ -1,3 +1,4 @@
+import { useTrainingPreferencesStore } from '../../src/features/training/trainingPreferencesStore';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -10,14 +11,21 @@ import { trainingEligibilityGuidance } from '../../src/features/safety/healthGui
 import { FlowerLiftIcon } from '../../src/features/training/FlowerLiftIcon';
 import { trainingPresets } from '../../src/features/training/presets';
 import { formatTrainingDuration } from '../../src/features/training/trainingLogic';
-import { getTodayCompletedTrainingCount, useTrainingStore } from '../../src/features/training/trainingStore';
+import {
+  getTodayCompletedTrainingCount,
+  getTodayTrainingRecordCount,
+  useTrainingStore,
+} from '../../src/features/training/trainingStore';
 import { routes } from '../../src/navigation/routes';
 import { useAppTheme } from '../../src/theme/themeProvider';
 
 export default function TrainingScreen() {
   const router = useRouter();
   const sessions = useTrainingStore((state) => state.sessions);
+  const { preferences, hasHydrated, error } = useTrainingPreferencesStore();
+  const target = preferences.dailyTarget;
   const todayCount = getTodayCompletedTrainingCount(sessions);
+  const recordCount = getTodayTrainingRecordCount(sessions);
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
 
@@ -36,15 +44,37 @@ export default function TrainingScreen() {
       </AppCard>
 
       <AppCard muted style={styles.summaryCard}>
-        <Text style={styles.summaryValue}>{todayCount}/2</Text>
+        <Text style={styles.summaryValue}>
+          {target === null ? `今日记录 ${recordCount} 条` : `${todayCount}/${target}`}{' '}
+        </Text>
         <View style={styles.summaryCopy}>
-          <Text style={styles.summaryTitle}>{todayCount >= 2 ? '今日记录目标已完成' : '今日菊花抬进度'}</Text>
-          <Text style={styles.summaryText}>每天 2 组是应用记录目标，不是医学建议量，不必为凑目标加练。</Text>
+          <Text style={styles.summaryTitle}>
+            {target === null ? '未设置每日目标' : todayCount >= target ? '今日记录目标已完成' : '今日菊花抬进度'}
+          </Text>
+          <Text style={styles.summaryText}>
+            今日完整完成 {todayCount} 组。按个人情况安排，记录目标不是医学建议量，不必为凑目标加练。
+          </Text>
         </View>
       </AppCard>
 
+      <AppButton variant="secondary" onPress={() => router.push('/training/settings')}>
+        调整节奏与记录目标
+      </AppButton>
+      <AppButton variant="secondary" onPress={() => router.push('/training/guide')}>
+        查看动作说明
+      </AppButton>
+      {error && (
+        <Text accessibilityRole="alert" style={styles.summaryText}>
+          {error}
+        </Text>
+      )}
       <View style={styles.list}>
-        {trainingPresets.map((preset) => {
+        {trainingPresets.map((base) => {
+          const preset = { ...base, ...preferences.presets[base.id] };
+          const adjusted =
+            preset.contractSeconds !== base.contractSeconds ||
+            preset.relaxSeconds !== base.relaxSeconds ||
+            preset.repetitions !== base.repetitions;
           const totalSeconds = preset.repetitions * (preset.contractSeconds + preset.relaxSeconds);
 
           return (
@@ -54,8 +84,13 @@ export default function TrainingScreen() {
                   <FlowerLiftIcon color={colors.primaryPressed} presetId={preset.id} size={32} />
                 </View>
                 <View style={styles.presetCopy}>
-                  <Text style={styles.presetTitle}>{preset.name}</Text>
-                  <Text style={styles.presetDescription}>{preset.description}</Text>
+                  <Text style={styles.presetTitle}>
+                    {preset.name}
+                    {adjusted ? ' · 已调整' : ''}
+                  </Text>
+                  <Text style={styles.presetDescription}>
+                    {adjusted ? '按已调整的节奏练习，充分放松，不必勉强完成。' : preset.description}
+                  </Text>
                 </View>
               </View>
 
@@ -66,7 +101,12 @@ export default function TrainingScreen() {
               </View>
 
               <AppButton
-                onPress={() => router.push(`${routes.trainingSession}?presetId=${preset.id}`)}
+                disabled={!hasHydrated}
+                onPress={() =>
+                  router.push(
+                    `${preferences.onboardingSeen ? routes.trainingSession : '/training/guide'}?presetId=${preset.id}`,
+                  )
+                }
                 style={styles.startButton}
               >
                 开始 {formatTrainingDuration(totalSeconds)}

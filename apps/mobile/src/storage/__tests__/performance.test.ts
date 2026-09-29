@@ -32,7 +32,9 @@ type ToiletRow = {
 };
 type TrainingRow = {
   completed_repetitions: number;
-  discomfort_reported: number;
+  feedback: string;
+  end_reason: string;
+  plan_json: string;
   duration_seconds: number;
   ended_at: string;
   id: string;
@@ -128,8 +130,8 @@ function seedHistory(source: DatabaseSync) {
   `);
   const insertTraining = source.prepare(`
     INSERT INTO training_sessions
-      (id, preset_id, started_at, ended_at, duration_seconds, completed_repetitions, is_completed, discomfort_reported)
-    VALUES (?, 'standard', ?, ?, 120, 12, 1, 0)
+      (id, preset_id, started_at, ended_at, duration_seconds, completed_repetitions, is_completed, feedback, end_reason, plan_json)
+    VALUES (?, 'standard', ?, ?, 120, 12, 1, 'unanswered', 'completed', '{"contractSeconds":5,"relaxSeconds":5,"repetitions":12}')
   `);
 
   source.exec('BEGIN');

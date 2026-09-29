@@ -22,6 +22,7 @@ import {
   syncedToiletSessions,
   syncedToiletSignalPresets,
   syncedTrainingSessions,
+  syncedTrainingPreferences,
   users,
 } from '../../db/schema.js';
 import type { CurrentUser } from './userTypes.js';
@@ -54,6 +55,7 @@ function createEmptyExport(user: CurrentUser): AccountDataExport {
       toiletSessions: [],
       toiletSignalPresets: [],
       trainingSessions: [],
+      trainingPreferences: [],
     },
     exportedAt: new Date().toISOString(),
     profile: toUserProfile(user),
@@ -96,6 +98,7 @@ export function createDrizzleAccountDataService(db: Database): AccountDataServic
       const userId = user.id;
       const [
         trainingSessions,
+        trainingPreferences,
         habitCheckIns,
         toiletSessions,
         toiletSignalPresets,
@@ -115,6 +118,7 @@ export function createDrizzleAccountDataService(db: Database): AccountDataServic
         userAuditEvents,
       ] = await Promise.all([
         db.select().from(syncedTrainingSessions).where(eq(syncedTrainingSessions.userId, userId)),
+        db.select().from(syncedTrainingPreferences).where(eq(syncedTrainingPreferences.userId, userId)),
         db.select().from(syncedHabitCheckIns).where(eq(syncedHabitCheckIns.userId, userId)),
         db.select().from(syncedToiletSessions).where(eq(syncedToiletSessions.userId, userId)),
         db.select().from(syncedToiletSignalPresets).where(eq(syncedToiletSignalPresets.userId, userId)),
@@ -187,6 +191,7 @@ export function createDrizzleAccountDataService(db: Database): AccountDataServic
           toiletSessions,
           toiletSignalPresets,
           trainingSessions,
+          trainingPreferences,
         },
         exportedAt: new Date().toISOString(),
         profile: toUserProfile(user),

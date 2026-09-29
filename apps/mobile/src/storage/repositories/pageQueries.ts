@@ -51,7 +51,7 @@ export const trainingSessionPageSql = `
     duration_seconds,
     completed_repetitions,
     is_completed,
-    discomfort_reported
+    feedback, end_reason, plan_json
   FROM training_sessions
   WHERE profile_id = (SELECT value FROM app_metadata WHERE key = 'active_profile_id')
     AND deleted_at IS NULL

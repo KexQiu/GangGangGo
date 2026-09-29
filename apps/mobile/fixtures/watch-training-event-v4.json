@@ -1,0 +1,32 @@
+{
+  "type": "watch_event",
+  "schemaVersion": 4,
+  "event": {
+    "id": "watch-fixture-training-1",
+    "createdAt": "2026-09-29T00:00:25Z",
+    "schemaVersion": 4,
+    "owner": {
+      "userId": "user-A",
+      "profileId": "profile-A"
+    },
+    "type": "training_finished",
+    "payload": {
+      "session": {
+        "id": "watch-fixture-training-1",
+        "presetId": "beginner",
+        "plan": {
+          "contractSeconds": 2,
+          "relaxSeconds": 6,
+          "repetitions": 4
+        },
+        "startedAt": "2026-09-29T00:00:00Z",
+        "endedAt": "2026-09-29T00:00:25Z",
+        "durationSeconds": 17,
+        "completedRepetitions": 2,
+        "isCompleted": false,
+        "feedback": "reported",
+        "endReason": "discomfort"
+      }
+    }
+  }
+}

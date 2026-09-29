@@ -1,3 +1,4 @@
+import { useTrainingPreferencesStore } from '../training/trainingPreferencesStore';
 import { buildWatchTodayState } from './watchStateBuilder';
 import { refreshEntitlementsQuery } from '../account/accountQueryService';
 import { useAuthStore } from '../account/authStore';
@@ -10,6 +11,7 @@ import { type WatchSyncResult, type WatchTodayState } from './watchTypes';
 let eventListenerStarted = false;
 
 export async function syncWatchTodayState(now = new Date(), source = 'auto'): Promise<WatchSyncResult> {
+  if (!useTrainingPreferencesStore.getState().hasHydrated) await useTrainingPreferencesStore.getState().hydrate();
   const state = buildWatchTodayState(now);
   useWatchDebugStore.getState().recordBuiltState(state);
   const result = await sendWatchTodayState(state);
@@ -51,6 +53,7 @@ async function handleIncomingWatchPayload(payload: unknown) {
   useWatchDebugStore.getState().recordIncomingPayload(payload);
   const replyId = extractReplyId(payload);
 
+  if (!useTrainingPreferencesStore.getState().hasHydrated) await useTrainingPreferencesStore.getState().hydrate();
   if (isWatchStateRequest(payload)) {
     const state = getCurrentWatchTodayState();
     const stateJson = JSON.stringify(state);

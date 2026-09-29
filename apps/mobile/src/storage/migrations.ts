@@ -1,13 +1,13 @@
 import { type SQLiteDatabase } from 'expo-sqlite';
 
-const latestVersion = 4;
+const latestVersion = 5;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   const version = row?.user_version ?? 0;
   if (version === latestVersion) return;
-  if (![0, 1, 2, 3].includes(version)) throw new Error(`Unsupported database version: ${version}`);
+  if (![0, 1, 2, 3, 4].includes(version)) throw new Error(`Unsupported database version: ${version}`);
 
   await db.withTransactionAsync(async () => {
     if (version === 0)
@@ -214,6 +214,50 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX idx_toilet_record_drafts_profile_state ON toilet_record_drafts (profile_id, state, ended_at DESC);
       PRAGMA user_version = 3;
     `);
-    await db.execAsync('ALTER TABLE data_sync_state ADD COLUMN last_completed_at TEXT; PRAGMA user_version = 4;');
+    if (version < 4)
+      await db.execAsync('ALTER TABLE data_sync_state ADD COLUMN last_completed_at TEXT; PRAGMA user_version = 4;');
+    await db.execAsync(trainingV5Migration);
   });
 }
+
+// 仅升级时转换；运行中的读取和同步只接受新契约。
+const trainingV5Migration = `
+ALTER TABLE training_sessions ADD COLUMN feedback TEXT NOT NULL DEFAULT 'unanswered';
+ALTER TABLE training_sessions ADD COLUMN end_reason TEXT NOT NULL DEFAULT 'user_stopped';
+ALTER TABLE training_sessions ADD COLUMN plan_json TEXT NOT NULL DEFAULT '{}';
+UPDATE training_sessions SET
+  feedback = CASE WHEN discomfort_reported <> 0 THEN 'reported' ELSE 'unanswered' END,
+  end_reason = CASE WHEN is_completed <> 0 THEN 'completed' ELSE 'user_stopped' END,
+  plan_json = CASE preset_id
+    WHEN 'beginner' THEN '{"contractSeconds":3,"relaxSeconds":3,"repetitions":10}'
+    WHEN 'standard' THEN '{"contractSeconds":5,"relaxSeconds":5,"repetitions":12}'
+    ELSE '{"contractSeconds":1,"relaxSeconds":1,"repetitions":16}' END;
+UPDATE training_sessions SET completed_repetitions = json_extract(plan_json, '$.repetitions')
+  WHERE id LIKE 'watch-%' AND is_completed = 1 AND completed_repetitions = 1
+  AND duration_seconds = (json_extract(plan_json, '$.contractSeconds') + json_extract(plan_json, '$.relaxSeconds')) * json_extract(plan_json, '$.repetitions');
+ALTER TABLE training_sessions DROP COLUMN discomfort_reported;
+UPDATE data_sync_outbox SET payload_json = json_set(json_remove(payload_json, '$.discomfortReported'),
+ '$.feedback', CASE WHEN json_extract(payload_json, '$.discomfortReported') = 1 THEN 'reported' ELSE 'unanswered' END,
+ '$.endReason', CASE WHEN json_extract(payload_json, '$.isCompleted') = 1 THEN 'completed' ELSE 'user_stopped' END,
+ '$.plan', json(CASE json_extract(payload_json, '$.presetId')
+  WHEN 'beginner' THEN '{"contractSeconds":3,"relaxSeconds":3,"repetitions":10}'
+  WHEN 'standard' THEN '{"contractSeconds":5,"relaxSeconds":5,"repetitions":12}'
+  ELSE '{"contractSeconds":1,"relaxSeconds":1,"repetitions":16}' END))
+ WHERE entity_type = 'training_session' AND operation = 'upsert';
+UPDATE data_sync_outbox SET payload_json = json_set(payload_json, '$.completedRepetitions', json_extract(payload_json, '$.plan.repetitions'))
+ WHERE entity_type = 'training_session' AND operation = 'upsert' AND entity_id LIKE 'watch-%'
+ AND json_extract(payload_json, '$.isCompleted') = 1 AND json_extract(payload_json, '$.completedRepetitions') = 1
+ AND json_extract(payload_json, '$.durationSeconds') = (json_extract(payload_json, '$.plan.contractSeconds') + json_extract(payload_json, '$.plan.relaxSeconds')) * json_extract(payload_json, '$.plan.repetitions');
+UPDATE watch_event_receipts SET event_json = json_set(event_json, '$.schemaVersion', 4)
+ WHERE json_extract(event_json, '$.schemaVersion') = 3
+ AND json_extract(event_json, '$.type') IN ('habit_toggled', 'toilet_timer_action');
+ALTER TABLE daily_activity_summaries ADD COLUMN training_session_count INTEGER NOT NULL DEFAULT 0;
+UPDATE daily_activity_summaries SET
+ training_session_count = (SELECT COUNT(*) FROM training_sessions t WHERE t.profile_id = daily_activity_summaries.profile_id AND t.local_date = daily_activity_summaries.date AND t.deleted_at IS NULL),
+ training_completed_repetitions = COALESCE((SELECT SUM(completed_repetitions) FROM training_sessions t WHERE t.profile_id = daily_activity_summaries.profile_id AND t.local_date = daily_activity_summaries.date AND t.deleted_at IS NULL), 0);
+CREATE TABLE training_preferences (
+ profile_id TEXT PRIMARY KEY NOT NULL REFERENCES local_data_profiles(id) ON DELETE CASCADE,
+ value_json TEXT NOT NULL, updated_at TEXT NOT NULL, sync_version INTEGER NOT NULL DEFAULT 0
+);
+PRAGMA user_version = 5;
+`;

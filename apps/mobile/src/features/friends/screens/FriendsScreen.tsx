@@ -150,7 +150,7 @@ function eventPreview(friend: FriendSummary) {
 function dataPreview(friend: FriendSummary) {
   const preview = friend.dataPreview;
   const parts = [
-    preview.trainingDone === null ? null : preview.trainingDone ? '菊花抬记录目标已完成' : '菊花抬记录目标未完成',
+    preview.trainingRecorded === null ? null : preview.trainingRecorded ? '菊花抬已记录' : '菊花抬未记录',
     preview.habitCompletion === null ? null : `小账本 ${preview.habitCompletion}/4`,
     preview.toiletRecorded === null ? null : preview.toiletRecorded ? '蹲会儿已记' : '蹲会儿未记',
   ].filter(Boolean);

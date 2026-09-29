@@ -179,3 +179,7 @@ pnpm mobile:start -- --clear
   - [ ] Scheme 明确选择 `app` 或 `XiaoTiduWatchApp`。
   - [ ] 不要选择 `XiaoTiduLiveActivities`。
   - [ ] 必要时清理 DerivedData 后重新打开 workspace。
+
+## 2026-09-29 训练修复补充
+
+菊花抬已升级为显式阶段、三态反馈和可调整配置；此前固定目标及按总时长完成的口径不再适用。最新实现与待验收项目见 [训练修复验收](../architecture/training-safety-acceptance.md)。

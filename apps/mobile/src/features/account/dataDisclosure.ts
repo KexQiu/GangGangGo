@@ -4,10 +4,16 @@ import type {
   ToiletSessionSyncPayload,
   ToiletSignalPresetSyncPayload,
   TrainingSessionSyncPayload,
+  TrainingPreferences,
 } from '@xiaotidu/contracts';
 
 // 字段与实际契约逐项对应；新增同步/共享字段时，类型检查要求同步补充说明。
 export const syncDisclosureFields = {
+  trainingPreferences: {
+    presets: '各节奏参数',
+    dailyTarget: '个人记录目标',
+    onboardingSeen: '是否已阅读动作说明',
+  } satisfies Record<keyof TrainingPreferences, string>,
   training: {
     presetId: '训练方案',
     startedAt: '起止时间',
@@ -16,7 +22,9 @@ export const syncDisclosureFields = {
     durationSeconds: '时长',
     completedRepetitions: '完成次数',
     isCompleted: '完成状态',
-    discomfortReported: '不适反馈',
+    feedback: '不适反馈（未反馈／无不适／有不适）',
+    endReason: '结束原因',
+    plan: '本次训练参数',
   } satisfies Record<keyof TrainingSessionSyncPayload, string>,
   habit: {
     date: '记录日期',
@@ -50,12 +58,13 @@ type SharedFields<Kind extends 'training' | 'habit' | 'toilet', Level extends 's
 
 export const friendDisclosureFields = {
   training: {
-    summary: { trainingDone: '当天是否完成应用记录目标（2 组，非医学标准）' } satisfies SharedFields<
+    summary: { trainingRecorded: '当天是否有训练记录（包括提前结束并保存的记录）' } satisfies SharedFields<
       'training',
       'summary'
     >,
     detailed: {
-      trainingDone: '当天是否完成应用记录目标（2 组，非医学标准）',
+      trainingRecorded: '当天是否有训练记录（包括提前结束并保存的记录）',
+      sessionCount: '训练记录数',
       completedSessionCount: '完成组数',
       completedRepetitions: '完成次数',
       totalDurationSeconds: '总训练时长',

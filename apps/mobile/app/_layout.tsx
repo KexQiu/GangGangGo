@@ -1,3 +1,4 @@
+import { useTrainingPreferencesStore } from '../src/features/training/trainingPreferencesStore';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -77,6 +78,7 @@ function RootStack() {
 
       await Promise.all([
         useTrainingStore.getState().hydrate(),
+        useTrainingPreferencesStore.getState().hydrate(),
         useToiletStore.getState().hydrate(),
         useHabitStore.getState().hydrate(),
         useReminderStore.getState().hydrate(),

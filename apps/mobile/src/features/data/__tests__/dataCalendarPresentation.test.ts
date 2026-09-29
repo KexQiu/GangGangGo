@@ -18,6 +18,7 @@ describe('data calendar presentation', () => {
   it('maps each activity marker and gives toilet attention the danger color', () => {
     const active = summary('2026-07-22');
     active.training.completedSessionCount = 2;
+    active.training.sessionCount = 3;
     active.habit.completionCount = 3;
     active.toilet.sessionCount = 1;
     active.toilet.attentionCount = 1;
@@ -29,7 +30,9 @@ describe('data calendar presentation', () => {
       { color: themeColors.dark.info, key: 'habit' },
       { color: themeColors.dark.danger, key: 'toilet' },
     ]);
-    expect(markedDates['2026-07-22']?.accessibilityLabel).toContain('训练 2 次，小账本 3 项，蹲会儿 1 次');
+    expect(markedDates['2026-07-22']?.accessibilityLabel).toContain(
+      '训练 3 条记录，完成 2 组，小账本 3 项，蹲会儿 1 次',
+    );
   });
 
   it('uses the warning color for a toilet record without an attention signal', () => {
@@ -83,6 +86,14 @@ function summary(date: string): DailyActivitySummary {
       signalCounts: {},
       totalDurationSeconds: 0,
     },
-    training: { completedRepetitions: 0, completedSessionCount: 0, totalDurationSeconds: 0 },
+    training: { completedRepetitions: 0, completedSessionCount: 0, sessionCount: 0, totalDurationSeconds: 0 },
   };
 }
+
+it('marks an interrupted saved record even when no complete group exists', () => {
+  const day = summary('2026-09-29');
+  day.training.sessionCount = 1;
+  expect(buildDataCalendarMarkedDates([day], themeColors.light)['2026-09-29']?.dots?.[0]?.color).toBe(
+    themeColors.light.primary,
+  );
+});

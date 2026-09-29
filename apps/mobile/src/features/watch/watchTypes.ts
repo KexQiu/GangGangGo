@@ -1,6 +1,6 @@
 import type { HabitKey, HabitLevel } from '../habits/habitTypes';
 import type { ToiletTimerStage } from '../toilet/toiletTypes';
-import type { TrainingPresetId } from '../training/trainingTypes';
+import type { TrainingPresetId, TrainingSession } from '../training/trainingTypes';
 
 export type WatchTrainingModeConfig = {
   holdSeconds: number;
@@ -12,7 +12,7 @@ export type WatchTrainingModeConfig = {
 export type WatchEventOwner = { userId: string; profileId: string };
 
 export type WatchTodayState = {
-  schemaVersion: 5;
+  schemaVersion: 6;
   revision: number;
   account: {
     isLoggedIn: boolean;
@@ -40,6 +40,7 @@ export type WatchTodayState = {
   };
   training: {
     completedSets: number;
+    target: 1 | 2 | null;
     done: boolean;
   };
   trainingModes: WatchTrainingModeConfig[];
@@ -49,19 +50,15 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion: 3;
+      schemaVersion: 4;
       owner: WatchEventOwner;
-      payload: {
-        completedSets: number;
-        durationSeconds: number;
-        mode: TrainingPresetId;
-      };
-      type: 'training_completed';
+      payload: { session: TrainingSession };
+      type: 'training_finished';
     }
   | {
       createdAt: string;
       id: string;
-      schemaVersion: 3;
+      schemaVersion: 4;
       owner: WatchEventOwner;
       payload: {
         habitKey: HabitKey;
@@ -72,7 +69,7 @@ export type WatchEvent =
   | {
       createdAt: string;
       id: string;
-      schemaVersion: 3;
+      schemaVersion: 4;
       owner: WatchEventOwner;
       payload: {
         action: 'finish' | 'pause' | 'resume';

@@ -10,6 +10,7 @@ import { describeDisclosureFields, syncDisclosureFields } from './dataDisclosure
 
 const recordKinds = [
   { title: '菊花抬', fields: syncDisclosureFields.training },
+  { title: '训练设置', fields: syncDisclosureFields.trainingPreferences },
   { title: '小账本', fields: syncDisclosureFields.habit },
   { title: '蹲会儿', fields: syncDisclosureFields.toilet },
   { title: '常用小信号', fields: syncDisclosureFields.signalPresets },
@@ -69,7 +70,7 @@ export function LoginSyncSheet({
       </Text>
       <View style={styles.section}>
         <Text style={styles.title}>上传哪些内容</Text>
-        <Text style={styles.body}>以下完整记录会上传至服务端，用于多设备同步和生成每日汇总。</Text>
+        <Text style={styles.body}>以下记录与设置会上传至服务端，用于多设备同步；记录用于生成每日汇总。</Text>
         <Text style={styles.body}>
           待补充草稿仅保存在本机；登录后归入所选账号，点“记好了”保存为正式记录后才会同步。
         </Text>
@@ -87,7 +88,7 @@ export function LoginSyncSheet({
         <Text style={styles.body}>
           本机同样按90天保留健康记录，启动时会清理当前资料中的超期记录。如需长期留存，请在到期前导出账号数据。
         </Text>
-        <Text style={styles.body}>仍在使用的常用小信号不随90天窗口过期，删除常用项时会同步删除。</Text>
+        <Text style={styles.body}>训练设置与仍在使用的常用小信号不随90天窗口过期，删除常用项时会同步删除。</Text>
       </View>
       <View style={styles.section}>
         <Text style={styles.title}>好友能看到什么</Text>

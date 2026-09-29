@@ -14,20 +14,33 @@ struct WatchProtocolFixtureMain {
   ]
 
   static func main() throws {
-    guard CommandLine.arguments.count == 2 else {
-      throw ValidationError("expected one fixture path")
+    guard CommandLine.arguments.count == 3 else {
+      throw ValidationError("expected state and training event fixture paths")
     }
 
     let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))
     let state = try JSONDecoder().decode(WatchTodayState.self, from: data)
-    guard state.schemaVersion == 5 else {
-      throw ValidationError("expected schemaVersion 5")
+    guard state.schemaVersion == 6 else {
+      throw ValidationError("expected schemaVersion 6")
     }
     guard state.habits.completion >= 0, state.habits.completion <= 4 else {
       throw ValidationError("habit completion is outside 0...4")
     }
     guard !state.trainingModes.isEmpty else {
       throw ValidationError("trainingModes must not be empty")
+    }
+
+    let eventData = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[2]))
+    let envelope = try JSONSerialization.jsonObject(with: eventData) as! [String: Any]
+    let event = envelope["event"] as! [String: Any]
+    let payload = event["payload"] as! [String: Any]
+    let recordData = try JSONSerialization.data(withJSONObject: payload["session"]!)
+    let record = try JSONDecoder().decode(WatchTrainingRecord.self, from: recordData)
+    guard event["schemaVersion"] as? Int == 4, record.id == event["id"] as? String,
+      record.completedRepetitions == 2, record.plan.repetitions == 4, !record.isCompleted,
+      record.feedback == "reported", record.endReason == "discomfort"
+    else {
+      throw ValidationError("training fixture does not preserve partial completion and feedback")
     }
 
     let json = try JSONSerialization.jsonObject(with: data)

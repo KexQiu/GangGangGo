@@ -346,6 +346,7 @@
                   "type": "string",
                   "enum": [
                     "training_session",
+                    "training_preferences",
                     "habit_checkin",
                     "toilet_session",
                     "toilet_signal_preset"
@@ -367,8 +368,48 @@
                           "type": "integer",
                           "minimum": 0
                         },
-                        "discomfortReported": {
-                          "type": "boolean"
+                        "feedback": {
+                          "type": "string",
+                          "enum": [
+                            "unanswered",
+                            "none",
+                            "reported"
+                          ]
+                        },
+                        "endReason": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "user_stopped",
+                            "discomfort",
+                            "interrupted"
+                          ]
+                        },
+                        "plan": {
+                          "type": "object",
+                          "properties": {
+                            "contractSeconds": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 5
+                            },
+                            "relaxSeconds": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 30
+                            },
+                            "repetitions": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 16
+                            }
+                          },
+                          "required": [
+                            "contractSeconds",
+                            "relaxSeconds",
+                            "repetitions"
+                          ],
+                          "additionalProperties": false
                         },
                         "durationSeconds": {
                           "type": "integer",
@@ -397,13 +438,137 @@
                       },
                       "required": [
                         "completedRepetitions",
-                        "discomfortReported",
+                        "feedback",
+                        "endReason",
+                        "plan",
                         "durationSeconds",
                         "endedAt",
                         "isCompleted",
                         "localDate",
                         "presetId",
                         "startedAt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "presets": {
+                          "type": "object",
+                          "properties": {
+                            "beginner": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "standard": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "quick": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "beginner",
+                            "standard",
+                            "quick"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "dailyTarget": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [
+                                2
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "onboardingSeen": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "presets",
+                        "dailyTarget",
+                        "onboardingSeen"
                       ],
                       "additionalProperties": false
                     },
@@ -639,6 +804,7 @@
                       "type": "string",
                       "enum": [
                         "training_session",
+                        "training_preferences",
                         "habit_checkin",
                         "toilet_session",
                         "toilet_signal_preset"
@@ -684,6 +850,7 @@
                       "type": "string",
                       "enum": [
                         "training_session",
+                        "training_preferences",
                         "habit_checkin",
                         "toilet_session",
                         "toilet_signal_preset"
@@ -709,8 +876,48 @@
                               "type": "integer",
                               "minimum": 0
                             },
-                            "discomfortReported": {
-                              "type": "boolean"
+                            "feedback": {
+                              "type": "string",
+                              "enum": [
+                                "unanswered",
+                                "none",
+                                "reported"
+                              ]
+                            },
+                            "endReason": {
+                              "type": "string",
+                              "enum": [
+                                "completed",
+                                "user_stopped",
+                                "discomfort",
+                                "interrupted"
+                              ]
+                            },
+                            "plan": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
                             },
                             "durationSeconds": {
                               "type": "integer",
@@ -739,13 +946,137 @@
                           },
                           "required": [
                             "completedRepetitions",
-                            "discomfortReported",
+                            "feedback",
+                            "endReason",
+                            "plan",
                             "durationSeconds",
                             "endedAt",
                             "isCompleted",
                             "localDate",
                             "presetId",
                             "startedAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "presets": {
+                              "type": "object",
+                              "properties": {
+                                "beginner": {
+                                  "type": "object",
+                                  "properties": {
+                                    "contractSeconds": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 5
+                                    },
+                                    "relaxSeconds": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 30
+                                    },
+                                    "repetitions": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    }
+                                  },
+                                  "required": [
+                                    "contractSeconds",
+                                    "relaxSeconds",
+                                    "repetitions"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "standard": {
+                                  "type": "object",
+                                  "properties": {
+                                    "contractSeconds": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 5
+                                    },
+                                    "relaxSeconds": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 30
+                                    },
+                                    "repetitions": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    }
+                                  },
+                                  "required": [
+                                    "contractSeconds",
+                                    "relaxSeconds",
+                                    "repetitions"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "quick": {
+                                  "type": "object",
+                                  "properties": {
+                                    "contractSeconds": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 5
+                                    },
+                                    "relaxSeconds": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 30
+                                    },
+                                    "repetitions": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    }
+                                  },
+                                  "required": [
+                                    "contractSeconds",
+                                    "relaxSeconds",
+                                    "repetitions"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "beginner",
+                                "standard",
+                                "quick"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "dailyTarget": {
+                              "anyOf": [
+                                {
+                                  "type": "number",
+                                  "enum": [
+                                    1
+                                  ]
+                                },
+                                {
+                                  "type": "number",
+                                  "enum": [
+                                    2
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "onboardingSeen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "presets",
+                            "dailyTarget",
+                            "onboardingSeen"
                           ],
                           "additionalProperties": false
                         },
@@ -969,6 +1300,7 @@
                   "type": "string",
                   "enum": [
                     "training_session",
+                    "training_preferences",
                     "habit_checkin",
                     "toilet_session",
                     "toilet_signal_preset"
@@ -990,8 +1322,48 @@
                           "type": "integer",
                           "minimum": 0
                         },
-                        "discomfortReported": {
-                          "type": "boolean"
+                        "feedback": {
+                          "type": "string",
+                          "enum": [
+                            "unanswered",
+                            "none",
+                            "reported"
+                          ]
+                        },
+                        "endReason": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "user_stopped",
+                            "discomfort",
+                            "interrupted"
+                          ]
+                        },
+                        "plan": {
+                          "type": "object",
+                          "properties": {
+                            "contractSeconds": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 5
+                            },
+                            "relaxSeconds": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 30
+                            },
+                            "repetitions": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 16
+                            }
+                          },
+                          "required": [
+                            "contractSeconds",
+                            "relaxSeconds",
+                            "repetitions"
+                          ],
+                          "additionalProperties": false
                         },
                         "durationSeconds": {
                           "type": "integer",
@@ -1020,13 +1392,137 @@
                       },
                       "required": [
                         "completedRepetitions",
-                        "discomfortReported",
+                        "feedback",
+                        "endReason",
+                        "plan",
                         "durationSeconds",
                         "endedAt",
                         "isCompleted",
                         "localDate",
                         "presetId",
                         "startedAt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "presets": {
+                          "type": "object",
+                          "properties": {
+                            "beginner": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "standard": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "quick": {
+                              "type": "object",
+                              "properties": {
+                                "contractSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                },
+                                "relaxSeconds": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 30
+                                },
+                                "repetitions": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [
+                                "contractSeconds",
+                                "relaxSeconds",
+                                "repetitions"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "beginner",
+                            "standard",
+                            "quick"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "dailyTarget": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [
+                                2
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "onboardingSeen": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "presets",
+                        "dailyTarget",
+                        "onboardingSeen"
                       ],
                       "additionalProperties": false
                     },
@@ -1378,6 +1874,13 @@
                   "type": "object",
                   "additionalProperties": {}
                 }
+              },
+              "trainingPreferences": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
               }
             },
             "required": [
@@ -1398,7 +1901,8 @@
               "subscriptions",
               "toiletSessions",
               "toiletSignalPresets",
-              "trainingSessions"
+              "trainingSessions",
+              "trainingPreferences"
             ],
             "additionalProperties": false
           },
@@ -1773,7 +2277,7 @@
               "null"
             ]
           },
-          "trainingDone": {
+          "trainingRecorded": {
             "type": [
               "boolean",
               "null"
@@ -1785,7 +2289,7 @@
           "habitCompletion",
           "streakDays",
           "toiletRecorded",
-          "trainingDone"
+          "trainingRecorded"
         ],
         "additionalProperties": false
       },
@@ -2561,13 +3065,13 @@
                       "summary"
                     ]
                   },
-                  "trainingDone": {
+                  "trainingRecorded": {
                     "type": "boolean"
                   }
                 },
                 "required": [
                   "level",
-                  "trainingDone"
+                  "trainingRecorded"
                 ],
                 "additionalProperties": false
               },
@@ -2582,6 +3086,10 @@
                     "type": "integer",
                     "minimum": 0
                   },
+                  "sessionCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
                   "level": {
                     "type": "string",
                     "enum": [
@@ -2592,16 +3100,17 @@
                     "type": "integer",
                     "minimum": 0
                   },
-                  "trainingDone": {
+                  "trainingRecorded": {
                     "type": "boolean"
                   }
                 },
                 "required": [
                   "completedRepetitions",
                   "completedSessionCount",
+                  "sessionCount",
                   "level",
                   "totalDurationSeconds",
-                  "trainingDone"
+                  "trainingRecorded"
                 ],
                 "additionalProperties": false
               }

@@ -66,6 +66,7 @@ describe('data trend presentation', () => {
     const recorded = summary('2026-07-22');
     recorded.training.completedRepetitions = 20;
     recorded.training.completedSessionCount = 1;
+    recorded.training.sessionCount = 1;
     recorded.training.totalDurationSeconds = 60;
 
     const model = buildDataTrendModel([empty, recorded], 7, 'training');
@@ -119,6 +120,13 @@ function summary(date: string): DailyActivitySummary {
       signalCounts: {},
       totalDurationSeconds: 0,
     },
-    training: { completedRepetitions: 0, completedSessionCount: 0, totalDurationSeconds: 0 },
+    training: { completedRepetitions: 0, completedSessionCount: 0, sessionCount: 0, totalDurationSeconds: 0 },
   };
 }
+
+it('keeps an immediately stopped saved record distinct from a missing day', () => {
+  const empty = summary('2026-09-28');
+  const stopped = summary('2026-09-29');
+  stopped.training.sessionCount = 1;
+  expect(buildDataTrendModel([empty, stopped], 7, 'training').points.map((point) => point.rawValue)).toEqual([null, 0]);
+});

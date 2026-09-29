@@ -1,6 +1,7 @@
+import trainingFixture from '../../../../fixtures/watch-training-event-v4.json';
 import { describe, expect, it } from 'vitest';
 
-import fixture from '../../../../fixtures/watch-today-state-v5.json';
+import fixture from '../../../../fixtures/watch-today-state-v6.json';
 import { summarizeWatchPayloadForDebug, summarizeWatchStateForDebug } from '../watchDebugStore';
 import { createInvalidWatchPayloadAck, extractWatchEvent } from '../watchMessageParser';
 import type { WatchTodayState } from '../watchTypes';
@@ -16,9 +17,9 @@ const forbiddenKeys = new Set([
   'token',
 ]);
 
-describe('Watch protocol v5 fixture', () => {
+describe('Watch protocol v6 fixture', () => {
   it('matches the TypeScript payload contract', () => {
-    expect(fixture.schemaVersion).toBe(5);
+    expect(fixture.schemaVersion).toBe(6);
     expect(fixture.canUseActions).toBe(true);
     expect(fixture.habits.completion).toBeGreaterThanOrEqual(0);
     expect(fixture.habits.completion).toBeLessThanOrEqual(4);
@@ -53,12 +54,12 @@ describe('Watch protocol v5 fixture', () => {
     expect(payloadSummary).toBe('habit_toggled · eventId=event-1');
     expect(payloadSummary).not.toContain(sensitiveValue);
     expect(summarizeWatchPayloadForDebug(sensitiveValue)).toBe('type=invalid');
-    expect(stateSummary).toContain('schema=5');
+    expect(stateSummary).toContain('schema=6');
     expect(stateSummary).toContain('actions=on');
     expect(stateSummary).not.toContain(JSON.stringify(fixture.toilet));
   });
 
-  it('accepts schema v3 events and rejects unknown schema with an error ACK', () => {
+  it('accepts schema v4 events and rejects unknown schema with an error ACK', () => {
     const validEvent = {
       createdAt: '2026-07-13T10:00:00Z',
       id: 'event-v2',
@@ -66,7 +67,7 @@ describe('Watch protocol v5 fixture', () => {
         habitKey: 'water',
         level: 'good',
       },
-      schemaVersion: 3,
+      schemaVersion: 4,
       owner: { userId: 'user-A', profileId: 'profile-A' },
       type: 'habit_toggled',
     };
@@ -97,10 +98,10 @@ describe('Watch protocol v5 fixture', () => {
       type: 'watch_event',
       event: {
         id: 'invalid-event',
-        schemaVersion: 3,
+        schemaVersion: 4,
         createdAt: '2026-09-28T00:00:00Z',
         owner: { userId: 'A', profileId: 'profile-A' },
-        type: 'training_completed',
+        type: 'training_finished',
         payload: { mode: 'standard', completedSets: 1, durationSeconds: 60 },
         ...invalid,
       },
@@ -114,7 +115,7 @@ describe('Watch protocol v5 fixture', () => {
       extractWatchEvent({
         type: 'watch_event',
         event: {
-          schemaVersion: 3,
+          schemaVersion: 4,
           id: 'clear-water',
           createdAt: '2026-09-28T00:00:00Z',
           owner: { userId: 'A', profileId: 'profile-A' },
@@ -137,3 +138,16 @@ function findForbiddenKeys(value: unknown, path = '$'): string[] {
     ...findForbiddenKeys(child, `${path}.${key}`),
   ]);
 }
+
+it('reads the shared v4 partial-training fixture without treating a set as a repetition', () => {
+  expect(extractWatchEvent(trainingFixture)).toEqual(trainingFixture.event);
+  const invalid = structuredClone(trainingFixture);
+  invalid.event.payload.session.plan.contractSeconds = 4;
+  expect(extractWatchEvent(invalid)).toBeNull();
+  const mismatched = structuredClone(trainingFixture);
+  mismatched.event.payload.session.id = 'watch-other';
+  expect(extractWatchEvent(mismatched)).toBeNull();
+  const wrongCompletion = structuredClone(trainingFixture);
+  wrongCompletion.event.payload.session.isCompleted = true;
+  expect(extractWatchEvent(wrongCompletion)).toBeNull();
+});

@@ -27,7 +27,7 @@ export function buildDataCalendarMarkedDates(
       selectedTextColor: colors.text,
       dots: [
         {
-          color: summary.training.completedSessionCount > 0 ? colors.primary : colors.border,
+          color: summary.training.sessionCount > 0 ? colors.primary : colors.border,
           key: 'training',
         },
         {
@@ -64,7 +64,7 @@ export function getDataCalendarRange(summaries: DailyActivitySummary[], today: s
 
 function buildAccessibilityLabel(summary: DailyActivitySummary) {
   const [year, month, day] = summary.date.split('-');
-  return `${Number(year)} 年 ${Number(month)} 月 ${Number(day)} 日，训练 ${summary.training.completedSessionCount} 次，小账本 ${summary.habit.completionCount} 项，蹲会儿 ${summary.toilet.sessionCount} 次，查看详情`;
+  return `${Number(year)} 年 ${Number(month)} 月 ${Number(day)} 日，训练 ${summary.training.sessionCount} 条记录，完成 ${summary.training.completedSessionCount} 组，小账本 ${summary.habit.completionCount} 项，蹲会儿 ${summary.toilet.sessionCount} 次，查看详情`;
 }
 
 function monthOrdinal(monthKey: string) {

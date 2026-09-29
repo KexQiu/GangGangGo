@@ -525,13 +525,13 @@ function TodayMetric({
 
 function todayTrainingValue(day: FriendSharedDay) {
   if (day.training.level === 'none') return '未授权';
-  if (day.training.level === 'summary') return day.training.trainingDone ? '记录目标完成' : '记录目标未完成';
-  return `${day.training.completedSessionCount} 次`;
+  if (day.training.level === 'summary') return day.training.trainingRecorded ? '已记录' : '未记录';
+  return `${day.training.sessionCount} 条记录`;
 }
 
 function todayTrainingDetail(day: FriendSharedDay) {
   if (day.training.level === 'none') return '等待 TA 授权';
-  if (day.training.level === 'summary') return '应用记录目标：每天 2 组，非医学标准';
+  if (day.training.level === 'summary') return '包含提前结束并保存的训练，不代表医学达标';
   return `${day.training.completedRepetitions} 下`;
 }
 

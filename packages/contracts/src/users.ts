@@ -136,6 +136,7 @@ export const accountDataExportSchema = z
         toiletSessions: accountDataRowsSchema,
         toiletSignalPresets: accountDataRowsSchema,
         trainingSessions: accountDataRowsSchema,
+        trainingPreferences: accountDataRowsSchema,
       })
       .strict(),
     exportedAt: z.string().datetime({ offset: true }),

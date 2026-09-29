@@ -15,7 +15,6 @@ export const friendLimit = 20;
 export const inviteTtlMs = 7 * 24 * 60 * 60 * 1000;
 export const nudgeTtlMs = 24 * 60 * 60 * 1000;
 export const ackRevisionWindowMs = 30 * 60 * 1000;
-export const trainingTarget = 2;
 const defaultTimezone = 'Asia/Shanghai';
 
 export const nudgeMessages: Record<CreateFriendNudgeRequest['type'], string> = {
@@ -194,7 +193,7 @@ export function emptySummary(date: string): DailyActivitySummary {
       signalCounts: {},
       totalDurationSeconds: 0,
     },
-    training: { completedRepetitions: 0, completedSessionCount: 0, totalDurationSeconds: 0 },
+    training: { completedRepetitions: 0, completedSessionCount: 0, sessionCount: 0, totalDurationSeconds: 0 },
   };
 }
 
@@ -203,7 +202,7 @@ export function projectDay(
   settings: FriendSettings,
   streakDays: number,
 ): FriendSharedDay {
-  const trainingDone = summary.training.completedSessionCount >= trainingTarget;
+  const trainingRecorded = summary.training.sessionCount > 0;
   const toiletRecorded = summary.toilet.sessionCount > 0;
   return {
     date: summary.date,
@@ -223,7 +222,7 @@ export function projectDay(
       settings.trainingLevel === 'none'
         ? { level: 'none' }
         : settings.trainingLevel === 'summary'
-          ? { level: 'summary', trainingDone }
-          : { ...summary.training, level: 'detailed', trainingDone },
+          ? { level: 'summary', trainingRecorded }
+          : { ...summary.training, level: 'detailed', trainingRecorded },
   };
 }

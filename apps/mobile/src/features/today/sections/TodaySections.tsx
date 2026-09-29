@@ -66,20 +66,22 @@ export function ToiletPriorityCard({ onPress }: ToiletPriorityCardProps) {
 }
 
 type TrainingQuickStartCardProps = {
+  recordCount: number;
   completedCount: number;
   onPress: () => void;
-  target: number;
+  target: number | null;
 };
 
-export function TrainingQuickStartCard({ completedCount, onPress, target }: TrainingQuickStartCardProps) {
+export function TrainingQuickStartCard({ completedCount, recordCount, onPress, target }: TrainingQuickStartCardProps) {
   const { colors } = useAppTheme();
   const styles = createStyles(colors);
-  const isComplete = completedCount >= target;
+  const isComplete = target !== null && completedCount >= target;
+  const progressLabel = target === null ? `今日记录 ${recordCount} 条` : `${completedCount}/${target}`;
 
   return (
     <PressableScale
       accessibilityHint="查看训练节奏并开始菊花抬。"
-      accessibilityLabel={`菊花抬，今日 ${Math.min(completedCount, target)}/${target}`}
+      accessibilityLabel={`菊花抬，${progressLabel}`}
       onPress={onPress}
       style={styles.trainingQuickCard}
     >
@@ -88,10 +90,7 @@ export function TrainingQuickStartCard({ completedCount, onPress, target }: Trai
       </View>
       <View style={styles.rowCopy}>
         <Text style={styles.rowTitle}>
-          菊花抬{' '}
-          <Text style={styles.trainingProgress}>
-            {Math.min(completedCount, target)}/{target}
-          </Text>
+          菊花抬 <Text style={styles.trainingProgress}>{progressLabel}</Text>
         </Text>
         <Text style={styles.trainingDescription}>
           {isComplete ? '今日记录目标已完成，不必为凑次数加练。' : '先确认是否适合练习，记录目标不代表医学建议量。'}

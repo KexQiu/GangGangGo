@@ -75,13 +75,14 @@ export function FriendDataDetailModal({ day, onClose }: Props) {
               <LockedState />
             ) : displayedDay.training.level === 'summary' ? (
               <Text style={styles.summaryCopy}>
-                {displayedDay.training.trainingDone
-                  ? '今天已完成应用记录目标（2 组），不代表医学达标。'
-                  : '今天尚未记满应用目标（2 组），不代表需要加练。'}
+                {displayedDay.training.trainingRecorded
+                  ? '今天已有训练记录，包含提前结束并保存的记录。'
+                  : '今天暂无训练记录，不代表需要加练。'}
               </Text>
             ) : (
               <View style={styles.metricRow}>
-                <Metric label="完成课程" value={`${displayedDay.training.completedSessionCount} 次`} />
+                <Metric label="记录数" value={`${displayedDay.training.sessionCount} 条`} />
+                <Metric label="完整组数" value={`${displayedDay.training.completedSessionCount} 组`} />
                 <Metric label="完成动作" value={`${displayedDay.training.completedRepetitions} 下`} />
                 <Metric label="训练时长" value={formatMinutes(displayedDay.training.totalDurationSeconds)} />
               </View>
@@ -300,8 +301,8 @@ function countEntries(counts: Record<string, number>, labels: Record<string, str
 
 function trainingOverview(day: FriendSharedDay) {
   if (day.training.level === 'none') return '未授权';
-  if (day.training.level === 'summary') return day.training.trainingDone ? '记录目标完成' : '记录目标未完成';
-  return `${day.training.completedSessionCount} 次`;
+  if (day.training.level === 'summary') return day.training.trainingRecorded ? '已记录' : '未记录';
+  return `${day.training.sessionCount} 条记录`;
 }
 
 function habitOverview(day: FriendSharedDay) {

@@ -71,7 +71,7 @@ export function createMockFriendService(
         habitCompletion: settings.habitLevel === 'none' ? null : 0,
         streakDays: settings.habitLevel === 'none' ? null : 0,
         toiletRecorded: settings.toiletLevel === 'none' ? null : false,
-        trainingDone: settings.trainingLevel === 'none' ? null : false,
+        trainingRecorded: settings.trainingLevel === 'none' ? null : false,
       },
       friend,
       friendshipId: row.id,

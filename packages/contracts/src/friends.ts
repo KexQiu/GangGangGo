@@ -93,7 +93,7 @@ export const friendDataPreviewSchema = z
     habitCompletion: z.number().int().min(0).max(4).nullable(),
     streakDays: z.number().int().min(0).nullable(),
     toiletRecorded: z.boolean().nullable(),
-    trainingDone: z.boolean().nullable(),
+    trainingRecorded: z.boolean().nullable(),
   })
   .strict()
   .meta({ id: 'FriendDataPreview' });
@@ -148,14 +148,15 @@ export const friendInvitePreviewResponseSchema = z
 export type FriendInvitePreviewResponse = z.infer<typeof friendInvitePreviewResponseSchema>;
 
 const hiddenTrainingSchema = z.object({ level: z.literal('none') }).strict();
-const summaryTrainingSchema = z.object({ level: z.literal('summary'), trainingDone: z.boolean() }).strict();
+const summaryTrainingSchema = z.object({ level: z.literal('summary'), trainingRecorded: z.boolean() }).strict();
 const detailedTrainingSchema = z
   .object({
     completedRepetitions: z.number().int().min(0),
     completedSessionCount: z.number().int().min(0),
+    sessionCount: z.number().int().min(0),
     level: z.literal('detailed'),
     totalDurationSeconds: z.number().int().min(0),
-    trainingDone: z.boolean(),
+    trainingRecorded: z.boolean(),
   })
   .strict();
 export const friendTrainingDataSchema = z.discriminatedUnion('level', [

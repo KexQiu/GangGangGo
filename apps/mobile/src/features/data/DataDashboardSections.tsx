@@ -1,3 +1,4 @@
+import { formatTrainingEndReason } from '../training/trainingLogic';
 import type { DailyActivitySummary } from '@xiaotidu/contracts';
 import { ClipboardList } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -62,7 +63,7 @@ export function TodayDataOverview({
         <Metric
           label="菊花抬"
           onPress={() => onOpenDetails('training')}
-          value={`${summary.training.completedSessionCount} 次`}
+          value={`${summary.training.sessionCount} 条记录`}
         />
         <Metric label="小账本" onPress={() => onOpenDetails('habit')} value={`${summary.habit.completionCount}/4 项`} />
       </View>
@@ -479,7 +480,7 @@ export function DailyDataDetailModal({
                 <DetailSummaryMetric
                   color={colors.primary}
                   label="菊花抬"
-                  value={`${details.summary.training.completedSessionCount} 次`}
+                  value={`${details.summary.training.sessionCount} 条记录`}
                 />
                 <DetailSummaryMetric
                   color={colors.info}
@@ -603,7 +604,14 @@ function TrainingDetails({ details }: { details: DailyDataDetails }) {
             <Text style={styles.trainingSessionMeta}>
               {session.completedRepetitions} 次 · {formatDuration(session.durationSeconds)}
             </Text>
-            {session.discomfortReported ? <Text style={styles.trainingDiscomfort}>训练时记录了不适</Text> : null}
+            <Text style={styles.trainingDiscomfort}>
+              {formatTrainingEndReason(session.endReason)} ·{' '}
+              {session.feedback === 'reported' ? '有不适反馈' : session.feedback === 'none' ? '无不适反馈' : '未反馈'}
+            </Text>
+            <Text style={styles.trainingDiscomfort}>
+              收缩 {session.plan.contractSeconds} 秒 · 放松 {session.plan.relaxSeconds} 秒 · 计划{' '}
+              {session.plan.repetitions} 次
+            </Text>
           </View>
         ))
       )}

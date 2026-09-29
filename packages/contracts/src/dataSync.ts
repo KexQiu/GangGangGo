@@ -1,16 +1,24 @@
 import { z } from 'zod';
 
 import { isoDateSchema, isoDateTimeSchema } from './common.js';
+import {
+  trainingPresetIdSchema,
+  trainingParametersSchema,
+  trainingFeedbackSchema,
+  trainingEndReasonSchema,
+  trainingPreferencesSchema,
+  validTrainingParameters,
+} from './training.js';
 
 export const dataSyncEntityTypeSchema = z.enum([
   'training_session',
+  'training_preferences',
   'habit_checkin',
   'toilet_session',
   'toilet_signal_preset',
 ]);
 export type DataSyncEntityType = z.infer<typeof dataSyncEntityTypeSchema>;
 
-const trainingPresetIdSchema = z.enum(['beginner', 'standard', 'quick']);
 const habitLevelSchema = z.enum(['low', 'medium', 'good']);
 export const bowelStatusSchema = z.enum(['low', 'medium', 'good', 'not_today']);
 const toiletFeelingSchema = z.enum(['smooth', 'normal', 'difficult']);
@@ -21,7 +29,9 @@ const toiletSignalSchema = z.object({ id: z.string().min(1).max(100), label: z.s
 export const trainingSessionSyncPayloadSchema = z
   .object({
     completedRepetitions: z.number().int().min(0),
-    discomfortReported: z.boolean(),
+    feedback: trainingFeedbackSchema,
+    endReason: trainingEndReasonSchema,
+    plan: trainingParametersSchema,
     durationSeconds: z.number().int().min(0),
     endedAt: isoDateTimeSchema,
     isCompleted: z.boolean(),
@@ -29,7 +39,16 @@ export const trainingSessionSyncPayloadSchema = z
     presetId: trainingPresetIdSchema,
     startedAt: isoDateTimeSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((session, context) => {
+    if (
+      !validTrainingParameters(session.presetId, session.plan) ||
+      session.completedRepetitions > session.plan.repetitions ||
+      (session.endReason === 'completed' && !session.isCompleted)
+    ) {
+      context.addIssue({ code: 'custom', message: 'Invalid training session.' });
+    }
+  });
 export type TrainingSessionSyncPayload = z.infer<typeof trainingSessionSyncPayloadSchema>;
 
 export const habitCheckInSyncPayloadSchema = z
@@ -69,6 +88,7 @@ export type ToiletSignalPresetSyncPayload = z.infer<typeof toiletSignalPresetSyn
 
 export const dataSyncPayloadSchema = z.union([
   trainingSessionSyncPayloadSchema,
+  trainingPreferencesSchema,
   habitCheckInSyncPayloadSchema,
   toiletSessionSyncPayloadSchema,
   toiletSignalPresetSyncPayloadSchema,
@@ -88,12 +108,18 @@ export const dataSyncMutationSchema = z
     mutationBaseSchema.extend({ operation: z.literal('upsert'), payload: dataSyncPayloadSchema }).strict(),
   ])
   .superRefine((mutation, context) => {
+    if (
+      mutation.entityType === 'training_preferences' &&
+      (mutation.entityId !== 'preferences' || mutation.operation !== 'upsert')
+    )
+      context.addIssue({ code: 'custom', message: 'Training preferences require the singleton upsert.' });
     if (mutation.operation !== 'upsert') return;
     const payloadSchemas = {
       habit_checkin: habitCheckInSyncPayloadSchema,
       toilet_session: toiletSessionSyncPayloadSchema,
       toilet_signal_preset: toiletSignalPresetSyncPayloadSchema,
       training_session: trainingSessionSyncPayloadSchema,
+      training_preferences: trainingPreferencesSchema,
     } as const;
     if (!payloadSchemas[mutation.entityType].safeParse(mutation.payload).success) {
       context.addIssue({ code: 'custom', message: 'Payload does not match entity type.', path: ['payload'] });
@@ -168,6 +194,7 @@ export const dailyActivitySummarySchema = z
       .object({
         completedRepetitions: z.number().int().min(0),
         completedSessionCount: z.number().int().min(0),
+        sessionCount: z.number().int().min(0),
         totalDurationSeconds: z.number().int().min(0),
       })
       .strict(),

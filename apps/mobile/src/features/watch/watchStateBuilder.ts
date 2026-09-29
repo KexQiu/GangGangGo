@@ -1,3 +1,4 @@
+import { useTrainingPreferencesStore } from '../training/trainingPreferencesStore';
 import { authSessionContext } from '../../api/sessionContext';
 import { canAccessFeature } from '../account/accountModel';
 import { getCachedCurrentUser, getCachedEntitlements } from '../account/accountQueryService';
@@ -12,10 +13,10 @@ import { getTodayCompletedTrainingCount, useTrainingStore } from '../training/tr
 import { type WatchTodayState } from './watchTypes';
 import { nextWatchStateRevision } from './watchStateRevision';
 
-const trainingTarget = 2;
-
 export function buildWatchTodayState(now = new Date()): WatchTodayState {
   const date = getLocalDateKey(now);
+  const preferences = useTrainingPreferencesStore.getState().preferences;
+  const trainingTarget = preferences.dailyTarget;
   const auth = useAuthStore.getState();
   const user = getCachedCurrentUser();
   const entitlements = getCachedEntitlements();
@@ -28,14 +29,15 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
   const toiletSessionCount = getTodayToiletSessionCount(toiletSessions, now);
   const owner = authSessionContext.current();
   const isLoggedIn = Boolean(auth.accessToken && user && owner?.userId === user.id);
-  const canUseActions = isLoggedIn && canAccessFeature(entitlements, 'watchActions');
+  const canUseActions =
+    isLoggedIn && useTrainingPreferencesStore.getState().hasHydrated && canAccessFeature(entitlements, 'watchActions');
   const elapsedSeconds = getActiveToiletTimerElapsedSeconds(toiletSession, now);
   const ownsTimer =
     toiletSession?.owner?.userId === owner?.userId && toiletSession?.owner?.profileId === owner?.profileId;
   const isRunning = canUseActions && Boolean(toiletSession) && ownsTimer;
 
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     revision: nextWatchStateRevision(),
     account: {
       isLoggedIn,
@@ -63,13 +65,14 @@ export function buildWatchTodayState(now = new Date()): WatchTodayState {
     },
     training: {
       completedSets,
-      done: completedSets >= trainingTarget,
+      target: trainingTarget,
+      done: trainingTarget !== null && completedSets >= trainingTarget,
     },
     trainingModes: trainingPresets.map((preset) => ({
-      holdSeconds: preset.contractSeconds,
+      holdSeconds: preferences.presets[preset.id].contractSeconds,
       id: preset.id,
-      restSeconds: preset.relaxSeconds,
-      rounds: preset.repetitions,
+      restSeconds: preferences.presets[preset.id].relaxSeconds,
+      rounds: preferences.presets[preset.id].repetitions,
     })),
   };
 }

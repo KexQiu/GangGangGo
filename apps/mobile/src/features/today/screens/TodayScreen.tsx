@@ -6,13 +6,18 @@ import { Screen } from '../../../components/Screen';
 import { HabitQuickCheckInCard } from '../../../features/habits/HabitQuickCheckInCard';
 import { hasAnyReminderEnabled } from '../../../features/reminders/reminderLogic';
 import { useReminderStore } from '../../../features/reminders/reminderStore';
-import { getTodayCompletedTrainingCount, useTrainingStore } from '../../../features/training/trainingStore';
+import {
+  getTodayCompletedTrainingCount,
+  getTodayTrainingRecordCount,
+  useTrainingStore,
+} from '../../../features/training/trainingStore';
 import { routes } from '../../../navigation/routes';
 
-const trainingTarget = 2;
+import { useTrainingPreferencesStore } from '../../training/trainingPreferencesStore';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const trainingTarget = useTrainingPreferencesStore((state) => state.preferences.dailyTarget);
   const reminderSettings = useReminderStore((state) => state.settings);
   const trainingSessions = useTrainingStore((state) => state.sessions);
   const todayTrainingCount = getTodayCompletedTrainingCount(trainingSessions);
@@ -28,6 +33,7 @@ export default function HomeScreen() {
 
       <TrainingQuickStartCard
         completedCount={todayTrainingCount}
+        recordCount={getTodayTrainingRecordCount(trainingSessions)}
         onPress={() => router.push(routes.training)}
         target={trainingTarget}
       />

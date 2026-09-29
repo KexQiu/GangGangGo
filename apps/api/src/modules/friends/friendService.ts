@@ -48,7 +48,6 @@ import {
   parseEventCursor,
   projectDay,
   settingsKey,
-  trainingTarget,
 } from './friend.policy.js';
 import type { FriendService } from './friend.types.js';
 
@@ -173,8 +172,7 @@ export function createDrizzleFriendService(
           streakDays:
             grantedToMe.habitLevel === 'none' ? null : calculateHabitStreak(summaryByUserDate, friendUserId, today),
           toiletRecorded: grantedToMe.toiletLevel === 'none' ? null : summary.toilet.sessionCount > 0,
-          trainingDone:
-            grantedToMe.trainingLevel === 'none' ? null : summary.training.completedSessionCount >= trainingTarget,
+          trainingRecorded: grantedToMe.trainingLevel === 'none' ? null : summary.training.sessionCount > 0,
         },
         friend,
         friendshipId: friendship.id,

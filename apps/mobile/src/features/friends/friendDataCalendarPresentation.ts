@@ -56,7 +56,7 @@ export function getFriendCalendarRange(days: FriendSharedDay[]): FriendCalendarR
 
 function trainingColor(day: FriendSharedDay, colors: ThemeColors) {
   if (day.training.level === 'none') return colors.border;
-  return day.training.trainingDone ? colors.primary : colors.textSubtle;
+  return day.training.trainingRecorded ? colors.primary : colors.textSubtle;
 }
 
 function habitColor(day: FriendSharedDay, colors: ThemeColors) {
@@ -77,7 +77,7 @@ function buildAccessibilityLabel(day: FriendSharedDay) {
 
 function trainingLabel(day: FriendSharedDay) {
   if (day.training.level === 'none') return '菊花抬未授权';
-  return day.training.trainingDone ? '菊花抬记录目标已完成' : '菊花抬记录目标未完成';
+  return day.training.trainingRecorded ? '菊花抬已记录' : '菊花抬未记录';
 }
 
 function habitLabel(day: FriendSharedDay) {

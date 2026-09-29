@@ -1,10 +1,17 @@
+import { createDefaultTrainingPreferences } from '@xiaotidu/contracts';
 import { randomUUID } from 'node:crypto';
 
 import { and, eq, lt } from 'drizzle-orm';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 
 import type { DatabaseClient } from '../db/client.js';
-import { authSessions, growthEvents, pushTokens, syncedTrainingSessions } from '../db/schema.js';
+import {
+  authSessions,
+  growthEvents,
+  pushTokens,
+  syncedTrainingPreferences,
+  syncedTrainingSessions,
+} from '../db/schema.js';
 import { purgeExpiredData } from '../modules/storage/retentionService.js';
 import { createDrizzleAccountDataService } from '../modules/users/accountDataService.js';
 import { createDrizzleUserRepository } from '../modules/users/userRepository.js';
@@ -50,20 +57,24 @@ describeWithDatabase('postgres account and retention integration', () => {
     await client.db.insert(syncedTrainingSessions).values([
       {
         completedRepetitions: 5,
-        discomfortReported: false,
+        feedback: 'unanswered' as const,
+        endReason: 'completed' as const,
+        plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
         durationSeconds: 60,
         endedAt: now,
         expiresAt: expiredAt,
         isCompleted: true,
         localDate: now.toISOString().slice(0, 10),
-        presetId: 'quick',
+        presetId: 'standard',
         recordId: `expired-${randomUUID()}`,
         startedAt: new Date(now.getTime() - 60_000),
         userId: user.id,
       },
       {
         completedRepetitions: 8,
-        discomfortReported: false,
+        feedback: 'unanswered' as const,
+        endReason: 'completed' as const,
+        plan: { contractSeconds: 5, relaxSeconds: 5, repetitions: 12 },
         durationSeconds: 90,
         endedAt: now,
         expiresAt: currentExpiry,
@@ -104,7 +115,13 @@ describeWithDatabase('postgres account and retention integration', () => {
     });
 
     const accountService = createDrizzleAccountDataService(client.db);
+    const preferences = createDefaultTrainingPreferences();
+    preferences.dailyTarget = 1;
+    await client.db
+      .insert(syncedTrainingPreferences)
+      .values({ userId: user.id, recordId: 'preferences', value: preferences, updatedAt: oldGrowthReceivedAt });
     const exported = await accountService.exportAccountData(user);
+    expect(exported.data.trainingPreferences).toMatchObject([{ value: preferences }]);
     expect(exported.data.trainingSessions).toHaveLength(2);
     expect(exported.data.growthEvents).toHaveLength(2);
     expect(exported.data.pushRegistrations).toHaveLength(1);
@@ -123,9 +140,13 @@ describeWithDatabase('postgres account and retention integration', () => {
 
     const afterPurge = await accountService.exportAccountData(user);
     expect(afterPurge.data.trainingSessions).toHaveLength(1);
+    expect(afterPurge.data.trainingPreferences).toMatchObject([{ value: preferences }]);
     expect(afterPurge.data.growthEvents).toHaveLength(1);
 
     await accountService.deleteAccount(user.id);
+    expect(
+      await client.db.select().from(syncedTrainingPreferences).where(eq(syncedTrainingPreferences.userId, user.id)),
+    ).toHaveLength(0);
     expect(await createDrizzleUserRepository(client.db).findById(user.id)).toBeNull();
     expect(await client.db.select().from(growthEvents).where(eq(growthEvents.userId, user.id))).toEqual([]);
   });

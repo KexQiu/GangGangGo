@@ -51,6 +51,7 @@ struct WatchTodayState: Codable, Equatable {
   struct Training: Codable, Equatable {
     var completedSets: Int
     var done: Bool
+    var target: Int? = nil
   }
 
   struct TrainingModeConfig: Codable, Equatable {
@@ -69,10 +70,17 @@ struct WatchTodayState: Codable, Equatable {
     init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
 
-      id = try container.decodeIfPresent(String.self, forKey: .id) ?? "standard"
-      holdSeconds = max(try container.decodeIfPresent(Int.self, forKey: .holdSeconds) ?? 5, 1)
-      restSeconds = max(try container.decodeIfPresent(Int.self, forKey: .restSeconds) ?? 5, 1)
-      rounds = max(try container.decodeIfPresent(Int.self, forKey: .rounds) ?? 12, 1)
+      id = try container.decode(String.self, forKey: .id)
+      holdSeconds = try container.decode(Int.self, forKey: .holdSeconds)
+      restSeconds = try container.decode(Int.self, forKey: .restSeconds)
+      rounds = try container.decode(Int.self, forKey: .rounds)
+      guard let base = Self.fallbackModes.first(where: { $0.id == id }),
+        (1...base.holdSeconds).contains(holdSeconds),
+        (base.restSeconds...30).contains(restSeconds), (1...base.rounds).contains(rounds)
+      else {
+        throw DecodingError.dataCorruptedError(
+          forKey: .id, in: container, debugDescription: "Invalid training parameters")
+      }
     }
 
     static let fallbackModes = [
@@ -101,7 +109,7 @@ struct WatchTodayState: Codable, Equatable {
     generatedAt: String,
     habits: Habits,
     pendingEventCount: Int,
-    schemaVersion: Int = 5,
+    schemaVersion: Int = 6,
     revision: Int = 0,
     toilet: Toilet,
     training: Training,
@@ -131,7 +139,7 @@ struct WatchTodayState: Codable, Equatable {
     pendingEventCount = try container.decodeIfPresent(Int.self, forKey: .pendingEventCount) ?? 0
     canUseActions = try container.decode(Bool.self, forKey: .canUseActions)
     schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
-    guard schemaVersion == 5, revision >= 0 else {
+    guard schemaVersion == 6, revision >= 0 else {
       throw DecodingError.dataCorruptedError(
         forKey: .schemaVersion, in: container, debugDescription: "Unsupported Watch state version")
     }
@@ -142,13 +150,15 @@ struct WatchTodayState: Codable, Equatable {
     toilet = try container.decode(Toilet.self, forKey: .toilet)
     training = try container.decode(Training.self, forKey: .training)
 
-    if let decodedModes = try container.decodeIfPresent(
-      [TrainingModeConfig].self, forKey: .trainingModes), !decodedModes.isEmpty
-    {
-      trainingModes = decodedModes
-    } else {
-      trainingModes = TrainingModeConfig.fallbackModes
+    trainingModes = try container.decode([TrainingModeConfig].self, forKey: .trainingModes)
+    guard Set(trainingModes.map(\.id)) == Set(["beginner", "standard", "quick"]),
+      trainingModes.count == 3
+    else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .trainingModes, in: container,
+        debugDescription: "Expected three current training modes")
     }
+
   }
 
   static let placeholder = WatchTodayState(
@@ -302,4 +312,22 @@ extension WatchTodayState {
 
     return .normal
   }
+}
+
+struct WatchTrainingParameters: Codable, Equatable, Sendable {
+  var contractSeconds: Int
+  var relaxSeconds: Int
+  var repetitions: Int
+}
+struct WatchTrainingRecord: Codable, Equatable, Sendable {
+  var id: String
+  var presetId: String
+  var plan: WatchTrainingParameters
+  var startedAt: String
+  var endedAt: String
+  var durationSeconds: Int
+  var completedRepetitions: Int
+  var isCompleted: Bool
+  var feedback: String
+  var endReason: String
 }

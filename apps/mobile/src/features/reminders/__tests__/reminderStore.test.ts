@@ -81,3 +81,18 @@ it('allows hydration retry without overwriting settings after a read failure', a
   await useReminderStore.getState().hydrate();
   expect(useReminderStore.getState().hasHydrated).toBe(true);
 });
+
+it('keeps training reminders disabled with their original times after schedule refresh and hydration', async () => {
+  await useReminderStore.getState().updateSettings({ kegelEnabled: true, kegelTimes: ['10:00', '19:30'] });
+  const refreshing = useReminderStore.getState().syncSchedule();
+  const stopping = useReminderStore.getState().updateSettings({ kegelEnabled: false });
+  await Promise.all([refreshing, stopping]);
+  const saved = useReminderStore.getState().settings;
+  expect(saved).toMatchObject({ kegelEnabled: false, kegelTimes: ['10:00', '19:30'] });
+  mocks.read.mockResolvedValue(saved);
+  mocks.sync.mockClear();
+  useReminderStore.setState({ hasHydrated: false });
+  await useReminderStore.getState().hydrate();
+  await useReminderStore.getState().syncSchedule();
+  expect(mocks.sync.mock.calls.every(([configuration]) => !configuration.kegelEnabled)).toBe(true);
+});
